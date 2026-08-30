@@ -14,7 +14,7 @@ import { ASSIGNMENT_STATE_PILL } from "./state-pill";
 
 function Stat({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="rounded-2xl border border-outline-variant bg-surface px-4 py-3">
+    <div className="rounded-xl border border-outline-variant bg-surface px-4 py-3">
       <p className="type-caption text-on-surface-variant">{label}</p>
       <p className="type-title text-on-surface">{value}</p>
     </div>
@@ -29,9 +29,7 @@ function StudentRow({ student }: { student: StudentAssignmentResult }) {
         <p className="font-semibold text-on-surface">{student.displayName}</p>
         {student.email ? <p className="text-xs text-on-surface-variant">{student.email}</p> : null}
       </td>
-      <td className="px-3 py-2 text-center font-bold text-on-surface">
-        {bandText(student.overallBand)}
-      </td>
+      <td className="px-3 py-2 text-center font-bold text-on-surface">{bandText(student.overallBand)}</td>
       <td className="px-3 py-2 text-center text-on-surface-variant">{bandText(student.listeningBand)}</td>
       <td className="px-3 py-2 text-center text-on-surface-variant">{bandText(student.readingBand)}</td>
       <td className="px-3 py-2 text-center text-on-surface-variant">{bandText(student.writingBand)}</td>
@@ -47,13 +45,7 @@ function StudentRow({ student }: { student: StudentAssignmentResult }) {
   );
 }
 
-export function IeltsAssignmentResultsView({
-  clubId,
-  results,
-}: {
-  clubId: string;
-  results: AssignmentResults;
-}) {
+export function IeltsAssignmentResultsView({ clubId, results }: { clubId: string; results: AssignmentResults }) {
   const t = useTranslations("ielts.assignments");
   const { assignment, summary, students } = results;
 
@@ -82,18 +74,14 @@ export function IeltsAssignmentResultsView({
         <Stat label={t("results.summaryAverage")} value={bandText(summary.averageBand)} />
       </div>
 
-      <section className="overflow-x-auto rounded-2xl border border-outline-variant bg-surface shadow-token-card">
+      <section className="overflow-x-auto rounded-xl border border-outline-variant bg-surface shadow-token-card">
         {students.length === 0 ? (
-          <p className="px-4 py-12 text-center text-sm text-on-surface-variant">
-            {t("results.emptyRoster")}
-          </p>
+          <p className="px-4 py-12 text-center text-sm text-on-surface-variant">{t("results.emptyRoster")}</p>
         ) : (
           <table className="w-full min-w-[640px] border-collapse text-sm">
             <thead className="bg-surface-container text-xs uppercase tracking-wide text-on-surface-variant">
               <tr>
-                <th className="sticky left-0 z-10 bg-surface-container px-3 py-2 text-left">
-                  {t("results.student")}
-                </th>
+                <th className="sticky left-0 z-10 bg-surface-container px-3 py-2 text-left">{t("results.student")}</th>
                 <th className="px-3 py-2 text-center">{t("results.overall")}</th>
                 <th className="px-3 py-2 text-center">{t("results.listening")}</th>
                 <th className="px-3 py-2 text-center">{t("results.reading")}</th>

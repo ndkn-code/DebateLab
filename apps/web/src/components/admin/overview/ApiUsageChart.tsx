@@ -33,7 +33,7 @@ export function ApiUsageChart({ data }: Props) {
           Total: ${totalCost.toFixed(2)}
         </span>
       }
-      bodyClassName="h-[250px]"
+      bodyClassName="h-[220px]"
     >
       {data.length === 0 ? (
         <ChartEmpty title={t("noData")} />

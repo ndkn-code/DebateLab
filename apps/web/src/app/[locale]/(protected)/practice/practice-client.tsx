@@ -10,7 +10,7 @@ import {
 } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
+import { AnimatePresence, LayoutGroup } from "framer-motion";
 import {
   ChevronDown,
   CircleHelp,
@@ -26,11 +26,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetTitle,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import {
   CreditsPopover,
   CREDIT_ICON_SRC,
@@ -134,21 +130,21 @@ function foldSearchText(value: string) {
 
 function sortDisplays(
   source: PracticeTopicDisplay[],
-  sort: PracticeSortOption
+  sort: PracticeSortOption,
 ) {
   const difficultyRank = { easy: 0, medium: 1, hard: 2 };
   const sorted = [...source];
   const comparePriority = (
     left: PracticeTopicDisplay,
-    right: PracticeTopicDisplay
+    right: PracticeTopicDisplay,
   ) => left.priorityRank - right.priorityRank;
   const compareCatalogOrder = (
     left: PracticeTopicDisplay,
-    right: PracticeTopicDisplay
+    right: PracticeTopicDisplay,
   ) => left.popularityRank - right.popularityRank;
   const comparePracticeCount = (
     left: PracticeTopicDisplay,
-    right: PracticeTopicDisplay
+    right: PracticeTopicDisplay,
   ) =>
     comparePriority(left, right) ||
     right.practiceCount - left.practiceCount ||
@@ -196,41 +192,42 @@ export default function PracticePage({
   const appliedPrefillRef = useRef<string | null>(null);
   const initialPrefill = useMemo(
     () => readPracticePrefill(searchParams),
-    [searchParams]
+    [searchParams],
   );
-  const localizedTopics = useMemo(
-    () => initialTopics,
-    [initialTopics]
-  );
+  const localizedTopics = useMemo(() => initialTopics, [initialTopics]);
   const initialTopic = useMemo(
     () =>
       initialPrefill?.topicId || initialPrefill?.topicTitle
-        ? resolvePracticeTopic({
-            topicId: initialPrefill.topicId,
-            topicTitle:
-              initialPrefill.topicTitle ??
-              initialPrefill.topicId ??
-              t("selected_motion"),
-            topicCategory: initialPrefill.topicCategory,
-            topicDescription: initialPrefill.topicDescription,
-            practiceTrack: initialPrefill.practiceTrack,
+        ? resolvePracticeTopic(
+            {
+              topicId: initialPrefill.topicId,
+              topicTitle:
+                initialPrefill.topicTitle ??
+                initialPrefill.topicId ??
+                t("selected_motion"),
+              topicCategory: initialPrefill.topicCategory,
+              topicDescription: initialPrefill.topicDescription,
+              practiceTrack: initialPrefill.practiceTrack,
+              practiceLanguage,
+              mode: initialPrefill.mode,
+              aiDifficulty: initialPrefill.aiDifficulty,
+              side: initialPrefill.side,
+            },
             practiceLanguage,
-            mode: initialPrefill.mode,
-            aiDifficulty: initialPrefill.aiDifficulty,
-            side: initialPrefill.side,
-          }, practiceLanguage, localizedTopics)
+            localizedTopics,
+          )
         : null,
-    [initialPrefill, localizedTopics, practiceLanguage, t]
+    [initialPrefill, localizedTopics, practiceLanguage, t],
   );
   const [activeTab, setActiveTab] = useState<PracticeTab>("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState<CategoryFilterKey>(
-    () => (initialTopic ? getTopicCategoryKey(initialTopic) : "all")
+  const [activeCategory, setActiveCategory] = useState<CategoryFilterKey>(() =>
+    initialTopic ? getTopicCategoryKey(initialTopic) : "all",
   );
   const [difficultyFilter, setDifficultyFilter] =
     useState<PracticeDifficultyFilter>("all");
   const [selectedTopicId, setSelectedTopicId] = useState<string | null>(
-    () => initialTopic?.id ?? null
+    () => initialTopic?.id ?? null,
   );
   const [sortOption, setSortOption] = useState<PracticeSortOption>("popular");
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_TOPICS);
@@ -239,11 +236,11 @@ export default function PracticePage({
   const bookmarksSnapshot = useSyncExternalStore(
     subscribeToBookmarks,
     getBookmarksSnapshot,
-    getBookmarksServerSnapshot
+    getBookmarksServerSnapshot,
   );
   const bookmarkedIds = useMemo(
     () => parseBookmarks(bookmarksSnapshot),
-    [bookmarksSnapshot]
+    [bookmarksSnapshot],
   );
   const [orbBalance, setOrbBalance] = useState<number | null>(null);
   const [referralCode, setReferralCode] = useState("");
@@ -260,15 +257,15 @@ export default function PracticePage({
 
   const categoryOptions = useMemo(
     () => getLocalizedCategoryOptions(practiceLanguage),
-    [practiceLanguage]
+    [practiceLanguage],
   );
   const allDisplays = useMemo(
     () => buildPracticeTopicDisplays(localizedTopics, practiceLanguage),
-    [localizedTopics, practiceLanguage]
+    [localizedTopics, practiceLanguage],
   );
   const sortedDisplays = useMemo(
     () => sortDisplays(allDisplays, sortOption),
-    [allDisplays, sortOption]
+    [allDisplays, sortOption],
   );
   const filteredDisplays = useMemo(() => {
     const query = foldSearchText(searchQuery.trim());
@@ -295,7 +292,7 @@ export default function PracticePage({
       if (
         query &&
         !foldSearchText(
-          `${display.topic.title} ${display.topic.category}`
+          `${display.topic.title} ${display.topic.category}`,
         ).includes(query)
       ) {
         return false;
@@ -316,11 +313,11 @@ export default function PracticePage({
   const selectedDisplay = useMemo(
     () =>
       filteredDisplays.find(
-        (display) => display.topic.id === selectedTopicId
+        (display) => display.topic.id === selectedTopicId,
       ) ??
       filteredDisplays[0] ??
       null,
-    [filteredDisplays, selectedTopicId]
+    [filteredDisplays, selectedTopicId],
   );
   const requiredVisibleCount = useMemo(() => {
     if (!selectedDisplay) {
@@ -328,7 +325,7 @@ export default function PracticePage({
     }
 
     const selectedIndex = filteredDisplays.findIndex(
-      (display) => display.topic.id === selectedDisplay.topic.id
+      (display) => display.topic.id === selectedDisplay.topic.id,
     );
 
     if (selectedIndex === -1) {
@@ -337,12 +334,12 @@ export default function PracticePage({
 
     return Math.max(
       visibleCount,
-      Math.ceil((selectedIndex + 1) / LOAD_MORE_STEP) * LOAD_MORE_STEP
+      Math.ceil((selectedIndex + 1) / LOAD_MORE_STEP) * LOAD_MORE_STEP,
     );
   }, [filteredDisplays, selectedDisplay, visibleCount]);
   const visibleDisplays = useMemo(
     () => filteredDisplays.slice(0, requiredVisibleCount),
-    [filteredDisplays, requiredVisibleCount]
+    [filteredDisplays, requiredVisibleCount],
   );
   const activeFilterCount =
     (activeCategory !== "all" ? 1 : 0) +
@@ -360,7 +357,7 @@ export default function PracticePage({
     const { finalHref, switchHref } = buildLegacyPracticeLanguageRedirect(
       pathname,
       legacyLanguage,
-      searchParams
+      searchParams,
     );
 
     if (legacyLanguage !== practiceLanguage) {
@@ -434,7 +431,8 @@ export default function PracticePage({
       }
 
       const defaults = normalizeSettingsPreferences(
-        (profile?.preferences as Record<string, unknown> | null | undefined) ?? null
+        (profile?.preferences as Record<string, unknown> | null | undefined) ??
+          null,
       );
 
       setPracticeTrack(initialPrefill?.practiceTrack ?? "speaking");
@@ -442,7 +440,9 @@ export default function PracticePage({
       setMode(initialPrefill?.mode ?? "quick");
       setPrepTime(defaults.defaultPrepTime);
       setSpeechTime(defaults.defaultSpeechTime);
-      setAiDifficulty(initialPrefill?.aiDifficulty ?? defaults.defaultDifficulty);
+      setAiDifficulty(
+        initialPrefill?.aiDifficulty ?? defaults.defaultDifficulty,
+      );
       setSide(initialPrefill?.side ?? "proposition");
       setClubContext(initialPrefill?.clubContext ?? null);
       setOrbBalance(profile?.orb_balance ?? 0);
@@ -560,7 +560,7 @@ export default function PracticePage({
       <ProductPageShell className="lg:flex lg:h-full lg:min-h-0 lg:flex-col">
         <PageContainer
           size="wide"
-          className="py-6 sm:py-8 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
+          className="py-4 sm:py-5 lg:flex lg:min-h-0 lg:flex-1 lg:flex-col"
         >
           <ProductPageHeader
             title={t("page_headline")}
@@ -571,7 +571,7 @@ export default function PracticePage({
                   ariaLabel={t("credits_label")}
                   dataTestId="practice-stats-credits"
                   iconSrc={CREDIT_ICON_SRC}
-                  iconClassName="h-10 w-10 sm:h-11 sm:w-11"
+                  iconClassName="size-8"
                   value={formatDashboardNumber(orbBalance ?? 0)}
                 >
                   <CreditsPopover
@@ -587,34 +587,34 @@ export default function PracticePage({
                       <button
                         type="button"
                         aria-label={t("how_it_works")}
-                        className="flex size-12 items-center justify-center rounded-full text-on-surface-variant transition-all hover:-translate-y-0.5 hover:bg-surface-container-low hover:shadow-token-card active:scale-95"
+                        className="flex size-8 items-center justify-center rounded-[10px] border border-outline-variant bg-surface text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
                     }
                   >
                     <CircleHelp className="h-[21px] w-[21px]" />
                   </DialogTrigger>
-                  <DialogContent className="max-w-xl rounded-[1.4rem] border border-outline-variant bg-surface-container-lowest p-6">
+                  <DialogContent className="max-w-lg rounded-xl border border-outline-variant bg-surface p-4 sm:p-5">
                     <DialogHeader>
-                      <DialogTitle className="text-xl font-semibold text-on-surface">
+                      <DialogTitle className="type-title font-semibold text-on-surface">
                         {t("how_it_works_title")}
                       </DialogTitle>
                       <DialogDescription className="text-sm leading-6 text-on-surface-variant">
                         {t("how_it_works_description")}
                       </DialogDescription>
                     </DialogHeader>
-                    <div className="grid gap-4 pt-2">
+                    <div className="grid gap-2 pt-1">
                       {[1, 2, 3].map((step) => (
                         <div
                           key={step}
-                          className="rounded-[1.2rem] border border-outline-variant bg-surface-container p-4"
+                          className="grid min-h-10 grid-cols-[auto_1fr] gap-x-3 rounded-[10px] border border-outline-variant bg-surface-container-low p-3"
                         >
                           <Eyebrow className="text-primary/75">
                             {t("how_it_works_step_kicker", { step })}
                           </Eyebrow>
-                          <p className="mt-2 text-base font-semibold text-on-surface">
+                          <p className="type-label font-semibold text-on-surface">
                             {t(`how_it_works_step_${step}_title`)}
                           </p>
-                          <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                          <p className="col-span-2 mt-1 type-body-sm text-on-surface-variant sm:col-start-2">
                             {t(`how_it_works_step_${step}_body`)}
                           </p>
                         </div>
@@ -654,7 +654,7 @@ export default function PracticePage({
             />
           </div>
 
-          <div className="mt-5 flex items-center gap-5 border-b border-outline-variant">
+          <div className="mt-3 flex w-fit items-center gap-1 rounded-[10px] bg-surface-container p-1">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.key;
 
@@ -664,10 +664,10 @@ export default function PracticePage({
                   type="button"
                   onClick={() => handleTabChange(tab.key)}
                   className={cn(
-                    "relative flex min-h-10 items-center gap-2 pb-2 type-body-sm font-semibold transition-colors",
+                    "relative flex h-8 items-center gap-2 rounded-[8px] px-3 type-label font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isActive
-                      ? "text-on-surface"
-                      : "text-on-surface-variant hover:text-on-surface"
+                      ? "bg-surface text-on-surface shadow-sm"
+                      : "text-on-surface-variant hover:text-on-surface",
                   )}
                 >
                   {tab.label}
@@ -677,35 +677,32 @@ export default function PracticePage({
                         "rounded-full px-2 py-0.5 type-caption font-bold leading-none",
                         isActive
                           ? "bg-primary/10 text-primary"
-                          : "bg-surface-container text-on-surface-variant"
+                          : "bg-surface-container text-on-surface-variant",
                       )}
                     >
                       {tab.count}
                     </span>
-                  ) : null}
-                  {isActive ? (
-                    <motion.span
-                      layoutId="practice-tab-underline"
-                      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                          className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-secondary"
-                    />
                   ) : null}
                 </button>
               );
             })}
           </div>
 
-          <div className="mt-5 overflow-hidden rounded-[12px] border border-outline-variant bg-surface-container-lowest shadow-none lg:min-h-0 lg:flex-1">
+          <div className="mt-4 overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none lg:min-h-0 lg:flex-1">
             <div className="grid lg:h-full lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
               <div className="relative min-w-0 lg:min-h-0 lg:overflow-y-auto lg:border-r lg:border-outline-variant">
-                <div className="flex items-center justify-between gap-3 px-5 pb-2 pt-5 sm:px-6">
-                  <Text variant="label" as="p" className="text-on-surface-variant">
+                <div className="flex min-h-10 items-center justify-between gap-3 border-b border-outline-variant px-4 sm:px-5">
+                  <Text
+                    variant="label"
+                    as="p"
+                    className="text-on-surface-variant"
+                  >
                     {t("topic_count", { count: filteredDisplays.length })}
                   </Text>
                   <button
                     type="button"
                     onClick={handleSurprise}
-                    className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 type-label text-primary transition-all hover:bg-primary/[0.06] active:scale-95"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-[10px] px-3 type-label text-primary transition-colors hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Shuffle className="h-[13px] w-[13px]" />
                     {t("surprise_me")}
@@ -724,7 +721,7 @@ export default function PracticePage({
                               selectedDisplay?.topic.id === display.topic.id
                             }
                             isBookmarked={bookmarkedIds.includes(
-                              display.topic.id
+                              display.topic.id,
                             )}
                             onSelect={handleSelectTopic}
                             onToggleBookmark={handleToggleBookmark}
@@ -742,8 +739,8 @@ export default function PracticePage({
                             setVisibleCount(
                               Math.min(
                                 requiredVisibleCount + LOAD_MORE_STEP,
-                                filteredDisplays.length
-                              )
+                                filteredDisplays.length,
+                              ),
                             )
                           }
                           className="inline-flex items-center gap-1.5 rounded-full px-4 py-2 type-body-sm font-semibold text-primary transition-all hover:bg-primary/[0.06] active:scale-95"
@@ -765,7 +762,11 @@ export default function PracticePage({
                       unoptimized
                       aria-hidden="true"
                     />
-                    <Text variant="body" as="p" className="mt-5 font-semibold text-on-surface">
+                    <Text
+                      variant="body"
+                      as="p"
+                      className="mt-5 font-semibold text-on-surface"
+                    >
                       {activeTab === "saved" && !bookmarkedIds.length
                         ? t("saved_empty_title")
                         : t("search_empty_title")}

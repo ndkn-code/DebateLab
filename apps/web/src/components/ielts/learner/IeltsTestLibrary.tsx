@@ -60,9 +60,9 @@ export function IeltsTestLibrary({ tests }: { tests: IeltsTestCard[] }) {
           ) : (
             <>
               <div
-                role="tablist"
+                role="group"
                 aria-label={t("filter_label")}
-                className="mb-6 flex flex-wrap gap-2"
+                className="mb-4 flex flex-wrap gap-2"
               >
                 {filters.map((option) => {
                   const selected = option === activeFilter;
@@ -70,14 +70,13 @@ export function IeltsTestLibrary({ tests }: { tests: IeltsTestCard[] }) {
                     <button
                       key={option}
                       type="button"
-                      role="tab"
-                      aria-selected={selected}
+                      aria-pressed={selected}
                       onClick={() => setFilter(option)}
                       className={cn(
-                        "rounded-full px-4 py-2 type-body-sm font-semibold transition-colors",
+                        "inline-flex min-h-8 items-center rounded-[10px] border px-3 type-label font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         selected
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-surface-container text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface",
+                          ? "border-on-surface bg-on-surface text-surface"
+                          : "border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface",
                       )}
                     >
                       {filterLabel(option)}
@@ -86,7 +85,7 @@ export function IeltsTestLibrary({ tests }: { tests: IeltsTestCard[] }) {
                 })}
               </div>
 
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                 {visible.map((card) => (
                   <TestCard key={card.id} card={card} />
                 ))}

@@ -21,8 +21,13 @@ function HydratingOverlay() {
       animate={{ opacity: 1 }}
       exit={reducedMotion ? undefined : { opacity: 0 }}
     >
-      <span className="flex size-12 items-center justify-center rounded-2xl bg-surface text-primary shadow-token-card">
-        <ProductIcon name="loader" size="md" weight="bold" className="animate-spin" />
+      <span className="flex size-12 items-center justify-center rounded-xl bg-surface text-primary shadow-token-card">
+        <ProductIcon
+          name="loader"
+          size="md"
+          weight="bold"
+          className="animate-spin"
+        />
       </span>
     </motion.div>
   );
@@ -37,8 +42,8 @@ function FinishedOverlay() {
       animate={{ opacity: 1 }}
       transition={transitions.base}
     >
-      <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface p-5 text-center shadow-token-panel sm:p-6">
-        <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-surface-container-high text-on-surface">
+      <div className="w-full max-w-md rounded-xl border border-outline-variant bg-surface p-5 text-center shadow-token-panel sm:p-6">
+        <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-surface-container-high text-on-surface">
           <ProductIcon name="lock" size="md" weight="duotone" />
         </span>
         <p className="mt-4 text-base font-extrabold text-on-surface">
@@ -68,18 +73,22 @@ function PlayingOverlay({
       animate={{ opacity: 1 }}
       transition={transitions.base}
     >
-      <div className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface/95 p-5 shadow-token-card backdrop-blur sm:p-6">
+      <div className="w-full max-w-md rounded-xl border border-outline-variant bg-surface/95 p-5 shadow-token-card backdrop-blur sm:p-6">
         <div className="flex items-center gap-3">
           <motion.span
-            className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary"
+            className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary"
             animate={reducedMotion ? undefined : { scale: [1, 1.04, 1] }}
-            transition={reducedMotion ? undefined : { duration: 1.5, repeat: Infinity }}
+            transition={
+              reducedMotion ? undefined : { duration: 1.5, repeat: Infinity }
+            }
           >
             <ProductIcon name="radar" size="md" weight="fill" />
           </motion.span>
           <div className="min-w-0 flex-1">
             <p className="text-sm font-extrabold text-on-surface">
-              {status === "starting" ? "Starting recording…" : "Recording in progress"}
+              {status === "starting"
+                ? "Starting recording…"
+                : "Recording in progress"}
             </p>
             <p className="mt-1 text-xs font-semibold text-on-surface-variant">
               {elapsedLabel} / {durationLabel}
@@ -125,19 +134,20 @@ function GateOverlay({
       transition={transitions.base}
     >
       <motion.div
-        className="w-full max-w-md rounded-2xl border border-outline-variant bg-surface p-5 text-center shadow-token-panel sm:p-6"
+        className="w-full max-w-md rounded-xl border border-outline-variant bg-surface p-5 text-center shadow-token-panel sm:p-6"
         initial={reducedMotion ? undefined : { opacity: 0, y: 10, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={transitions.soft}
       >
-        <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary-container text-primary">
+        <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary-container text-primary">
           <ProductIcon name="lock" size="md" weight="duotone" />
         </span>
         <p className="mt-4 text-base font-extrabold text-on-surface">
           You will hear this recording ONCE.
         </p>
         <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-          You cannot pause, rewind, or replay it. When you&apos;re ready, press Play.
+          You cannot pause, rewind, or replay it. When you&apos;re ready, press
+          Play.
         </p>
         {status === "error" ? (
           <p className="mt-3 text-sm font-semibold text-error" role="alert">
@@ -177,7 +187,11 @@ export function ListeningAudioHeader({
     <div className="flex items-center justify-between gap-3 border-b border-outline-variant px-4 py-3 sm:px-5">
       <div className="flex min-w-0 items-center gap-2.5">
         <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary-container text-primary">
-          <ProductIcon name={locked ? "lock" : "radar"} size="sm" weight="duotone" />
+          <ProductIcon
+            name={locked ? "lock" : "radar"}
+            size="sm"
+            weight="duotone"
+          />
         </span>
         <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
@@ -190,8 +204,14 @@ export function ListeningAudioHeader({
         <span className="inline-flex items-center gap-2 rounded-full bg-primary-container px-3 py-1.5 text-xs font-bold text-primary">
           <motion.span
             className="size-2 rounded-full bg-primary"
-            animate={reducedMotion ? undefined : { opacity: [0.4, 1, 0.4], scale: [0.9, 1.15, 0.9] }}
-            transition={reducedMotion ? undefined : { duration: 1.4, repeat: Infinity }}
+            animate={
+              reducedMotion
+                ? undefined
+                : { opacity: [0.4, 1, 0.4], scale: [0.9, 1.15, 0.9] }
+            }
+            transition={
+              reducedMotion ? undefined : { duration: 1.4, repeat: Infinity }
+            }
           />
           Now playing
         </span>
@@ -253,11 +273,11 @@ export function ListeningAudioOverlay({
 
 export function ListeningAudioUnavailable() {
   return (
-    <section className="flex flex-col gap-3 rounded-3xl border border-outline-variant bg-surface-container p-5">
+    <section className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container p-5">
       <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
         Listening audio
       </p>
-      <p className="rounded-2xl bg-surface px-4 py-3 text-sm text-on-surface-variant">
+      <p className="rounded-xl bg-surface px-4 py-3 text-sm text-on-surface-variant">
         Audio is being prepared — this section is still sittable.
       </p>
     </section>

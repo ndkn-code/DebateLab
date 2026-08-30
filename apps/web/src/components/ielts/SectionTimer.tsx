@@ -8,6 +8,7 @@
  * (the server already rejects any late write).
  */
 import { useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import {
   remainingSeconds,
   sectionStatus,
@@ -21,6 +22,62 @@ function formatClock(totalSeconds: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
+type TimerCopy = {
+  expired: string;
+  minute: string;
+  five: string;
+  paused: string;
+  submitted: string;
+  notStarted: string;
+  time: string;
+};
+
+function timerCopy(locale: string): TimerCopy {
+  if (locale === "vi") {
+    return {
+      expired: "Đã hết thời gian.",
+      minute: "Còn khoảng một phút.",
+      five: "Còn khoảng năm phút.",
+      paused: "Đã tạm dừng",
+      submitted: "Đã nộp",
+      notStarted: "Chưa bắt đầu",
+      time: "Thời gian",
+    };
+  }
+  return {
+    expired: "Time expired.",
+    minute: "Approximately one minute remaining.",
+    five: "Approximately five minutes remaining.",
+    paused: "Paused",
+    submitted: "Submitted",
+    notStarted: "Not started",
+    time: "Time",
+  };
+}
+
+function timerAnnouncement(
+  status: SectionRuntimeStatus,
+  remaining: number,
+  copy: TimerCopy,
+): string {
+  if (status === "expired") return copy.expired;
+  if (status !== "running") return "";
+  if (remaining <= 60) return copy.minute;
+  if (remaining <= 300) return copy.five;
+  return "";
+}
+
+function timerLabel(
+  status: SectionRuntimeStatus,
+  remaining: number,
+  copy: TimerCopy,
+): string {
+  if (status === "paused") return copy.paused;
+  if (status === "submitted") return copy.submitted;
+  if (status === "not_started") return copy.notStarted;
+  return formatClock(remaining);
+}
+
 export function SectionTimer({
   timing,
   onExpire,
@@ -31,6 +88,7 @@ export function SectionTimer({
   onStatusChange?: (status: SectionRuntimeStatus) => void;
 }) {
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const locale = useLocale();
   const expiredRef = useRef(false);
 
   const status = sectionStatus(timing, nowMs);
@@ -52,23 +110,11 @@ export function SectionTimer({
     if (status === "running") expiredRef.current = false;
   }, [status, onExpire, onStatusChange]);
 
-  const announcement = status === "expired"
-    ? "Time expired."
-    : status === "running" && remaining <= 60
-      ? "Approximately one minute remaining."
-      : status === "running" && remaining <= 300
-        ? "Approximately five minutes remaining."
-        : "";
+  const copy = timerCopy(locale);
+  const announcement = timerAnnouncement(status, remaining, copy);
 
   const low = ticking && remaining <= 60;
-  const label =
-    status === "paused"
-      ? "Paused"
-      : status === "submitted"
-        ? "Submitted"
-        : status === "not_started"
-          ? "Not started"
-          : formatClock(remaining);
+  const label = timerLabel(status, remaining, copy);
 
   return (
     <div
@@ -79,10 +125,12 @@ export function SectionTimer({
       }`}
     >
       <span className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-        Time
+        {copy.time}
       </span>
       {label}
-      <span className="sr-only" aria-live="polite">{announcement}</span>
+      <span className="sr-only" aria-live="polite">
+        {announcement}
+      </span>
     </div>
   );
 }

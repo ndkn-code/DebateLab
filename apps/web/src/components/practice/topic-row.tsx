@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { Bookmark, BookmarkCheck } from "@/components/ui/icons";
 import { CategoryVisual } from "@/components/practice/category-visual";
@@ -32,6 +32,7 @@ export function TopicRow({
   index,
 }: TopicRowProps) {
   const t = useTranslations("dashboard.practice");
+  const reduceMotion = useReducedMotion();
   const categoryKey = getTopicCategoryKey(display.topic);
 
   const difficultyLabel =
@@ -44,12 +45,12 @@ export function TopicRow({
   return (
     <motion.div
       layout="position"
-      initial={{ opacity: 0, y: 14 }}
+      initial={reduceMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
       transition={{
-        duration: 0.24,
-        delay: Math.min(index * 0.025, 0.25),
+        duration: reduceMotion ? 0 : 0.15,
+        delay: reduceMotion ? 0 : Math.min(index * 0.015, 0.12),
         ease: [0.22, 1, 0.36, 1],
       }}
       onClick={() => onSelect(display.topic.id)}
@@ -63,10 +64,10 @@ export function TopicRow({
       tabIndex={0}
       aria-pressed={isSelected}
       className={cn(
-        "group relative flex min-h-10 w-full cursor-pointer items-center gap-3 px-4 py-2 text-left outline-none transition-colors duration-150 sm:px-5",
+        "group relative flex min-h-10 w-full cursor-pointer items-center gap-2.5 px-4 py-1.5 text-left outline-none transition-colors duration-150 sm:px-5",
         isSelected
-          ? "bg-primary/[0.05] dark:bg-primary/[0.09]"
-          : "hover:bg-surface-container focus-visible:bg-surface-container"
+          ? "bg-primary-container text-on-primary-container"
+          : "hover:bg-surface-container focus-visible:bg-surface-container",
       )}
     >
       {isSelected ? (
@@ -77,24 +78,24 @@ export function TopicRow({
         />
       ) : null}
 
-      <CategoryVisual category={categoryKey} size="sm" />
+      <CategoryVisual category={categoryKey} size="xs" />
 
       <div className="min-w-0 flex-1">
         <h3
           className={cn(
-            "type-body font-semibold text-on-surface line-clamp-2 transition-colors"
+            "line-clamp-1 type-label font-semibold text-on-surface transition-colors",
           )}
         >
           {display.topic.title}
         </h3>
-        <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <span className="inline-flex h-5 items-center rounded-[6px] bg-surface-container px-2 type-caption font-semibold leading-none text-on-surface-variant">
             {display.topic.category}
           </span>
           <span
             className={cn(
               "inline-flex h-5 items-center rounded-[6px] px-2 type-caption font-semibold leading-none",
-              DIFFICULTY_PILL_STYLES[display.difficultyTone]
+              DIFFICULTY_PILL_STYLES[display.difficultyTone],
             )}
           >
             {difficultyLabel}
@@ -113,7 +114,7 @@ export function TopicRow({
           "flex size-8 shrink-0 items-center justify-center rounded-[8px] transition-all hover:bg-surface-container active:scale-95 focus-visible:ring-2 focus-visible:ring-ring",
           isBookmarked
             ? "text-primary"
-            : "text-on-surface-variant opacity-40 group-hover:opacity-100 hover:!text-primary"
+            : "text-on-surface-variant opacity-40 group-hover:opacity-100 hover:!text-primary",
         )}
       >
         {isBookmarked ? (

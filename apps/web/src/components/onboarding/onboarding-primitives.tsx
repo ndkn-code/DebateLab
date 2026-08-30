@@ -28,7 +28,10 @@ export function OnboardingShell({
   contentClassName?: string;
 }) {
   const prefersReducedMotion = useReducedMotion();
-  const progress = Math.max(0, Math.min(100, ((currentStep + 1) / totalSteps) * 100));
+  const progress = Math.max(
+    0,
+    Math.min(100, ((currentStep + 1) / totalSteps) * 100),
+  );
 
   return (
     <div className="flex min-h-[100dvh] flex-col bg-background text-on-surface">
@@ -43,7 +46,7 @@ export function OnboardingShell({
                 "inline-flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-sm font-medium text-on-surface-variant transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
                 showBack && onBack
                   ? "hover:bg-surface-container hover:text-on-surface"
-                  : "pointer-events-none opacity-0"
+                  : "pointer-events-none opacity-0",
               )}
             >
               <ChevronLeft className="h-4 w-4" />
@@ -54,15 +57,22 @@ export function OnboardingShell({
             </span>
             <ThemeToggle variant="public" />
           </div>
-          <div className="mx-auto mt-3 h-1.5 max-w-5xl overflow-hidden rounded-full bg-outline-variant/50">
+          <div
+            role="progressbar"
+            aria-label={stepLabel}
+            aria-valuemin={0}
+            aria-valuemax={totalSteps}
+            aria-valuenow={currentStep + 1}
+            className="mx-auto mt-3 h-1.5 max-w-5xl overflow-hidden rounded-full bg-outline-variant/50"
+          >
             <motion.div
               className="h-full rounded-full bg-primary"
               initial={false}
               animate={{ width: `${progress}%` }}
               transition={
                 prefersReducedMotion
-                  ? { duration: 0.01 }
-                  : { type: "spring", stiffness: 130, damping: 24 }
+                  ? { duration: 0 }
+                  : { duration: 0.15, ease: "easeOut" }
               }
             />
           </div>
@@ -76,7 +86,7 @@ export function OnboardingShell({
         className={cn(
           "flex flex-1 items-center justify-center px-4 py-8 sm:px-6 lg:px-8",
           hideChrome ? "py-8" : "py-7",
-          contentClassName
+          contentClassName,
         )}
       >
         {children}
@@ -107,17 +117,21 @@ export function OnboardingChoiceCard({
   return (
     <motion.button
       type="button"
+      aria-pressed={selected}
+      disabled={disabled}
       whileHover={!disabled && !prefersReducedMotion ? { y: -2 } : undefined}
-      whileTap={!disabled && !prefersReducedMotion ? { scale: 0.985 } : undefined}
+      whileTap={
+        !disabled && !prefersReducedMotion ? { scale: 0.985 } : undefined
+      }
       onClick={!disabled ? onClick : undefined}
       animate={{ opacity: disabled && !selected ? 0.56 : 1 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       className={cn(
-          "group relative flex min-h-16 w-full items-center gap-4 rounded-[10px] border bg-surface px-4 py-3 text-left transition-[border-color,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-5",
+        "group relative flex min-h-16 w-full items-center gap-4 rounded-[10px] border bg-surface px-4 py-3 text-left transition-[border-color,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-5",
         selected
           ? "border-primary bg-primary-container"
           : "border-outline-variant/70 hover:border-primary/45 hover:bg-surface-container-lowest",
-        disabled && !selected && "pointer-events-none"
+        disabled && !selected && "pointer-events-none",
       )}
     >
       <span
@@ -125,12 +139,15 @@ export function OnboardingChoiceCard({
           "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] transition-colors",
           selected
             ? "bg-primary text-on-primary"
-            : "bg-surface-container text-primary group-hover:bg-primary-container"
+            : "bg-surface-container text-primary group-hover:bg-primary-container",
         )}
       >
         {Icon ? <Icon className="h-5 w-5" /> : null}
         {emoji ? (
-          <span className={cn(Icon && "absolute -right-1 -top-1 text-base")}>
+          <span
+            aria-hidden="true"
+            className={cn(Icon && "absolute -right-1 -top-1 text-base")}
+          >
             {emoji}
           </span>
         ) : null}
@@ -174,17 +191,21 @@ export function OnboardingPill({
   return (
     <motion.button
       type="button"
+      aria-pressed={selected}
+      disabled={disabled}
       whileHover={!disabled && !prefersReducedMotion ? { y: -2 } : undefined}
-      whileTap={!disabled && !prefersReducedMotion ? { scale: 0.97 } : undefined}
+      whileTap={
+        !disabled && !prefersReducedMotion ? { scale: 0.97 } : undefined
+      }
       onClick={!disabled ? onClick : undefined}
       animate={{ opacity: disabled && !selected ? 0.55 : 1 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={{ duration: 0.15, ease: "easeOut" }}
       className={cn(
         "h-8 rounded-[10px] border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-5",
         selected
           ? "border-primary bg-primary text-on-primary shadow-token-primary"
           : "border-outline-variant/70 bg-surface text-on-surface-variant hover:border-primary/45 hover:bg-primary-container hover:text-on-surface",
-        disabled && !selected && "pointer-events-none"
+        disabled && !selected && "pointer-events-none",
       )}
     >
       {label}
@@ -209,7 +230,7 @@ export function OnboardingPreviewCard({
     <div
       className={cn(
         "rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none",
-        className
+        className,
       )}
     >
       {title || Icon ? (
@@ -218,7 +239,7 @@ export function OnboardingPreviewCard({
             <span
               className={cn(
                 "flex h-8 w-8 items-center justify-center rounded-[8px] bg-primary-container text-primary",
-                iconClassName
+                iconClassName,
               )}
             >
               <Icon className="h-5 w-5" />

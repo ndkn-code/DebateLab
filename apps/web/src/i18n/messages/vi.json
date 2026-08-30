@@ -285,6 +285,7 @@
       "settings": "Cài đặt",
       "switchToAdmin": "Chuyển sang Quản trị",
       "adminShort": "Quản trị",
+      "teacherMode": "Chế độ giáo viên",
       "mode_switcher": "Đổi chương trình và ngôn ngữ",
       "subject": "Chương trình",
       "language": "Ngôn ngữ",
@@ -1853,6 +1854,7 @@
   "admin": {
     "title": "Quản trị",
     "switchToAdmin": "Chuyển sang Quản trị",
+    "teacherMode": "Xem trước chế độ giáo viên",
     "backToDashboard": "Quay lại Dashboard",
     "nav": {
       "overview": "Tổng quan",

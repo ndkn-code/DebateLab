@@ -47,7 +47,7 @@ export function StudyPlanReasoning({ view }: { view: IeltsStudyPlanPageView }) {
         <div className="grid gap-4 sm:grid-cols-[200px_1fr]">
           <div
             className={cn(
-              "flex flex-col items-center justify-center rounded-2xl px-5 py-4 text-center",
+              "flex flex-col items-center justify-center rounded-xl px-5 py-4 text-center",
               hasBand
                 ? "bg-primary-container text-on-primary-container"
                 : "bg-tertiary-container text-on-tertiary-container",
@@ -59,7 +59,9 @@ export function StudyPlanReasoning({ view }: { view: IeltsStudyPlanPageView }) {
             <span className="type-display font-bold tabular-nums">
               {hasBand ? formatBand(prediction.overallBand) : "—"}
             </span>
-            {hasBand && prediction.lower !== null && prediction.upper !== null ? (
+            {hasBand &&
+            prediction.lower !== null &&
+            prediction.upper !== null ? (
               <span className="type-caption">
                 {t("range", {
                   range: `${formatBand(prediction.lower)}–${formatBand(prediction.upper)}`,
@@ -79,7 +81,10 @@ export function StudyPlanReasoning({ view }: { view: IeltsStudyPlanPageView }) {
               <span className="font-semibold text-on-surface">
                 {t(`trend.${prediction.trendDirection}`)}
               </span>
-              <span>· {t("as_of", { date: formatShortDate(prediction.asOf, locale) })}</span>
+              <span>
+                ·{" "}
+                {t("as_of", { date: formatShortDate(prediction.asOf, locale) })}
+              </span>
             </div>
             <p className="type-caption font-semibold uppercase text-on-surface-variant">
               {t("gap_title")}
@@ -150,7 +155,8 @@ export function StudyPlanReasoning({ view }: { view: IeltsStudyPlanPageView }) {
                   <p className="mt-1 type-body-sm text-on-surface-variant">
                     {pickText(locale, weakness.reasonEn, weakness.reasonVi)}
                   </p>
-                  {weakness.currentBand !== null && weakness.targetBand !== null ? (
+                  {weakness.currentBand !== null &&
+                  weakness.targetBand !== null ? (
                     <p className="mt-1 type-caption font-medium text-on-surface-variant">
                       {t("weakness_now_target", {
                         current: formatBand(weakness.currentBand),
@@ -171,7 +177,9 @@ export function StudyPlanReasoning({ view }: { view: IeltsStudyPlanPageView }) {
               <p className="type-body-sm font-semibold text-on-surface">
                 {t("rationale_title")}
               </p>
-              <p className="mt-1 type-body-sm text-on-surface-variant">{rationale}</p>
+              <p className="mt-1 type-body-sm text-on-surface-variant">
+                {rationale}
+              </p>
             </div>
           </div>
         ) : null}

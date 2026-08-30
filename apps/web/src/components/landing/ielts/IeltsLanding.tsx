@@ -16,33 +16,56 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
   const c = IELTS_LANDING_COPY[locale];
   const href = (path: string) => `/${locale}${path}`;
   return (
-    <main className="min-h-screen bg-background text-on-surface">
-      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5 md:px-8">
-        <Link href={href("/")} className="type-title font-bold tracking-tight">
-          thinkfy<span className="text-primary">.</span>
-        </Link>
-        <Link
-          href={href("/auth/login?next=/ielts")}
-          className="rounded-lg border border-outline-variant px-4 py-2 type-label font-semibold hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-        >
-          {c.secondary}
-        </Link>
+    <main className="min-h-dvh bg-background text-on-surface">
+      <header className="sticky top-0 z-30 border-b border-outline-variant bg-background/95 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:px-8">
+          <Link
+            href={href("/")}
+            className="shrink-0 type-title font-bold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            thinkfy<span className="text-primary">.</span>
+          </Link>
+          <nav
+            aria-label={c.productLabel}
+            className="mx-auto flex h-8 items-center rounded-[10px] border border-outline-variant bg-surface p-0.5"
+          >
+            <Link
+              href={href("/")}
+              className="inline-flex h-7 items-center rounded-lg px-3 type-label font-medium text-on-surface-variant transition-colors hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {c.debate}
+            </Link>
+            <Link
+              href={href("/ielts")}
+              aria-current="page"
+              className="inline-flex h-7 items-center rounded-lg bg-on-surface px-3 type-label font-medium text-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              {c.ielts}
+            </Link>
+          </nav>
+          <Link
+            href={href("/auth/login?next=/ielts")}
+            className="inline-flex h-8 shrink-0 items-center rounded-[10px] border border-outline-variant px-3 type-label font-semibold hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            {c.secondary}
+          </Link>
+        </div>
       </header>
-      <section className="mx-auto grid max-w-6xl gap-10 px-5 pb-16 pt-10 md:px-8 lg:grid-cols-[1.1fr_.9fr] lg:items-center lg:pb-24 lg:pt-20">
+      <section className="mx-auto grid max-w-[1280px] gap-6 px-4 py-10 sm:px-6 lg:grid-cols-[1.08fr_.92fr] lg:items-center lg:px-8 lg:py-14">
         <div className="max-w-2xl">
           <p className="type-label font-semibold uppercase tracking-widest text-primary">
             {c.eyebrow}
           </p>
-          <h1 className="mt-4 type-display font-bold tracking-tight">
+          <h1 className="mt-3 type-display font-semibold tracking-tight">
             {c.title}
           </h1>
-          <p className="mt-5 max-w-xl type-body-lg text-on-surface-variant">
+          <p className="mt-4 max-w-xl type-body text-on-surface-variant">
             {c.intro}
           </p>
-          <div className="mt-7 flex flex-wrap gap-3">
+          <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href={href("/auth/login?next=/ielts/onboarding")}
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 type-label font-semibold text-on-primary hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex h-8 items-center gap-2 rounded-[10px] bg-on-surface px-4 type-label font-semibold text-surface transition-colors hover:bg-on-surface/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               {c.primary}
               <ProductIcon name="arrowRight" size="sm" weight="bold" />
@@ -50,18 +73,18 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
           </div>
           <p className="mt-3 type-label text-on-surface-variant">{c.note}</p>
         </div>
-        <div className="rounded-xl border border-outline-variant bg-surface-container-low p-5 shadow-token-card">
+        <div className="rounded-xl border border-outline-variant bg-surface p-4 sm:p-5">
           <div className="flex items-center justify-between border-b border-outline-variant pb-4">
             <div className="flex items-center gap-2">
               <ProductIcon name="target" size="md" className="text-primary" />
               <span className="type-label font-semibold">{c.pathLabel}</span>
             </div>
-            <span className="rounded-full bg-primary-container px-2.5 py-1 type-label font-semibold text-on-primary-container">
+            <span className="inline-flex h-5 items-center rounded-md bg-primary-container px-2 type-caption font-semibold text-on-primary-container">
               01 / 04
             </span>
           </div>
-          <div className="mt-5 space-y-3">
-            <div className="rounded-lg border border-primary bg-primary-container p-4">
+          <div className="mt-4 space-y-2">
+            <div className="rounded-[10px] border border-primary bg-primary-container p-3">
               <p className="type-label font-semibold uppercase text-primary">
                 {c.todayLabel}
               </p>
@@ -73,7 +96,7 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
             {c.pathSteps.map((item, i) => (
               <div
                 key={item}
-                className="flex items-center gap-3 rounded-lg border border-outline-variant bg-surface px-4 py-3"
+                className="flex min-h-10 items-center gap-3 rounded-[10px] border border-outline-variant bg-surface-container-low px-3 py-2"
               >
                 <span className="type-label font-semibold text-on-surface-variant">
                   0{i + 2}
@@ -85,77 +108,89 @@ export function IeltsLanding({ locale }: { locale: IeltsLandingLocale }) {
         </div>
       </section>
       <section className="border-y border-outline-variant bg-surface-container-low">
-        <div className="mx-auto max-w-6xl px-5 py-14 md:px-8">
-          <h2 className="type-heading-lg font-bold">{c.routeTitle}</h2>
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {[c.academic, c.general].map((item, i) => (
-              <article
-                key={item.title}
-                className="rounded-xl border border-outline-variant bg-surface p-5"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <ProductIcon name="book" size="md" className="text-primary" />
-                  <span className="type-label text-on-surface-variant">
-                    {item.tag}
-                  </span>
-                </div>
-                <h3 className="mt-6 type-heading-sm font-bold">{item.title}</h3>
-                <p className="mt-2 type-body-sm text-on-surface-variant">
-                  {item.body}
-                </p>
-                <p className="mt-5 type-label font-semibold text-primary">
-                  {i === 0 ? c.academicDifference : c.generalDifference}
-                </p>
-              </article>
-            ))}
+        <div className="mx-auto grid max-w-[1280px] gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.15fr_.85fr] lg:px-8">
+          <div>
+            <h2 className="type-heading-md font-semibold">{c.routeTitle}</h2>
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {[c.academic, c.general].map((item, i) => (
+                <article
+                  key={item.title}
+                  className="rounded-xl border border-outline-variant bg-surface p-4"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <ProductIcon
+                      name="book"
+                      size="md"
+                      className="text-primary"
+                    />
+                    <span className="type-label text-on-surface-variant">
+                      {item.tag}
+                    </span>
+                  </div>
+                  <h3 className="mt-4 type-title font-semibold">
+                    {item.title}
+                  </h3>
+                  <p className="mt-2 type-body-sm text-on-surface-variant">
+                    {item.body}
+                  </p>
+                  <p className="mt-4 type-label font-semibold text-primary">
+                    {i === 0 ? c.academicDifference : c.generalDifference}
+                  </p>
+                </article>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h2 className="type-heading-md font-semibold">{c.modesTitle}</h2>
+            <div className="mt-4 grid gap-3">
+              {c.modes.map(([title, body], i) => (
+                <article
+                  key={title}
+                  className="rounded-xl border border-outline-variant bg-surface p-4"
+                >
+                  <div className="flex items-center gap-3">
+                    {i === 0 ? (
+                      <ProductIcon
+                        name="clock"
+                        size="md"
+                        className="text-primary"
+                      />
+                    ) : (
+                      <ProductIcon
+                        name="target"
+                        size="md"
+                        className="text-primary"
+                      />
+                    )}
+                    <h3 className="type-title font-semibold">{title}</h3>
+                  </div>
+                  <p className="mt-3 type-body-sm text-on-surface-variant">
+                    {body}
+                  </p>
+                </article>
+              ))}
+            </div>
           </div>
         </div>
       </section>
-      <section className="mx-auto max-w-6xl px-5 py-14 md:px-8">
-        <h2 className="type-heading-lg font-bold">{c.modesTitle}</h2>
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          {c.modes.map(([title, body], i) => (
-            <article
-              key={title}
-              className="rounded-xl border border-outline-variant p-5"
-            >
-              <div className="flex items-center gap-3">
-                {i === 0 ? (
-                  <ProductIcon
-                    name="clock"
-                    size="md"
-                    className="text-primary"
-                  />
-                ) : (
-                  <ProductIcon
-                    name="target"
-                    size="md"
-                    className="text-primary"
-                  />
-                )}
-                <h3 className="type-title font-bold">{title}</h3>
+      <section className="mx-auto max-w-[1280px] px-4 py-8 sm:px-6 lg:px-8">
+        <div className="flex flex-col gap-4 rounded-xl border border-outline-variant bg-surface p-4 md:flex-row md:items-center md:justify-between">
+          <h2 className="type-title font-semibold">{c.skillsTitle}</h2>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {c.skills.map((skill, i) => (
+              <div
+                key={skill}
+                className="flex h-10 items-center gap-2 rounded-[10px] bg-surface-container-low px-3 type-label font-semibold"
+              >
+                <ProductIcon
+                  name={SKILL_ICONS[i]}
+                  size="sm"
+                  className="text-primary"
+                />
+                {skill}
               </div>
-              <p className="mt-3 type-body-sm text-on-surface-variant">
-                {body}
-              </p>
-            </article>
-          ))}
-        </div>
-        <h2 className="mt-14 type-heading-lg font-bold">{c.skillsTitle}</h2>
-        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-          {c.skills.map((skill, i) => (
-            <div
-              key={skill}
-              className="flex items-center gap-2 rounded-lg border border-outline-variant px-4 py-3 type-label font-semibold"
-            >
-              <ProductIcon
-                name={SKILL_ICONS[i]}
-                size="sm"
-                className="text-primary"
-              />
-              {skill}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
       <footer className="border-t border-outline-variant px-5 py-8 md:px-8">

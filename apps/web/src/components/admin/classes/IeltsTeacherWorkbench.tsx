@@ -410,7 +410,7 @@ function EmptyState({
   return (
     <div className="flex min-h-40 flex-col items-center justify-center rounded-[10px] border border-dashed border-outline-variant bg-surface-container/40 px-4 text-center">
       <Icon className="mb-2 h-5 w-5 text-on-surface-variant" />
-      <p className="text-sm text-on-surface-variant">{children}</p>
+      <p className="type-body-sm text-on-surface-variant">{children}</p>
     </div>
   );
 }
@@ -435,9 +435,11 @@ function MetricCard({
         {label}
       </div>
       <div className="mt-2 flex items-end justify-between gap-2">
-        <strong className="text-xl font-medium text-on-surface">{value}</strong>
+        <strong className="type-heading-sm font-medium text-on-surface">
+          {value}
+        </strong>
         {detail ? (
-          <span className="text-xs text-on-surface-variant">{detail}</span>
+          <span className="type-caption text-on-surface-variant">{detail}</span>
         ) : null}
       </div>
     </div>
@@ -768,10 +770,10 @@ export function IeltsTeacherWorkbench({
         <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-surface-container">
           <GraduationCap className="h-5 w-5 text-on-surface-variant" />
         </div>
-        <h2 className="mt-4 text-base font-medium text-on-surface">
+        <h2 className="mt-4 type-title-sm font-medium text-on-surface">
           {t.gated}
         </h2>
-        <p className="mt-1 max-w-xl text-sm text-on-surface-variant">
+        <p className="mt-1 max-w-xl type-body-sm text-on-surface-variant">
           {t.gatedBody}
         </p>
       </div>
@@ -797,7 +799,7 @@ export function IeltsTeacherWorkbench({
         <div>
           <h2
             id="ielts-workbench-title"
-            className="text-base font-medium text-on-surface"
+            className="type-title-sm font-medium text-on-surface"
           >
             {t.title}
           </h2>
@@ -821,12 +823,12 @@ export function IeltsTeacherWorkbench({
       {(data.gradebookError || data.contentError) && (
         <div
           role="alert"
-          className="mt-4 flex gap-2 rounded-[10px] border border-warning/25 bg-warning-container px-3 py-2.5 text-sm text-on-warning-container"
+          className="mt-4 flex gap-2 rounded-[10px] border border-warning/25 bg-warning-container px-3 py-2.5 type-body-sm text-on-warning-container"
         >
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
             <p className="font-medium">{t.loadIssue}</p>
-            <p className="mt-0.5 text-xs opacity-80">
+            <p className="mt-0.5 type-caption opacity-80">
               {data.gradebookError ?? data.contentError}
             </p>
           </div>
@@ -837,7 +839,7 @@ export function IeltsTeacherWorkbench({
         <div
           role="status"
           className={cn(
-            "mt-4 rounded-[10px] border px-3 py-2 text-sm",
+            "mt-4 rounded-[10px] border px-3 py-2 type-body-sm",
             feedback.tone === "success"
               ? "border-success/20 bg-success-container text-success-dim"
               : "border-error/20 bg-error-container text-error-dim",
@@ -848,7 +850,7 @@ export function IeltsTeacherWorkbench({
       )}
 
       <div
-        className="mt-4 overflow-x-auto border-b border-outline-variant"
+        className="mt-4 overflow-x-auto rounded-[10px] border border-outline-variant bg-surface-container-low p-1"
         role="tablist"
         aria-label={t.title}
       >
@@ -865,10 +867,10 @@ export function IeltsTeacherWorkbench({
               onClick={() => setTab(item)}
               onKeyDown={(event) => handleTabKeyDown(event, item)}
               className={cn(
-                "h-9 rounded-t-[10px] border-b-2 px-3 type-label font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                "h-8 rounded-lg border px-3 type-label font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                 tab === item
-                  ? "border-primary text-primary"
-                  : "border-transparent text-on-surface-variant hover:bg-surface-container hover:text-on-surface",
+                  ? "border-outline-variant bg-surface text-on-surface shadow-token-card"
+                  : "border-transparent text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface",
               )}
             >
               {t.tabs[item]}
@@ -927,10 +929,10 @@ export function IeltsTeacherWorkbench({
                     ["listening", "reading", "writing", "speaking"] as const
                   ).map((skill) => (
                     <div key={skill} className="px-3 py-3">
-                      <p className="text-xs text-on-surface-variant">
+                      <p className="type-caption text-on-surface-variant">
                         {t[skill]}
                       </p>
-                      <p className="mt-1 text-base font-medium text-on-surface">
+                      <p className="mt-1 type-title-sm font-medium text-on-surface">
                         {formatBand(summary?.skillAverages[skill] ?? null)}
                       </p>
                     </div>
@@ -978,7 +980,7 @@ export function IeltsTeacherWorkbench({
                     ))}
                 </div>
               ) : (
-                <p className="px-3 py-8 text-center text-sm text-on-surface-variant">
+                <p className="px-3 py-8 text-center type-body-sm text-on-surface-variant">
                   {t.noProgress}
                 </p>
               )}
@@ -1013,15 +1015,15 @@ export function IeltsTeacherWorkbench({
                         key={row.userId}
                         className="hover:bg-surface-container/50"
                       >
-                        <td className="h-12 px-3">
+                        <td className="h-10 px-3">
                           <p className="font-medium text-on-surface">
                             {row.displayName || row.email}
                           </p>
-                          <p className="text-xs text-on-surface-variant">
+                          <p className="type-caption text-on-surface-variant">
                             {row.email}
                           </p>
                         </td>
-                        <td className="h-12 px-3 text-on-surface">
+                        <td className="h-10 px-3 text-on-surface">
                           {row.attendance.rate == null
                             ? "—"
                             : `${Math.round(row.attendance.rate * 100)}%`}
@@ -1031,7 +1033,7 @@ export function IeltsTeacherWorkbench({
                             (item) => item.assignmentId === column.assignmentId,
                           );
                           return (
-                            <td key={column.assignmentId} className="h-12 px-3">
+                            <td key={column.assignmentId} className="h-10 px-3">
                               {value ? (
                                 <ScoreCell score={value.score} t={t} />
                               ) : (
@@ -1053,10 +1055,10 @@ export function IeltsTeacherWorkbench({
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h3 className="text-sm font-medium text-on-surface">
+                        <h3 className="type-body-sm font-medium text-on-surface">
                           {row.displayName || row.email}
                         </h3>
-                        <p className="text-xs text-on-surface-variant">
+                        <p className="type-caption text-on-surface-variant">
                           {row.email}
                         </p>
                       </div>
@@ -1104,7 +1106,7 @@ export function IeltsTeacherWorkbench({
                         selectedReview?.key === item.key ? "true" : undefined
                       }
                       className={cn(
-                        "flex w-full items-center justify-between gap-3 border-b border-outline-variant px-3 py-3 text-left last:border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+                        "flex min-h-11 w-full items-center justify-between gap-3 border-b border-outline-variant px-3 py-2 text-left last:border-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
                         selectedReview?.key === item.key
                           ? "bg-primary/8"
                           : "hover:bg-surface-container",
@@ -1114,7 +1116,7 @@ export function IeltsTeacherWorkbench({
                         <span className="block truncate type-label font-medium text-on-surface">
                           {item.student.displayName || item.student.email}
                         </span>
-                        <span className="block truncate text-xs text-on-surface-variant">
+                        <span className="block truncate type-caption text-on-surface-variant">
                           {item.assignment.title} ·{" "}
                           {reviewTargetLabel(item.target, t)}
                         </span>
@@ -1143,13 +1145,13 @@ export function IeltsTeacherWorkbench({
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-on-surface-variant">
+                      <p className="type-caption font-medium uppercase tracking-wide text-on-surface-variant">
                         {t.reviewDetail}
                       </p>
-                      <h3 className="mt-1 text-base font-medium text-on-surface">
+                      <h3 className="mt-1 type-title-sm font-medium text-on-surface">
                         {selectedReview.assignment.title}
                       </h3>
-                      <p className="text-sm text-on-surface-variant">
+                      <p className="type-body-sm text-on-surface-variant">
                         {selectedReview.student.displayName ||
                           selectedReview.student.email}
                       </p>
@@ -1190,7 +1192,7 @@ export function IeltsTeacherWorkbench({
                     >
                       <legend className="sr-only">{t.reviewDetail}</legend>
                       <div className="overflow-x-auto rounded-[10px] border border-outline-variant">
-                        <div className="grid min-w-[520px] grid-cols-[minmax(180px,1fr)_72px_116px_72px] bg-surface-container px-3 py-2 text-xs font-medium text-on-surface-variant">
+                        <div className="grid min-w-[520px] grid-cols-[minmax(180px,1fr)_72px_116px_72px] bg-surface-container px-3 py-2 type-caption font-medium text-on-surface-variant">
                           <span>{t.criterion}</span>
                           <span>{t.ai}</span>
                           <span>{t.teacher}</span>
@@ -1225,7 +1227,7 @@ export function IeltsTeacherWorkbench({
                                     : key}
                                 </label>
                                 <p
-                                  className="truncate text-xs text-on-surface-variant"
+                                  className="truncate type-caption text-on-surface-variant"
                                   title={criterion?.rationale ?? t.noRationale}
                                 >
                                   {criterion?.rationale ?? t.noRationale}
@@ -1243,7 +1245,7 @@ export function IeltsTeacherWorkbench({
                                 defaultValue={
                                   teacherBand == null ? "" : String(teacherBand)
                                 }
-                                className="h-8 rounded-[10px] border border-outline-variant bg-background px-2 text-sm tabular-nums text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+                                className="h-8 rounded-[10px] border border-outline-variant bg-background px-2 type-body-sm tabular-nums text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 <option value="">{t.selectBand}</option>
                                 {BAND_OPTIONS.map((band) => (
@@ -1274,13 +1276,13 @@ export function IeltsTeacherWorkbench({
                             selectedReview.target.currentReviewNote ??
                             ""
                           }
-                          className="mt-1 w-full rounded-[10px] border border-outline-variant bg-background px-3 py-2 text-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+                          className="mt-1 w-full rounded-[10px] border border-outline-variant bg-background px-3 py-2 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                         />
                       </label>
                       {(selectedReviewStatus === "none" ||
                         selectedReviewStatus === "draft") && (
                         <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                          <p className="text-xs text-on-surface-variant">
+                          <p className="type-caption text-on-surface-variant">
                             {t.draftPrivate}
                           </p>
                           <button
@@ -1305,7 +1307,7 @@ export function IeltsTeacherWorkbench({
                         {t.authoritative}
                       </p>
                       {!selectedBandsComplete ? (
-                        <p className="mt-1 text-xs text-on-surface-variant">
+                        <p className="mt-1 type-caption text-on-surface-variant">
                           {t.completeBands}
                         </p>
                       ) : (
@@ -1346,7 +1348,7 @@ export function IeltsTeacherWorkbench({
                           required
                           minLength={3}
                           rows={3}
-                          className="mt-1 w-full rounded-[10px] border border-warning/30 bg-surface px-3 py-2 text-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                          className="mt-1 w-full rounded-[10px] border border-warning/30 bg-surface px-3 py-2 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                         />
                       </label>
                       <label className="mt-2 flex items-start gap-2 type-label text-on-warning-container">
@@ -1400,10 +1402,10 @@ export function IeltsTeacherWorkbench({
                   >
                     <div className="flex items-start justify-between gap-3 border-b border-outline-variant px-3 py-3">
                       <div>
-                        <h3 className="text-sm font-medium text-on-surface">
+                        <h3 className="type-body-sm font-medium text-on-surface">
                           {assignment.title}
                         </h3>
-                        <p className="mt-0.5 text-xs text-on-surface-variant">
+                        <p className="mt-0.5 type-caption text-on-surface-variant">
                           {assignment.assignmentType}
                           {assignment.dueAt
                             ? ` · ${t.due} ${formatDate(assignment.dueAt, locale)}`
@@ -1423,7 +1425,7 @@ export function IeltsTeacherWorkbench({
                               <p className="truncate type-label font-medium text-on-surface">
                                 {row.displayName || row.email}
                               </p>
-                              <p className="text-xs text-on-surface-variant">
+                              <p className="type-caption text-on-surface-variant">
                                 {value.homework.submitted
                                   ? `${t.homework}: ${value.homework.status}`
                                   : value.attemptId
@@ -1449,7 +1451,7 @@ export function IeltsTeacherWorkbench({
                 onSubmit={handleResource}
                 className="rounded-[10px] border border-outline-variant bg-surface p-4"
               >
-                <h3 className="flex items-center gap-2 text-sm font-medium text-on-surface">
+                <h3 className="flex items-center gap-2 type-body-sm font-medium text-on-surface">
                   <Plus className="h-4 w-4" />
                   {t.addLink}
                 </h3>
@@ -1480,7 +1482,7 @@ export function IeltsTeacherWorkbench({
                 onSubmit={handleVocabulary}
                 className="rounded-[10px] border border-outline-variant bg-surface p-4"
               >
-                <h3 className="flex items-center gap-2 text-sm font-medium text-on-surface">
+                <h3 className="flex items-center gap-2 type-body-sm font-medium text-on-surface">
                   <Languages className="h-4 w-4" />
                   {t.addVocabulary}
                 </h3>
@@ -1513,7 +1515,7 @@ export function IeltsTeacherWorkbench({
                           <p className="type-label font-medium text-on-surface">
                             {set.title}
                           </p>
-                          <p className="text-xs text-on-surface-variant">
+                          <p className="type-caption text-on-surface-variant">
                             {set.items.length} {t.items}
                           </p>
                         </div>
@@ -1522,7 +1524,7 @@ export function IeltsTeacherWorkbench({
                       {set.items.slice(0, 3).map((item) => (
                         <div
                           key={item.id}
-                          className="mt-2 grid grid-cols-[100px_1fr] gap-2 text-xs"
+                          className="mt-2 grid grid-cols-[100px_1fr] gap-2 type-caption"
                         >
                           <span className="font-medium text-on-surface">
                             {item.term}
@@ -1548,7 +1550,7 @@ export function IeltsTeacherWorkbench({
               onSubmit={handleAnnouncement}
               className="rounded-[10px] border border-outline-variant bg-surface p-4"
             >
-              <h3 className="flex items-center gap-2 text-sm font-medium text-on-surface">
+              <h3 className="flex items-center gap-2 type-body-sm font-medium text-on-surface">
                 <Megaphone className="h-4 w-4" />
                 {t.newAnnouncement}
               </h3>
@@ -1562,7 +1564,7 @@ export function IeltsTeacherWorkbench({
                     name="body"
                     required
                     rows={5}
-                    className="mt-1 w-full rounded-[10px] border border-outline-variant bg-background px-3 py-2 text-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                    className="mt-1 w-full rounded-[10px] border border-outline-variant bg-background px-3 py-2 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                   />
                 </label>
                 <label className="block">
@@ -1571,7 +1573,7 @@ export function IeltsTeacherWorkbench({
                   </span>
                   <select
                     name="status"
-                    className="mt-1 h-8 w-full rounded-[10px] border border-outline-variant bg-background px-3 text-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                    className="mt-1 h-8 w-full rounded-[10px] border border-outline-variant bg-background px-3 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <option value="draft">{t.draft}</option>
                     <option value="published">{t.published}</option>
@@ -1593,7 +1595,7 @@ export function IeltsTeacherWorkbench({
                     className="border-b border-outline-variant px-4 py-3 last:border-0"
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <h3 className="text-sm font-medium text-on-surface">
+                      <h3 className="type-body-sm font-medium text-on-surface">
                         {announcement.title}
                       </h3>
                       <StatusBadge
@@ -1606,10 +1608,10 @@ export function IeltsTeacherWorkbench({
                         {announcement.status}
                       </StatusBadge>
                     </div>
-                    <p className="mt-1 whitespace-pre-wrap text-sm text-on-surface-variant">
+                    <p className="mt-1 whitespace-pre-wrap type-body-sm text-on-surface-variant">
                       {announcement.body}
                     </p>
-                    <p className="mt-2 text-xs text-on-surface-variant">
+                    <p className="mt-2 type-caption text-on-surface-variant">
                       {formatDate(
                         announcement.publishedAt ?? announcement.createdAt,
                         locale,
@@ -1650,7 +1652,7 @@ function Field({
         name={name}
         type={type}
         required={required}
-        className="mt-1 h-8 w-full rounded-[10px] border border-outline-variant bg-background px-3 text-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+        className="mt-1 h-8 w-full rounded-[10px] border border-outline-variant bg-background px-3 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
       />
     </label>
   );
@@ -1727,7 +1729,7 @@ function ResourceRow({
           <StatusBadge>{resource.status}</StatusBadge>
         </div>
         {resource.description ? (
-          <p className="mt-0.5 line-clamp-2 text-xs text-on-surface-variant">
+          <p className="mt-0.5 line-clamp-2 type-caption text-on-surface-variant">
             {resource.description}
           </p>
         ) : null}
@@ -1736,7 +1738,7 @@ function ResourceRow({
             href={resource.url}
             target="_blank"
             rel="noreferrer"
-            className="mt-1 inline-flex items-center gap-1 text-xs font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="mt-1 inline-flex items-center gap-1 type-caption font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {t.open}
             <ExternalLink className="h-3 w-3" />

@@ -64,10 +64,22 @@ function getPracticeLanguageLabel(language: "en" | "vi") {
   return language === "vi" ? "Vietnamese" : "English";
 }
 
+function duelActionError(language: "en" | "vi", supportCode: string) {
+  return language === "vi"
+    ? `Không thể cập nhật trận đấu. Vui lòng thử lại. Mã hỗ trợ: ${supportCode}`
+    : `We couldn't update the duel. Try again. Support code: ${supportCode}`;
+}
+
 export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
   const router = useRouter();
-  const { data: room, error, mutate, isLoading, onlineUserIds, isAiTurn } =
-    useDebateDuelRoom(shareCode);
+  const {
+    data: room,
+    error,
+    mutate,
+    isLoading,
+    onlineUserIds,
+    isAiTurn,
+  } = useDebateDuelRoom(shareCode);
   const practiceLanguage = room?.practiceLanguage ?? "en";
   const speech = useDeepgramTranscription(practiceLanguage);
   useDuelIntegrityMonitor(room ?? null);
@@ -182,37 +194,48 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
       stopCapture();
       setActionError(null);
 
-      const response = await fetch(
-        `/api/debate-duels/${shareCode}/speeches/${phaseDescriptor.roundNumber}`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            transcript,
-            durationSeconds,
-            metadata: {
-              wordCount: transcript
-                .replace("[No transcript captured]", "")
-                .split(/\s+/)
-                .filter(Boolean).length,
-            },
-          }),
+      try {
+        const response = await fetch(
+          `/api/debate-duels/${shareCode}/speeches/${phaseDescriptor.roundNumber}`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              transcript,
+              durationSeconds,
+              metadata: {
+                wordCount: transcript
+                  .replace("[No transcript captured]", "")
+                  .split(/\s+/)
+                  .filter(Boolean).length,
+              },
+            }),
+          },
+        );
+
+        const payload = await response.json();
+        if (!response.ok) {
+          submittedPhaseRef.current = null;
+          console.error("[DUEL-SPEECH-01] Speech submission rejected", {
+            status: response.status,
+            error: payload?.error,
+          });
+          setActionError(duelActionError(practiceLanguage, "DUEL-SPEECH-01"));
+          return;
         }
-      );
 
-      const payload = await response.json();
-      if (!response.ok) {
+        speech.resetTranscript();
+        await mutate();
+      } catch (error) {
         submittedPhaseRef.current = null;
-        setActionError(payload.error || "Failed to submit speech.");
-        return;
+        console.error("[DUEL-SPEECH-02] Speech submission failed", error);
+        setActionError(duelActionError(practiceLanguage, "DUEL-SPEECH-02"));
       }
-
-      speech.resetTranscript();
-      await mutate();
     });
   }, [
     mutate,
     phaseDescriptor,
+    practiceLanguage,
     remainingSeconds,
     room,
     shareCode,
@@ -237,21 +260,31 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
 
   const performRoomAction = async (
     path: string,
-    body?: Record<string, unknown>
+    body?: Record<string, unknown>,
   ) => {
     setActionError(null);
     startRoomTransition(async () => {
-      const response = await fetch(path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      const payload = await response.json();
-      if (!response.ok) {
-        setActionError(payload.error || "Something went wrong.");
-        return;
+      try {
+        const response = await fetch(path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          console.error("[DUEL-ACTION-01] Room action rejected", {
+            path,
+            status: response.status,
+            error: payload?.error,
+          });
+          setActionError(duelActionError(practiceLanguage, "DUEL-ACTION-01"));
+          return;
+        }
+        await mutate(payload, { revalidate: false });
+      } catch (error) {
+        console.error("[DUEL-ACTION-02] Room action failed", { path, error });
+        setActionError(duelActionError(practiceLanguage, "DUEL-ACTION-02"));
       }
-      await mutate(payload, { revalidate: false });
     });
   };
 
@@ -291,11 +324,11 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
     return {
       proposition:
         room.participants.find(
-          (participant) => participant.role === "proposition"
+          (participant) => participant.role === "proposition",
         ) ?? null,
       opposition:
         room.participants.find(
-          (participant) => participant.role === "opposition"
+          (participant) => participant.role === "opposition",
         ) ?? null,
     };
   }, [room]);
@@ -303,8 +336,9 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
   const viewerParticipant = useMemo(() => {
     if (!room) return null;
     return (
-      room.participants.find((participant) => participant.userId === room.viewer.id) ??
-      null
+      room.participants.find(
+        (participant) => participant.userId === room.viewer.id,
+      ) ?? null
     );
   }, [room]);
 
@@ -369,13 +403,17 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
           "rounded-[10px] border px-4 py-4 transition-colors",
           isCurrentSpeaker
             ? "border-primary/28 bg-primary/6"
-            : "border-outline-variant/15 bg-surface"
+            : "border-outline-variant/15 bg-surface",
         )}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="relative flex h-11 w-11 items-center justify-center rounded-full bg-surface-container-low text-sm font-semibold text-primary">
-              {participant ? getInitials(participant.displayName) : side === "proposition" ? "P" : "O"}
+              {participant
+                ? getInitials(participant.displayName)
+                : side === "proposition"
+                  ? "P"
+                  : "O"}
               {participant && (
                 <span
                   aria-hidden
@@ -388,7 +426,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                     "absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-surface",
                     onlineUserIds.includes(participant.userId)
                       ? "bg-success"
-                      : "bg-outline-variant"
+                      : "bg-outline-variant",
                   )}
                 />
               )}
@@ -414,7 +452,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
           <div
             className={cn(
               "inline-flex items-center rounded-full border px-3 py-1 text-xs font-medium",
-              readyTone
+              readyTone,
             )}
           >
             {readyState}
@@ -452,9 +490,11 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
             Duel room unavailable
           </h1>
           <p className="mt-3 text-on-surface-variant">
-            {error instanceof Error
-              ? error.message
-              : "We couldn't load this duel room."}
+            We couldn&apos;t load this duel room. Try again or return to the
+            arena.
+            <span className="mt-1 block type-caption">
+              Support code: DUEL-ROOM-01
+            </span>
           </p>
         </div>
       </div>
@@ -467,24 +507,24 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
 
   return (
     <div className="min-h-full bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <section className="rounded-[10px] border border-outline-variant/15 bg-surface p-6 shadow-none lg:p-7">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+      <div className="mx-auto max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
+        <section className="rounded-[12px] border border-outline-variant/15 bg-surface p-4 shadow-none">
+          <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-3xl">
               <div className="inline-flex items-center gap-2 rounded-full border border-outline-variant/20 bg-surface-container-low px-3 py-1 type-eyebrow text-primary">
                 <Users className="h-3.5 w-3.5" />
                 1v1 Debate
               </div>
-              <h1 className="mt-4 text-3xl font-bold leading-tight text-on-surface sm:text-4xl">
+              <h1 className="mt-2 type-heading-lg text-on-surface">
                 {room.topicTitle}
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-7 text-on-surface-variant">
+              <p className="mt-2 max-w-2xl text-sm leading-6 text-on-surface-variant">
                 {room.topicCategory}
                 {room.topicDescription ? ` · ${room.topicDescription}` : ""}
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[520px] xl:grid-cols-4">
+            <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[500px] xl:grid-cols-4">
               <div className="rounded-[10px] border border-outline-variant/15 bg-surface-container-low px-4 py-3">
                 <div className="type-eyebrow text-on-surface-variant">
                   Share code
@@ -496,7 +536,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                   <button
                     type="button"
                     onClick={handleCopy}
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-outline-variant/20 bg-surface text-primary transition-colors hover:bg-surface-container-lowest"
+                    className="inline-flex h-8 w-8 items-center justify-center rounded-[10px] border border-outline-variant/20 bg-surface text-primary transition-colors hover:bg-surface-container-lowest focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     aria-label="Copy duel link"
                   >
                     <Copy className="h-4 w-4" />
@@ -511,7 +551,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                 <div
                   className={cn(
                     "mt-2 inline-flex rounded-full border px-3 py-1 text-xs font-medium capitalize",
-                    statusTone
+                    statusTone,
                   )}
                 >
                   {statusLabel}
@@ -593,7 +633,8 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                           Room ready check
                         </div>
                         <p className="mt-1 text-sm text-on-surface-variant">
-                          Both debaters must join and ready up before credits are charged and the duel begins.
+                          Both debaters must join and ready up before credits
+                          are charged and the duel begins.
                         </p>
                       </div>
                       <div className="rounded-full border border-outline-variant/15 bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface">
@@ -611,7 +652,9 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                       {!room.viewer.isParticipant && room.canJoin && (
                         <Button
                           onClick={() =>
-                            performRoomAction(`/api/debate-duels/${shareCode}/join`)
+                            performRoomAction(
+                              `/api/debate-duels/${shareCode}/join`,
+                            )
                           }
                           disabled={isMutatingRoom}
                           className="h-8 rounded-[10px] bg-primary text-on-primary hover:bg-primary/90"
@@ -627,21 +670,25 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                               `/api/debate-duels/${shareCode}/ready`,
                               {
                                 ready: !viewerParticipant?.readyAt,
-                              }
+                              },
                             )
                           }
                           disabled={isMutatingRoom}
                           variant="outline"
                           className="h-8 rounded-[10px] border-outline-variant/25 bg-surface text-on-surface"
                         >
-                          {viewerParticipant?.readyAt ? "Unready" : "Mark ready"}
+                          {viewerParticipant?.readyAt
+                            ? "Unready"
+                            : "Mark ready"}
                         </Button>
                       )}
 
                       {room.canStart && (
                         <Button
                           onClick={() =>
-                            performRoomAction(`/api/debate-duels/${shareCode}/start`)
+                            performRoomAction(
+                              `/api/debate-duels/${shareCode}/start`,
+                            )
                           }
                           disabled={isMutatingRoom}
                           className="h-8 rounded-[10px] bg-primary text-on-primary hover:bg-primary/90"
@@ -658,10 +705,13 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                       AI judge
                     </div>
                     <p className="mt-3 text-sm leading-7 text-on-surface-variant">
-                      After the last rebuttal, Thinkfy compares burden, logic, clash, weighing, evidence, and delivery before deciding the winner.
+                      After the last rebuttal, Thinkfy compares burden, logic,
+                      clash, weighing, evidence, and delivery before deciding
+                      the winner.
                     </p>
                     <div className="mt-5 rounded-[10px] border border-outline-variant/12 bg-surface-container-low px-4 py-4 text-sm text-on-surface-variant">
-                      Credits are deducted only once both debaters are ready and the duel officially starts.
+                      Credits are deducted only once both debaters are ready and
+                      the duel officially starts.
                     </div>
                   </div>
                 </div>
@@ -682,7 +732,8 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                           AI judging in progress
                         </h3>
                         <p className="text-sm text-on-surface-variant">
-                          All speeches are locked. The system is comparing the full exchange now.
+                          All speeches are locked. The system is comparing the
+                          full exchange now.
                         </p>
                       </div>
                     </div>
@@ -696,7 +747,9 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                       <div className="mt-4 h-2 rounded-full bg-surface-container-high">
                         <div
                           className="h-full rounded-full bg-primary transition-[width]"
-                          style={{ width: `${Math.min(100, (speechCount / 4) * 100)}%` }}
+                          style={{
+                            width: `${Math.min(100, (speechCount / 4) * 100)}%`,
+                          }}
                         />
                       </div>
                     </div>
@@ -748,12 +801,15 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
 
                     <div className="mt-5 rounded-[10px] border border-outline-variant/12 bg-surface-container-low px-4 py-4">
                       <div className="mb-2 text-sm font-medium text-on-surface">
-                        {phaseDescriptor?.activeSide ? "Live transcript" : "Prep focus"}
+                        {phaseDescriptor?.activeSide
+                          ? "Live transcript"
+                          : "Prep focus"}
                       </div>
                       <p className="min-h-[220px] whitespace-pre-wrap text-sm leading-7 text-on-surface-variant">
                         {phaseDescriptor?.activeSide
                           ? activeSpeaker
-                            ? speech.transcript || "Start speaking when you’re ready."
+                            ? speech.transcript ||
+                              "Start speaking when you’re ready."
                             : "Your opponent’s live transcript stays hidden during the speech. Focus on listening, tracking impacts, and preparing your notes."
                           : "Use this shared prep window to sharpen framing, organize warrants, and decide what your strongest comparative points will be."}
                       </p>
@@ -766,7 +822,9 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                           disabled={isSubmittingSpeech}
                           className="h-8 rounded-[10px] bg-primary text-on-primary hover:bg-primary/90"
                         >
-                          {isSubmittingSpeech ? "Submitting..." : "Submit early"}
+                          {isSubmittingSpeech
+                            ? "Submitting..."
+                            : "Submit early"}
                         </Button>
                       </div>
                     )}
@@ -776,7 +834,8 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                         {showForfeitConfirm ? (
                           <div className="flex flex-wrap items-center justify-between gap-3 rounded-[10px] border border-error/20 bg-error/8 px-4 py-3">
                             <span className="text-sm text-on-surface-variant">
-                              Forfeit now? Your opponent is refunded and this counts against you.
+                              Forfeit now? Your opponent is refunded and this
+                              counts against you.
                             </span>
                             <div className="flex gap-2">
                               <Button
@@ -816,7 +875,8 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                       Local notes
                     </div>
                     <p className="mt-3 text-sm text-on-surface-variant">
-                      Keep rebuttal ideas, weighing, and reminders on this device only.
+                      Keep rebuttal ideas, weighing, and reminders on this
+                      device only.
                     </p>
                     <textarea
                       value={notes}
@@ -853,12 +913,12 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                       <div
                         key={phase.phase}
                         className={cn(
-                          "rounded-[22px] border px-4 py-3 transition-colors",
+                          "rounded-[10px] border px-3 py-2 transition-colors",
                           isActive
                             ? "border-primary/20 bg-primary/8"
                             : isComplete
                               ? "border-success/16 bg-success/5"
-                              : "border-outline-variant/12 bg-surface-container-low"
+                              : "border-outline-variant/12 bg-surface-container-low",
                         )}
                       >
                         <div className="flex items-center justify-between gap-3">
@@ -870,7 +930,7 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                                   ? "bg-primary text-on-primary"
                                   : isComplete
                                     ? "bg-success/12 text-success"
-                                    : "bg-surface text-on-surface-variant"
+                                    : "bg-surface text-on-surface-variant",
                               )}
                             >
                               {isComplete ? (
@@ -895,14 +955,10 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                                 ? "bg-primary/12 text-primary"
                                 : isComplete
                                   ? "bg-success/12 text-success"
-                                  : "bg-surface text-on-surface-variant"
+                                  : "bg-surface text-on-surface-variant",
                             )}
                           >
-                            {isActive
-                              ? "Live"
-                              : isComplete
-                                ? "Done"
-                                : "Next"}
+                            {isActive ? "Live" : isComplete ? "Done" : "Next"}
                           </div>
                         </div>
                       </div>
@@ -949,7 +1005,8 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
                     AI judge after the last rebuttal
                   </div>
                   <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                    The verdict compares burden, mechanism, clash, weighing, evidence, and delivery across the whole duel.
+                    The verdict compares burden, mechanism, clash, weighing,
+                    evidence, and delivery across the whole duel.
                   </p>
                 </div>
               </div>

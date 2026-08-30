@@ -1,4 +1,5 @@
 import { useLocale, useTranslations } from "next-intl";
+import { useReducedMotion } from "framer-motion";
 import {
   AlertTriangle,
   CalendarClock,
@@ -8,9 +9,6 @@ import {
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
-  BarYAxis,
   ChartTooltip,
   Grid,
   XAxis,
@@ -37,18 +35,22 @@ type ForecastDayDatum = {
   itemCount: number;
 };
 
-type ForecastSkillDatum = {
-  label: string;
-  minutes: number;
-};
-
-function ForecastTooltip({ point }: { point: Record<string, unknown> }) {
+function ForecastTooltip({
+  point,
+  locale,
+}: {
+  point: Record<string, unknown>;
+  locale: string;
+}) {
   const label = typeof point.label === "string" ? point.label : "";
   const plannedMinutes =
     typeof point.plannedMinutes === "number" ? point.plannedMinutes : 0;
   const completedMinutes =
     typeof point.completedMinutes === "number" ? point.completedMinutes : 0;
   const itemCount = typeof point.itemCount === "number" ? point.itemCount : 0;
+  const plannedLabel = locale === "vi" ? "phút dự kiến" : "planned minutes";
+  const completedLabel = locale === "vi" ? "đã hoàn thành" : "completed";
+  const tasksLabel = locale === "vi" ? "bài" : "tasks";
 
   return (
     <div className="min-w-40 px-3 py-2.5">
@@ -56,26 +58,10 @@ function ForecastTooltip({ point }: { point: Record<string, unknown> }) {
         {label}
       </p>
       <p className="mt-1 type-body-sm font-semibold text-chart-tooltip-foreground">
-        {plannedMinutes} planned minutes
+        {plannedMinutes} {plannedLabel}
       </p>
       <p className="mt-1 type-caption text-chart-tooltip-muted">
-        {completedMinutes} completed · {itemCount} tasks
-      </p>
-    </div>
-  );
-}
-
-function SkillMinutesTooltip({ point }: { point: Record<string, unknown> }) {
-  const label = typeof point.label === "string" ? point.label : "";
-  const minutes = typeof point.minutes === "number" ? point.minutes : 0;
-
-  return (
-    <div className="min-w-36 px-3 py-2.5">
-      <p className="type-caption font-semibold uppercase text-chart-tooltip-muted">
-        {label}
-      </p>
-      <p className="mt-1 type-body-sm font-semibold text-chart-tooltip-foreground">
-        {minutes} minutes
+        {completedMinutes} {completedLabel} · {itemCount} {tasksLabel}
       </p>
     </div>
   );
@@ -91,7 +77,10 @@ function TaskRow({ item }: { item: IeltsStudyPlanItemView }) {
           <KindChip kind={item.kind} />
           <SkillBadge skill={item.skill} />
           {item.isComplete ? (
-            <CheckCircle2 className="size-4 text-success-dim" aria-label={t("done")} />
+            <CheckCircle2
+              className="size-4 text-success-dim"
+              aria-label={t("done")}
+            />
           ) : null}
         </div>
         <p className="mt-1 truncate type-body-sm font-semibold text-on-surface">
@@ -194,6 +183,7 @@ export function StudyPlanCalendar({ view }: { view: IeltsStudyPlanPageView }) {
 export function StudyPlanForecast({ view }: { view: IeltsStudyPlanPageView }) {
   const t = useTranslations("ielts.studyPlan");
   const locale = useLocale();
+  const reduceMotion = useReducedMotion();
   const weeks = view.weeklyForecast;
   if (weeks.length === 0) return null;
   const forecastDays: ForecastDayDatum[] = view.calendar.days
@@ -205,6 +195,20 @@ export function StudyPlanForecast({ view }: { view: IeltsStudyPlanPageView }) {
       completedMinutes: day.completedMinutes,
       itemCount: day.items.length,
     }));
+  const totalPlanned = forecastDays.reduce(
+    (sum, day) => sum + day.plannedMinutes,
+    0,
+  );
+  const totalCompleted = forecastDays.reduce(
+    (sum, day) => sum + day.completedMinutes,
+    0,
+  );
+  const summary =
+    locale === "vi"
+      ? `Trong 14 ngày: ${totalPlanned} phút dự kiến, ${totalCompleted} phút hoàn thành.`
+      : `Over 14 days: ${totalPlanned} planned minutes and ${totalCompleted} completed minutes.`;
+  const plannedLabel = locale === "vi" ? "Dự kiến" : "Planned";
+  const completedLabel = locale === "vi" ? "Hoàn thành" : "Completed";
 
   return (
     <SectionCard
@@ -213,94 +217,140 @@ export function StudyPlanForecast({ view }: { view: IeltsStudyPlanPageView }) {
       caption={t("forecast_caption")}
     >
       <div className="grid gap-5">
-        <div className="h-64">
-          <AreaChart
-            aspectRatio="unset"
-            data={forecastDays}
-            margin={{ top: 16, right: 18, bottom: 34, left: 42 }}
-            style={{ height: "100%" }}
-          >
-            <Grid horizontal />
-            <Area
-              dataKey="plannedMinutes"
-              fill="var(--chart-line-primary)"
-              fillOpacity={0.28}
-              showMarkers
-              stroke="var(--chart-line-primary)"
-              strokeWidth={2.5}
-            />
-            <Area
-              dataKey="completedMinutes"
-              fill="var(--chart-line-secondary)"
-              fillOpacity={0.22}
-              showMarkers
-              stroke="var(--chart-line-secondary)"
-              strokeWidth={2}
-            />
-            <XAxis />
-            <ChartTooltip
-              content={({ point }) => <ForecastTooltip point={point} />}
-              showDatePill={false}
-            />
-          </AreaChart>
+        <div>
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+            <p className="type-caption text-on-surface-variant">{summary}</p>
+            <div
+              aria-label={`${plannedLabel}; ${completedLabel}`}
+              className="flex items-center gap-3 type-caption text-on-surface-variant"
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="h-0.5 w-5 bg-[var(--chart-line-primary)]"
+                  aria-hidden
+                />
+                {plannedLabel}
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span
+                  className="w-5 border-t-2 border-dashed border-[var(--chart-line-secondary)]"
+                  aria-hidden
+                />
+                {completedLabel}
+              </span>
+            </div>
+          </div>
+          <div className="hidden h-64 sm:block" role="img" aria-label={summary}>
+            <AreaChart
+              animationDuration={reduceMotion ? 0 : 600}
+              aspectRatio="unset"
+              data={forecastDays}
+              margin={{ top: 16, right: 18, bottom: 34, left: 42 }}
+              style={{ height: "100%" }}
+            >
+              <Grid horizontal />
+              <Area
+                dataKey="plannedMinutes"
+                fill="var(--chart-line-primary)"
+                fillOpacity={0.12}
+                showMarkers
+                stroke="var(--chart-line-primary)"
+                strokeWidth={2.5}
+              />
+              <Area
+                dashFromIndex={0}
+                dataKey="completedMinutes"
+                fill="var(--chart-line-secondary)"
+                fillOpacity={0}
+                showMarkers
+                stroke="var(--chart-line-secondary)"
+                strokeWidth={2}
+              />
+              <XAxis />
+              <ChartTooltip
+                content={({ point }) => (
+                  <ForecastTooltip locale={locale} point={point} />
+                )}
+                showDatePill={false}
+              />
+            </AreaChart>
+          </div>
+          <table className="mt-3 w-full table-fixed border-collapse type-caption sm:sr-only">
+            <caption className="sr-only">{summary}</caption>
+            <thead>
+              <tr>
+                <th className="border-b border-outline-variant px-2 py-2 text-left font-semibold text-on-surface-variant">
+                  {locale === "vi" ? "Ngày" : "Date"}
+                </th>
+                <th className="border-b border-outline-variant px-2 py-2 text-right font-semibold text-on-surface-variant">
+                  {plannedLabel}
+                </th>
+                <th className="border-b border-outline-variant px-2 py-2 text-right font-semibold text-on-surface-variant">
+                  {completedLabel}
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {forecastDays.map((day) => (
+                <tr key={day.label}>
+                  <th className="border-b border-outline-variant px-2 py-2 text-left font-medium text-on-surface">
+                    {day.label}
+                  </th>
+                  <td className="border-b border-outline-variant px-2 py-2 text-right tabular-nums text-on-surface">
+                    {day.plannedMinutes}
+                  </td>
+                  <td className="border-b border-outline-variant px-2 py-2 text-right tabular-nums text-on-surface">
+                    {day.completedMinutes}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-        {weeks.map((week) => {
-          const skillData: ForecastSkillDatum[] = week.bySkill.map((entry) => ({
-            label: t(`skills.${entry.skill}`),
-            minutes: entry.minutes,
-          }));
-          return (
-            <div
-              key={week.index}
-              className="rounded-lg border border-outline-variant bg-surface-container-low p-3"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="type-body-sm font-bold text-on-surface">
-                  {t("week", { index: week.index })}
-                </p>
-                <p className="type-caption text-on-surface-variant">
-                  {formatShortDate(week.startDate, locale)} –{" "}
-                  {formatShortDate(week.endDate, locale)}
-                </p>
-              </div>
-              <p className="mt-1 type-caption text-on-surface-variant">
-                {t("week_summary", {
-                  minutes: week.plannedMinutes,
-                  items: week.itemCount,
-                  days: week.studyDayCount,
-                })}
-              </p>
-              {week.bySkill.length > 0 ? (
-                <div className="mt-3 h-40">
-                  <BarChart
-                    aspectRatio="unset"
-                    className="h-full"
-                    data={skillData}
-                    margin={{ top: 8, right: 16, bottom: 8, left: 88 }}
-                    orientation="horizontal"
-                    xDataKey="label"
-                  >
-                    <Grid horizontal={false} vertical />
-                    <Bar
-                      dataKey="minutes"
-                      fill="var(--chart-line-primary)"
-                      lineCap="round"
-                    />
-                    <BarYAxis />
-                    <ChartTooltip
-                      content={({ point }) => <SkillMinutesTooltip point={point} />}
-                      showCrosshair={false}
-                      showDatePill={false}
-                      showDots={false}
-                    />
-                  </BarChart>
+          {weeks.map((week) => {
+            return (
+              <div
+                key={week.index}
+                className="rounded-lg border border-outline-variant bg-surface-container-low p-3"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="type-body-sm font-bold text-on-surface">
+                    {t("week", { index: week.index })}
+                  </p>
+                  <p className="type-caption text-on-surface-variant">
+                    {formatShortDate(week.startDate, locale)} –{" "}
+                    {formatShortDate(week.endDate, locale)}
+                  </p>
                 </div>
-              ) : null}
-            </div>
-          );
-        })}
+                <p className="mt-1 type-caption text-on-surface-variant">
+                  {t("week_summary", {
+                    minutes: week.plannedMinutes,
+                    items: week.itemCount,
+                    days: week.studyDayCount,
+                  })}
+                </p>
+                {week.bySkill.length > 0 ? (
+                  <dl className="mt-3 grid gap-1.5">
+                    {week.bySkill.map((entry) => (
+                      <div
+                        className="flex min-h-8 items-center justify-between gap-3 rounded-md bg-surface px-2.5 py-1.5"
+                        key={entry.skill}
+                      >
+                        <dt className="type-caption font-medium text-on-surface-variant">
+                          {t(`skills.${entry.skill}`)}
+                        </dt>
+                        <dd className="type-label font-semibold tabular-nums text-on-surface">
+                          {t("minutes", { count: entry.minutes })}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       </div>
     </SectionCard>

@@ -57,7 +57,7 @@ export function IeltsOnboardingResultStep({
   return (
     <section className="grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
       <div>
-        <h2 className="type-heading-lg font-bold text-on-surface">
+        <h2 className="type-heading-lg font-semibold text-on-surface">
           {t("result_title")}
         </h2>
         <p className="mt-2 type-body text-on-surface-variant">

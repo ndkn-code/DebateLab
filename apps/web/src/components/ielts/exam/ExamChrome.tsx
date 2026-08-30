@@ -96,6 +96,7 @@ export function ExamSectionHeader({
   onOpenNotes: () => void;
 }) {
   const currentLocale = useLocale();
+  const vi = currentLocale === "vi";
   const locale: IeltsPlayerLocale = currentLocale === "vi" ? "vi" : "en";
   const experience = useIeltsPlayerExperience();
   const experienceLabel =
@@ -178,7 +179,7 @@ export function ExamSectionHeader({
       </div>
       <nav
         className="flex gap-2 overflow-x-auto border-t border-outline-variant px-3 py-2 sm:px-5"
-        aria-label="Test sections"
+        aria-label={vi ? "Các phần thi" : "Test sections"}
       >
         {sections.map((candidate, index) => (
           <button
@@ -250,15 +251,16 @@ export function ExamSectionFooter({
   onReview: () => void;
   onFinish: () => void;
 }) {
+  const vi = useLocale() === "vi";
   return (
     <footer className="z-20 shrink-0 border-t border-outline-variant bg-surface/95 shadow-[0_-4px_16px_rgb(0_0_0/0.06)] backdrop-blur">
       <div className="flex min-w-0 items-center gap-2 border-b border-outline-variant px-3 py-2 sm:px-5">
         <span className="shrink-0 text-xs font-extrabold text-on-surface-variant">
-          Part {Math.max(1, activePartIndex + 1)}
+          {vi ? "Phần" : "Part"} {Math.max(1, activePartIndex + 1)}
         </span>
         <div
           className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto py-0.5"
-          aria-label="Questions"
+          aria-label={vi ? "Câu hỏi" : "Questions"}
         >
           {statuses.map((status) => (
             <button
@@ -266,7 +268,7 @@ export function ExamSectionFooter({
               type="button"
               onClick={() => onJump(status.partIndex, status.questionId)}
               aria-current={status.current ? "true" : undefined}
-              aria-label={`Question ${status.number}, ${status.answered ? "answered" : "unanswered"}${status.flagged ? ", flagged" : ""}`}
+              aria-label={`${vi ? "Câu hỏi" : "Question"} ${status.number}, ${status.answered ? (vi ? "đã trả lời" : "answered") : vi ? "chưa trả lời" : "unanswered"}${status.flagged ? `, ${vi ? "đã đánh dấu" : "flagged"}` : ""}`}
               className={cn(
                 "relative flex size-8 shrink-0 items-center justify-center rounded-lg border text-xs font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                 questionChipClass(status),
@@ -291,7 +293,7 @@ export function ExamSectionFooter({
           <ExamButton
             onClick={() => onSelectPart(activePartIndex - 1)}
             disabled={busy || activePartIndex <= 0}
-            aria-label="Previous part"
+            aria-label={vi ? "Phần trước" : "Previous part"}
             className="size-10 px-0 sm:w-auto sm:px-4"
           >
             <ProductIcon name="chevronLeft" size="sm" weight="bold" />
@@ -302,7 +304,7 @@ export function ExamSectionFooter({
             disabled={
               busy || activePartIndex < 0 || activePartIndex >= partsLength - 1
             }
-            aria-label="Next part"
+            aria-label={vi ? "Phần tiếp theo" : "Next part"}
             className="size-10 px-0 sm:w-auto sm:px-4"
           >
             <span className="hidden sm:inline">Next</span>

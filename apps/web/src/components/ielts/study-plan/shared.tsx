@@ -20,7 +20,7 @@ export function SectionCard({
   children: ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-outline-variant bg-surface-container p-4 shadow-token-card sm:p-5">
+    <section className="rounded-xl border border-outline-variant bg-surface-container p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-start gap-2.5">
           <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary-container text-on-secondary-container">
@@ -29,13 +29,15 @@ export function SectionCard({
           <div className="min-w-0">
             <h2 className="type-title font-bold text-on-surface">{title}</h2>
             {caption ? (
-              <p className="mt-0.5 type-body-sm text-on-surface-variant">{caption}</p>
+              <p className="mt-0.5 type-body-sm text-on-surface-variant">
+                {caption}
+              </p>
             ) : null}
           </div>
         </div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
-      <div className="mt-4">{children}</div>
+      <div className="mt-3">{children}</div>
     </section>
   );
 }
@@ -51,7 +53,7 @@ export function SkillBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-full border px-2.5 py-0.5 type-caption font-semibold",
+        "inline-flex min-h-5 items-center rounded-md border px-2 type-caption font-semibold",
         className,
       )}
       style={{
@@ -69,7 +71,7 @@ export function SkillBadge({
 export function KindChip({ kind }: { kind: string }) {
   const t = useTranslations("ielts.studyPlan");
   return (
-    <span className="inline-flex items-center rounded-full bg-secondary-container px-2.5 py-0.5 type-caption font-semibold text-on-secondary-container">
+    <span className="inline-flex min-h-5 items-center rounded-md bg-secondary-container px-2 type-caption font-semibold text-on-secondary-container">
       {t(`kind.${kind}`)}
     </span>
   );
@@ -87,7 +89,8 @@ export function severityClass(severity: string): string {
 
 /** Render an ISO date (or timestamp) as a short, locale-aware calendar label. */
 export function formatShortDate(iso: string, locale: string): string {
-  const date = iso.length === 10 ? new Date(`${iso}T00:00:00.000Z`) : new Date(iso);
+  const date =
+    iso.length === 10 ? new Date(`${iso}T00:00:00.000Z`) : new Date(iso);
   return new Intl.DateTimeFormat(locale === "vi" ? "vi-VN" : "en-GB", {
     day: "numeric",
     month: "short",

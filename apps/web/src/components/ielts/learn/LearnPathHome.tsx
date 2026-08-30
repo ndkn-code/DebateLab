@@ -5,7 +5,10 @@ import { Link } from "@/i18n/navigation";
 import { ArrowRight, Compass, Sparkles, Trophy } from "@/components/ui/icons";
 import { buttonVariants } from "@/components/ui/button";
 import { PageTransition } from "@/components/shared/page-motion";
-import { PageContainer, ProductPageShell } from "@/components/shared/product-layout";
+import {
+  PageContainer,
+  ProductPageShell,
+} from "@/components/shared/product-layout";
 import { cn } from "@/lib/utils";
 import { focusFirst, type LearnPathView } from "@/lib/ielts/learner/learn-path";
 import { IeltsEmptyState } from "@/components/ielts/learner/EmptyState";
@@ -28,10 +31,12 @@ export function LearnPathHome({ path }: { path: LearnPathView | null }) {
   return (
     <PageTransition>
       <ProductPageShell>
-        <PageContainer size="data" className="flex flex-col gap-6 py-5 lg:py-6">
+        <PageContainer size="data" className="flex flex-col gap-5 py-5 lg:py-6">
           <header className="flex flex-col gap-1">
-            <p className="type-eyebrow font-semibold uppercase text-primary">{t("eyebrow")}</p>
-            <h1 className="type-heading-xl font-bold text-balance text-on-surface">
+            <p className="type-eyebrow font-semibold uppercase text-primary">
+              {t("eyebrow")}
+            </p>
+            <h1 className="type-heading-lg font-semibold text-balance text-on-surface md:type-heading-xl">
               {path ? path.courseTitle : t("title")}
             </h1>
           </header>
@@ -44,7 +49,9 @@ export function LearnPathHome({ path }: { path: LearnPathView | null }) {
               action={
                 <Link
                   href="/ielts/onboarding"
-                  className={cn(buttonVariants({ variant: "primary", size: "sm" }))}
+                  className={cn(
+                    buttonVariants({ variant: "primary", size: "sm" }),
+                  )}
                 >
                   {t("empty_cta_diagnostic")}
                   <ArrowRight className="size-4" />
@@ -74,7 +81,7 @@ function PathBody({
   return (
     <>
       {/* Recommended-next / progress hero — the primary call to action. */}
-      <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container p-4 sm:p-5">
+      <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container p-4">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             {path.recommended ? (
@@ -92,9 +99,11 @@ function PathBody({
                 </p>
                 <Link
                   href={path.recommended.href}
-                  className={cn(buttonVariants({ variant: "primary" }), "mt-5")}
+                  className={cn(buttonVariants({ variant: "primary" }), "mt-4")}
                 >
-                  {path.completedCount > 0 ? t("continue_cta") : t("start_path_cta")}
+                  {path.completedCount > 0
+                    ? t("continue_cta")
+                    : t("start_path_cta")}
                   <ArrowRight className="size-4" />
                 </Link>
               </>
@@ -114,12 +123,15 @@ function PathBody({
             )}
           </div>
 
-          <div className="flex shrink-0 flex-col items-center justify-center gap-2 rounded-lg bg-primary-container px-5 py-4 text-center">
+          <div className="flex shrink-0 flex-col items-center justify-center gap-1 rounded-lg bg-primary-container px-4 py-3 text-center">
             <span className="type-display-sm font-bold tabular-nums text-on-primary-container">
               {path.progressPercent}%
             </span>
             <span className="type-caption font-semibold text-on-primary-container">
-              {t("subtitle_progress", { completed: path.completedCount, total: path.totalCount })}
+              {t("subtitle_progress", {
+                completed: path.completedCount,
+                total: path.totalCount,
+              })}
             </span>
           </div>
         </div>
@@ -129,8 +141,12 @@ function PathBody({
       {focusAreas.length > 0 ? (
         <section className="flex flex-col gap-3">
           <div className="flex flex-col gap-0.5">
-            <h2 className="type-heading-md font-semibold text-on-surface">{t("focus_areas_title")}</h2>
-            <p className="type-body-sm text-on-surface-variant">{t("focus_areas_hint")}</p>
+            <h2 className="type-heading-md font-semibold text-on-surface">
+              {t("focus_areas_title")}
+            </h2>
+            <p className="type-body-sm text-on-surface-variant">
+              {t("focus_areas_hint")}
+            </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {focusAreas.map((mastery) => (
@@ -142,8 +158,10 @@ function PathBody({
 
       {/* The units of the path. */}
       <section className="flex flex-col gap-3">
-        <h2 className="type-heading-md font-semibold text-on-surface">{t("units_title")}</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <h2 className="type-heading-md font-semibold text-on-surface">
+          {t("units_title")}
+        </h2>
+        <div className="grid gap-3 xl:grid-cols-2">
           {path.units.map((unit, index) => (
             <UnitCard key={unit.id} unit={unit} index={index} />
           ))}

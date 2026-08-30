@@ -70,7 +70,7 @@ export function IeltsOnboardingGoalStep({
   return (
     <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
       <div>
-        <h2 className="type-heading-lg font-bold text-on-surface">
+        <h2 className="type-heading-lg font-semibold text-on-surface">
           {t("goal_title")}
         </h2>
         <p className="mt-2 type-body text-on-surface-variant">
@@ -84,7 +84,7 @@ export function IeltsOnboardingGoalStep({
           onSubmit();
         }}
       >
-        <fieldset className="grid gap-2" role="radiogroup">
+        <fieldset className="grid gap-2">
           <legend className="type-body-sm font-semibold text-on-surface">
             {moduleCopy.label}
           </legend>
@@ -100,24 +100,30 @@ export function IeltsOnboardingGoalStep({
                   ? moduleCopy.academicBody
                   : moduleCopy.generalBody;
               return (
-                <button
+                <label
                   key={module}
-                  type="button"
-                  role="radio"
-                  aria-checked={selected}
-                  onClick={() => setGoal((current) => ({ ...current, module }))}
                   className={cn(
-                    "min-h-14 rounded-lg border px-3 py-2 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    "relative min-h-14 cursor-pointer rounded-lg border px-3 py-2 text-left transition-colors focus-within:ring-2 focus-within:ring-primary",
                     choiceClass(selected),
                   )}
                 >
+                  <input
+                    className="sr-only"
+                    type="radio"
+                    name="ielts-module"
+                    value={module}
+                    checked={selected}
+                    onChange={() =>
+                      setGoal((current) => ({ ...current, module }))
+                    }
+                  />
                   <span className="block type-body-sm font-semibold">
                     {title}
                   </span>
                   <span className="mt-0.5 block type-label text-on-surface-variant">
                     {body}
                   </span>
-                </button>
+                </label>
               );
             })}
           </div>

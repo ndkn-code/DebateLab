@@ -104,7 +104,7 @@ export function PredictedBandCard({
         ? view.nextBestDiagnostic.reasonVi
         : view.nextBestDiagnostic.reasonEn) || t("hero_diagnostic_first");
     return (
-      <section className="rounded-xl border border-outline-variant bg-surface-container p-4 shadow-token-card">
+      <section className="rounded-xl border border-outline-variant bg-surface-container p-4">
         <p className="type-eyebrow font-semibold uppercase text-primary">
           {t("predicted_title")}
         </p>
@@ -127,7 +127,7 @@ export function PredictedBandCard({
   const confidence = t(`confidence_level_${CONFIDENCE_LEVEL[overall.status]}`);
 
   return (
-    <section className="rounded-xl border border-outline-variant bg-surface-container p-4 shadow-token-card">
+    <section className="rounded-xl border border-outline-variant bg-surface-container p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="type-caption font-medium text-on-surface-variant">

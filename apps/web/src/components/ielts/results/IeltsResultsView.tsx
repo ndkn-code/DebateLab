@@ -1,6 +1,8 @@
+"use client";
+
 /**
  * IELTS attempt results — the post-attempt experience (WS-2.2). A server
- * component: it renders the serialisable {@link AttemptResultsViewModel} the
+ * client presentation: it renders the serialisable {@link AttemptResultsViewModel} the
  * page builds (per-skill bands, the overall, the raw→band breakdown, the
  * per-question review, and Writing/Speaking panels). No interactivity beyond
  * native `<details>`, so nothing ships to the client. Design-system tokens only.
@@ -11,7 +13,6 @@ import type {
   SkillBandRow,
 } from "@/lib/ielts/results/types";
 import {
-  buildResultsBandInsight,
   targetBandForSkill,
   type IeltsBandTargets,
 } from "@/lib/ielts/band-visuals";
@@ -19,21 +20,66 @@ import { BandGauge, BandMeter } from "@/components/ielts/band-visuals";
 import { ObjectiveReviewList } from "./ObjectiveReviewList";
 import { RawBandBreakdown } from "./RawBandBreakdown";
 import { SpeakingResultPanel, WritingResultPanel } from "./SkillFeedbackPanels";
-import { STATUS_LABEL, STATUS_PILL } from "./format";
+import { STATUS_PILL } from "./format";
+import { useLocale } from "next-intl";
+
+const COPY = {
+  en: {
+    skill: "skill",
+    skills: "skills",
+    scored: "scored",
+    pendingDetail: "Some skill scores are still being marked.",
+    pending: "Pending",
+    overall: "Overall band",
+    target: "Target",
+    academic: "Academic",
+    general: "General Training",
+    listening: "Listening",
+    reading: "Reading",
+    writing: "Writing",
+    speaking: "Speaking",
+    results: "your results",
+    status: {
+      scored: "Scored",
+      in_progress: "Scoring…",
+      not_attempted: "Not attempted",
+    },
+  },
+  vi: {
+    skill: "kỹ năng",
+    skills: "kỹ năng",
+    scored: "đã có điểm",
+    pendingDetail: "Một số kỹ năng vẫn đang được chấm.",
+    pending: "Đang chờ",
+    overall: "Band tổng",
+    target: "Mục tiêu",
+    academic: "Học thuật",
+    general: "Tổng quát",
+    listening: "Nghe",
+    reading: "Đọc",
+    writing: "Viết",
+    speaking: "Nói",
+    results: "kết quả của bạn",
+    status: {
+      scored: "Đã chấm",
+      in_progress: "Đang chấm…",
+      not_attempted: "Chưa làm",
+    },
+  },
+} as const;
 
 function OverallHero({
   overall,
-  skills,
   targets,
 }: {
   overall: OverallBandSummary;
-  skills: SkillBandRow[];
   targets: IeltsBandTargets;
 }) {
-  const scoredCopy = `${overall.presentCount} of ${overall.totalSkills} ${
-    overall.totalSkills === 1 ? "skill" : "skills"
-  } scored`;
-  const insight = buildResultsBandInsight(skills, targets);
+  const locale = useLocale();
+  const copy = COPY[locale === "vi" ? "vi" : "en"];
+  const scoredCopy = `${overall.presentCount}/${overall.totalSkills} ${
+    overall.totalSkills === 1 ? copy.skill : copy.skills
+  } ${copy.scored}`;
 
   return (
     <BandGauge
@@ -42,21 +88,19 @@ function OverallHero({
         <span className="flex flex-col gap-2">
           <span>
             {scoredCopy}
-            {overall.isProvisional
-              ? " · updates as Writing & Speaking are marked"
-              : ""}
+            {overall.isProvisional ? ` · ${copy.pendingDetail}` : ""}
           </span>
           {overall.isProvisional ? (
-            <span className="inline-flex w-fit rounded-full bg-surface-container-high px-3 py-1 type-caption font-semibold uppercase text-on-surface-variant">
-              Pending
+            <span className="inline-flex min-h-5 w-fit items-center rounded-md bg-surface-container-high px-2 type-caption font-semibold uppercase text-on-surface-variant">
+              {copy.pending}
             </span>
           ) : null}
-          <span className="text-on-surface">{insight}</span>
         </span>
       }
       isProvisional={overall.isProvisional}
-      label="Overall band"
+      label={copy.overall}
       target={targets.overall}
+      targetLabel={copy.target}
     />
   );
 }
@@ -70,6 +114,8 @@ function SkillRow({
   skill: SkillBandRow;
   targets: IeltsBandTargets;
 }) {
+  const locale = useLocale();
+  const copy = COPY[locale === "vi" ? "vi" : "en"];
   return (
     <BandMeter
       accent={skill.skill}
@@ -77,15 +123,16 @@ function SkillRow({
       delayMs={delayMs}
       raw={skill.raw}
       rawMax={skill.rawMax}
-      skill={skill.label}
+      skill={copy[skill.skill]}
       status={
         <span
-          className={`rounded-full px-2.5 py-0.5 type-caption ${STATUS_PILL[skill.status]}`}
+          className={`inline-flex min-h-5 items-center rounded-md px-2 type-caption ${STATUS_PILL[skill.status]}`}
         >
-          {STATUS_LABEL[skill.status]}
+          {copy.status[skill.status]}
         </span>
       }
       target={targetBandForSkill(targets, skill.skill)}
+      targetLabel={copy.target}
     />
   );
 }
@@ -97,20 +144,21 @@ export function IeltsResultsView({
   model: AttemptResultsViewModel;
   targets: IeltsBandTargets;
 }) {
+  const locale = useLocale();
+  const copy = COPY[locale === "vi" ? "vi" : "en"];
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <header className="flex flex-col gap-1">
-        <h1 className="type-heading-lg text-on-surface">{model.testTitle}</h1>
+        <h1 className="type-heading-lg font-semibold text-on-surface">
+          {model.testTitle}
+        </h1>
         <p className="type-body-sm text-on-surface-variant">
-          {model.module === "general_training" ? "General Training" : "Academic"} · your results
+          {model.module === "general_training" ? copy.general : copy.academic} ·{" "}
+          {copy.results}
         </p>
       </header>
 
-      <OverallHero
-        overall={model.overall}
-        skills={model.skills}
-        targets={targets}
-      />
+      <OverallHero overall={model.overall} targets={targets} />
 
       <section className="flex flex-col gap-2">
         {model.skills.map((skill, index) => (
@@ -132,7 +180,9 @@ export function IeltsResultsView({
       ) : null}
 
       {model.writing ? <WritingResultPanel writing={model.writing} /> : null}
-      {model.speaking ? <SpeakingResultPanel speaking={model.speaking} /> : null}
+      {model.speaking ? (
+        <SpeakingResultPanel speaking={model.speaking} />
+      ) : null}
     </div>
   );
 }

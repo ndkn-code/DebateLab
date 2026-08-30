@@ -57,7 +57,7 @@ function IeltsLearnUpsellTile() {
         <span className="block type-body font-semibold text-on-surface">
           {t("tile_learn_upsell_title")}
         </span>
-        <span className="block truncate type-caption text-on-surface-variant">
+        <span className="block type-caption text-on-surface-variant">
           {t("tile_learn_upsell_body")}
         </span>
       </span>
@@ -100,7 +100,7 @@ export function IeltsEntryTiles({
               <span className="block type-body font-semibold text-on-surface">
                 {t(titleKey)}
               </span>
-              <span className="block truncate type-caption text-on-surface-variant">
+              <span className="block type-caption text-on-surface-variant">
                 {href === "/ielts/review" && reviewsDueCount > 0
                   ? softenDueState
                     ? t("tile_review_ready", { count: reviewsDueCount })

@@ -53,7 +53,7 @@ function BilingualBlock({
         {label}
       </p>
       <div className="grid gap-3 md:grid-cols-2">
-        <div className="rounded-2xl border border-outline-variant bg-surface px-4 py-3">
+        <div className="rounded-xl border border-outline-variant bg-surface px-4 py-3">
           <p className="type-caption font-semibold text-on-surface-variant">
             EN
           </p>
@@ -61,7 +61,7 @@ function BilingualBlock({
             {en || "—"}
           </p>
         </div>
-        <div className="rounded-2xl border border-outline-variant bg-surface px-4 py-3">
+        <div className="rounded-xl border border-outline-variant bg-surface px-4 py-3">
           <p className="type-caption font-semibold text-on-surface-variant">
             VI
           </p>
@@ -126,7 +126,7 @@ function ReviewCard({
   }
 
   return (
-    <div className="rounded-3xl border border-outline-variant bg-surface-container p-5 sm:p-6">
+    <div className="rounded-xl border border-outline-variant bg-surface-container p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="type-eyebrow font-semibold uppercase text-primary">
@@ -137,17 +137,17 @@ function ReviewCard({
           </h1>
         </div>
         <div className="flex flex-wrap items-center gap-2 type-caption text-on-surface-variant">
-          <span className="rounded-full bg-surface-container-high px-2.5 py-1 font-semibold">
+          <span className="inline-flex min-h-5 items-center rounded-md bg-surface-container-high px-2 font-semibold">
             {t(`skill_${item.skill}`)}
           </span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-surface-container-high px-2.5 py-1">
+          <span className="inline-flex min-h-5 items-center gap-1 rounded-md bg-surface-container-high px-2">
             <Clock3 className="size-3.5" aria-hidden />
             {dueLabel}
           </span>
         </div>
       </div>
 
-      <div className="mt-6 grid gap-5">
+      <div className="mt-4 grid gap-4">
         <BilingualBlock
           label={t("prompt_label")}
           en={item.promptEn}
@@ -220,7 +220,7 @@ export function IeltsReviewSession({ view }: { view: IeltsReviewSessionView }) {
       <ProductPageShell>
         <PageContainer
           size="focused"
-          className="flex flex-col gap-6 py-6 lg:py-8"
+          className="flex flex-col gap-4 py-5 lg:py-6"
         >
           <Link
             href="/ielts/home"
@@ -243,8 +243,8 @@ export function IeltsReviewSession({ view }: { view: IeltsReviewSessionView }) {
               }
             />
           ) : (
-            <div className="rounded-3xl border border-outline-variant bg-surface-container p-8 text-center">
-              <span className="mx-auto flex size-12 items-center justify-center rounded-2xl bg-primary-container text-on-primary-container">
+            <div className="rounded-xl border border-outline-variant bg-surface-container p-8 text-center">
+              <span className="mx-auto flex size-12 items-center justify-center rounded-xl bg-primary-container text-on-primary-container">
                 {total > 0 ? (
                   <CheckCircle2 className="size-6" aria-hidden />
                 ) : (

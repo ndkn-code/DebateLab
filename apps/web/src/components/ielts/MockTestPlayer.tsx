@@ -44,6 +44,34 @@ import {
 
 type Phase = "intro" | "running" | "done";
 
+function playerLocale(locale: string): IeltsPlayerLocale {
+  return locale === "vi" ? "vi" : "en";
+}
+
+function initialPhase(initialState?: AttemptState): Phase {
+  return initialState ? "running" : "intro";
+}
+
+function initialAttemptState(initialState?: AttemptState): AttemptState | null {
+  return initialState ?? null;
+}
+
+function initialStructure(
+  structure: MockStructure,
+  initialState?: AttemptState,
+): MockStructure {
+  return initialState?.structure ?? structure;
+}
+
+function initialResponses(initialState?: AttemptState): IeltsResponseMap {
+  return Object.fromEntries(
+    (initialState?.responses ?? []).map((row) => [
+      row.question_id,
+      row.response,
+    ]),
+  );
+}
+
 export function MockTestPlayer({
   structure,
   initialState,
@@ -65,20 +93,17 @@ export function MockTestPlayer({
   const params = useParams<{ locale: string }>();
   const router = useRouter();
   const t = useTranslations("ielts.player");
-  const locale: IeltsPlayerLocale = params.locale === "vi" ? "vi" : "en";
+  const locale = playerLocale(params.locale);
   const experienceCopy = IELTS_PLAYER_EXPERIENCE_COPY[locale][experience];
-  const [phase, setPhase] = useState<Phase>(initialState ? "running" : "intro");
-  const [state, setState] = useState<AttemptState | null>(initialState ?? null);
-  const [activeStructure, setActiveStructure] = useState<MockStructure>(
-    initialState?.structure ?? structure,
+  const [phase, setPhase] = useState<Phase>(() => initialPhase(initialState));
+  const [state, setState] = useState<AttemptState | null>(() =>
+    initialAttemptState(initialState),
+  );
+  const [activeStructure, setActiveStructure] = useState<MockStructure>(() =>
+    initialStructure(structure, initialState),
   );
   const [responses, setResponses] = useState<IeltsResponseMap>(() =>
-    Object.fromEntries(
-      (initialState?.responses ?? []).map((row) => [
-        row.question_id,
-        row.response,
-      ]),
-    ),
+    initialResponses(initialState),
   );
   const [activeIndex, setActiveIndex] = useState(0);
   const [grade, setGrade] = useState<AttemptGrade | null>(null);
@@ -117,8 +142,8 @@ export function MockTestPlayer({
       try {
         await fn();
       } catch (caught) {
-        const message =
-          caught instanceof Error ? caught.message : t("toastActionFailed");
+        console.error("[IELTS player] action failed", caught);
+        const message = t("toastActionFailed");
         setError(message);
         showToast(message, "error");
       } finally {
@@ -298,6 +323,7 @@ export function MockTestPlayer({
           busy={busy}
           error={error}
           onStart={handleStart}
+          backHref={returnHref ?? `/${params.locale}/ielts/tests`}
         />
       </div>
     );
@@ -325,7 +351,10 @@ export function MockTestPlayer({
       data-ielts-exam="player"
     >
       {error ? (
-        <p className="absolute left-1/2 top-3 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-2xl bg-error-container px-4 py-3 text-sm font-semibold text-error shadow-lg">
+        <p
+          role="alert"
+          className="absolute left-1/2 top-3 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-[10px] border border-error/20 bg-error-container px-4 py-3 type-label text-error shadow-token-card"
+        >
           {error}
         </p>
       ) : null}

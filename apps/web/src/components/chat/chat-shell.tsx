@@ -481,6 +481,7 @@ export function ChatShell({
               // Skip malformed JSON
             }
           }
+
         }
 
         await waitForStreamDrain();

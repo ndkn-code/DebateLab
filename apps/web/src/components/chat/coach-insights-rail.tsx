@@ -48,14 +48,17 @@ export function CoachBrief({
   return (
     <div className="rounded-xl border border-outline-variant bg-surface px-4 py-4 shadow-none sm:px-5 sm:py-5">
       <div className="max-w-3xl">
-        <div className="inline-flex items-center gap-2 rounded-full border border-primary/12 bg-primary/5 px-3 py-1 type-eyebrow text-primary">
+        <div className="inline-flex h-6 items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-2 type-eyebrow text-primary">
           <Sparkles className="h-3.5 w-3.5" />
           {t("coach.personalized_brief_badge")}
         </div>
         <Heading level={1} className="mt-4 font-semibold">
           {t("coach.personalized_brief_title", { name: profile.displayName })}
         </Heading>
-        <Text variant="body-sm" className="mt-3 max-w-2xl text-on-surface-variant">
+        <Text
+          variant="body-sm"
+          className="mt-3 max-w-2xl text-on-surface-variant"
+        >
           {envelope.focusSummary}
         </Text>
       </div>
@@ -101,7 +104,7 @@ export function CoachBrief({
             <button
               key={prompt}
               onClick={() => onPromptSelect(prompt)}
-              className="rounded-full border border-outline-variant/18 bg-surface-container-low px-4 py-2 text-sm font-medium text-on-surface transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+              className="h-8 rounded-[10px] border border-outline-variant bg-surface-container-low px-3 type-label font-medium text-on-surface transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
             >
               {prompt}
             </button>
@@ -123,11 +126,11 @@ function InsightStat({
 }) {
   return (
     <div className="rounded-[10px] border border-outline-variant bg-surface-container-low px-3 py-3">
-      <div className="type-eyebrow text-on-surface-variant">
-        {label}
-      </div>
+      <div className="type-eyebrow text-on-surface-variant">{label}</div>
       <div className="mt-2 type-heading-md text-on-surface">{value}</div>
-      <Text variant="body-sm" className="mt-2 text-on-surface-variant">{description}</Text>
+      <Text variant="body-sm" className="mt-2 text-on-surface-variant">
+        {description}
+      </Text>
     </div>
   );
 }
@@ -143,13 +146,14 @@ export function CoachInsightsRail({
   const t = useTranslations("dashboard.chat");
   const sessionLimit = compact ? 2 : 3;
   const recommendationLimit = compact ? 2 : 3;
-  const skillLabel = (key: keyof typeof SKILL_COLORS) => t(`coach.skill_names.${key}`);
+  const skillLabel = (key: keyof typeof SKILL_COLORS) =>
+    t(`coach.skill_names.${key}`);
 
   return (
     <aside
       className={cn(
         "flex h-full flex-col gap-4 overflow-y-auto bg-surface-container-low/50 px-4 py-4 sm:px-5",
-        className
+        className,
       )}
     >
       <section className="rounded-xl border border-outline-variant bg-surface px-4 py-4">
@@ -173,7 +177,7 @@ export function CoachInsightsRail({
                   <span
                     className={cn(
                       "h-2.5 w-2.5 rounded-full",
-                      SKILL_COLORS[metric.key]
+                      SKILL_COLORS[metric.key],
                     )}
                   />
                   <span>{skillLabel(metric.key)}</span>
@@ -186,7 +190,7 @@ export function CoachInsightsRail({
                 <div
                   className={cn(
                     "h-full rounded-full",
-                    SKILL_COLORS[metric.key]
+                    SKILL_COLORS[metric.key],
                   )}
                   style={{ width: `${Math.max(12, metric.value)}%` }}
                 />
@@ -195,7 +199,7 @@ export function CoachInsightsRail({
           ))}
         </div>
 
-        <div className="mt-4 flex items-center justify-between rounded-2xl border border-outline-variant/12 bg-surface-container-low px-3 py-3">
+        <div className="mt-4 flex items-center justify-between rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2.5">
           <div>
             <div className="type-eyebrow text-on-surface-variant">
               {t("coach.overall_score")}
@@ -237,7 +241,7 @@ export function CoachInsightsRail({
           {envelope.focusSummary}
         </Text>
         {envelope.selectedSession && (
-          <div className="mt-3 rounded-2xl border border-outline-variant/12 bg-surface-container-low px-3 py-3">
+          <div className="mt-3 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2.5">
             <div className="text-sm font-semibold text-on-surface">
               {envelope.selectedSession.topicTitle}
             </div>
@@ -250,7 +254,7 @@ export function CoachInsightsRail({
           </div>
         )}
         {envelope.selectedDuel && (
-          <div className="mt-3 rounded-2xl border border-outline-variant/12 bg-surface-container-low px-3 py-3">
+          <div className="mt-3 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2.5">
             <div className="text-sm font-semibold text-on-surface">
               {envelope.selectedDuel.topicTitle}
             </div>
@@ -262,7 +266,7 @@ export function CoachInsightsRail({
           </div>
         )}
         {envelope.selectedCourse && (
-          <div className="mt-3 rounded-2xl border border-outline-variant/12 bg-surface-container-low px-3 py-3">
+          <div className="mt-3 rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2.5">
             <div className="text-sm font-semibold text-on-surface">
               {envelope.selectedCourse.title}
             </div>
@@ -283,38 +287,40 @@ export function CoachInsightsRail({
           {t("coach.recommended_next_steps")}
         </div>
         <div className="mt-3 space-y-3">
-          {profile.recommendations.slice(0, recommendationLimit).map((recommendation) => (
-            <div
-              key={recommendation.id}
-              className="rounded-2xl border border-outline-variant/12 bg-surface-container-low px-3 py-3"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold text-on-surface">
-                    {recommendation.title}
+          {profile.recommendations
+            .slice(0, recommendationLimit)
+            .map((recommendation) => (
+              <div
+                key={recommendation.id}
+                className="rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2.5"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-sm font-semibold text-on-surface">
+                      {recommendation.title}
+                    </div>
+                    <p className="mt-1 text-xs leading-5 text-on-surface-variant">
+                      {recommendation.description}
+                    </p>
                   </div>
-                  <p className="mt-1 text-xs leading-5 text-on-surface-variant">
-                    {recommendation.description}
-                  </p>
+                  {recommendation.href ? (
+                    <Link
+                      href={recommendation.href}
+                      className="rounded-md border border-primary/20 bg-primary/5 px-2 py-1 type-caption font-semibold text-primary transition-colors hover:bg-primary/10"
+                    >
+                      {t("coach.open_action")}
+                    </Link>
+                  ) : (
+                    <button
+                      onClick={() => onPromptSelect(recommendation.prompt)}
+                      className="rounded-md border border-primary/20 bg-primary/5 px-2 py-1 type-caption font-semibold text-primary transition-colors hover:bg-primary/10"
+                    >
+                      {t("coach.ask_action")}
+                    </button>
+                  )}
                 </div>
-                {recommendation.href ? (
-                  <Link
-                    href={recommendation.href}
-                    className="rounded-full border border-primary/18 bg-primary/5 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                  >
-                    {t("coach.open_action")}
-                  </Link>
-                ) : (
-                  <button
-                    onClick={() => onPromptSelect(recommendation.prompt)}
-                    className="rounded-full border border-primary/18 bg-primary/5 px-2.5 py-1 text-xs font-semibold text-primary transition-colors hover:bg-primary/10"
-                  >
-                    {t("coach.ask_action")}
-                  </button>
-                )}
               </div>
-            </div>
-          ))}
+            ))}
         </div>
       </section>
 
@@ -329,7 +335,7 @@ export function CoachInsightsRail({
               <Link
                 key={session.id}
                 href={session.href}
-                className="block rounded-2xl border border-outline-variant/12 bg-surface-container-low px-3 py-3 transition-colors hover:border-primary/20 hover:bg-primary/5"
+                className="block rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2.5 transition-colors hover:border-primary/30 hover:bg-primary/5"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -353,7 +359,7 @@ export function CoachInsightsRail({
               </Link>
             ))
           ) : (
-            <div className="rounded-2xl border border-dashed border-outline-variant/16 bg-surface-container-low px-3 py-3 text-sm text-on-surface-variant">
+            <div className="rounded-lg border border-dashed border-outline-variant bg-surface-container-low px-3 py-2.5 type-body-sm text-on-surface-variant">
               {t("coach.no_recent_sessions")}
             </div>
           )}
@@ -370,16 +376,18 @@ export function CoachInsightsRail({
             <button
               key={prompt}
               onClick={() => onPromptSelect(prompt)}
-              className="rounded-full border border-outline-variant/14 bg-surface-container-low px-3 py-2 text-xs font-medium text-on-surface transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+              className="h-8 rounded-[10px] border border-outline-variant bg-surface-container-low px-3 type-caption font-medium text-on-surface transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
             >
               {prompt}
             </button>
           ))}
         </div>
         {!compact && (
-          <div className="mt-4 flex items-center justify-between rounded-2xl border border-outline-variant/12 bg-surface-container-low px-3 py-3 text-xs text-on-surface-variant">
+          <div className="mt-4 flex items-center justify-between rounded-lg border border-outline-variant bg-surface-container-low px-3 py-2.5 type-caption text-on-surface-variant">
             <span>
-              {isLoading ? t("coach.refreshing_insights") : profile.recentTrend.summary}
+              {isLoading
+                ? t("coach.refreshing_insights")
+                : profile.recentTrend.summary}
             </span>
             <ArrowRight className="h-3.5 w-3.5 shrink-0 text-primary" />
           </div>

@@ -52,12 +52,15 @@ export function ListeningAudioPlayer({
   const [status, setStatus] = useState<ListeningPlaybackStatus>("gate");
   const [elapsed, setElapsed] = useState(0);
   const [duration, setDuration] = useState(0);
-  const hydrateAttempt = useListeningPlaybackStore((store) => store.hydrateAttempt);
+  const hydrateAttempt = useListeningPlaybackStore(
+    (store) => store.hydrateAttempt,
+  );
   const hydrated = useListeningPlaybackStore(
     (store) => store.hydratedAttempts[attemptId] === true,
   );
   const played = useListeningPlaybackStore(
-    (store) => store.playedParts[listeningPlaybackKey(attemptId, partId)] === true,
+    (store) =>
+      store.playedParts[listeningPlaybackKey(attemptId, partId)] === true,
   );
   const markPlayed = useListeningPlaybackStore((store) => store.markPlayed);
 
@@ -129,7 +132,8 @@ export function ListeningAudioPlayer({
 
   const handleSeeking = () => {
     const audio = audioRef.current;
-    if (!audio || restoringSeekRef.current || statusRef.current !== "playing") return;
+    if (!audio || restoringSeekRef.current || statusRef.current !== "playing")
+      return;
     restoringSeekRef.current = true;
     audio.currentTime = lastAllowedTimeRef.current;
     restoringSeekRef.current = false;
@@ -137,7 +141,7 @@ export function ListeningAudioPlayer({
 
   return (
     <section
-      className="overflow-hidden rounded-3xl border border-outline-variant bg-surface-container shadow-token-card"
+      className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container shadow-token-card"
       aria-label={`${track.label} listening audio`}
     >
       <ListeningAudioHeader
@@ -147,7 +151,7 @@ export function ListeningAudioPlayer({
       />
 
       <div className="relative min-h-60 bg-surface-container-low p-4 sm:min-h-64 sm:p-5">
-        <div className="flex h-full min-h-52 items-center justify-center rounded-2xl border border-outline-variant bg-surface px-5 text-center sm:min-h-56">
+        <div className="flex h-full min-h-52 items-center justify-center rounded-xl border border-outline-variant bg-surface px-5 text-center sm:min-h-56">
           <ProductIcon
             name={locked ? "lock" : "radar"}
             size="xl"
@@ -182,14 +186,19 @@ export function ListeningAudioPlayer({
         tabIndex={-1}
         onContextMenu={(event) => event.preventDefault()}
         onPlay={(event) => {
-          if (statusRef.current === "starting" || statusRef.current === "playing") return;
+          if (
+            statusRef.current === "starting" ||
+            statusRef.current === "playing"
+          )
+            return;
           event.currentTarget.pause();
           event.currentTarget.currentTime = 0;
         }}
         onPause={handlePause}
         onSeeking={handleSeeking}
         onRateChange={(event) => {
-          if (event.currentTarget.playbackRate !== 1) event.currentTarget.playbackRate = 1;
+          if (event.currentTarget.playbackRate !== 1)
+            event.currentTarget.playbackRate = 1;
         }}
         onLoadedMetadata={(event) => setDuration(event.currentTarget.duration)}
         onDurationChange={(event) => setDuration(event.currentTarget.duration)}

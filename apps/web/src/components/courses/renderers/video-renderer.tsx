@@ -12,7 +12,7 @@ interface VideoRendererProps {
 
 function getYouTubeId(url: string): string | null {
   const match = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/
+    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/,
   );
   return match?.[1] ?? null;
 }
@@ -22,14 +22,15 @@ export function VideoRenderer({ lesson }: VideoRendererProps) {
   const content = lesson.content as { description?: string; notes?: string };
   const videoUrl = lesson.video_url;
   const youtubeId = videoUrl ? getYouTubeId(videoUrl) : null;
-  const notes = content.notes
-    ?.split("\n")
-    .map((note) => note.trim())
-    .filter(Boolean) ?? [];
+  const notes =
+    content.notes
+      ?.split("\n")
+      .map((note) => note.trim())
+      .filter(Boolean) ?? [];
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-[2rem] border border-outline-variant/15 bg-white shadow-token-panel">
+      <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface">
         <div className="border-b border-outline-variant/10 bg-[linear-gradient(180deg,#ffffff_0%,#F3FCFE_100%)] px-6 py-4 sm:px-8">
           <div className="flex items-center gap-3 text-sm text-on-surface-variant">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -45,7 +46,10 @@ export function VideoRenderer({ lesson }: VideoRendererProps) {
         </div>
 
         {youtubeId ? (
-          <div className="relative w-full bg-slate-950" style={{ paddingBottom: "56.25%" }}>
+          <div
+            className="relative w-full bg-slate-950"
+            style={{ paddingBottom: "56.25%" }}
+          >
             <iframe
               className="absolute inset-0 h-full w-full"
               src={`https://www.youtube.com/embed/${youtubeId}`}
@@ -69,13 +73,12 @@ export function VideoRenderer({ lesson }: VideoRendererProps) {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <div className="rounded-[1.75rem] border border-outline-variant/15 bg-white p-5 shadow-token-card">
+        <div className="rounded-xl border border-outline-variant bg-surface p-4">
           <Eyebrow className="font-semibold text-primary">
             {t("reader.video_why_matters")}
           </Eyebrow>
           <p className="mt-3 text-sm leading-7 text-on-surface-variant">
-            {content.description ??
-              t("reader.video_why_matters_fallback")}
+            {content.description ?? t("reader.video_why_matters_fallback")}
           </p>
         </div>
 
@@ -91,7 +94,10 @@ export function VideoRenderer({ lesson }: VideoRendererProps) {
               {notes.length > 0 ? (
                 <ul className="mt-3 space-y-2">
                   {notes.map((note) => (
-                    <li key={note} className="flex items-start gap-2 text-sm text-on-surface-variant">
+                    <li
+                      key={note}
+                      className="flex items-start gap-2 text-sm text-on-surface-variant"
+                    >
                       <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
                       <span>{note.replace(/^\d+\.\s*/, "")}</span>
                     </li>

@@ -16,14 +16,18 @@ interface Props {
   color?: string;
 }
 
-export function TrendChart({ title, data, color = "var(--chart-line-primary)" }: Props) {
+export function TrendChart({
+  title,
+  data,
+  color = "var(--chart-line-primary)",
+}: Props) {
   const formatted = data.map((d) => ({
     ...d,
     date: new Date(d.date),
   }));
 
   return (
-    <ChartCard title={title} bodyClassName="h-[250px]">
+    <ChartCard title={title} bodyClassName="h-[220px]">
       {formatted.length === 0 ? (
         <ChartEmpty title="No trend data yet" />
       ) : (

@@ -34,7 +34,11 @@ function formatDate(iso: string | null): string | null {
   if (!iso) return null;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+  return date.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
 }
 
 function ProgressCounts({ progress }: { progress: IeltsClassStudyPlanProgressView }) {
@@ -57,13 +61,7 @@ function ProgressCounts({ progress }: { progress: IeltsClassStudyPlanProgressVie
   );
 }
 
-function WeaknessChip({
-  weakness,
-  locale,
-}: {
-  weakness: IeltsClassStudyPlanWeakSubskillView;
-  locale: string;
-}) {
+function WeaknessChip({ weakness, locale }: { weakness: IeltsClassStudyPlanWeakSubskillView; locale: string }) {
   const t = useTranslations("ielts.assignments");
   const skillT = useTranslations("ielts.studyPlan.skills");
   const label = locale.startsWith("vi") ? weakness.labelVi : weakness.labelEn;
@@ -88,13 +86,16 @@ function ClassStudyPlanSummary({ view }: { view: IeltsClassStudyPlanSurfaceView 
     { label: t("teacher.summaryClasses"), value: view.classCount },
     { label: t("teacher.summaryLearners"), value: view.learnerCount },
     { label: t("teacher.summaryActivePlans"), value: view.activePlanCount },
-    { label: t("teacher.summaryAvgBand"), value: bandText(view.averagePredictedBand) },
+    {
+      label: t("teacher.summaryAvgBand"),
+      value: bandText(view.averagePredictedBand),
+    },
   ];
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {stats.map((stat) => (
-        <div key={stat.label} className="rounded-2xl border border-outline-variant bg-surface px-4 py-3">
+        <div key={stat.label} className="rounded-xl border border-outline-variant bg-surface px-4 py-3">
           <p className="type-caption text-on-surface-variant">{stat.label}</p>
           <p className="type-title text-on-surface">{stat.value}</p>
         </div>
@@ -103,13 +104,7 @@ function ClassStudyPlanSummary({ view }: { view: IeltsClassStudyPlanSurfaceView 
   );
 }
 
-function LearnerPlanRow({
-  learner,
-  locale,
-}: {
-  learner: IeltsClassStudyPlanLearnerView;
-  locale: string;
-}) {
+function LearnerPlanRow({ learner, locale }: { learner: IeltsClassStudyPlanLearnerView; locale: string }) {
   const t = useTranslations("ielts.assignments");
 
   return (
@@ -117,16 +112,11 @@ function LearnerPlanRow({
       <td className="sticky left-0 z-10 bg-surface px-3 py-3">
         <div className="flex items-start gap-2">
           {learner.needsAttention ? (
-            <span
-              className="mt-1 h-2 w-2 shrink-0 rounded-full bg-error"
-              aria-label={t("teacher.attention")}
-            />
+            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-error" aria-label={t("teacher.attention")} />
           ) : null}
           <div className="min-w-0">
             <p className="truncate font-semibold text-on-surface">{learner.displayName}</p>
-            {learner.email ? (
-              <p className="truncate text-xs text-on-surface-variant">{learner.email}</p>
-            ) : null}
+            {learner.email ? <p className="truncate text-xs text-on-surface-variant">{learner.email}</p> : null}
           </div>
         </div>
       </td>
@@ -145,13 +135,13 @@ function LearnerPlanRow({
           <div className="flex flex-col gap-2">
             <ProgressCounts progress={learner.progress} />
             <p className="text-center text-xs text-on-surface-variant">
-              {t("teacher.completion", { percent: learner.progress.completionPercent })}
+              {t("teacher.completion", {
+                percent: learner.progress.completionPercent,
+              })}
             </p>
           </div>
         ) : (
-          <p className="text-center text-xs font-semibold text-on-surface-variant">
-            {t("teacher.noActivePlan")}
-          </p>
+          <p className="text-center text-xs font-semibold text-on-surface-variant">{t("teacher.noActivePlan")}</p>
         )}
       </td>
       <td className="px-3 py-3">
@@ -179,7 +169,7 @@ function ClassPlanCard({ classView }: { classView: IeltsClassStudyPlanClassView 
   const locale = useLocale();
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-outline-variant bg-surface shadow-token-card">
+    <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-token-card">
       <div className="flex flex-col gap-3 border-b border-outline-variant px-4 py-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <h3 className="type-title truncate text-on-surface">{classView.title}</h3>
@@ -189,12 +179,16 @@ function ClassPlanCard({ classView }: { classView: IeltsClassStudyPlanClassView 
               total: classView.learnerCount,
             })}
             {" · "}
-            {t("teacher.needsAttentionCount", { count: classView.needsAttentionCount })}
+            {t("teacher.needsAttentionCount", {
+              count: classView.needsAttentionCount,
+            })}
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="rounded-full bg-primary-container px-3 py-1 font-semibold text-on-primary-container">
-            {t("teacher.averageBand", { band: bandText(classView.averagePredictedBand) })}
+            {t("teacher.averageBand", {
+              band: bandText(classView.averagePredictedBand),
+            })}
           </span>
           <span className="rounded-full bg-surface-container-high px-3 py-1 font-semibold text-on-surface-variant">
             {t("teacher.progressCounts", {
@@ -216,7 +210,9 @@ function ClassPlanCard({ classView }: { classView: IeltsClassStudyPlanClassView 
               <span key={weakness.key} className="inline-flex max-w-full items-center gap-2">
                 <WeaknessChip weakness={weakness} locale={locale} />
                 <span className="text-xs text-on-surface-variant">
-                  {t("teacher.affectedLearners", { count: weakness.affectedLearnerCount })}
+                  {t("teacher.affectedLearners", {
+                    count: weakness.affectedLearnerCount,
+                  })}
                 </span>
               </span>
             ))}
@@ -225,9 +221,7 @@ function ClassPlanCard({ classView }: { classView: IeltsClassStudyPlanClassView 
       </div>
 
       {classView.learners.length === 0 ? (
-        <p className="px-4 py-10 text-center text-sm text-on-surface-variant">
-          {t("teacher.classPlansEmptyRoster")}
-        </p>
+        <p className="px-4 py-10 text-center text-sm text-on-surface-variant">{t("teacher.classPlansEmptyRoster")}</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full min-w-[860px] border-collapse text-sm">
@@ -266,7 +260,7 @@ function ClassStudyPlansSection({ view }: { view: IeltsClassStudyPlanSurfaceView
       <ClassStudyPlanSummary view={view} />
 
       {view.classes.length === 0 ? (
-        <p className="rounded-2xl border border-outline-variant bg-surface px-4 py-10 text-center text-sm text-on-surface-variant">
+        <p className="rounded-xl border border-outline-variant bg-surface px-4 py-10 text-center text-sm text-on-surface-variant">
           {t("teacher.classPlansEmpty")}
         </p>
       ) : (
@@ -297,13 +291,7 @@ function ArchiveButton({ clubId, assignmentId }: { clubId: string; assignmentId:
   );
 }
 
-function AssignmentRow({
-  clubId,
-  assignment,
-}: {
-  clubId: string;
-  assignment: IeltsMockAssignmentRow;
-}) {
+function AssignmentRow({ clubId, assignment }: { clubId: string; assignment: IeltsMockAssignmentRow }) {
   const t = useTranslations("ielts.assignments");
   const due = formatDate(assignment.dueAt);
   const isActive = assignment.status === "active";
@@ -318,9 +306,7 @@ function AssignmentRow({
       <div className="flex items-center justify-end gap-3">
         <span
           className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-            isActive
-              ? "bg-success-container text-success-dim"
-              : "bg-surface-container-high text-on-surface-variant"
+            isActive ? "bg-success-container text-success-dim" : "bg-surface-container-high text-on-surface-variant"
           }`}
         >
           {isActive ? t("teacher.statusActive") : t("teacher.statusArchived")}
@@ -374,18 +360,14 @@ export function IeltsAssignmentsManager({
 
       <IeltsAssignForm clubId={clubId} classes={classes} tests={tests} />
 
-      <section className="overflow-hidden rounded-2xl border border-outline-variant bg-surface shadow-token-card">
+      <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-token-card">
         <div className="border-b border-outline-variant px-4 py-3">
           <h2 className="type-title text-on-surface">{t("teacher.listHeading")}</h2>
         </div>
         {assignments.length === 0 ? (
-          <p className="px-4 py-12 text-center text-sm text-on-surface-variant">
-            {t("teacher.empty")}
-          </p>
+          <p className="px-4 py-12 text-center text-sm text-on-surface-variant">{t("teacher.empty")}</p>
         ) : (
-          assignments.map((assignment) => (
-            <AssignmentRow key={assignment.id} clubId={clubId} assignment={assignment} />
-          ))
+          assignments.map((assignment) => <AssignmentRow key={assignment.id} clubId={clubId} assignment={assignment} />)
         )}
       </section>
     </div>

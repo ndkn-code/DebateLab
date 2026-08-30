@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { ProductIcon } from "@/components/ui/product-icon";
 import { cn } from "@/lib/utils";
 import {
@@ -55,7 +59,7 @@ export function ExamAnnotationToolbar({
         title={highlightMode ? t("highlightModeOn") : t("highlightModeOff")}
         className={cn(
           "flex items-center justify-center rounded-lg transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-          compact ? "size-10" : "size-8",
+          "size-10",
           highlightMode
             ? "bg-primary text-on-primary"
             : "text-on-surface-variant hover:bg-surface-container",
@@ -70,13 +74,22 @@ export function ExamAnnotationToolbar({
           aria-label={t("highlightColor", { color: selectedColorLabel })}
           className={cn(
             "flex items-center justify-center rounded-lg hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-            compact ? "size-10" : "size-8",
+            "size-10",
           )}
         >
-          <span className={cn("size-4 rounded-full border border-outline", selectedStyle.className)} />
+          <span
+            className={cn(
+              "size-4 rounded-full border border-outline",
+              selectedStyle.className,
+            )}
+          />
         </PopoverTrigger>
         <PopoverContent align="end" className="w-auto rounded-xl p-2">
-          <div className="flex gap-1" role="group" aria-label={t("highlightColors")}>
+          <div
+            className="flex gap-1"
+            role="group"
+            aria-label={t("highlightColors")}
+          >
             {MOCK_HIGHLIGHT_COLORS.map((color) => {
               const style = HIGHLIGHT_STYLES[color];
               return (
@@ -98,7 +111,9 @@ export function ExamAnnotationToolbar({
                     selectedColor === color && "ring-2 ring-primary",
                   )}
                 >
-                  <span className={cn("size-5 rounded-full", style.className)} />
+                  <span
+                    className={cn("size-5 rounded-full", style.className)}
+                  />
                 </Button>
               );
             })}
@@ -110,12 +125,14 @@ export function ExamAnnotationToolbar({
         type="button"
         onClick={onOpenNotes}
         aria-label={
-          noteCount > 0 ? t("openNotesCount", { count: noteCount }) : t("openNotes")
+          noteCount > 0
+            ? t("openNotesCount", { count: noteCount })
+            : t("openNotes")
         }
         title={t("examNotes")}
         className={cn(
           "relative flex items-center justify-center rounded-lg text-on-surface-variant transition hover:bg-surface-container hover:text-on-surface active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
-          compact ? "size-10" : "size-8",
+          "size-10",
         )}
       >
         <ProductIcon name="fileText" size="sm" weight="bold" />

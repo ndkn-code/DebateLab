@@ -63,7 +63,7 @@ interface AiRebuttalPhaseProps {
 
 function getInitialShowcaseStatus(
   showcaseState: AiRebuttalPhaseProps["showcaseState"],
-  hasInitialResponse: boolean
+  hasInitialResponse: boolean,
 ) {
   if (showcaseState === "error") return "error";
   if (showcaseState === "loading" || showcaseState === "streaming") {
@@ -159,14 +159,14 @@ function HighlightedResponse({
             title={segment.highlight.note}
             className={cn(
               "rounded-md px-1 py-0.5 ring-1",
-              getHighlightClass(segment.highlight.type)
+              getHighlightClass(segment.highlight.type),
             )}
           >
             {segment.text}
           </mark>
         ) : (
           <span key={`${segment.text}-${index}`}>{segment.text}</span>
-        )
+        ),
       )}
       {isTyping && (
         <motion.span
@@ -198,35 +198,41 @@ export function AiRebuttalPhase({
   onGenerated,
   initialResponse = "",
   initialHighlights = EMPTY_HIGHLIGHTS,
-  ttsVoice = 'aura-asteria-en',
+  ttsVoice = "aura-asteria-en",
   showcaseState,
   showcaseError = "AI response generation failed in this fixture state.",
 }: AiRebuttalPhaseProps) {
-  const t = useTranslations('dashboard.practice');
+  const t = useTranslations("dashboard.practice");
   const reduceMotion = useReducedMotion();
   const normalizedInitialResponse = useMemo(
-    () => normalizeStructuredRebuttalResponse(initialResponse, initialHighlights),
-    [initialHighlights, initialResponse]
+    () =>
+      normalizeStructuredRebuttalResponse(initialResponse, initialHighlights),
+    [initialHighlights, initialResponse],
   );
   const isShowcase = Boolean(showcaseState);
-  const [status, setStatus] = useState<"loading" | "speaking" | "paused" | "done" | "error">(
+  const [status, setStatus] = useState<
+    "loading" | "speaking" | "paused" | "done" | "error"
+  >(
     isShowcase
-      ? getInitialShowcaseStatus(showcaseState, Boolean(normalizedInitialResponse.rebuttal))
-      : "loading"
+      ? getInitialShowcaseStatus(
+          showcaseState,
+          Boolean(normalizedInitialResponse.rebuttal),
+        )
+      : "loading",
   );
   const [fullText, setFullText] = useState(normalizedInitialResponse.rebuttal);
   const [displayedText, setDisplayedText] = useState(
-    isShowcase ? normalizedInitialResponse.rebuttal : ""
+    isShowcase ? normalizedInitialResponse.rebuttal : "",
   );
   const [highlights, setHighlights] = useState<AiHighlight[]>(
-    normalizedInitialResponse.highlights
+    normalizedInitialResponse.highlights,
   );
   const [aiRunId, setAiRunId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(
-    showcaseState === "error" ? showcaseError : null
+    showcaseState === "error" ? showcaseError : null,
   );
   const hasFetched = useRef(
-    Boolean(normalizedInitialResponse.rebuttal) || isShowcase
+    Boolean(normalizedInitialResponse.rebuttal) || isShowcase,
   );
   const ttsTriggeredRef = useRef(false);
 
@@ -328,7 +334,7 @@ export function AiRebuttalPhase({
               throw new Error(
                 typeof payload.error === "string"
                   ? payload.error
-                  : "Failed to get AI response."
+                  : "Failed to get AI response.",
               );
             }
           }
@@ -343,23 +349,32 @@ export function AiRebuttalPhase({
       const finalData = data;
       const normalizedResponse = normalizeStructuredRebuttalResponse(
         finalData.rebuttal,
-        finalData.highlights
+        finalData.highlights,
       );
       setFullText(normalizedResponse.rebuttal);
       setDisplayedText("");
       setHighlights(normalizedResponse.highlights);
       setAiRunId(finalData._aiRunId ?? null);
-      onGenerated?.(
-        normalizedResponse.rebuttal,
-        normalizedResponse.highlights
-      );
+      onGenerated?.(normalizedResponse.rebuttal, normalizedResponse.highlights);
       ttsTriggeredRef.current = true;
       void ttsSpeak(normalizedResponse.rebuttal);
     } catch (err) {
+      console.error(
+        "[PRACTICE-AI-REBUTTAL-01] Rebuttal generation failed",
+        err,
+      );
       if (err instanceof DOMException && err.name === "AbortError") {
-        setError("AI response timed out. Please try again.");
+        setError(
+          practiceLanguage === "vi"
+            ? "Phản hồi mất quá nhiều thời gian. Vui lòng thử lại. Mã hỗ trợ: PRACTICE-AI-REBUTTAL-01"
+            : "The response took too long. Try again. Support code: PRACTICE-AI-REBUTTAL-01",
+        );
       } else {
-        setError(err instanceof Error ? err.message : "Failed to get AI response.");
+        setError(
+          practiceLanguage === "vi"
+            ? "Không thể tải phản hồi lúc này. Vui lòng thử lại. Mã hỗ trợ: PRACTICE-AI-REBUTTAL-01"
+            : "We couldn't load the response. Try again. Support code: PRACTICE-AI-REBUTTAL-01",
+        );
       }
       setStatus("error");
     }
@@ -391,7 +406,12 @@ export function AiRebuttalPhase({
   useEffect(() => {
     if (!showcaseState) return;
 
-    setStatus(getInitialShowcaseStatus(showcaseState, Boolean(normalizedInitialResponse.rebuttal)));
+    setStatus(
+      getInitialShowcaseStatus(
+        showcaseState,
+        Boolean(normalizedInitialResponse.rebuttal),
+      ),
+    );
     setFullText(normalizedInitialResponse.rebuttal);
     setDisplayedText(normalizedInitialResponse.rebuttal);
     setHighlights(normalizedInitialResponse.highlights);
@@ -428,7 +448,7 @@ export function AiRebuttalPhase({
           currentTimeSeconds,
           durationSeconds,
           locale: practiceLanguage,
-        })
+        }),
       );
       setStatus(ttsPlaybackState === "paused" ? "paused" : "speaking");
       return;
@@ -499,11 +519,16 @@ export function AiRebuttalPhase({
               <motion.span
                 className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-container"
                 animate={
-                  !reduceMotion && (status === "loading" || status === "speaking")
+                  !reduceMotion &&
+                  (status === "loading" || status === "speaking")
                     ? { scale: [1, 1.05, 1] }
                     : undefined
                 }
-                transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+                transition={{
+                  duration: 1.8,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
               >
                 <Image
                   src={
@@ -525,7 +550,9 @@ export function AiRebuttalPhase({
                 <p
                   className={cn(
                     "mt-1.5 text-sm font-semibold",
-                    status === "error" ? "text-error" : "text-on-surface-variant"
+                    status === "error"
+                      ? "text-error"
+                      : "text-on-surface-variant",
                   )}
                   aria-live="polite"
                 >
@@ -545,21 +572,35 @@ export function AiRebuttalPhase({
             {fullText && !isShowcase && (
               <div className="flex flex-wrap justify-end gap-2">
                 {ttsPlaying && (
-                  <Button variant="outline" onClick={ttsPause} className="h-9 gap-2 rounded-full border-outline-variant/70 bg-surface text-sm">
+                  <Button
+                    variant="outline"
+                    onClick={ttsPause}
+                    className="h-9 gap-2 rounded-full border-outline-variant/70 bg-surface text-sm"
+                  >
                     <Pause className="h-4 w-4" />
-                    {t('tts.pause')}
+                    {t("tts.pause")}
                   </Button>
                 )}
                 {canResumeSpeech && !ttsError && (
-                  <Button variant="outline" onClick={handleResume} className="h-9 gap-2 rounded-full border-outline-variant/70 bg-surface text-sm">
+                  <Button
+                    variant="outline"
+                    onClick={handleResume}
+                    className="h-9 gap-2 rounded-full border-outline-variant/70 bg-surface text-sm"
+                  >
                     <Play className="h-4 w-4" />
-                    {t(ttsPlaybackState === "ready" ? 'tts.play' : 'tts.resume')}
+                    {t(
+                      ttsPlaybackState === "ready" ? "tts.play" : "tts.resume",
+                    )}
                   </Button>
                 )}
                 {canReplaySpeech && (
-                  <Button variant="outline" onClick={handleReplay} className="h-9 gap-2 rounded-full border-outline-variant/70 bg-surface text-sm">
+                  <Button
+                    variant="outline"
+                    onClick={handleReplay}
+                    className="h-9 gap-2 rounded-full border-outline-variant/70 bg-surface text-sm"
+                  >
                     <RotateCcw className="h-4 w-4" />
-                    {t('tts.replay')}
+                    {t("tts.replay")}
                   </Button>
                 )}
                 {ttsError && !ttsLoading && (
@@ -603,7 +644,9 @@ export function AiRebuttalPhase({
                   className="h-auto w-24 object-contain"
                   sizes="96px"
                 />
-                <p className="max-w-[36ch] text-sm font-medium text-error">{error}</p>
+                <p className="max-w-[36ch] text-sm font-medium text-error">
+                  {error}
+                </p>
               </div>
             ) : (
               <HighlightedResponse
@@ -622,7 +665,7 @@ export function AiRebuttalPhase({
                   title={highlight.note}
                   className={cn(
                     "inline-flex rounded-full px-2.5 py-1 type-caption font-bold ring-1",
-                    getHighlightClass(highlight.type)
+                    getHighlightClass(highlight.type),
                   )}
                 >
                   {t(`session.highlight_${highlight.type}`)}
@@ -650,7 +693,11 @@ export function AiRebuttalPhase({
           variant="outline"
           className="h-11 min-w-[132px] gap-2 rounded-lg border-outline-variant/80 bg-surface text-sm font-semibold text-on-surface hover:bg-surface-container disabled:opacity-50"
         >
-          {ttsPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          {ttsPlaying ? (
+            <Pause className="h-4 w-4" />
+          ) : (
+            <Play className="h-4 w-4" />
+          )}
           {ttsPlaying ? t("session.pause") : t("tts.resume")}
         </Button>
         {status === "error" ? (
@@ -662,7 +709,9 @@ export function AiRebuttalPhase({
             onClick={handleContinue}
             disabled={status !== "done"}
           >
-            {status === "done" ? t("session.continue_next_round") : t("session.waiting")}
+            {status === "done"
+              ? t("session.continue_next_round")
+              : t("session.waiting")}
           </PrimaryActionButton>
         )}
       </ActionRail>

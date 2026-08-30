@@ -253,7 +253,12 @@ export function DashboardSidebarRail({
                     transition={
                       reducedMotion
                         ? { duration: 0 }
-                        : { type: "spring", stiffness: 500, damping: 35 }
+                        : {
+                            type: "spring",
+                            stiffness: 360,
+                            damping: 28,
+                            mass: 0.8,
+                          }
                     }
                     className="sidebar-nav-active-marker pointer-events-none absolute inset-0 z-0 rounded-lg"
                     aria-hidden="true"
@@ -292,18 +297,35 @@ export function DashboardSidebarRail({
               <ChevronRight className="h-4 w-4" />
             </button>
             {isAdmin ? (
-              <Link
-                href="/dashboard/admin"
-                className={cn(
-                  "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-colors",
-                  pathname.startsWith("/dashboard/admin")
-                    ? "sidebar-nav-selected hover:bg-[var(--sidebar-selected-bg)]"
-                    : "sidebar-nav-action",
-                )}
-              >
-                <Shield className="h-5 w-5 shrink-0" />
-                <span>{tNav("adminShort")}</span>
-              </Link>
+              <>
+                <Link
+                  href="/dashboard/admin"
+                  className={cn(
+                    "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                    pathname.startsWith("/dashboard/admin")
+                      ? "sidebar-nav-selected hover:bg-[var(--sidebar-selected-bg)]"
+                      : "sidebar-nav-action",
+                  )}
+                >
+                  <Shield className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  <span>{tNav("adminShort")}</span>
+                </Link>
+                <Link
+                  href="/dashboard/teacher"
+                  className={cn(
+                    "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                    pathname.startsWith("/dashboard/teacher")
+                      ? "sidebar-nav-selected hover:bg-[var(--sidebar-selected-bg)]"
+                      : "sidebar-nav-action",
+                  )}
+                >
+                  <GraduationCap
+                    className="h-5 w-5 shrink-0"
+                    aria-hidden="true"
+                  />
+                  <span>{tNav("teacherMode")}</span>
+                </Link>
+              </>
             ) : null}
             <ThemeToggle />
             <Link

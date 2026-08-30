@@ -3,13 +3,15 @@
 import type { ElementType, ReactNode } from "react";
 import { useId, useState } from "react";
 import Image from "next/image";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useRouter } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowRight,
   Bookmark,
   BookmarkCheck,
+  AlertCircle,
+  Loader2,
   Minus,
   Plus,
   Scale,
@@ -20,7 +22,7 @@ import { Heading, Text } from "@/components/ui/typography";
 import { CategoryVisual } from "@/components/practice/category-visual";
 import { CREDIT_ICON_SRC } from "@/components/dashboard/dashboard-stats-panel";
 import { OutOfOrbsModal } from "@/components/shared/out-of-orbs-modal";
-import { deductOrbsAction } from "@/app/actions/orbs";
+import { deductOrbsAction, getOrbBalanceAction } from "@/app/actions/orbs";
 import {
   clampDurationSeconds,
   secondsToMinutes,
@@ -52,37 +54,37 @@ interface SessionConfigProps {
   showcaseMode?: boolean;
 }
 
-function BeginSessionTransition({ show }: { show: boolean }) {
+function BeginSessionTransition({
+  show,
+  label,
+}: {
+  show: boolean;
+  label: string;
+}) {
+  const reduceMotion = useReducedMotion();
+
   return (
     <AnimatePresence>
       {show && (
         <motion.div
-          initial={{ opacity: 0 }}
+          initial={reduceMotion ? false : { opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-[100] overflow-hidden bg-primary"
-          aria-hidden="true"
+          transition={{ duration: reduceMotion ? 0 : 0.15 }}
+          className="fixed inset-0 z-[100] grid place-items-center bg-primary/95 p-4"
+          role="status"
+          aria-live="polite"
         >
-          <motion.div
-            initial={{ scale: 2.4, opacity: 0.35 }}
-            animate={{ scale: 0.72, opacity: 0.95 }}
-            exit={{ scale: 0.32, opacity: 0 }}
-            transition={{ duration: 0.72, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute left-1/2 top-1/2 h-[150vmax] w-[150vmax] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.32)_0%,rgba(255,255,255,0.12)_20%,rgba(255,255,255,0)_52%)]"
-          />
-          <motion.div
-            initial={{ scale: 0.2, opacity: 0 }}
-            animate={{ scale: 1.35, opacity: [0, 0.5, 0] }}
-            transition={{ duration: 0.76, ease: [0.22, 1, 0.36, 1] }}
-            className="absolute left-1/2 top-1/2 h-[34vmax] w-[34vmax] -translate-x-1/2 -translate-y-1/2 rounded-full border border-on-primary/35"
-          />
-          <motion.div
-            initial={{ scale: 1.05, opacity: 0.55, rotate: 0 }}
-            animate={{ scale: 0.72, opacity: 0, rotate: 18 }}
-            transition={{ duration: 0.74, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-[-8%] bg-[linear-gradient(115deg,transparent_0%,rgba(255,255,255,0.16)_48%,transparent_56%)]"
-          />
+          <div className="flex min-h-10 items-center gap-3 rounded-xl border border-on-primary/20 bg-surface px-4 py-3 text-on-surface shadow-token-card">
+            <Loader2
+              className={cn(
+                "size-4 text-primary",
+                !reduceMotion && "animate-spin",
+              )}
+              aria-hidden
+            />
+            <span className="type-label font-semibold">{label}</span>
+          </div>
         </motion.div>
       )}
     </AnimatePresence>
@@ -110,7 +112,9 @@ function SegmentedControl<Value extends string>({
   return (
     <div
       className="grid gap-1 rounded-[10px] bg-surface-container p-1"
-      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+      style={{
+        gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
+      }}
     >
       {options.map((option) => {
         const isActive = option.value === value;
@@ -129,7 +133,7 @@ function SegmentedControl<Value extends string>({
                 ? "text-primary"
                 : "text-on-surface-variant hover:text-on-surface",
               option.disabled &&
-                "cursor-not-allowed opacity-45 hover:text-on-surface-variant"
+                "cursor-not-allowed opacity-45 hover:text-on-surface-variant",
             )}
           >
             {isActive ? (
@@ -150,7 +154,13 @@ function SegmentedControl<Value extends string>({
   );
 }
 
-function ConfigField({ label, children }: { label: string; children: ReactNode }) {
+function ConfigField({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
   return (
     <section>
       <Text variant="label" as="p" className="font-bold text-on-surface">
@@ -178,7 +188,9 @@ function TimeStepper({
   const minutes = secondsToMinutes(bounded);
 
   const step = (direction: 1 | -1) =>
-    onChange(clampDurationSeconds(bounded + direction * config.stepSeconds, config));
+    onChange(
+      clampDurationSeconds(bounded + direction * config.stepSeconds, config),
+    );
 
   return (
     <div className="rounded-[10px] border border-outline-variant bg-surface-container-lowest p-3">
@@ -259,6 +271,7 @@ export function SessionConfig({
   const [showOrbModal, setShowOrbModal] = useState(false);
   const [isDeducting, setIsDeducting] = useState(false);
   const [showBeginTransition, setShowBeginTransition] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
   const {
     side,
     practiceTrack,
@@ -279,11 +292,15 @@ export function SessionConfig({
   } = useSessionStore();
 
   const orbCost = practiceTrack === "debate" ? 200 : 100;
-  const motionBrief = getDisplayMotionBrief(topic, locale === "vi" ? "vi" : "en");
+  const motionBrief = getDisplayMotionBrief(
+    topic,
+    locale === "vi" ? "vi" : "en",
+  );
   const categoryKey = getTopicCategoryKey(topic);
   const difficultyChip = getDifficultyChip(topic.difficulty);
 
   const handleBegin = async () => {
+    setStartError(null);
     if (showcaseMode) {
       setShowBeginTransition(true);
       window.setTimeout(() => setShowBeginTransition(false), 900);
@@ -296,12 +313,82 @@ export function SessionConfig({
     }
 
     setIsDeducting(true);
-    const result = await deductOrbsAction(practiceTrack);
+    let result: Awaited<ReturnType<typeof deductOrbsAction>>;
+    try {
+      result = await deductOrbsAction(practiceTrack);
+    } catch (error) {
+      console.error("Practice session start failed", {
+        cause: error,
+        practiceTrack,
+        supportCode: "PRACTICE-START-01",
+      });
+      trackAnalyticsEvent({
+        eventName: "practice_session_start_failed",
+        featureArea: "practice",
+        route: window.location.pathname,
+        metadata: {
+          practice_track: practiceTrack,
+          support_code: "PRACTICE-START-01",
+        },
+      });
+
+      try {
+        const verifiedBalance = await getOrbBalanceAction();
+        const chargeWasApplied =
+          orbBalance !== null && verifiedBalance === orbBalance - orbCost;
+        onBalanceChange(verifiedBalance);
+        if (chargeWasApplied) {
+          result = { success: true, newBalance: verifiedBalance };
+        } else {
+          setStartError(
+            locale === "vi"
+              ? "Chưa thể bắt đầu. Hãy thử lại. Mã hỗ trợ: PRACTICE-START-01."
+              : "We couldn’t start this practice. Try again. Support code: PRACTICE-START-01.",
+          );
+          return;
+        }
+      } catch (balanceError) {
+        console.error(
+          "Practice start balance verification failed",
+          balanceError,
+        );
+        setStartError(
+          locale === "vi"
+            ? "Chưa thể xác nhận phiên luyện tập. Hãy tải lại trang trước khi thử lại. Mã hỗ trợ: PRACTICE-START-01."
+            : "We couldn’t confirm the practice start. Refresh before trying again. Support code: PRACTICE-START-01.",
+        );
+        return;
+      } finally {
+        setIsDeducting(false);
+      }
+    }
     setIsDeducting(false);
 
     if (!result.success) {
       onBalanceChange(result.newBalance);
-      setShowOrbModal(true);
+      if (result.error === "Insufficient Credits") {
+        setShowOrbModal(true);
+      } else {
+        console.error("Practice session start rejected", {
+          reason: result.error,
+          practiceTrack,
+          supportCode: "PRACTICE-START-02",
+        });
+        trackAnalyticsEvent({
+          eventName: "practice_session_start_failed",
+          featureArea: "practice",
+          route: window.location.pathname,
+          metadata: {
+            practice_track: practiceTrack,
+            support_code: "PRACTICE-START-02",
+          },
+        });
+        setStartError(
+          locale === "vi"
+            ? "Chưa thể bắt đầu. Hãy thử lại. Mã hỗ trợ: PRACTICE-START-02."
+            : "We couldn’t start this practice. Try again. Support code: PRACTICE-START-02.",
+        );
+      }
       return;
     }
 
@@ -353,8 +440,8 @@ export function SessionConfig({
       <div className="flex h-full min-h-0 flex-col">
         <div
           className={cn(
-            "relative min-h-0 flex-1 overflow-y-auto px-6 pb-7 pt-7 sm:px-8",
-            layout === "desktop" && "lg:px-9 lg:pt-9"
+            "relative min-h-0 flex-1 overflow-y-auto px-4 pb-5 pt-4 sm:px-5",
+            layout === "desktop" && "lg:px-6 lg:pt-5",
           )}
         >
           <AnimatePresence mode="popLayout" initial={false}>
@@ -366,16 +453,18 @@ export function SessionConfig({
               transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
             >
               <div className="flex items-start justify-between gap-4">
-                <CategoryVisual category={categoryKey} size="lg" />
+                <CategoryVisual category={categoryKey} size="sm" />
                 <button
                   type="button"
-                  aria-label={isBookmarked ? t("remove_bookmark") : t("save_topic")}
+                  aria-label={
+                    isBookmarked ? t("remove_bookmark") : t("save_topic")
+                  }
                   onClick={() => onToggleBookmark(topic.id)}
                   className={cn(
-                    "flex size-10 shrink-0 items-center justify-center rounded-full transition-all hover:bg-surface-container active:scale-90",
+                    "flex size-8 shrink-0 items-center justify-center rounded-[8px] transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                     isBookmarked
                       ? "text-primary"
-                      : "text-on-surface-variant hover:text-primary"
+                      : "text-on-surface-variant hover:text-primary",
                   )}
                 >
                   {isBookmarked ? (
@@ -386,40 +475,45 @@ export function SessionConfig({
                 </button>
               </div>
 
-              <Heading level={2} className="mt-5">
+              <Heading level={2} className="mt-3 type-title">
                 {topic.title}
               </Heading>
 
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="rounded-full bg-surface-container px-3 py-1.5 type-caption font-semibold leading-none text-on-surface-variant">
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <span className="inline-flex h-5 items-center rounded-[6px] bg-primary-container px-2 type-caption font-semibold leading-none text-on-primary-container">
+                  {locale === "vi"
+                    ? "Luyện tập · Có phản hồi"
+                    : "Practice · Feedback on"}
+                </span>
+                <span className="inline-flex h-5 items-center rounded-[6px] bg-surface-container px-2 type-caption font-semibold leading-none text-on-surface-variant">
                   {topic.category}
                 </span>
                 <span
                   className={cn(
-                    "rounded-full px-3 py-1.5 type-caption font-semibold leading-none",
-                    DIFFICULTY_CHIP_STYLES[difficultyChip.tone]
+                    "inline-flex h-5 items-center rounded-[6px] px-2 type-caption font-semibold leading-none",
+                    DIFFICULTY_CHIP_STYLES[difficultyChip.tone],
                   )}
                 >
                   {t(difficultyChip.labelKey)}
                 </span>
               </div>
 
-              <div className="mt-6 rounded-[10px] border border-outline-variant bg-surface-container-low p-4">
+              <div className="mt-3 rounded-[10px] border border-outline-variant bg-surface-container-low p-3">
                 <div className="flex items-center gap-2 type-label font-bold text-on-surface">
                   <Scale className="h-4 w-4 text-primary" />
                   {t("session.motion_brief")}
                 </div>
-                <Text variant="body-sm" className="mt-3 text-on-surface-variant">
+                <Text
+                  variant="body-sm"
+                  className="mt-1.5 text-on-surface-variant"
+                >
                   {motionBrief.scope}
-                </Text>
-                <Text variant="caption" className="mt-2.5 text-on-surface-variant/85">
-                  {motionBrief.modelClarification}
                 </Text>
               </div>
             </motion.div>
           </AnimatePresence>
 
-          <div className="mt-8 space-y-7">
+          <div className="mt-5 space-y-4">
             <ConfigField label={t("practice_track")}>
               <SegmentedControl
                 value={practiceTrack}
@@ -479,28 +573,51 @@ export function SessionConfig({
                 label={t("prep_time")}
                 value={prepTime}
                 config={SOLO_PREP_DURATION}
-                unitLabel={(minutes) => t("duration_minutes", { count: minutes })}
+                unitLabel={(minutes) =>
+                  t("duration_minutes", { count: minutes })
+                }
                 onChange={setPrepTime}
               />
               <TimeStepper
                 label={t("speech_time")}
                 value={speechTime}
                 config={SOLO_SPEECH_DURATION}
-                unitLabel={(minutes) => t("duration_minutes", { count: minutes })}
+                unitLabel={(minutes) =>
+                  t("duration_minutes", { count: minutes })
+                }
                 onChange={setSpeechTime}
               />
             </div>
 
-            <div className="flex min-h-11 items-center justify-between gap-4 rounded-[10px] border border-outline-variant bg-surface-container-lowest px-4 py-2.5">
-              <Text id="ai-hints-label" variant="label" as="p" className="font-bold text-on-surface">
+            <div className="flex min-h-10 items-center justify-between gap-4 rounded-[10px] border border-outline-variant bg-surface px-3 py-1.5">
+              <Text
+                id="ai-hints-label"
+                variant="label"
+                as="p"
+                className="font-bold text-on-surface"
+              >
                 {t("ai_hints")}
               </Text>
-              <Switch aria-labelledby="ai-hints-label" checked={aiHints} onCheckedChange={setAiHints} />
+              <Switch
+                aria-labelledby="ai-hints-label"
+                checked={aiHints}
+                onCheckedChange={setAiHints}
+              />
             </div>
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center justify-between gap-4 border-t border-outline-variant bg-surface-container-lowest px-6 py-4 sm:px-8 lg:px-9">
+        {startError ? (
+          <div
+            className="mx-4 mb-2 flex items-start gap-2 rounded-[10px] border border-error/25 bg-error-container px-3 py-2 type-caption text-on-error-container"
+            role="alert"
+          >
+            <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>{startError}</span>
+          </div>
+        ) : null}
+
+        <div className="flex shrink-0 items-center justify-between gap-3 border-t border-outline-variant bg-surface px-4 py-3 sm:px-5 lg:px-6">
           <div
             className="flex items-center gap-2"
             aria-label={`${t("session_cost")}: ${orbCost} ${t("credits_label")}`}
@@ -508,9 +625,9 @@ export function SessionConfig({
             <Image
               src={CREDIT_ICON_SRC}
               alt=""
-              width={36}
-              height={36}
-              className="size-9 shrink-0 object-contain"
+              width={24}
+              height={24}
+              className="size-6 shrink-0 object-contain"
               unoptimized
               aria-hidden="true"
             />
@@ -521,7 +638,7 @@ export function SessionConfig({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.16 }}
-                className="type-heading-lg font-extrabold leading-none tabular-nums text-on-surface"
+                className="type-label font-semibold tabular-nums text-on-surface"
               >
                 {orbCost}
               </motion.span>
@@ -533,7 +650,9 @@ export function SessionConfig({
             disabled={isDeducting || showBeginTransition}
             className="h-8 flex-1 rounded-[10px] type-body font-bold sm:max-w-[230px]"
           >
-            {isDeducting || showBeginTransition ? t("starting") : t("begin_session")}
+            {isDeducting || showBeginTransition
+              ? t("starting")
+              : t("begin_session")}
             <ArrowRight className="ml-1.5 h-[18px] w-[18px] transition-transform group-hover/button:translate-x-0.5" />
           </Button>
         </div>
@@ -546,7 +665,10 @@ export function SessionConfig({
         orbBalance={orbBalance ?? 0}
         orbCost={orbCost}
       />
-      <BeginSessionTransition show={showBeginTransition} />
+      <BeginSessionTransition
+        show={showBeginTransition}
+        label={t("starting")}
+      />
     </>
   );
 }

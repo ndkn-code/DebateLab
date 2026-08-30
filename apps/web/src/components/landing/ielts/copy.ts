@@ -2,6 +2,9 @@ export type IeltsLandingLocale = "en" | "vi";
 
 export const IELTS_LANDING_COPY = {
   en: {
+    debate: "Debate",
+    ielts: "IELTS",
+    productLabel: "Choose a learning workspace",
     eyebrow: "IELTS preparation, with a plan",
     title: "Prepare with clarity. Walk into IELTS ready.",
     intro:
@@ -47,6 +50,9 @@ export const IELTS_LANDING_COPY = {
     footer: "Authentic IELTS preparation for your next step.",
   },
   vi: {
+    debate: "Tranh biện",
+    ielts: "IELTS",
+    productLabel: "Chọn không gian học tập",
     eyebrow: "Luyện IELTS, có lộ trình rõ ràng",
     title: "Chuẩn bị sáng suốt. Tự tin bước vào kỳ thi IELTS.",
     intro:

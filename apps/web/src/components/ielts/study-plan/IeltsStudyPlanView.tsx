@@ -120,9 +120,6 @@ export function IeltsStudyPlanView({
                     <h1 className="mt-1 type-heading-lg font-bold text-balance text-on-surface">
                       {t("title")}
                     </h1>
-                    <p className="mt-2 max-w-prose type-body text-on-surface-variant">
-                      {t("intro")}
-                    </p>
                   </div>
                   {countdown ? (
                     <div className="flex shrink-0 flex-col items-center justify-center rounded-lg bg-primary-container px-5 py-3 text-center text-on-primary-container">
@@ -136,7 +133,7 @@ export function IeltsStudyPlanView({
                   ) : null}
                 </div>
 
-                <div className="mt-5 flex flex-wrap items-center gap-2">
+                <div className="mt-4 flex flex-wrap items-center gap-2">
                   {countdown ? (
                     <MetaChip>
                       <Target className="size-3.5" />
@@ -206,7 +203,9 @@ export function IeltsStudyPlanView({
                 />
               </div>
 
-              <StudyPlanRevisionLog view={view} />
+              {view.revisions.length > 0 ? (
+                <StudyPlanRevisionLog view={view} />
+              ) : null}
             </>
           )}
         </PageContainer>

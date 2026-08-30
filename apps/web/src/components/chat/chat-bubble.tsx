@@ -113,7 +113,7 @@ const BLOCK_STYLES: Record<
 };
 
 function isCoachMessageMetadata(
-  metadata: ChatMessageLocal["metadata"]
+  metadata: ChatMessageLocal["metadata"],
 ): metadata is CoachMessageMetadata {
   return (
     Boolean(metadata) &&
@@ -134,8 +134,8 @@ function blockText(block: CoachResponseBlock) {
 function isUsefulTemplate(block: CoachResponseBlock) {
   return Boolean(
     block.body &&
-      block.body.length > 48 &&
-      TEMPLATE_PLACEHOLDER_PATTERN.test(block.body)
+    block.body.length > 48 &&
+    TEMPLATE_PLACEHOLDER_PATTERN.test(block.body),
   );
 }
 
@@ -170,30 +170,35 @@ function isUsefulOpeningFormula(block: CoachResponseBlock) {
   if (items.length !== 4) return false;
 
   const parts = items.map(getOpeningPart);
-  const partMap = new Map(parts.flatMap((part) => (part ? [[part.key, part.body]] : [])));
+  const partMap = new Map(
+    parts.flatMap((part) => (part ? [[part.key, part.body]] : [])),
+  );
 
   return (
     /\b(motion|topic)\b/.test(partMap.get("motion") ?? "") &&
     /\b(stance|side|support|oppose|position|proposition|opposition)\b/.test(
-      partMap.get("stance") ?? ""
+      partMap.get("stance") ?? "",
     ) &&
     /\b(reason|claim|because|mechanism|why|main)\b/.test(
-      partMap.get("thesis") ?? ""
+      partMap.get("thesis") ?? "",
     ) &&
     /\b(preview|argument|point|roadmap|show)\b/.test(
-      partMap.get("roadmap") ?? ""
+      partMap.get("roadmap") ?? "",
     )
   );
 }
 
 function isUsefulClarifyingQuestion(block: CoachResponseBlock) {
   const text = blockText(block);
-  return text.length >= 20 && (MISSING_CONTEXT_PATTERN.test(text) || text.includes("?"));
+  return (
+    text.length >= 20 &&
+    (MISSING_CONTEXT_PATTERN.test(text) || text.includes("?"))
+  );
 }
 
 function getRenderableMetadata(
   metadata: ChatMessageLocal["metadata"],
-  assistantContent = ""
+  assistantContent = "",
 ): CoachMessageMetadata | null {
   if (!isCoachMessageMetadata(metadata)) return null;
   const prunedMetadata = pruneCoachMetadata(metadata, {
@@ -235,10 +240,10 @@ function getRenderableMetadata(
     .slice(0, 2);
 
   const clarifyingBlocks = visibleBlocks.filter(
-    (block) => block.type === "clarifying_question"
+    (block) => block.type === "clarifying_question",
   );
   const hasOpeningBlueprint = visibleBlocks.some(
-    (block) => block.type === "opening_formula"
+    (block) => block.type === "opening_formula",
   );
 
   if (clarifyingBlocks.length > 0 && !hasOpeningBlueprint) {
@@ -275,7 +280,7 @@ function MiniMarkdown({
     <div
       className={cn(
         "prose prose-sm max-w-none prose-p:my-0 prose-p:leading-6 prose-strong:text-on-surface prose-a:text-primary prose-ul:my-0 prose-ol:my-0 prose-li:my-0",
-        className
+        className,
       )}
     >
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{children}</ReactMarkdown>
@@ -358,15 +363,15 @@ function isProbablyRepeatedText(summary: string, content: string) {
   if (normalizedContent.includes(normalizedSummary.slice(0, 80))) return true;
 
   const summaryWords = new Set(
-    normalizedSummary.split(/\s+/).filter((word) => word.length > 3)
+    normalizedSummary.split(/\s+/).filter((word) => word.length > 3),
   );
   if (summaryWords.size < 4) return false;
 
   const contentWords = new Set(
-    normalizedContent.split(/\s+/).filter((word) => word.length > 3)
+    normalizedContent.split(/\s+/).filter((word) => word.length > 3),
   );
   const overlap = Array.from(summaryWords).filter((word) =>
-    contentWords.has(word)
+    contentWords.has(word),
   ).length;
   return overlap / summaryWords.size > 0.72;
 }
@@ -418,7 +423,7 @@ function CoachOpeningBlueprint({
   if (steps.length < 3 || steps.length > 4) return null;
 
   return (
-    <section className="overflow-hidden rounded-xl border border-outline-variant/16 bg-white">
+    <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface">
       <div className="border-b border-outline-variant/12 bg-primary/5 px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
@@ -426,12 +431,10 @@ function CoachOpeningBlueprint({
               <OpeningBlueprintIcon className="h-[19px] w-[19px]" />
             </div>
             <div className="min-w-0">
-              <div className="type-eyebrow text-primary">
-                Opening Blueprint
-              </div>
+              <div className="type-eyebrow text-primary">Opening Blueprint</div>
             </div>
           </div>
-          <div className="rounded-full border border-primary/14 bg-white px-2.5 py-1 type-caption font-semibold text-primary">
+          <div className="rounded-md border border-primary/20 bg-surface px-2 py-1 type-caption font-semibold text-primary">
             {steps.length} {steps.length === 1 ? "part" : "parts"}
           </div>
         </div>
@@ -450,7 +453,7 @@ function CoachOpeningBlueprint({
                 <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary shadow-token-primary">
                   {index + 1}
                 </span>
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <StepIcon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -470,7 +473,7 @@ function CoachOpeningBlueprint({
           {templateBlock && (
             <div className="rounded-xl border border-primary/16 bg-primary/5 p-3">
               <div className="flex items-start gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-primary">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface text-primary">
                   <PenLine className="h-[18px] w-[18px]" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -538,14 +541,12 @@ function CoachOpeningBlueprint({
 
       {exampleBlock && (
         <div className="bg-surface-container px-3 pb-3 sm:px-4 sm:pb-4">
-          <div className="flex items-start gap-3 rounded-xl border border-primary/12 bg-white p-3">
+          <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-surface p-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-container text-primary">
               <BookOpen className="h-[18px] w-[18px]" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="type-eyebrow text-primary">
-                Example Opening
-              </div>
+              <div className="type-eyebrow text-primary">Example Opening</div>
               {exampleBlock.body && (
                 <p className="mt-1 text-sm leading-5 text-on-surface-variant">
                   {plainTextFromMarkdown(exampleBlock.body)}
@@ -567,11 +568,13 @@ function CoachBlockCard({ block }: { block: CoachResponseBlock }) {
     <section
       className={cn(
         "rounded-none border-0 border-l-2 bg-transparent py-2 pl-3 pr-2",
-        style.className
+        style.className,
       )}
     >
       <div className="flex items-start gap-2.5">
-        <Icon className={cn("mt-1 h-3.5 w-3.5 shrink-0", style.iconClassName)} />
+        <Icon
+          className={cn("mt-1 h-3.5 w-3.5 shrink-0", style.iconClassName)}
+        />
         <div className="min-w-0 flex-1">
           <div className="type-eyebrow text-on-surface-variant">
             {style.label}
@@ -589,7 +592,10 @@ function CoachBlockCard({ block }: { block: CoachResponseBlock }) {
           {block.items && block.items.length > 0 && (
             <ul className="mt-1.5 space-y-1 text-sm leading-6 text-on-surface-variant">
               {block.items.map((item, itemIndex) => (
-                <li key={`${block.id}-item-${itemIndex}`} className="flex gap-2">
+                <li
+                  key={`${block.id}-item-${itemIndex}`}
+                  className="flex gap-2"
+                >
                   <span className="mt-[10px] h-1 w-1 shrink-0 rounded-full bg-primary/60" />
                   <MiniMarkdown className="min-w-0 flex-1">{item}</MiniMarkdown>
                 </li>
@@ -625,7 +631,7 @@ function CoachFollowUpQuestion({
           type="button"
           onClick={() => onDraftMessage(MOTION_DETAILS_DRAFT)}
           disabled={actionsDisabled}
-          className="mt-2 inline-flex items-center gap-2 rounded-full border border-primary/18 bg-white px-3 py-1.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-2 inline-flex h-8 items-center gap-2 rounded-[10px] border border-primary/20 bg-surface px-3 type-caption font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Sparkles className="h-3.5 w-3.5" />
           Add motion details
@@ -670,7 +676,7 @@ function CoachVisualExplainerCard({
   const [replayKey, setReplayKey] = useState(0);
   const explanation = buildVisualExplanation(visual);
   const connectorByStepId = new Map(
-    (visual.connectors ?? []).map((connector) => [connector.from, connector])
+    (visual.connectors ?? []).map((connector) => [connector.from, connector]),
   );
   const formulaText = visual.steps
     .map((step, index) =>
@@ -678,8 +684,8 @@ function CoachVisualExplainerCard({
         ? step.label
         : `${visualConnectorSymbol(
             index - 1,
-            connectorByStepId.get(visual.steps[index - 1]?.id)?.label
-          )} ${step.label}`
+            connectorByStepId.get(visual.steps[index - 1]?.id)?.label,
+          )} ${step.label}`,
     )
     .join(" ");
   const titleIsFormula =
@@ -705,7 +711,7 @@ function CoachVisualExplainerCard({
               <p
                 className={cn(
                   "mx-auto max-w-[560px] type-body-sm text-on-surface-variant",
-                  titleIsFormula ? "mt-0" : "mt-1"
+                  titleIsFormula ? "mt-0" : "mt-1",
                 )}
               >
                 {visual.subtitle}
@@ -717,7 +723,7 @@ function CoachVisualExplainerCard({
         <div
           className={cn(
             "mx-auto flex max-w-[680px] flex-wrap items-center justify-center gap-x-3 gap-y-4 text-center",
-            titleIsFormula && !visual.subtitle ? "mt-1" : "mt-7"
+            titleIsFormula && !visual.subtitle ? "mt-1" : "mt-7",
           )}
         >
           {visual.steps.map((step, index) => {
@@ -737,10 +743,14 @@ function CoachVisualExplainerCard({
                   <motion.span
                     initial={{ scaleX: 0 }}
                     animate={{ scaleX: 1 }}
-                    transition={{ delay: delay + 0.18, duration: 0.38, ease: "easeOut" }}
+                    transition={{
+                      delay: delay + 0.18,
+                      duration: 0.38,
+                      ease: "easeOut",
+                    }}
                     className={cn(
                       "absolute inset-x-1 bottom-0 h-[2px] origin-left rounded-full",
-                      visualLineClass(step.accent)
+                      visualLineClass(step.accent),
                     )}
                   />
                 </motion.span>
@@ -800,7 +810,7 @@ function CoachVisualExplainerCard({
         <button
           type="button"
           onClick={() => setReplayKey((key) => key + 1)}
-          className="mt-6 inline-flex h-10 items-center gap-2 rounded-[14px] border border-outline-variant bg-white px-3.5 text-sm font-semibold text-on-surface shadow-token-card transition-colors hover:border-primary/24 hover:bg-primary/5"
+          className="mt-6 inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 type-label font-semibold text-on-surface transition-colors hover:border-primary/30 hover:bg-primary/5"
         >
           <RotateCcw className="h-4 w-4" />
           Replay animation
@@ -859,7 +869,7 @@ function CoachSuggestedActions({
             "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
             action.variant === "primary"
               ? "border-primary bg-primary text-on-primary shadow-token-primary hover:bg-primary-dim"
-              : "border-primary/18 bg-white text-primary hover:bg-primary/5"
+              : "border-primary/20 bg-surface text-primary hover:bg-primary/5",
           )}
         >
           {action.label}
@@ -902,7 +912,10 @@ function AssistantActions({ content }: { content: string }) {
       <button
         type="button"
         onClick={() => setVote(vote === "up" ? null : "up")}
-        className={cn(iconButtonClass, vote === "up" && "bg-primary/10 text-primary")}
+        className={cn(
+          iconButtonClass,
+          vote === "up" && "bg-primary/10 text-primary",
+        )}
         title="Helpful"
         aria-label="Helpful"
       >
@@ -911,7 +924,10 @@ function AssistantActions({ content }: { content: string }) {
       <button
         type="button"
         onClick={() => setVote(vote === "down" ? null : "down")}
-        className={cn(iconButtonClass, vote === "down" && "bg-error/10 text-error")}
+        className={cn(
+          iconButtonClass,
+          vote === "down" && "bg-error/10 text-error",
+        )}
         title="Not helpful"
         aria-label="Not helpful"
       >
@@ -935,22 +951,24 @@ function AssistantMessage({
     ? getRenderableMetadata(message.metadata, message.content)
     : null;
   const cardBlocks =
-    metadata?.blocks.filter((block) => block.type !== "clarifying_question") ?? [];
+    metadata?.blocks.filter((block) => block.type !== "clarifying_question") ??
+    [];
   const followUpBlocks =
-    metadata?.blocks.filter((block) => block.type === "clarifying_question") ?? [];
+    metadata?.blocks.filter((block) => block.type === "clarifying_question") ??
+    [];
   const formulaBlock = cardBlocks.find(
-    (block) => block.type === "opening_formula"
+    (block) => block.type === "opening_formula",
   );
   const templateBlock = cardBlocks.find((block) => block.type === "template");
   const tipBlock = cardBlocks.find((block) => block.type === "coach_tip");
   const mistakeBlock = cardBlocks.find(
-    (block) => block.type === "common_mistake"
+    (block) => block.type === "common_mistake",
   );
   const exampleBlock = cardBlocks.find((block) => block.type === "example");
   const blueprintBlockIds = new Set(
     [formulaBlock, templateBlock, tipBlock, mistakeBlock, exampleBlock]
       .filter(Boolean)
-      .map((block) => block!.id)
+      .map((block) => block!.id),
   );
   const fallbackBlocks = formulaBlock
     ? cardBlocks.filter((block) => !blueprintBlockIds.has(block.id))
@@ -1078,9 +1096,11 @@ function AssistantMessage({
             {onSendMessage && (
               <button
                 type="button"
-                onClick={() => onSendMessage("Please continue your last answer.")}
+                onClick={() =>
+                  onSendMessage("Please continue your last answer.")
+                }
                 disabled={actionsDisabled}
-                className="rounded-full border border-primary/16 bg-white px-2.5 py-1 font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-md border border-primary/20 bg-surface px-2.5 py-1 font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Continue
               </button>

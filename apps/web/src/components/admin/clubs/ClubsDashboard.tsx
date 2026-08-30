@@ -56,10 +56,10 @@ function ClubCard({
   return (
     <Link
       href={href}
-      className="grid gap-4 rounded-lg border border-outline-variant bg-surface-container-lowest p-4 shadow-sm transition hover:border-primary/40 hover:shadow-md lg:grid-cols-[1.4fr_0.7fr_0.7fr_0.8fr_0.6fr_0.8fr_44px] lg:items-center"
+      className="grid gap-3 rounded-[10px] border border-outline-variant bg-surface p-3 transition-colors hover:border-primary/40 hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 lg:min-h-10 lg:grid-cols-[1.4fr_0.7fr_0.7fr_0.8fr_0.6fr_0.8fr_40px] lg:items-center lg:px-3 lg:py-1"
     >
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-container text-primary">
+        <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[8px] bg-primary-container text-primary">
           {club.logoUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -102,7 +102,7 @@ function ClubCard({
         }
       />
       <div className="hidden justify-end lg:flex">
-        <span className="rounded-full border border-outline-variant px-2.5 py-1 text-xs font-semibold text-primary">
+        <span className="inline-flex h-5 items-center rounded-[6px] border border-outline-variant px-2 type-caption font-semibold text-primary">
           Open
         </span>
       </div>
@@ -112,7 +112,7 @@ function ClubCard({
 
 function SocialBadge({ label }: { label: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-md border border-outline-variant bg-background px-1.5 py-0.5 type-caption font-bold text-on-surface-variant">
+    <span className="inline-flex h-5 items-center gap-1 rounded-[6px] border border-outline-variant bg-surface-container px-1.5 type-caption font-semibold text-on-surface-variant">
       <ExternalLink className="h-3 w-3 text-primary" />
       {label}
     </span>
@@ -156,11 +156,13 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
   );
 
   return (
-    <PageTransition className="min-h-full bg-background px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
-      <div className="mx-auto w-full max-w-[1440px]">
+    <PageTransition className="min-h-full bg-background px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
+      <div className="w-full">
         <div className="flex flex-col gap-4 border-b border-outline-variant pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <p className="type-eyebrow text-secondary">{adminT("groups.operations")}</p>
+            <p className="type-eyebrow text-secondary">
+              {adminT("groups.operations")}
+            </p>
             <h1 className="type-heading-lg mt-1 font-medium text-on-surface">
               Clubs
             </h1>
@@ -191,7 +193,7 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
                 key={state.key}
                 href={`/dashboard/admin/clubs?qa=${state.key}`}
                 className={cn(
-                  "inline-flex h-8 items-center rounded-full border px-3 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                  "inline-flex h-8 items-center rounded-[10px] border px-3 type-label font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                   data.qaState === state.key
                     ? "border-primary bg-surface-container text-on-surface-variant"
                     : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/50",
@@ -280,12 +282,12 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
           )}
         </ChartCard>
 
-        <div className="mt-6 rounded-lg border border-outline-variant bg-surface-container-lowest p-4 shadow-sm">
+        <div className="mt-4 rounded-[10px] border border-outline-variant bg-surface p-3">
           <label className="relative block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
             <input
               placeholder="Search clubs"
-              className="h-11 w-full rounded-lg border border-outline-variant bg-background pl-10 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+              className="h-8 w-full rounded-[10px] border border-outline-variant bg-surface pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-ring/40"
             />
           </label>
         </div>

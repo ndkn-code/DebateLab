@@ -12,8 +12,8 @@ import { SHARED_LMS_MATERIALS_V1 } from "@/lib/features";
 
 const DAY_MS = 86_400_000;
 const GRID_START_HOUR = 7;
-const GRID_END_HOUR = 22;
-const HOUR_HEIGHT_PX = 56;
+const GRID_END_HOUR = 21;
+const HOUR_HEIGHT_PX = 44;
 
 function addDays(date: string, days: number): string {
   return new Date(new Date(`${date}T00:00:00Z`).getTime() + days * DAY_MS)
@@ -91,21 +91,19 @@ function TeacherEventLink({
     <Link
       href={`/dashboard/classes/${item.classId}`}
       style={positioned ? { top, height } : undefined}
-      className={`${positioned ? "absolute inset-x-1 z-10 overflow-hidden" : "block"} rounded-lg border-l-4 p-2 type-caption transition-colors hover:brightness-95 focus-visible:z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${eventTone(item)}`}
+      className={`${positioned ? "absolute inset-x-1 z-10 overflow-hidden" : "block min-h-11"} rounded-[10px] border border-l-4 px-2 py-1.5 type-caption transition-colors duration-150 hover:brightness-95 focus-visible:z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${eventTone(item)}`}
     >
-      <span className="block font-bold text-on-surface">
+      <span className="block font-semibold tabular-nums text-on-surface">
         {formatTime(item.startsAt, locale, item.timezone)}–
         {formatTime(item.endsAt, locale, item.timezone)}
       </span>
-      <span className="mt-1 block font-semibold text-on-surface">
+      <span className="block truncate font-semibold text-on-surface">
         {item.classTitle}
       </span>
-      <span className="block text-on-surface-variant">{item.title}</span>
-      {item.status === "cancelled" ? (
-        <span className="mt-1 inline-flex rounded-full bg-error-container px-1.5 py-0.5 font-semibold text-on-error-container">
-          {vi ? "Đã hủy" : "Cancelled"}
-        </span>
-      ) : null}
+      <span className="block truncate text-on-surface-variant">
+        {item.title}
+      </span>
+      {item.status === "cancelled" ? <StatusLabel vi={vi} /> : null}
     </Link>
   );
 }
@@ -116,12 +114,14 @@ export function TeacherWeekCalendar({
   selectedClassId,
   selectedProgram,
   showClasses = false,
+  adminPreview = false,
 }: {
   data: TeacherWeekView;
   locale: string;
   selectedClassId?: string;
   selectedProgram?: string;
   showClasses?: boolean;
+  adminPreview?: boolean;
 }) {
   const vi = locale === "vi";
   const days = Array.from({ length: 7 }, (_, index) =>
@@ -140,6 +140,12 @@ export function TeacherWeekCalendar({
     (_, index) => GRID_START_HOUR + index,
   );
   const gridHeight = (GRID_END_HOUR - GRID_START_HOUR) * HOUR_HEIGHT_PX;
+  const sortedOccurrences = [...data.occurrences].sort((left, right) =>
+    left.startsAt.localeCompare(right.startsAt),
+  );
+  const agendaOccurrences = sortedOccurrences
+    .filter((item) => item.date >= today || !days.includes(today))
+    .slice(0, 8);
   const query = (startDate: string) => {
     const params = new URLSearchParams({ weekStart: startDate });
     if (selectedClassId) params.set("classId", selectedClassId);
@@ -158,26 +164,53 @@ export function TeacherWeekCalendar({
 
   return (
     <ProductPageShell>
-      <PageContainer size="wide" className="py-5 lg:py-7">
-        <header className="flex flex-col gap-4 border-b border-outline-variant pb-5 lg:flex-row lg:items-end lg:justify-between">
+      <PageContainer size="data" className="py-4 lg:py-5">
+        {adminPreview ? (
+          <div className="mb-3 flex flex-col gap-2 rounded-[10px] border border-primary/20 bg-primary-container/35 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-start gap-2">
+              <ProductIcon
+                name="shield"
+                size="sm"
+                className="mt-0.5 shrink-0 text-primary"
+              />
+              <div>
+                <p className="type-label font-semibold text-on-surface">
+                  {vi ? "Đang xem chế độ giáo viên" : "Teacher mode preview"}
+                </p>
+                <p className="type-caption text-on-surface-variant">
+                  {vi
+                    ? "Bạn vẫn đăng nhập với quyền quản trị viên."
+                    : "You are still signed in with administrator access."}
+                </p>
+              </div>
+            </div>
+            <Link
+              href="/dashboard/admin"
+              className="inline-flex h-8 shrink-0 items-center justify-center rounded-[10px] border border-outline-variant bg-surface px-3 type-label font-semibold text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              {vi ? "Quay lại Quản trị" : "Return to Admin"}
+            </Link>
+          </div>
+        ) : null}
+        <header className="flex flex-col gap-3 border-b border-outline-variant pb-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="type-label font-semibold uppercase tracking-widest text-primary">
               {vi ? "Không gian giáo viên" : "Teacher workspace"}
             </p>
-            <h1 className="mt-1 type-heading-lg font-semibold text-on-surface">
+            <h1 className="mt-1 type-heading-md font-semibold text-on-surface">
               {vi ? "Lịch dạy tuần này" : "This week’s teaching schedule"}
             </h1>
-            <p className="mt-1 type-body-sm text-on-surface-variant">
+            <p className="mt-0.5 type-body-sm text-on-surface-variant">
               {vi
                 ? "Mở lớp để điểm danh, xem bài tập và chấm bài."
                 : "Open a class for attendance, homework, and review."}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {SHARED_LMS_MATERIALS_V1 ? (
               <Link
                 href="/dashboard/teacher/materials"
-                className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-outline-variant px-3 type-label font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <ProductIcon name="book" size="sm" />
                 {vi ? "Tài liệu" : "Materials"}
@@ -185,7 +218,7 @@ export function TeacherWeekCalendar({
             ) : null}
             <Link
               href={currentViewHref}
-              className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-outline-variant px-3 type-label font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ProductIcon
                 name={showClasses ? "calendar" : "users"}
@@ -202,37 +235,37 @@ export function TeacherWeekCalendar({
             <Link
               href={query(addDays(data.startDate, -7))}
               aria-label={vi ? "Tuần trước" : "Previous week"}
-              className="inline-flex size-10 items-center justify-center rounded-lg border border-outline-variant focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex size-8 items-center justify-center rounded-[10px] border border-outline-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ProductIcon name="chevronLeft" size="sm" />
             </Link>
             <Link
               href="/dashboard/teacher"
-              className="inline-flex min-h-10 items-center rounded-lg border border-outline-variant px-3 type-label font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex h-8 items-center rounded-[10px] border border-outline-variant px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {vi ? "Hôm nay" : "Today"}
             </Link>
             <Link
               href={query(addDays(data.startDate, 7))}
               aria-label={vi ? "Tuần sau" : "Next week"}
-              className="inline-flex size-10 items-center justify-center rounded-lg border border-outline-variant focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex size-8 items-center justify-center rounded-[10px] border border-outline-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ProductIcon name="chevronRight" size="sm" />
             </Link>
           </div>
         </header>
 
-        <form className="mt-4 grid gap-3 rounded-xl border border-outline-variant bg-surface-container-low p-3 sm:grid-cols-[1fr_1fr_auto]">
+        <form className="mt-3 grid gap-2 rounded-[10px] border border-outline-variant bg-surface-container-low p-2.5 sm:grid-cols-[minmax(10rem,1fr)_minmax(10rem,1fr)_auto]">
           <input type="hidden" name="weekStart" value={data.startDate} />
           {showClasses ? (
             <input type="hidden" name="view" value="classes" />
           ) : null}
-          <label className="grid gap-1 type-label font-semibold">
+          <label className="grid gap-1 type-caption font-semibold">
             {vi ? "Môn học" : "Subject"}
             <select
               name="program"
               defaultValue={selectedProgram ?? ""}
-              className="min-h-10 rounded-lg border border-outline-variant bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="h-8 rounded-[10px] border border-outline-variant bg-surface px-2 type-label focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <option value="">{vi ? "Tất cả" : "All subjects"}</option>
               <option value="ielts">IELTS</option>
@@ -240,12 +273,12 @@ export function TeacherWeekCalendar({
               <option value="public_speaking">Public speaking</option>
             </select>
           </label>
-          <label className="grid gap-1 type-label font-semibold">
+          <label className="grid gap-1 type-caption font-semibold">
             {vi ? "Lớp" : "Class"}
             <select
               name="classId"
               defaultValue={selectedClassId ?? ""}
-              className="min-h-10 rounded-lg border border-outline-variant bg-surface px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="h-8 rounded-[10px] border border-outline-variant bg-surface px-2 type-label focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <option value="">{vi ? "Tất cả lớp" : "All classes"}</option>
               {data.classes.map((item) => (
@@ -255,7 +288,7 @@ export function TeacherWeekCalendar({
               ))}
             </select>
           </label>
-          <button className="min-h-10 self-end rounded-lg bg-primary px-4 type-label font-semibold text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+          <button className="h-8 self-end rounded-[10px] bg-primary px-4 type-label font-semibold text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
             {vi ? "Lọc" : "Apply"}
           </button>
         </form>
@@ -328,164 +361,235 @@ export function TeacherWeekCalendar({
           </section>
         ) : (
           <>
-            <section
-              className="mt-5 hidden overflow-x-auto rounded-xl border border-outline-variant bg-surface md:block"
-              aria-label={vi ? "Lịch tuần" : "Week calendar"}
-            >
-              <div className="min-w-[68rem]">
-                <div className="grid grid-cols-[4.5rem_repeat(7,minmax(8rem,1fr))] border-b border-outline-variant">
-                  <div aria-hidden="true" />
-                  {days.map((day) => (
-                    <div
-                      key={day}
-                      className="border-l border-outline-variant px-2 py-3 text-center"
-                    >
-                      <p className="type-label font-semibold uppercase text-on-surface-variant">
-                        {new Intl.DateTimeFormat(locale, {
-                          weekday: "short",
-                        }).format(new Date(`${day}T12:00:00Z`))}
-                      </p>
-                      <p
-                        aria-current={day === today ? "date" : undefined}
-                        className={`mx-auto mt-1 inline-flex size-8 items-center justify-center rounded-full type-body-sm font-bold ${day === today ? "bg-primary text-on-primary" : "text-on-surface"}`}
-                      >
-                        {Number(day.slice(-2))}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                <div className="grid grid-cols-[4.5rem_repeat(7,minmax(8rem,1fr))]">
-                  <div className="relative" style={{ height: gridHeight }}>
-                    {gridHours.map((hour) => (
-                      <span
-                        key={hour}
-                        className="absolute right-2 -translate-y-1/2 type-caption text-on-surface-variant"
-                        style={{
-                          top: (hour - GRID_START_HOUR) * HOUR_HEIGHT_PX,
-                        }}
-                      >
-                        {new Intl.DateTimeFormat(locale, {
-                          hour: "numeric",
-                          timeZone: "UTC",
-                        }).format(
-                          new Date(
-                            `2000-01-01T${String(hour).padStart(2, "0")}:00:00Z`,
-                          ),
-                        )}
-                      </span>
-                    ))}
-                  </div>
-                  {days.map((day) => {
-                    const items = data.occurrences.filter(
-                      (item) => item.date === day,
-                    );
-                    const nowTop =
-                      ((nowMinutes - GRID_START_HOUR * 60) / 60) *
-                      HOUR_HEIGHT_PX;
-                    return (
+            <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
+              <section
+                className="hidden overflow-hidden rounded-[10px] border border-outline-variant bg-surface xl:block"
+                aria-label={vi ? "Lịch tuần" : "Week calendar"}
+              >
+                <div>
+                  <div className="grid grid-cols-[3.75rem_repeat(7,minmax(6.5rem,1fr))] border-b border-outline-variant bg-surface-container-low/70">
+                    <div aria-hidden="true" />
+                    {days.map((day) => (
                       <div
                         key={day}
-                        className="relative border-l border-outline-variant"
-                        style={{ height: gridHeight }}
+                        className="border-l border-outline-variant px-2 py-2 text-center"
                       >
-                        {gridHours.map((hour) => (
-                          <span
-                            key={hour}
-                            aria-hidden="true"
-                            className="absolute inset-x-0 border-t border-outline-variant/60"
-                            style={{
-                              top: (hour - GRID_START_HOUR) * HOUR_HEIGHT_PX,
-                            }}
-                          />
-                        ))}
-                        {day === today &&
-                        nowTop >= 0 &&
-                        nowTop <= gridHeight ? (
-                          <div
-                            className="absolute inset-x-0 z-20 flex items-center"
-                            style={{ top: nowTop }}
-                          >
-                            <span className="sr-only">
-                              {vi ? `Bây giờ ${nowLabel}` : `Now ${nowLabel}`}
+                        <p className="type-label font-semibold uppercase text-on-surface-variant">
+                          {new Intl.DateTimeFormat(locale, {
+                            weekday: "short",
+                          }).format(new Date(`${day}T12:00:00Z`))}
+                        </p>
+                        <p
+                          aria-current={day === today ? "date" : undefined}
+                          className={`mx-auto mt-0.5 inline-flex size-7 items-center justify-center rounded-lg type-label font-semibold ${day === today ? "bg-primary text-on-primary" : "text-on-surface"}`}
+                        >
+                          {Number(day.slice(-2))}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="grid grid-cols-[3.75rem_repeat(7,minmax(6.5rem,1fr))]">
+                    <div className="relative" style={{ height: gridHeight }}>
+                      {gridHours.map((hour) => (
+                        <span
+                          key={hour}
+                          className="absolute right-1.5 -translate-y-1/2 type-caption tabular-nums text-on-surface-variant"
+                          style={{
+                            top: (hour - GRID_START_HOUR) * HOUR_HEIGHT_PX,
+                          }}
+                        >
+                          {new Intl.DateTimeFormat(locale, {
+                            hour: "numeric",
+                            timeZone: "UTC",
+                          }).format(
+                            new Date(
+                              `2000-01-01T${String(hour).padStart(2, "0")}:00:00Z`,
+                            ),
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                    {days.map((day) => {
+                      const items = data.occurrences.filter(
+                        (item) => item.date === day,
+                      );
+                      const nowTop =
+                        ((nowMinutes - GRID_START_HOUR * 60) / 60) *
+                        HOUR_HEIGHT_PX;
+                      return (
+                        <div
+                          key={day}
+                          className="relative border-l border-outline-variant"
+                          style={{ height: gridHeight }}
+                        >
+                          {gridHours.map((hour) => (
+                            <span
+                              key={hour}
+                              aria-hidden="true"
+                              className="absolute inset-x-0 border-t border-outline-variant/60"
+                              style={{
+                                top: (hour - GRID_START_HOUR) * HOUR_HEIGHT_PX,
+                              }}
+                            />
+                          ))}
+                          {day === today &&
+                          nowTop >= 0 &&
+                          nowTop <= gridHeight ? (
+                            <div
+                              className="absolute inset-x-0 z-20 flex items-center"
+                              style={{ top: nowTop }}
+                            >
+                              <span className="sr-only">
+                                {vi ? `Bây giờ ${nowLabel}` : `Now ${nowLabel}`}
+                              </span>
+                              <span className="size-2 -translate-x-1 rounded-full bg-error" />
+                              <span className="h-0.5 flex-1 bg-error" />
+                            </div>
+                          ) : null}
+                          {items.map((item) => (
+                            <TeacherEventLink
+                              key={item.id}
+                              item={item}
+                              locale={locale}
+                              vi={vi}
+                              positioned
+                            />
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </section>
+
+              <aside
+                className="hidden self-start overflow-hidden rounded-[10px] border border-outline-variant bg-surface xl:block"
+                aria-labelledby="teacher-week-agenda-heading"
+              >
+                <div className="border-b border-outline-variant bg-surface-container-low px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <h2
+                      id="teacher-week-agenda-heading"
+                      className="type-label font-semibold text-on-surface"
+                    >
+                      {vi ? "Sắp tới" : "Upcoming"}
+                    </h2>
+                    <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-surface-container-high px-1.5 type-caption font-semibold text-on-surface-variant">
+                      {agendaOccurrences.length}
+                    </span>
+                  </div>
+                </div>
+                {agendaOccurrences.length ? (
+                  <ol className="divide-y divide-outline-variant">
+                    {agendaOccurrences.map((item) => (
+                      <li key={item.id}>
+                        <Link
+                          href={`/dashboard/classes/${item.classId}`}
+                          className="group block px-3 py-2.5 transition-colors hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="type-caption font-semibold uppercase text-on-surface-variant">
+                              {new Intl.DateTimeFormat(locale, {
+                                weekday: "short",
+                                month: "short",
+                                day: "numeric",
+                              }).format(new Date(`${item.date}T12:00:00Z`))}
                             </span>
-                            <span className="size-2 -translate-x-1 rounded-full bg-error" />
-                            <span className="h-0.5 flex-1 bg-error" />
+                            <span className="type-caption tabular-nums text-on-surface-variant">
+                              {formatTime(item.startsAt, locale, item.timezone)}
+                            </span>
                           </div>
+                          <p className="mt-0.5 truncate type-label font-semibold text-on-surface">
+                            {item.classTitle}
+                          </p>
+                          <p className="truncate type-caption text-on-surface-variant">
+                            {item.title}
+                          </p>
+                          {item.status === "cancelled" ? (
+                            <StatusLabel vi={vi} />
+                          ) : null}
+                        </Link>
+                      </li>
+                    ))}
+                  </ol>
+                ) : (
+                  <p className="px-3 py-8 text-center type-body-sm text-on-surface-variant">
+                    {vi
+                      ? "Không có lớp trong tuần này."
+                      : "No classes this week."}
+                  </p>
+                )}
+              </aside>
+
+              <section
+                className="grid gap-2 xl:hidden"
+                aria-label={vi ? "Lịch tuần dạng danh sách" : "Week agenda"}
+              >
+                {days.map((day) => {
+                  const items = data.occurrences.filter(
+                    (item) => item.date === day,
+                  );
+                  if (items.length === 0) return null;
+                  return (
+                    <div
+                      key={day}
+                      className="grid overflow-hidden rounded-[10px] border border-outline-variant bg-surface sm:grid-cols-[8rem_1fr]"
+                    >
+                      <div className="border-b border-outline-variant bg-surface-container-low px-3 py-2.5 sm:border-b-0 sm:border-r">
+                        <p className="type-label font-semibold uppercase text-on-surface-variant">
+                          {new Intl.DateTimeFormat(locale, {
+                            weekday: "short",
+                          }).format(new Date(`${day}T12:00:00Z`))}
+                        </p>
+                        <p
+                          aria-current={day === today ? "date" : undefined}
+                          className={`mt-1 inline-flex size-8 items-center justify-center rounded-lg type-body-sm font-bold ${
+                            day === today
+                              ? "bg-primary text-on-primary"
+                              : "text-on-surface"
+                          }`}
+                        >
+                          {Number(day.slice(-2))}
+                        </p>
+                        {day === today ? (
+                          <p className="mt-1 type-caption font-semibold text-primary">
+                            {vi ? `Bây giờ ${nowLabel}` : `Now ${nowLabel}`}
+                          </p>
                         ) : null}
+                      </div>
+                      <div className="grid gap-2 p-2">
                         {items.map((item) => (
                           <TeacherEventLink
                             key={item.id}
                             item={item}
                             locale={locale}
                             vi={vi}
-                            positioned
                           />
                         ))}
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </section>
-            <section
-              className="mt-5 grid gap-3 md:hidden"
-              aria-label={
-                vi ? "Lịch tuần trên di động" : "Mobile week calendar"
-              }
-            >
-              {days.map((day) => {
-                const items = data.occurrences.filter(
-                  (item) => item.date === day,
-                );
-                return (
-                  <div
-                    key={day}
-                    className="min-h-44 rounded-xl border border-outline-variant bg-surface p-2"
-                  >
-                    <div className="border-b border-outline-variant px-1 pb-2">
-                      <p className="type-label font-semibold uppercase text-on-surface-variant">
-                        {new Intl.DateTimeFormat(locale, {
-                          weekday: "short",
-                        }).format(new Date(`${day}T12:00:00Z`))}
-                      </p>
-                      <p
-                        aria-current={day === today ? "date" : undefined}
-                        className={`mt-1 inline-flex size-8 items-center justify-center rounded-full type-body-sm font-bold ${
-                          day === today
-                            ? "bg-primary text-on-primary"
-                            : "text-on-surface"
-                        }`}
-                      >
-                        {Number(day.slice(-2))}
-                      </p>
-                      {day === today ? (
-                        <p className="mt-1 type-caption font-semibold text-primary">
-                          {vi ? `Bây giờ ${nowLabel}` : `Now ${nowLabel}`}
-                        </p>
-                      ) : null}
                     </div>
-                    <div className="mt-2 grid gap-2">
-                      {items.map((item) => (
-                        <TeacherEventLink
-                          key={item.id}
-                          item={item}
-                          locale={locale}
-                          vi={vi}
-                        />
-                      ))}
-                      {items.length === 0 ? (
-                        <p className="px-1 py-3 type-caption text-on-surface-variant">
-                          {vi ? "Không có lớp" : "No classes"}
-                        </p>
-                      ) : null}
-                    </div>
+                  );
+                })}
+                {data.occurrences.length === 0 ? (
+                  <div className="rounded-[10px] border border-dashed border-outline-variant bg-surface-container-low px-4 py-10 text-center type-body-sm text-on-surface-variant">
+                    {vi
+                      ? "Không có lớp trong tuần này."
+                      : "No classes this week."}
                   </div>
-                );
-              })}
-            </section>
+                ) : null}
+              </section>
+            </div>
           </>
         )}
       </PageContainer>
     </ProductPageShell>
+  );
+}
+
+function StatusLabel({ vi }: { vi: boolean }) {
+  return (
+    <span className="mt-1 inline-flex h-5 items-center rounded-md bg-error-container px-1.5 type-caption font-semibold text-on-error-container">
+      {vi ? "Đã hủy" : "Cancelled"}
+    </span>
   );
 }

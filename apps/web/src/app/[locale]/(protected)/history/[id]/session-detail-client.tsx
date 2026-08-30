@@ -3,12 +3,7 @@
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, useRouter } from "@/i18n/navigation";
-import {
-  ArrowLeft,
-  RotateCcw,
-  Trash2,
-  Sparkles,
-} from "@/components/ui/icons";
+import { ArrowLeft, RotateCcw, Trash2, Sparkles } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { ResultActionButton } from "@/components/feedback/result-action-button";
 import { DebateClashMapPanel } from "@/components/feedback/debate-clash-map-panel";
@@ -41,9 +36,7 @@ export default function SessionDetailClient({
   const tHistory = useTranslations("dashboard.history");
   const [session, setSession] = useState<DebateSession | null>(initialSession);
   const [notFound, setNotFound] = useState(initialState === "not-found");
-  const [loadError, setLoadError] = useState<string | null>(
-    initialLoadError
-  );
+  const [loadError, setLoadError] = useState<string | null>(initialLoadError);
   const [showDelete, setShowDelete] = useState(false);
 
   const {
@@ -106,7 +99,11 @@ export default function SessionDetailClient({
     setMode(session.mode);
     setPrepTime(session.prepTime);
     setSpeechTime(session.speechTime);
-    if (practiceTrack === "debate" && session.mode === "full" && session.aiDifficulty) {
+    if (
+      practiceTrack === "debate" &&
+      session.mode === "full" &&
+      session.aiDifficulty
+    ) {
       setAiDifficulty(session.aiDifficulty);
     }
     storeStartSession();
@@ -127,51 +124,56 @@ export default function SessionDetailClient({
 
   if (loadError) {
     return (
-      <div className="flex min-h-full flex-col items-center justify-center bg-background px-4 text-center">
-        <h1 className="text-2xl font-bold text-on-surface">
-          {tResult("notFoundTitle")}
-        </h1>
-        <p className="mt-2 max-w-xl text-sm text-on-surface-variant">
-          {loadError}
-        </p>
-        <Link href="/profile?tab=activities" className="mt-6">
-          <Button
-            variant="outline"
-            className="gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {tResult("backToHistory")}
-          </Button>
-        </Link>
+      <div className="flex min-h-full items-start justify-center bg-transparent px-4 py-6 sm:py-10">
+        <section className="w-full max-w-xl rounded-xl border border-outline-variant bg-surface p-4 text-left sm:p-5">
+          <h1 className="type-heading-md font-semibold text-on-surface">
+            {tResult("notFoundTitle")}
+          </h1>
+          <p className="mt-1 type-body-sm text-on-surface-variant">
+            {loadError}
+          </p>
+          <Link href="/profile?tab=activities" className="mt-4 inline-flex">
+            <Button
+              variant="outline"
+              className="h-8 gap-2 rounded-[10px] border-outline-variant bg-surface text-on-surface"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {tResult("backToHistory")}
+            </Button>
+          </Link>
+        </section>
       </div>
     );
   }
 
   if (notFound) {
     return (
-      <div className="flex min-h-full flex-col items-center justify-center bg-background px-4">
-        <h1 className="text-2xl font-bold text-on-surface">
-          {tResult("notFoundTitle")}
-        </h1>
-        <p className="mt-2 text-sm text-on-surface-variant">
-          {tResult("notFoundBody")}
-        </p>
-        <Link href="/profile?tab=activities" className="mt-6">
-          <Button
-            variant="outline"
-            className="gap-2 border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {tResult("backToHistory")}
-          </Button>
-        </Link>
+      <div className="flex min-h-full items-start justify-center bg-transparent px-4 py-6 sm:py-10">
+        <section className="w-full max-w-xl rounded-xl border border-outline-variant bg-surface p-4 text-left sm:p-5">
+          <h1 className="type-heading-md font-semibold text-on-surface">
+            {tResult("notFoundTitle")}
+          </h1>
+          <p className="mt-1 type-body-sm text-on-surface-variant">
+            {tResult("notFoundBody")}
+          </p>
+          <Link href="/profile?tab=activities" className="mt-4 inline-flex">
+            <Button
+              variant="outline"
+              className="h-8 gap-2 rounded-[10px] border-outline-variant bg-surface text-on-surface"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {tResult("backToHistory")}
+            </Button>
+          </Link>
+        </section>
       </div>
     );
   }
 
   if (!session) return null;
 
-  const practiceTrack = session.practiceTrack ?? session.feedback?.practiceTrack ?? "debate";
+  const practiceTrack =
+    session.practiceTrack ?? session.feedback?.practiceTrack ?? "debate";
   const practiceLanguage =
     session.practiceLanguage ?? session.feedback?.practiceLanguage ?? "en";
   const feedback = session.feedback
@@ -193,10 +195,12 @@ export default function SessionDetailClient({
       ? `I just reviewed my speaking practice on "${session.topic.title}" (${session.side} side). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me improve my clarity, structure, and delivery?`
       : `I just reviewed my debate on "${session.topic.title}" (${session.side} side, ${session.mode} mode). I scored ${feedback?.totalScore ?? "N/A"}/100 (${feedback?.overallBand ?? "Unrated"}). Can you help me analyze my stance, argument depth, weighing, and rebuttals?`;
   const isFullRoundDebate =
-    practiceTrack === "debate" && session.mode === "full" && Boolean(session.rounds?.length);
+    practiceTrack === "debate" &&
+    session.mode === "full" &&
+    Boolean(session.rounds?.length);
 
   return (
-    <div className="min-h-full bg-background">
+    <div className="min-h-full bg-transparent">
       {feedback ? (
         <SessionReviewShell
           verdict={
@@ -220,7 +224,7 @@ export default function SessionDetailClient({
                   </ResultActionButton>
                   <Link
                     href={`/chat?message=${encodeURIComponent(
-                      coachPrompt
+                      coachPrompt,
                     )}&context=practice-feedback&contextId=${session.id}`}
                   >
                     <ResultActionButton tone="coach">
@@ -260,9 +264,9 @@ export default function SessionDetailClient({
           }
         />
       ) : (
-        <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
-          <div className="rounded-xl border border-outline-variant/10 bg-surface-container-lowest p-8 text-center">
-            <p className="text-sm text-on-surface-variant">
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-6">
+          <div className="rounded-xl border border-outline-variant bg-surface p-4 text-center sm:p-5">
+            <p className="type-body-sm text-on-surface-variant">
               {tResult("noFeedback")}
             </p>
           </div>

@@ -1,9 +1,13 @@
 import { useLocale, useTranslations } from "next-intl";
 import { History } from "@/components/ui/icons";
 import type { IeltsStudyPlanPageView } from "@/lib/ielts/study-plan/page-view";
-import { SectionCard, formatShortDate, humanizeKey, pickText } from "./shared";
+import { SectionCard, formatShortDate, pickText } from "./shared";
 
-export function StudyPlanRevisionLog({ view }: { view: IeltsStudyPlanPageView }) {
+export function StudyPlanRevisionLog({
+  view,
+}: {
+  view: IeltsStudyPlanPageView;
+}) {
   const t = useTranslations("ielts.studyPlan");
   const locale = useLocale();
   const { revisions } = view;
@@ -40,7 +44,6 @@ export function StudyPlanRevisionLog({ view }: { view: IeltsStudyPlanPageView })
                 {pickText(locale, revision.summaryEn, revision.summaryVi)}
               </p>
               <p className="mt-0.5 type-caption text-on-surface-variant">
-                {humanizeKey(revision.triggerType)} ·{" "}
                 {t("revision_changed", { count: revision.changedItemCount })}
               </p>
             </li>

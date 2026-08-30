@@ -28,6 +28,33 @@ function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+async function loadDevBypassUser(hasAuthenticatedUser: boolean) {
+  if (hasAuthenticatedUser) return null;
+  return getDevAuthBypassUserFromServerContext();
+}
+
+function initialGoalFor(
+  activePlan: Awaited<ReturnType<typeof loadActiveIeltsStudyPlan>>,
+  locale: string,
+) {
+  if (activePlan) return goalFromStudyPlanRow(activePlan.plan);
+  return defaultIeltsOnboardingGoal({
+    todayIso: todayIso(),
+    timezone:
+      Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Ho_Chi_Minh",
+    feedbackLanguage: locale === "vi" ? "vi" : "en",
+  });
+}
+
+function diagnosticHrefFor(
+  slug: string | undefined,
+  locale: string,
+): string | null {
+  if (!slug) return null;
+  const returnTo = `/${locale}/ielts/onboarding?step=result`;
+  return `/ielts/mock/${slug}?returnTo=${encodeURIComponent(returnTo)}`;
+}
+
 async function IeltsOnboardingPayload({
   locale,
   requestedStep,
@@ -39,9 +66,7 @@ async function IeltsOnboardingPayload({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
+  const devAuthBypassUser = await loadDevBypassUser(Boolean(user));
 
   if (!user && !devAuthBypassUser) {
     redirect("/auth/login");
@@ -58,7 +83,7 @@ async function IeltsOnboardingPayload({
       .from("profiles")
       .select("preferences")
       .eq("id", userId)
-      .single(),
+      .maybeSingle(),
   ]);
   if (profileResult.error) throw new Error(profileResult.error.message);
   const targetBand =
@@ -67,19 +92,8 @@ async function IeltsOnboardingPayload({
     targetBand,
     client: ieltsClient,
   });
-  const initialGoal = activePlan
-    ? goalFromStudyPlanRow(activePlan.plan)
-    : defaultIeltsOnboardingGoal({
-        todayIso: todayIso(),
-        timezone:
-          Intl.DateTimeFormat().resolvedOptions().timeZone ||
-          "Asia/Ho_Chi_Minh",
-        feedbackLanguage: locale === "vi" ? "vi" : "en",
-      });
-  const returnTo = `/${locale}/ielts/onboarding?step=result`;
-  const diagnosticHref = diagnosticTest
-    ? `/ielts/mock/${diagnosticTest.slug}?returnTo=${encodeURIComponent(returnTo)}`
-    : null;
+  const initialGoal = initialGoalFor(activePlan, locale);
+  const diagnosticHref = diagnosticHrefFor(diagnosticTest?.slug, locale);
 
   return (
     <IeltsOnboardingFlow
@@ -90,7 +104,7 @@ async function IeltsOnboardingPayload({
       })}
       initialGoal={initialGoal}
       initialCurrentBand={selfReportedBandFromPreferences(
-        profileResult.data.preferences,
+        profileResult.data?.preferences,
       )}
       initialPrediction={prediction}
       diagnosticTest={diagnosticTest}

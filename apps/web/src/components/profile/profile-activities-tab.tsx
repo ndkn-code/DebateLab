@@ -38,9 +38,13 @@ const ACTIVITY_FILTERS: Array<{ value: ActivityFilter; labelKey: string }> = [
   { value: "learning", labelKey: "filters.learning" },
 ];
 
-function activityMatchesFilter(item: ProfileActivityFeedItem, filter: ActivityFilter) {
+function activityMatchesFilter(
+  item: ProfileActivityFeedItem,
+  filter: ActivityFilter,
+) {
   if (filter === "all") return true;
-  if (filter === "learning") return item.kind === "lesson" || item.kind === "course";
+  if (filter === "learning")
+    return item.kind === "lesson" || item.kind === "course";
   return item.kind === filter;
 }
 
@@ -162,37 +166,37 @@ function ActivityCard({
         delay: Math.min(index * 0.035, 0.3),
         ease: [0.22, 1, 0.36, 1],
       }}
-      className="grid min-h-11 gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 transition-colors hover:border-primary sm:grid-cols-[3.5rem_minmax(0,1fr)_auto] sm:items-center"
+      className="grid min-h-11 gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest p-3 transition-colors hover:border-primary sm:grid-cols-[2.5rem_minmax(0,1fr)_auto] sm:items-center"
     >
       <span
         className={cn(
-          "flex size-14 items-center justify-center rounded-2xl",
-          meta.tileClassName
+          "flex size-10 items-center justify-center rounded-lg",
+          meta.tileClassName,
         )}
       >
-        <Icon className="size-6" />
+        <Icon className="size-5" />
       </span>
 
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2">
           <span
             className={cn(
-              "inline-flex items-center rounded-full px-2.5 py-1 type-caption font-bold leading-none",
-              meta.tileClassName
+              "inline-flex h-5 items-center rounded-md px-2 type-caption font-semibold leading-none",
+              meta.tileClassName,
             )}
           >
             {t(meta.labelKey)}
           </span>
           {item.xpEarned > 0 ? (
-            <span className="inline-flex items-center rounded-full bg-warning-container px-2.5 py-1 type-caption font-bold leading-none text-on-warning-container">
+            <span className="inline-flex h-5 items-center rounded-md bg-warning-container px-2 type-caption font-semibold leading-none text-on-warning-container">
               +{item.xpEarned} XP
             </span>
           ) : null}
         </div>
-        <h3 className="mt-2 line-clamp-2 type-title font-bold leading-6 text-on-surface">
+        <h3 className="mt-1.5 line-clamp-2 type-title font-semibold leading-5 text-on-surface">
           {item.title}
         </h3>
-        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5 type-caption font-semibold text-on-surface-variant">
+        <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 type-caption font-medium text-on-surface-variant">
           <span className="inline-flex items-center gap-1.5">
             <CalendarDays className="size-4" />
             {formatActivityDate(item.createdAt, locale)}
@@ -206,8 +210,8 @@ function ActivityCard({
           {item.score != null ? (
             <span
               className={cn(
-                "inline-flex items-center rounded-full px-2.5 py-1 type-caption font-bold leading-none tabular-nums",
-                getScorePillClassName(item.score)
+                "inline-flex h-5 items-center rounded-md px-2 type-caption font-semibold leading-none tabular-nums",
+                getScorePillClassName(item.score),
               )}
             >
               {t("score", { score: item.score })}
@@ -219,7 +223,7 @@ function ActivityCard({
       {item.href ? (
         <Link
           href={item.href}
-          className="inline-flex h-10 items-center justify-center gap-1.5 rounded-full px-4 text-sm font-bold text-primary transition-all hover:bg-primary/[0.06] active:scale-95"
+          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-[10px] px-3 type-label font-semibold text-primary transition-colors hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {t("review")}
           <ArrowRight className="size-4" />
@@ -240,7 +244,10 @@ export function ProfileActivitiesTab({
   const [sort, setSort] = useState<ActivitySort>("newest");
 
   const isPrivate =
-    !data || data.state === "private" || data.state === "blocked" || data.state === "not_found";
+    !data ||
+    data.state === "private" ||
+    data.state === "blocked" ||
+    data.state === "not_found";
   const filteredItems = useMemo(() => {
     const items = data?.items ?? [];
     const normalizedQuery = query.trim().toLowerCase();
@@ -258,14 +265,19 @@ export function ProfileActivitiesTab({
     nextItems.sort((left, right) => {
       if (sort === "highest") {
         if (left.score == null && right.score == null) {
-          return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+          return (
+            new Date(right.createdAt).getTime() -
+            new Date(left.createdAt).getTime()
+          );
         }
         if (left.score == null) return 1;
         if (right.score == null) return -1;
         return right.score - left.score;
       }
 
-      const newest = new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+      const newest =
+        new Date(right.createdAt).getTime() -
+        new Date(left.createdAt).getTime();
       return sort === "oldest" ? -newest : newest;
     });
 
@@ -277,7 +289,7 @@ export function ProfileActivitiesTab({
   }
 
   return (
-    <div className="grid gap-5">
+    <div className="grid gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
         <label className="relative w-full lg:w-[300px]">
           <Search className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-on-surface-variant" />
@@ -285,7 +297,7 @@ export function ProfileActivitiesTab({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t("search_placeholder")}
-            className="h-11 w-full rounded-full border border-outline-variant bg-surface-container-lowest pl-11 pr-4 text-sm font-medium text-on-surface outline-none transition-all placeholder:text-on-surface-variant/70 focus:border-primary/45 focus:ring-3 focus:ring-primary/15"
+            className="h-8 w-full rounded-[10px] border border-outline-variant bg-surface-container-lowest pl-10 pr-3 type-label font-medium text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/70 focus:border-primary/45 focus:ring-2 focus:ring-ring"
           />
         </label>
 
@@ -298,10 +310,10 @@ export function ProfileActivitiesTab({
                 type="button"
                 onClick={() => setFilter(item.value)}
                 className={cn(
-                  "inline-flex h-11 items-center justify-center rounded-full border px-4 text-sm font-bold transition-all active:scale-95",
+                  "inline-flex h-8 items-center justify-center rounded-[10px] border px-3 type-label font-semibold transition-colors",
                   active
                     ? "border-primary bg-primary text-on-primary shadow-token-primary"
-                    : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/35 hover:text-on-surface"
+                    : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/35 hover:text-on-surface",
                 )}
               >
                 {t(item.labelKey)}
@@ -314,7 +326,7 @@ export function ProfileActivitiesTab({
           <select
             value={sort}
             onChange={(event) => setSort(event.target.value as ActivitySort)}
-            className="h-11 w-full appearance-none rounded-full border border-outline-variant bg-surface-container-lowest pl-4 pr-10 text-sm font-bold text-on-surface outline-none transition focus:border-primary/45"
+            className="h-8 w-full appearance-none rounded-[10px] border border-outline-variant bg-surface-container-lowest pl-3 pr-9 type-label font-semibold text-on-surface outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-ring"
           >
             <option value="newest">{t("sort_newest")}</option>
             <option value="oldest">{t("sort_oldest")}</option>

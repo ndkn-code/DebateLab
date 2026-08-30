@@ -118,7 +118,7 @@ function RehearsalCard({ card }: { card: IeltsTestCard }) {
         </div>
       </div>
       {card.description ? (
-        <p className="mt-4 line-clamp-2 type-body-sm text-on-surface-variant">
+        <p className="mt-3 line-clamp-2 type-body-sm text-on-surface-variant">
           {card.description}
         </p>
       ) : null}
@@ -126,7 +126,7 @@ function RehearsalCard({ card }: { card: IeltsTestCard }) {
         href={`/ielts/mock/${card.slug}?experience=speaking_rehearsal`}
         className={cn(
           buttonVariants({ variant: "primary", size: "sm" }),
-          "mt-5 w-full",
+          "mt-4 w-full",
         )}
       >
         {tr("start")}
@@ -145,13 +145,13 @@ export function SpeakingRehearsalLibrary({
 
   return (
     <ProductPageShell>
-      <PageContainer size="data" className="py-6 lg:py-8">
-        <header className="flex flex-col gap-5 border-b border-outline-variant pb-6 lg:flex-row lg:items-end lg:justify-between">
+      <PageContainer size="data" className="py-5 lg:py-6">
+        <header className="flex flex-col gap-4 border-b border-outline-variant pb-4 lg:flex-row lg:items-end lg:justify-between">
           <div className="max-w-2xl">
             <p className="type-label font-semibold uppercase tracking-widest text-primary">
               {t("eyebrow")}
             </p>
-            <h1 className="mt-2 type-heading-xl font-semibold text-on-surface">
+            <h1 className="mt-1 type-heading-lg font-semibold text-on-surface md:type-heading-xl">
               {t("title")}
             </h1>
             <p className="mt-2 type-body text-on-surface-variant">
@@ -187,7 +187,7 @@ export function SpeakingRehearsalLibrary({
 
         <section
           aria-labelledby="speaking-rehearsal-list-title"
-          className="mt-8"
+          className="mt-5"
         >
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
             <h2

@@ -69,6 +69,12 @@ const languageLabels: Record<PracticeLanguage, string> = {
   vi: "Vietnamese",
 };
 
+function matchmakingError(language: PracticeLanguage, supportCode: string) {
+  return language === "vi"
+    ? `Không thể cập nhật hàng chờ lúc này. Vui lòng thử lại. Mã hỗ trợ: ${supportCode}`
+    : `We couldn't update the queue. Try again. Support code: ${supportCode}`;
+}
+
 // Offer / auto-start an AI sparring partner after the queue runs this long with
 // no human match (queue tickets last 600s, so elapsed = 600 - remaining).
 const AI_BACKFILL_OFFER_SECONDS = 12;
@@ -76,10 +82,14 @@ const AI_BACKFILL_AUTO_SECONDS = 35;
 
 async function fetchTicket(url: string) {
   const response = await fetch(url, { credentials: "include" });
-  const payload = (await response.json()) as TicketResponse | { error?: string };
+  const payload = (await response.json()) as
+    | TicketResponse
+    | { error?: string };
   if (!response.ok || !("ticket" in payload)) {
     throw new Error(
-      "error" in payload ? payload.error || "Failed to load queue." : "Failed to load queue."
+      "error" in payload
+        ? payload.error || "Failed to load queue."
+        : "Failed to load queue.",
     );
   }
   return payload.ticket;
@@ -89,7 +99,7 @@ function queueSecondsLeft(ticket: DebateDuelMatchmakingTicket | null) {
   if (!ticket || ticket.status !== "queued") return 0;
   return Math.max(
     0,
-    Math.ceil((new Date(ticket.expiresAt).getTime() - Date.now()) / 1000)
+    Math.ceil((new Date(ticket.expiresAt).getTime() - Date.now()) / 1000),
   );
 }
 
@@ -109,26 +119,23 @@ export function DuelMatchmakingPage({
   const router = useRouter();
   const locale = useLocale();
   const practiceLanguage = coercePracticeLanguage(locale);
-  const localizedTopics = useMemo(
-    () => initialTopics,
-    [initialTopics]
-  );
+  const localizedTopics = useMemo(() => initialTopics, [initialTopics]);
   const categoryOptions = useMemo(
     () =>
       getLocalizedCategoryOptions(practiceLanguage).filter(
         (category): category is { key: CategoryKey; label: string } =>
           category.key !== "all" &&
           localizedTopics.some(
-            (topic) => getTopicCategoryKey(topic) === category.key
-          )
+            (topic) => getTopicCategoryKey(topic) === category.key,
+          ),
       ),
-    [localizedTopics, practiceLanguage]
+    [localizedTopics, practiceLanguage],
   );
   const defaultCategoryKey = categoryOptions[0]?.key ?? "education";
   const [topicCategoryKey, setTopicCategoryKey] =
     useState<CategoryKey>(defaultCategoryKey);
   const effectiveTopicCategoryKey = categoryOptions.some(
-    (category) => category.key === topicCategoryKey
+    (category) => category.key === topicCategoryKey,
   )
     ? topicCategoryKey
     : defaultCategoryKey;
@@ -152,12 +159,13 @@ export function DuelMatchmakingPage({
     {
       refreshInterval: 2000,
       revalidateOnFocus: false,
-    }
+    },
   );
 
   const activeTicket = polledTicket ?? localTicket;
   const isSearching = activeTicket?.status === "queued";
-  const isMatched = activeTicket?.status === "matched" && !!activeTicket.shareCode;
+  const isMatched =
+    activeTicket?.status === "matched" && !!activeTicket.shareCode;
   const queueElapsed = Math.max(0, 600 - queueRemaining);
 
   const previewTopic = useMemo(() => {
@@ -165,17 +173,19 @@ export function DuelMatchmakingPage({
       localizedTopics.find(
         (topic) =>
           getTopicCategoryKey(topic) === effectiveTopicCategoryKey &&
-          topic.difficulty === topicDifficulty
+          topic.difficulty === topicDifficulty,
       ) ??
       localizedTopics.find(
-        (topic) => getTopicCategoryKey(topic) === effectiveTopicCategoryKey
+        (topic) => getTopicCategoryKey(topic) === effectiveTopicCategoryKey,
       ) ??
       localizedTopics[0] ??
       null
     );
   }, [effectiveTopicCategoryKey, localizedTopics, topicDifficulty]);
   const selectedCategoryLabel =
-    categoryOptions.find((category) => category.key === effectiveTopicCategoryKey)?.label ??
+    categoryOptions.find(
+      (category) => category.key === effectiveTopicCategoryKey,
+    )?.label ??
     previewTopic?.category ??
     "Category";
   const timerControls = [
@@ -225,32 +235,42 @@ export function DuelMatchmakingPage({
     aiBackfillTriggeredRef.current = true;
     startTransition(async () => {
       try {
-        const response = await fetch("/api/debate-duels/matchmaking/ai-backfill", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            topicCategory: previewTopic.category,
-            topicCategoryKey: effectiveTopicCategoryKey,
-            topicKey: previewTopic.topicKey,
-            topicTitle: previewTopic.title,
-            topicDescription: previewTopic.context ?? "",
-            topicDifficulty,
-            practiceLanguage,
-            prepTimeSeconds,
-            openingTimeSeconds,
-            rebuttalTimeSeconds,
-          }),
-        });
+        const response = await fetch(
+          "/api/debate-duels/matchmaking/ai-backfill",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              topicCategory: previewTopic.category,
+              topicCategoryKey: effectiveTopicCategoryKey,
+              topicKey: previewTopic.topicKey,
+              topicTitle: previewTopic.title,
+              topicDescription: previewTopic.context ?? "",
+              topicDifficulty,
+              practiceLanguage,
+              prepTimeSeconds,
+              openingTimeSeconds,
+              rebuttalTimeSeconds,
+            }),
+          },
+        );
         const payload = await response.json();
         if (!response.ok || !payload?.shareCode) {
           aiBackfillTriggeredRef.current = false;
-          setActionError(payload?.error || "Could not start an AI duel.");
+          console.error("[DUEL-AI-MATCH-01] AI backfill rejected", {
+            status: response.status,
+            error: payload?.error,
+          });
+          setActionError(
+            matchmakingError(practiceLanguage, "DUEL-AI-MATCH-01"),
+          );
           return;
         }
         router.replace(`/debates/${payload.shareCode}`);
-      } catch {
+      } catch (error) {
         aiBackfillTriggeredRef.current = false;
-        setActionError("Could not start an AI duel.");
+        console.error("[DUEL-AI-MATCH-02] AI backfill failed", error);
+        setActionError(matchmakingError(practiceLanguage, "DUEL-AI-MATCH-02"));
       }
     });
   }, [
@@ -266,7 +286,11 @@ export function DuelMatchmakingPage({
   ]);
 
   useEffect(() => {
-    if (!showcaseMode && isSearching && queueElapsed >= AI_BACKFILL_AUTO_SECONDS) {
+    if (
+      !showcaseMode &&
+      isSearching &&
+      queueElapsed >= AI_BACKFILL_AUTO_SECONDS
+    ) {
       triggerAiBackfill();
     }
   }, [showcaseMode, isSearching, queueElapsed, triggerAiBackfill]);
@@ -284,29 +308,40 @@ export function DuelMatchmakingPage({
     }
 
     startTransition(async () => {
-      const response = await fetch("/api/debate-duels/matchmaking/ticket", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topicCategoryKey: effectiveTopicCategoryKey,
-          topicDifficulty,
-          practiceLanguage,
-          prepTimeSeconds,
-          openingTimeSeconds,
-          rebuttalTimeSeconds,
-        }),
-      });
-      const payload = (await response.json()) as TicketResponse | { error?: string };
-      if (!response.ok || !("ticket" in payload) || !payload.ticket) {
-        setActionError(
-          "error" in payload ? payload.error || "Failed to enter queue." : "Failed to enter queue."
-        );
-        return;
-      }
+      try {
+        const response = await fetch("/api/debate-duels/matchmaking/ticket", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            topicCategoryKey: effectiveTopicCategoryKey,
+            topicDifficulty,
+            practiceLanguage,
+            prepTimeSeconds,
+            openingTimeSeconds,
+            rebuttalTimeSeconds,
+          }),
+        });
+        const payload = (await response.json()) as
+          | TicketResponse
+          | {
+              error?: string;
+            };
+        if (!response.ok || !("ticket" in payload) || !payload.ticket) {
+          console.error("[DUEL-QUEUE-01] Queue entry rejected", {
+            status: response.status,
+            error: "error" in payload ? payload.error : undefined,
+          });
+          setActionError(matchmakingError(practiceLanguage, "DUEL-QUEUE-01"));
+          return;
+        }
 
-      setLocalTicket(payload.ticket);
-      setQueueRemaining(queueSecondsLeft(payload.ticket));
-      await mutate(payload.ticket, { revalidate: true });
+        setLocalTicket(payload.ticket);
+        setQueueRemaining(queueSecondsLeft(payload.ticket));
+        await mutate(payload.ticket, { revalidate: true });
+      } catch (error) {
+        console.error("[DUEL-QUEUE-02] Queue entry failed", error);
+        setActionError(matchmakingError(practiceLanguage, "DUEL-QUEUE-02"));
+      }
     });
   };
 
@@ -319,19 +354,30 @@ export function DuelMatchmakingPage({
     }
 
     startTransition(async () => {
-      const response = await fetch("/api/debate-duels/matchmaking/ticket", {
-        method: "DELETE",
-      });
-      const payload = (await response.json()) as TicketResponse | { error?: string };
-      if (!response.ok) {
-        setActionError(
-          "error" in payload ? payload.error || "Failed to cancel queue." : "Failed to cancel queue."
-        );
-        return;
+      try {
+        const response = await fetch("/api/debate-duels/matchmaking/ticket", {
+          method: "DELETE",
+        });
+        const payload = (await response.json()) as
+          | TicketResponse
+          | {
+              error?: string;
+            };
+        if (!response.ok) {
+          console.error("[DUEL-QUEUE-03] Queue cancellation rejected", {
+            status: response.status,
+            error: "error" in payload ? payload.error : undefined,
+          });
+          setActionError(matchmakingError(practiceLanguage, "DUEL-QUEUE-03"));
+          return;
+        }
+        setLocalTicket(null);
+        setQueueRemaining(0);
+        await mutate(null, { revalidate: false });
+      } catch (error) {
+        console.error("[DUEL-QUEUE-04] Queue cancellation failed", error);
+        setActionError(matchmakingError(practiceLanguage, "DUEL-QUEUE-04"));
       }
-      setLocalTicket(null);
-      setQueueRemaining(0);
-      await mutate(null, { revalidate: false });
     });
   };
 
@@ -340,12 +386,12 @@ export function DuelMatchmakingPage({
       <PageTransition className="min-h-full bg-background">
         <div className="mx-auto max-w-xl px-4 py-16 text-center">
           <div className="rounded-[10px] border border-outline-variant/20 bg-surface p-6">
-            <h1 className="text-2xl font-bold text-on-surface">
+            <h1 className="type-heading-lg text-on-surface">
               No active motions available
             </h1>
             <p className="mt-3 text-sm leading-6 text-on-surface-variant">
-              Import the Calico catalog or enable at least one motion before
-              entering matchmaking.
+              No motion is ready for this language. Choose another language or
+              return to the arena.
             </p>
             <Button
               type="button"
@@ -363,26 +409,26 @@ export function DuelMatchmakingPage({
   return (
     <PageTransition className="min-h-full bg-background">
       <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-        <div className="mb-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-end">
+        <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-end">
           <div>
             <button
               type="button"
               onClick={() => router.push("/debates")}
-              className="inline-flex items-center gap-2 text-sm font-medium text-primary"
+              className="inline-flex h-8 items-center gap-2 rounded-[10px] px-2 text-sm font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ArrowLeft className="h-4 w-4" />
               1v1 Debate Arena
             </button>
-            <h1 className="mt-4 text-4xl font-bold tracking-tight text-on-surface">
+            <h1 className="mt-2 type-heading-lg text-on-surface">
               Find a match
             </h1>
-            <p className="mt-3 text-sm text-on-surface-variant sm:text-base">
-              Queue for a human opponent. Hidden MMR helps us monitor match quality
-              without showing public ranks.
+            <p className="mt-1 text-sm text-on-surface-variant">
+              Queue for a human opponent. Hidden MMR helps us monitor match
+              quality without showing public ranks.
             </p>
           </div>
 
-          <div className="rounded-[10px] border border-primary/15 bg-primary/6 p-5">
+          <div className="rounded-[10px] border border-primary/15 bg-primary/6 p-3">
             <div className="flex items-center gap-3">
               <Radar className="h-6 w-6 text-primary" />
               <div>
@@ -397,28 +443,28 @@ export function DuelMatchmakingPage({
           </div>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <main className="rounded-[10px] border border-outline-variant/15 bg-surface p-5 shadow-none lg:p-6">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <main className="rounded-[12px] border border-outline-variant/15 bg-surface p-4 shadow-none">
             {isSearching || isMatched ? (
-              <div className="min-h-[560px] rounded-[10px] border border-outline-variant/12 bg-surface-container-low p-6">
-                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_240px] lg:items-center">
+              <div className="min-h-[360px] rounded-[10px] border border-outline-variant/12 bg-surface-container-low p-4">
+                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_200px] lg:items-center">
                   <div>
                     <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 type-eyebrow text-primary">
                       <Sparkles className="h-3.5 w-3.5" />
                       {isMatched ? "Match found" : "Searching"}
                     </div>
-                    <h2 className="mt-5 text-3xl font-bold text-on-surface">
+                    <h2 className="mt-3 type-heading-lg text-on-surface">
                       {isMatched
                         ? "Opponent found. Opening room..."
                         : "Looking for a fair opponent"}
                     </h2>
-                    <p className="mt-3 max-w-2xl text-sm leading-7 text-on-surface-variant">
+                    <p className="mt-2 max-w-2xl text-sm leading-6 text-on-surface-variant">
                       {isMatched
                         ? "Both debaters are being moved into the ready check."
                         : "We are matching category, difficulty, timers, and hidden skill profile. Keep this page open while the queue runs."}
                     </p>
                   </div>
-                  <div className="rounded-[10px] border border-outline-variant/12 bg-surface p-5 text-center">
+                  <div className="rounded-[10px] border border-outline-variant/12 bg-surface p-3 text-center">
                     {isMatched ? (
                       <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <Users className="h-11 w-11" />
@@ -439,10 +485,18 @@ export function DuelMatchmakingPage({
                   </div>
                 </div>
 
-                <div className="mt-6 grid gap-4 md:grid-cols-3">
+                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                   {[
-                    ["Category", activeTicket?.topicCategory ?? selectedCategoryLabel],
-                    ["Language", languageLabels[activeTicket?.practiceLanguage ?? practiceLanguage]],
+                    [
+                      "Category",
+                      activeTicket?.topicCategory ?? selectedCategoryLabel,
+                    ],
+                    [
+                      "Language",
+                      languageLabels[
+                        activeTicket?.practiceLanguage ?? practiceLanguage
+                      ],
+                    ],
                     ["Difficulty", formatDifficulty(topicDifficulty)],
                     [
                       "Format",
@@ -451,7 +505,7 @@ export function DuelMatchmakingPage({
                   ].map(([label, value]) => (
                     <div
                       key={label}
-                      className="rounded-[22px] border border-outline-variant/12 bg-surface px-4 py-4"
+                      className="rounded-[10px] border border-outline-variant/12 bg-surface px-3 py-2"
                     >
                       <div className="type-eyebrow text-on-surface-variant">
                         {label}
@@ -502,7 +556,7 @@ export function DuelMatchmakingPage({
                 )}
               </div>
             ) : (
-              <div className="space-y-8">
+              <div className="space-y-5">
                 <section>
                   <div className="flex items-center gap-3">
                     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
@@ -513,17 +567,17 @@ export function DuelMatchmakingPage({
                     </h2>
                   </div>
 
-                  <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                     {categoryOptions.map((category) => (
                       <button
                         key={category.key}
                         type="button"
                         onClick={() => setTopicCategoryKey(category.key)}
                         className={cn(
-                          "rounded-[10px] border px-4 py-4 text-left text-sm font-semibold transition-all",
+                          "min-h-10 rounded-[10px] border px-3 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                           effectiveTopicCategoryKey === category.key
                             ? "border-primary bg-primary/8 text-primary"
-                            : "border-outline-variant/15 bg-surface text-on-surface hover:bg-surface-container-low"
+                            : "border-outline-variant/15 bg-surface text-on-surface hover:bg-surface-container-low",
                         )}
                       >
                         {category.label}
@@ -531,17 +585,17 @@ export function DuelMatchmakingPage({
                     ))}
                   </div>
 
-                  <div className="mt-5 flex flex-wrap gap-2">
+                  <div className="mt-3 flex flex-wrap gap-2">
                     {difficultyOptions.map((option) => (
                       <button
                         key={option.value}
                         type="button"
                         onClick={() => setTopicDifficulty(option.value)}
                         className={cn(
-                          "rounded-full border px-4 py-2 text-sm font-semibold transition-colors",
+                          "h-8 rounded-[10px] border px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                           topicDifficulty === option.value
                             ? "border-primary bg-primary text-on-primary"
-                            : "border-outline-variant/20 bg-surface text-on-surface-variant hover:bg-surface-container-low"
+                            : "border-outline-variant/20 bg-surface text-on-surface-variant hover:bg-surface-container-low",
                         )}
                       >
                         {option.label}
@@ -560,7 +614,7 @@ export function DuelMatchmakingPage({
                     </h2>
                   </div>
 
-                  <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                  <div className="mt-3 grid gap-3 lg:grid-cols-3">
                     {timerControls.map(({ label, value, setter, config }) => (
                       <DurationControl
                         key={label}
@@ -575,14 +629,14 @@ export function DuelMatchmakingPage({
                   </div>
                 </section>
 
-                <section className="rounded-[10px] border border-outline-variant/12 bg-surface-container-low p-5">
+                <section className="rounded-[10px] border border-outline-variant/12 bg-surface-container-low p-4">
                   <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_160px] md:items-center">
                     <div>
                       <div className="flex items-center gap-2 text-sm font-semibold text-primary">
                         <SlidersHorizontal className="h-4 w-4" />
                         Match sample
                       </div>
-                      <h3 className="mt-3 break-words text-xl font-bold text-on-surface">
+                      <h3 className="mt-2 break-words type-heading-md text-on-surface">
                         {previewTopic.title}
                       </h3>
                       <p className="mt-2 text-sm leading-6 text-on-surface-variant">
@@ -638,9 +692,9 @@ export function DuelMatchmakingPage({
                 </div>
               </div>
               <p className="mt-3 text-sm leading-6 text-on-surface-variant">
-                We log tab switches, paste/shortcut events, reconnects, and speech
-                quality signals. Repeated suspicious signals can exclude the match
-                from hidden MMR.
+                We log tab switches, paste/shortcut events, reconnects, and
+                speech quality signals. Repeated suspicious signals can exclude
+                the match from hidden MMR.
               </p>
             </div>
           </div>

@@ -63,7 +63,7 @@ export default function OnboardingPage() {
       store.setDemoTranscript(transcript);
       store.nextStep();
     },
-    [store]
+    [store],
   );
 
   const handleDemoSkip = useCallback(() => {
@@ -77,12 +77,7 @@ export default function OnboardingPage() {
       case 0:
         return <WelcomeStep onNext={handleNext} />;
       case 1:
-        return (
-          <GoalStep
-            onSelect={store.setGoal}
-            onNext={handleNext}
-          />
-        );
+        return <GoalStep onSelect={store.setGoal} onNext={handleNext} />;
       case 2:
         return (
           <ExperienceStep
@@ -190,7 +185,7 @@ export default function OnboardingPage() {
             animate="center"
             exit="exit"
             transition={{
-              duration: prefersReducedMotion ? 0.12 : 0.24,
+              duration: prefersReducedMotion ? 0 : 0.2,
               ease: "easeOut",
             }}
           >

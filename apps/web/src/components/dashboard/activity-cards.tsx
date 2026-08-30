@@ -29,7 +29,7 @@ function CardShell({
   return (
     <section
       data-testid={testId}
-      className="flex min-w-0 flex-col rounded-xl border border-outline-variant bg-surface p-4 shadow-none dark:border-outline-variant/70 xl:min-h-[280px]"
+      className="flex min-w-0 flex-col rounded-xl border border-outline-variant bg-surface p-4 shadow-none dark:border-outline-variant/70"
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="type-title inline-flex items-center gap-2 font-semibold text-on-surface">

@@ -40,7 +40,12 @@ export function IeltsAssignForm({
     setBusy(true);
     setError(null);
     try {
-      await assignIeltsMockToClass({ clubId, classId, testId, dueAt: dueAt || null });
+      await assignIeltsMockToClass({
+        clubId,
+        classId,
+        testId,
+        dueAt: dueAt || null,
+      });
       setClassId("");
       setTestId("");
       setDueAt("");
@@ -56,16 +61,12 @@ export function IeltsAssignForm({
     <form
       id="ielts-assign-form"
       onSubmit={onSubmit}
-      className="rounded-2xl border border-outline-variant bg-surface p-5 shadow-token-card"
+      className="rounded-xl border border-outline-variant bg-surface p-5 shadow-token-card"
     >
       <h2 className="type-title text-on-surface">{t("teacher.assignHeading")}</h2>
 
-      {classes.length === 0 ? (
-        <p className="mt-2 text-sm text-on-surface-variant">{t("teacher.noClasses")}</p>
-      ) : null}
-      {tests.length === 0 ? (
-        <p className="mt-2 text-sm text-on-surface-variant">{t("teacher.noTests")}</p>
-      ) : null}
+      {classes.length === 0 ? <p className="mt-2 text-sm text-on-surface-variant">{t("teacher.noClasses")}</p> : null}
+      {tests.length === 0 ? <p className="mt-2 text-sm text-on-surface-variant">{t("teacher.noTests")}</p> : null}
 
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <label className="block">

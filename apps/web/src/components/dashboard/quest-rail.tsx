@@ -66,7 +66,7 @@ function SignalIcon({
     <span
       aria-hidden="true"
       className={cn(
-        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full",
+        "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg",
         tone === "blue" && "bg-primary-container text-primary",
         tone === "green" && "bg-success-container text-success-dim",
         tone === "amber" && "bg-warning-container text-reward-dim",
@@ -296,7 +296,7 @@ function QuestRow({ quest, index }: { quest: Quest; index: number }) {
           {quest.label}
         </p>
         <div
-          className="relative mt-1.5 h-3 overflow-hidden rounded-full bg-surface-container-high"
+          className="relative mt-1.5 h-1.5 overflow-hidden rounded-full bg-surface-container-high"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={questMax}
@@ -321,15 +321,12 @@ function QuestRow({ quest, index }: { quest: Quest; index: number }) {
               done ? "bg-success" : "bg-reward",
             )}
           />
-          <span className="type-caption absolute inset-0 flex items-center justify-center font-extrabold text-on-surface/70">
-            {clampProgressValue(quest.current, questMax)} / {quest.goal}
-          </span>
         </div>
       </div>
       <span
         aria-hidden="true"
         className={cn(
-          "type-caption inline-flex h-5 min-w-8 shrink-0 items-center justify-center rounded-md px-1.5 font-semibold tabular-nums",
+          "type-caption inline-flex h-5 min-w-10 shrink-0 items-center justify-center rounded-md px-1.5 font-semibold tabular-nums",
           done
             ? "bg-success-container text-success-dim"
             : "bg-primary-container text-primary-dim",
@@ -338,7 +335,7 @@ function QuestRow({ quest, index }: { quest: Quest; index: number }) {
         {done ? (
           <CheckCircle2 className="h-3.5 w-3.5" />
         ) : (
-          `${Math.round(percent)}%`
+          `${clampProgressValue(quest.current, questMax)} / ${quest.goal}`
         )}
       </span>
     </div>

@@ -8,18 +8,15 @@ import {
   ArrowLeft,
   ArrowRight,
   BookOpen,
-  BrainCircuit,
   Check,
   CheckCircle2,
   ChevronRight,
   Clock3,
-  FileSearch,
   Layers3,
   Lock,
   Mic2,
   Scale,
   Sparkles,
-  Star,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -28,7 +25,10 @@ import { ArticleRenderer } from "@/components/courses/renderers/article-renderer
 import { PracticeRenderer } from "@/components/courses/renderers/practice-renderer";
 import { QuizRenderer } from "@/components/courses/renderers/quiz-renderer";
 import { VideoRenderer } from "@/components/courses/renderers/video-renderer";
-import { enrollAction, markLessonCompleteAction } from "@/app/actions/enrollment";
+import {
+  enrollAction,
+  markLessonCompleteAction,
+} from "@/app/actions/enrollment";
 import { cn } from "@/lib/utils";
 import type {
   CourseReaderData,
@@ -49,7 +49,9 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
   const currentItem = course.lessonItems.find((item) => item.current) ?? null;
   const selectedIndex = currentItem ? currentItem.lessonNumber - 1 : 0;
   const nextLessonItem = course.nextLesson
-    ? course.lessonItems.find((item) => item.slug === course.nextLesson?.slug) ?? null
+    ? (course.lessonItems.find(
+        (item) => item.slug === course.nextLesson?.slug,
+      ) ?? null)
     : null;
   const isCompleted = selectedLesson?.progress?.status === "completed";
   const progress =
@@ -59,7 +61,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
       : 0);
   const totalDurationMinutes = course.lessonItems.reduce(
     (sum, lesson) => sum + lesson.durationMinutes,
-    0
+    0,
   );
   const estimatedHours =
     course.estimated_hours ||
@@ -79,7 +81,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
     : t("reader.empty_state");
   const coachHref = selectedLesson
     ? `/chat?message=${encodeURIComponent(
-        getCoachPrompt(selectedLesson)
+        getCoachPrompt(selectedLesson),
       )}&context=course&contextId=${course.id}`
     : "/chat?context=course-home";
 
@@ -91,31 +93,31 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
   };
 
   return (
-    <div className="min-h-full bg-background px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+    <div className="min-h-full bg-background px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
       <div className="mx-auto max-w-6xl">
         <Link
           href="/courses"
-          className="mb-6 inline-flex items-center gap-2 text-sm font-semibold text-on-surface-variant transition-colors hover:text-on-surface-variant"
+          className="mb-4 inline-flex h-8 items-center gap-2 rounded-[10px] px-2 type-label font-semibold text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="h-4 w-4" />
           {t("detail.back")}
         </Link>
 
-        <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_292px]">
+        <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_292px]">
           <div className="min-w-0">
-            <section className="rounded-[12px] border border-outline-variant bg-white p-5 shadow-none sm:p-6">
-              <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
-                <div className="relative h-[118px] w-full shrink-0 overflow-hidden rounded-[10px] border border-outline-variant bg-primary-container sm:h-[118px] sm:w-[118px]">
+            <section className="rounded-xl border border-outline-variant bg-surface p-4 shadow-none sm:p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+                <div className="relative h-24 w-full shrink-0 overflow-hidden rounded-[10px] border border-outline-variant bg-primary-container sm:w-24">
                   {course.thumbnail_url ? (
                     <Image
                       src={course.thumbnail_url}
                       alt={course.title}
                       fill
                       className="object-cover"
-                      sizes="118px"
+                      sizes="96px"
                     />
                   ) : (
-                    <div className="flex h-full w-full items-center justify-center text-white">
+                    <div className="flex h-full w-full items-center justify-center text-primary">
                       {course.category === "public-speaking" ? (
                         <Mic2 className="h-10 w-10" />
                       ) : (
@@ -140,17 +142,22 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                     ) : null}
                   </div>
 
-                  <Heading level={1} className="mt-3 font-semibold text-on-surface-variant">
+                  <Heading
+                    level={1}
+                    className="mt-2 font-semibold text-on-surface"
+                  >
                     {course.title}
                   </Heading>
-                  <Text className="mt-3 max-w-3xl leading-8 text-on-surface-variant">
+                  <Text className="mt-2 line-clamp-2 max-w-3xl leading-6 text-on-surface-variant">
                     {course.description || t("description_fallback")}
                   </Text>
 
-                  <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-on-surface-variant">
+                  <div className="mt-3 flex flex-wrap items-center gap-4 type-caption text-on-surface-variant">
                     <span className="inline-flex items-center gap-2">
                       <BookOpen className="h-4 w-4 text-primary" />
-                      {t("reader.lesson_count", { count: course.total_lessons })}
+                      {t("reader.lesson_count", {
+                        count: course.total_lessons,
+                      })}
                     </span>
                     <span className="inline-flex items-center gap-2">
                       <Layers3 className="h-4 w-4 text-primary" />
@@ -164,7 +171,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                     </span>
                   </div>
 
-                  <div className="mt-5 max-w-[430px]">
+                  <div className="mt-3 max-w-[430px]">
                     <p className="mb-2 text-sm font-medium text-on-surface-variant">
                       {t("detail.completed_lessons", {
                         completed: course.completed_lessons,
@@ -173,14 +180,14 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                     </p>
                     <Progress
                       value={progress}
-                      className="h-2.5 bg-surface-container [&>div]:bg-primary"
+                      className="h-2 bg-surface-container [&>div]:bg-primary"
                     />
                   </div>
                 </div>
               </div>
             </section>
 
-            <section className="mt-6 overflow-x-auto pb-2">
+            <section className="mt-4 overflow-x-auto pb-2">
               <div className="flex min-w-max items-start">
                 {course.lessonItems.map((item, index) => (
                   <LessonStepperItem
@@ -194,8 +201,8 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
             </section>
 
             {selectedLesson ? (
-              <section className="mt-7 overflow-hidden rounded-[12px] border border-outline-variant bg-white shadow-none">
-                <div className="grid gap-8 border-b border-outline-variant p-6 sm:p-8 lg:grid-cols-[minmax(0,1fr)_250px]">
+              <section className="mt-5 overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none">
+                <div className="border-b border-outline-variant p-4 sm:p-5">
                   <div className="min-w-0">
                     <div className="type-caption inline-flex h-5 items-center rounded-[6px] bg-primary-container px-2 font-medium text-on-surface-variant">
                       {t("reader.lesson_kicker", {
@@ -205,15 +212,15 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                     <Heading
                       level={1}
                       as="h2"
-                      className="mt-4 font-semibold text-on-surface-variant"
+                      className="mt-3 font-semibold text-on-surface"
                     >
                       {selectedLesson.title}
                     </Heading>
-                    <Text className="mt-3 max-w-3xl leading-8 text-on-surface-variant">
+                    <Text className="mt-2 max-w-3xl leading-6 text-on-surface-variant">
                       {lessonSummary}
                     </Text>
 
-                    <div className="mt-6 flex flex-wrap items-center gap-4 text-sm text-on-surface-variant">
+                    <div className="mt-3 flex flex-wrap items-center gap-4 type-caption text-on-surface-variant">
                       <span className="inline-flex items-center gap-2">
                         <Clock3 className="h-4 w-4 text-primary" />
                         {t("lesson.minute_lesson", {
@@ -235,22 +242,23 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                         })}
                       </span>
                       {isCompleted ? (
-                        <span className="inline-flex items-center gap-2 rounded-full bg-surface-container px-3 py-1 text-sm font-medium text-on-surface-variant">
+                        <span className="inline-flex h-5 items-center gap-1.5 rounded-[6px] bg-success-container px-2 type-caption font-medium text-on-success-container">
                           <CheckCircle2 className="h-4 w-4" />
                           {t("lesson.completed")}
                         </span>
                       ) : null}
                     </div>
                   </div>
-
-                  <LessonIllustration lessonType={selectedLesson.type} />
                 </div>
 
-                <div className="p-6 pt-6 sm:p-8 sm:pt-6">
-                  <ReaderLessonRenderer lesson={selectedLesson} courseSlug={course.slug} />
+                <div className="p-4 sm:p-5">
+                  <ReaderLessonRenderer
+                    lesson={selectedLesson}
+                    courseSlug={course.slug}
+                  />
                 </div>
 
-                <div className="border-t border-outline-variant px-6 py-5 sm:px-8">
+                <div className="border-t border-outline-variant px-4 py-4 sm:px-5">
                   <LessonActionBar
                     course={course}
                     lesson={selectedLesson}
@@ -259,8 +267,11 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                 </div>
               </section>
             ) : (
-              <div className="mt-7 rounded-[30px] border border-outline-variant bg-white p-8 shadow-token-card">
-                <Heading level={2} className="font-semibold text-on-surface-variant">
+              <div className="mt-5 rounded-xl border border-outline-variant bg-surface p-5">
+                <Heading
+                  level={2}
+                  className="font-semibold text-on-surface-variant"
+                >
                   {t("reader.empty_title")}
                 </Heading>
                 <Text className="mt-3 max-w-2xl leading-8 text-on-surface-variant">
@@ -271,9 +282,15 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
           </div>
 
           <aside className="space-y-5 xl:sticky xl:top-6 xl:self-start">
-            <section className="rounded-[26px] border border-outline-variant bg-white p-5 shadow-token-card 2xl:mt-[118px]">
-              <Heading level={2} as="p" className="font-semibold text-on-surface-variant">
-                {course.isPreview ? t("reader.preview_title") : t("reader.whats_next")}
+            <section className="rounded-xl border border-outline-variant bg-surface p-4">
+              <Heading
+                level={2}
+                as="p"
+                className="font-semibold text-on-surface-variant"
+              >
+                {course.isPreview
+                  ? t("reader.preview_title")
+                  : t("reader.whats_next")}
               </Heading>
 
               {course.isPreview ? (
@@ -284,7 +301,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                   <Button
                     onClick={handleEnroll}
                     disabled={isEnrolling}
-                    className="mt-5 w-full rounded-2xl bg-primary text-white shadow-token-primary hover:bg-primary-dim"
+                    className="mt-4 h-8 w-full rounded-[10px] bg-primary text-on-primary hover:bg-primary-dim"
                     size="lg"
                   >
                     {isEnrolling ? t("detail.enrolling") : t("detail.enroll")}
@@ -292,18 +309,18 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                 </>
               ) : course.nextLesson ? (
                 <div className="mt-4 space-y-4">
-                  <div className="flex gap-4">
-                    <div className="relative h-[78px] w-[78px] shrink-0 overflow-hidden rounded-[18px] border border-outline-variant bg-[linear-gradient(135deg,#8BE8F7_0%,#00B8D9_100%)]">
+                  <div className="flex gap-3">
+                    <div className="relative size-16 shrink-0 overflow-hidden rounded-[10px] border border-outline-variant bg-primary-container">
                       {course.thumbnail_url ? (
                         <Image
                           src={course.thumbnail_url}
                           alt={course.nextLesson.title}
                           fill
                           className="object-cover"
-                          sizes="78px"
+                          sizes="64px"
                         />
                       ) : (
-                        <div className="flex h-full w-full items-center justify-center text-white">
+                        <div className="flex h-full w-full items-center justify-center text-primary">
                           {course.category === "public-speaking" ? (
                             <Mic2 className="h-7 w-7" />
                           ) : (
@@ -320,11 +337,16 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                           total: course.lessonItems.length,
                         })}
                       </p>
-                      <Heading level={4} as="h3" className="mt-1 leading-7 text-on-surface-variant">
+                      <Heading
+                        level={4}
+                        as="h3"
+                        className="mt-1 leading-7 text-on-surface-variant"
+                      >
                         {course.nextLesson.title}
                       </Heading>
                       <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                        {course.nextLesson.summary ?? course.nextLesson.moduleTitle}
+                        {course.nextLesson.summary ??
+                          course.nextLesson.moduleTitle}
                       </p>
                       <div className="mt-3 inline-flex items-center gap-2 text-sm text-on-surface-variant">
                         <Clock3 className="h-4 w-4 text-primary" />
@@ -338,7 +360,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                   {nextLessonItem?.locked ? (
                     <Button
                       disabled
-                      className="w-full rounded-2xl bg-primary text-white disabled:opacity-60"
+                      className="h-8 w-full rounded-[10px] bg-primary text-on-primary disabled:opacity-60"
                       size="lg"
                     >
                       {t("reader.next_locked")}
@@ -346,7 +368,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                   ) : (
                     <Link href={course.nextLesson.href}>
                       <Button
-                        className="w-full rounded-2xl bg-primary text-white shadow-token-primary hover:bg-primary-dim"
+                        className="h-8 w-full rounded-[10px] bg-primary text-on-primary hover:bg-primary-dim"
                         size="lg"
                       >
                         {t("reader.view_next_lesson")}
@@ -355,13 +377,13 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                   )}
                 </div>
               ) : (
-                <div className="mt-4 rounded-[22px] bg-surface-container p-4 text-sm leading-7 text-on-surface-variant">
+                <div className="mt-3 rounded-[10px] bg-surface-container p-3 type-body-sm text-on-surface-variant">
                   {t("hero.completed_description")}
                 </div>
               )}
             </section>
 
-            <section className="rounded-[26px] border border-outline-variant bg-white p-5 shadow-token-card">
+            <section className="rounded-xl border border-outline-variant bg-surface p-4">
               <Heading level={3} as="p" className="text-on-surface-variant">
                 {t("reader.lesson_outline")}
               </Heading>
@@ -372,9 +394,9 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
               </div>
             </section>
 
-            <section className="rounded-[26px] border border-outline-variant bg-[linear-gradient(180deg,#eef5ff_0%,#e8f1ff_100%)] p-5 shadow-token-primary">
+            <section className="rounded-xl border border-primary/20 bg-primary-container/45 p-4">
               <div className="flex items-start gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-primary shadow-token-primary">
+                <div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-surface text-primary">
                   <Sparkles className="h-5 w-5" />
                 </div>
                 <div>
@@ -388,7 +410,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
               </div>
               <Link href={coachHref} className="mt-5 block">
                 <Button
-                  className="w-full rounded-2xl border border-outline-variant bg-white text-on-surface-variant hover:bg-surface-container"
+                  className="h-8 w-full rounded-[10px] border border-outline-variant bg-surface text-on-surface hover:bg-surface-container"
                   variant="outline"
                 >
                   {t("reader.ask_ai_coach")}
@@ -412,25 +434,21 @@ function LessonStepperItem({
   connectorComplete: boolean;
 }) {
   const node = (
-    <div className="relative z-10 flex h-[60px] w-[60px] items-center justify-center">
+    <div className="relative z-10 flex size-10 items-center justify-center">
       {item.completed ? (
-        <div className="flex h-[56px] w-[56px] items-center justify-center rounded-full bg-surface-container ring-[8px] ring-outline-variant">
-          <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-success text-white shadow-token-card">
-            <Check className="h-5 w-5" />
-          </div>
+        <div className="flex size-10 items-center justify-center rounded-[10px] border border-success/30 bg-success-container text-on-success-container">
+          <Check className="h-4 w-4" />
         </div>
       ) : item.current ? (
-        <div className="flex h-[56px] w-[56px] items-center justify-center rounded-full bg-primary-container ring-[8px] ring-outline-variant">
-          <div className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-primary text-lg font-semibold text-white shadow-token-primary">
-            {item.lessonNumber}
-          </div>
+        <div className="flex size-10 items-center justify-center rounded-[10px] bg-primary text-label font-semibold text-on-primary ring-2 ring-primary-container">
+          {item.lessonNumber}
         </div>
       ) : item.locked ? (
-        <div className="flex h-[48px] w-[48px] items-center justify-center rounded-full border border-outline-variant bg-surface-container text-on-surface-variant">
+        <div className="flex size-10 items-center justify-center rounded-[10px] border border-outline-variant bg-surface-container text-on-surface-variant">
           <Lock className="h-4 w-4" />
         </div>
       ) : (
-        <div className="flex h-[48px] w-[48px] items-center justify-center rounded-full border border-outline-variant bg-white text-sm font-semibold text-on-surface-variant">
+        <div className="flex size-10 items-center justify-center rounded-[10px] border border-outline-variant bg-surface type-label font-semibold text-on-surface-variant">
           {item.lessonNumber}
         </div>
       )}
@@ -438,14 +456,12 @@ function LessonStepperItem({
   );
 
   return (
-    <div className="relative flex min-w-[164px] flex-col items-center text-center">
+    <div className="relative flex min-w-[132px] flex-col items-center text-center">
       {!isLast ? (
         <div
           className={cn(
-            "absolute left-1/2 top-[30px] h-[2px] w-[calc(100%-16px)] -translate-y-1/2",
-            connectorComplete
-              ? "bg-success"
-              : "bg-[repeating-linear-gradient(90deg,#d8e3f6_0,#d8e3f6_8px,transparent_8px,transparent_15px)]"
+            "absolute left-1/2 top-5 h-px w-[calc(100%-12px)] -translate-y-1/2",
+            connectorComplete ? "bg-success" : "bg-outline-variant",
           )}
         />
       ) : null}
@@ -458,13 +474,15 @@ function LessonStepperItem({
         node
       )}
 
-      <span className="mt-2 text-sm font-semibold text-on-surface-variant">
+      <span className="mt-1.5 type-caption font-semibold text-on-surface-variant">
         {item.lessonNumber}
       </span>
       <p
         className={cn(
-          "type-body mt-1 w-[130px] leading-7",
-          item.current ? "font-semibold text-on-surface-variant" : "font-medium text-on-surface-variant"
+          "mt-1 line-clamp-2 w-[112px] type-caption leading-5",
+          item.current
+            ? "font-semibold text-on-surface-variant"
+            : "font-medium text-on-surface-variant",
         )}
       >
         {item.title}
@@ -477,8 +495,8 @@ function LessonOutlineItem({ item }: { item: CourseReaderLessonItem }) {
   const content = (
     <div
       className={cn(
-        "flex items-center gap-3 rounded-[16px] px-3 py-2.5 transition-colors",
-        item.current ? "bg-primary-container" : "hover:bg-background"
+        "flex min-h-10 items-center gap-3 rounded-[8px] px-2 py-1.5 transition-colors",
+        item.current ? "bg-primary-container" : "hover:bg-surface-container",
       )}
     >
       <div
@@ -490,15 +508,17 @@ function LessonOutlineItem({ item }: { item: CourseReaderLessonItem }) {
               ? "bg-primary text-white"
               : item.locked
                 ? "bg-surface-container text-on-surface-variant"
-                : "bg-surface-container text-on-surface-variant"
+                : "bg-surface-container text-on-surface-variant",
         )}
       >
         {item.completed ? <Check className="h-3.5 w-3.5" /> : item.lessonNumber}
       </div>
       <p
         className={cn(
-          "min-w-0 text-sm leading-6",
-          item.current ? "font-semibold text-on-surface-variant" : "text-on-surface-variant"
+          "min-w-0 line-clamp-2 type-label leading-5",
+          item.current
+            ? "font-semibold text-on-surface-variant"
+            : "text-on-surface-variant",
         )}
       >
         {item.title}
@@ -545,9 +565,7 @@ function LessonActionBar({
   const [isPending, startTransition] = useTransition();
   const isCompleted = lesson.progress?.status === "completed";
   const canMarkComplete =
-    !course.isPreview &&
-    !isCompleted &&
-    lesson.type !== "quiz";
+    !course.isPreview && !isCompleted && lesson.type !== "quiz";
 
   const handleMarkComplete = () => {
     startTransition(async () => {
@@ -556,15 +574,15 @@ function LessonActionBar({
         lesson.course.id,
         undefined,
         undefined,
-        course.slug
+        course.slug,
       );
       router.refresh();
     });
   };
 
   return (
-    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-      <p className="max-w-xl text-sm leading-7 text-on-surface-variant">
+    <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+      <p className="max-w-xl type-body-sm text-on-surface-variant">
         {course.isPreview
           ? t("reader.preview_description")
           : isCompleted
@@ -578,13 +596,13 @@ function LessonActionBar({
                 })}
       </p>
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-end">
+      <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:justify-end">
         {course.prevLesson ? (
           <Link href={course.prevLesson.href}>
             <Button
               variant="outline"
               size="lg"
-              className="rounded-2xl border-outline-variant bg-white text-on-surface-variant hover:bg-surface-container"
+              className="h-8 rounded-[10px] border-outline-variant bg-surface text-on-surface hover:bg-surface-container"
             >
               <ArrowLeft className="h-4 w-4" />
               {t("lesson.previous")}
@@ -600,7 +618,7 @@ function LessonActionBar({
             disabled={isPending}
             variant="outline"
             size="lg"
-            className="rounded-2xl border-outline-variant bg-white text-on-surface-variant hover:bg-surface-container"
+            className="h-8 rounded-[10px] border-outline-variant bg-surface text-on-surface hover:bg-surface-container"
           >
             <CheckCircle2 className="h-4 w-4" />
             {isPending ? t("practice.saving") : t("practice.mark_complete")}
@@ -611,7 +629,7 @@ function LessonActionBar({
           isCompleted ? (
             <Link href={course.nextLesson.href}>
               <Button
-                className="rounded-2xl bg-primary px-6 text-white shadow-token-primary hover:bg-primary-dim"
+                className="h-8 rounded-[10px] bg-primary px-4 text-on-primary hover:bg-primary-dim"
                 size="lg"
               >
                 {t("reader.continue_to_lesson", {
@@ -623,7 +641,7 @@ function LessonActionBar({
           ) : (
             <Button
               disabled
-              className="rounded-2xl bg-primary px-6 text-white disabled:opacity-60"
+              className="h-8 rounded-[10px] bg-primary px-4 text-on-primary disabled:opacity-60"
               size="lg"
             >
               {t("reader.next_locked")}
@@ -633,7 +651,7 @@ function LessonActionBar({
         ) : (
           <Link href="/courses">
             <Button
-              className="rounded-2xl bg-primary px-6 text-white shadow-token-primary hover:bg-primary-dim"
+              className="h-8 rounded-[10px] bg-primary px-4 text-on-primary hover:bg-primary-dim"
               size="lg"
             >
               {t("reader.back_to_library")}
@@ -662,7 +680,7 @@ function EnrollButton({ courseId }: { courseId: string }) {
     <Button
       onClick={handleClick}
       disabled={isPending}
-      className="rounded-2xl bg-primary px-6 text-white shadow-token-primary hover:bg-primary-dim"
+      className="h-8 rounded-[10px] bg-primary px-4 text-on-primary hover:bg-primary-dim"
       size="lg"
     >
       {isPending ? t("detail.enrolling") : t("detail.enroll")}
@@ -670,76 +688,15 @@ function EnrollButton({ courseId }: { courseId: string }) {
   );
 }
 
-function LessonIllustration({
-  lessonType,
-}: {
-  lessonType: LessonWithContext["type"];
-}) {
-  const blocks =
-    lessonType === "video"
-      ? [
-          { icon: Scale, classes: "from-[#346cf3] to-[#2459d8]", top: "top-1", left: "left-16", rotate: "-rotate-6" },
-          { icon: Sparkles, classes: "from-[#2fa2ff] to-[#2c89f4]", top: "top-20", left: "left-9", rotate: "rotate-2" },
-          { icon: Star, classes: "from-[#ffb63b] to-[#f59e0b]", top: "top-40", left: "left-2", rotate: "-rotate-3" },
-        ]
-      : lessonType === "quiz"
-        ? [
-            { icon: FileSearch, classes: "from-[#346cf3] to-[#2459d8]", top: "top-1", left: "left-16", rotate: "-rotate-6" },
-            { icon: CheckCircle2, classes: "from-[#2fa2ff] to-[#2c89f4]", top: "top-20", left: "left-9", rotate: "rotate-2" },
-            { icon: Star, classes: "from-[#ffb63b] to-[#f59e0b]", top: "top-40", left: "left-2", rotate: "-rotate-3" },
-          ]
-        : lessonType === "practice"
-          ? [
-              { icon: Mic2, classes: "from-[#346cf3] to-[#2459d8]", top: "top-1", left: "left-16", rotate: "-rotate-6" },
-              { icon: BrainCircuit, classes: "from-[#2fa2ff] to-[#2c89f4]", top: "top-20", left: "left-9", rotate: "rotate-2" },
-              { icon: Star, classes: "from-[#ffb63b] to-[#f59e0b]", top: "top-40", left: "left-2", rotate: "-rotate-3" },
-            ]
-          : [
-              { icon: FileSearch, classes: "from-[#346cf3] to-[#2459d8]", top: "top-1", left: "left-16", rotate: "-rotate-6" },
-              { icon: BrainCircuit, classes: "from-[#2fa2ff] to-[#2c89f4]", top: "top-20", left: "left-9", rotate: "rotate-2" },
-              { icon: Star, classes: "from-[#ffb63b] to-[#f59e0b]", top: "top-40", left: "left-2", rotate: "-rotate-3" },
-            ];
-
-  return (
-    <div className="relative hidden h-[240px] w-[240px] lg:flex lg:items-center lg:justify-center">
-      <div className="absolute left-6 top-7 h-2.5 w-2.5 rounded-full bg-surface-container-high" />
-      <div className="absolute right-8 top-12 text-on-surface-variant">
-        <Sparkles className="h-4 w-4" />
-      </div>
-      <div className="absolute right-2 top-28 text-on-surface-variant">
-        <Sparkles className="h-4 w-4" />
-      </div>
-      <div className="absolute left-2 top-40 text-on-surface-variant">
-        <Sparkles className="h-4 w-4" />
-      </div>
-
-      <div className="relative h-[230px] w-[190px]">
-        {blocks.map(({ icon: Icon, classes, top, left, rotate }, index) => (
-          <div
-            key={`${left}-${top}-${index}`}
-            className={cn(
-              "absolute flex h-[72px] w-[96px] items-center justify-center rounded-[20px] bg-gradient-to-br text-white shadow-token-card",
-              top,
-              left,
-              rotate,
-              classes
-            )}
-          >
-            <Icon className="h-9 w-9" />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function getLessonSummary(
   lesson: LessonWithContext,
-  t: ReturnType<typeof useTranslations>
+  t: ReturnType<typeof useTranslations>,
 ) {
   if (lesson.type === "article") {
     const markdown = (lesson.content as { markdown?: string }).markdown ?? "";
-    return extractFirstParagraph(markdown) || t("reader.article_summary_fallback");
+    return (
+      extractFirstParagraph(markdown) || t("reader.article_summary_fallback")
+    );
   }
 
   if (lesson.type === "video") {
@@ -785,7 +742,10 @@ function extractFirstParagraph(markdown: string) {
   const paragraphs = markdown
     .split(/\n\s*\n/)
     .map((section) => section.trim())
-    .filter((section) => section && !section.startsWith("#") && !section.startsWith("-"));
+    .filter(
+      (section) =>
+        section && !section.startsWith("#") && !section.startsWith("-"),
+    );
 
   return paragraphs[0]?.replace(/\n/g, " ").trim() ?? "";
 }

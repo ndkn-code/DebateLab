@@ -58,8 +58,13 @@ export function getCategoryIllustrationSrc(category: CategoryKey) {
 }
 
 const SIZE_STYLES = {
+  xs: {
+    tile: "size-8 rounded-[8px]",
+    icon: "h-4 w-4",
+    image: 32,
+  },
   sm: {
-    tile: "size-11 rounded-[14px]",
+    tile: "size-10 rounded-[10px]",
     icon: "h-5 w-5",
     image: 44,
   },
@@ -96,7 +101,7 @@ export function CategoryVisual({
         "flex shrink-0 items-center justify-center overflow-hidden",
         styles.tile,
         meta.tileClassName,
-        className
+        className,
       )}
     >
       {imageMissing ? (

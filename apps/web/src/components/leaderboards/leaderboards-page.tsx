@@ -56,7 +56,7 @@ import type {
 type LeaderboardView = "personal" | "organizations";
 type LeaderboardTranslator = (
   key: string,
-  values?: Record<string, string | number>
+  values?: Record<string, string | number>,
 ) => string;
 
 const PERSONAL_VISIBLE_ROWS = 12;
@@ -64,7 +64,7 @@ const ORGANIZATION_VISIBLE_ROWS = 10;
 
 function formatXp(value: number, locale: string) {
   return `${new Intl.NumberFormat(locale === "vi" ? "vi-VN" : "en-US").format(
-    value
+    value,
   )} XP`;
 }
 
@@ -85,7 +85,13 @@ function getRuleText(data: LeaderboardPageData, t: LeaderboardTranslator) {
   });
 }
 
-function RankBadge({ rank, highlighted = false }: { rank: number; highlighted?: boolean }) {
+function RankBadge({
+  rank,
+  highlighted = false,
+}: {
+  rank: number;
+  highlighted?: boolean;
+}) {
   const medalTone =
     rank === 1
       ? "text-on-surface-variant"
@@ -101,7 +107,7 @@ function RankBadge({ rank, highlighted = false }: { rank: number; highlighted?: 
     <span
       className={cn(
         "flex w-8 shrink-0 justify-end text-sm font-black tabular-nums sm:w-10",
-        medalTone
+        medalTone,
       )}
       aria-label={`Rank ${rank}`}
     >
@@ -154,7 +160,7 @@ function LeagueCrest({
           isLocked ? "opacity-45 saturate-0" : "opacity-100",
           isCurrent
             ? "scale-110 drop-shadow-token-card"
-            : "drop-shadow-token-card"
+            : "drop-shadow-token-card",
         )}
         aria-label={tier.name}
       >
@@ -181,7 +187,7 @@ function LeagueCrest({
       <span
         className={cn(
           "hidden max-w-24 truncate text-xs font-semibold sm:block",
-          isCurrent ? "text-on-surface" : "text-on-surface-variant"
+          isCurrent ? "text-on-surface" : "text-on-surface-variant",
         )}
       >
         {tier.shortName}
@@ -204,7 +210,7 @@ function SegmentedControl<T extends string>({
   return (
     <div
       aria-label={label}
-      className="inline-flex max-w-full rounded-full border border-outline-variant bg-surface-container p-1"
+      className="inline-flex max-w-full rounded-[10px] border border-outline-variant bg-surface-container p-1"
     >
       {options.map((option) => {
         const active = value === option.value;
@@ -216,10 +222,10 @@ function SegmentedControl<T extends string>({
             onClick={() => onChange(option.value)}
             title={option.helper}
             className={cn(
-              "min-h-9 rounded-full px-4 text-sm font-bold transition-all",
+              "h-8 rounded-md px-3 type-label font-semibold transition-colors",
               active
                 ? "bg-surface-container-lowest text-on-surface shadow-none"
-                : "text-on-surface-variant hover:text-on-surface"
+                : "text-on-surface-variant hover:text-on-surface",
             )}
             aria-pressed={active}
           >
@@ -262,13 +268,15 @@ function PersonalRow({
   const profileContent = (
     <>
       <Avatar className="size-8 shrink-0 bg-surface-container">
-        {row.avatarUrl ? <AvatarImage src={row.avatarUrl} alt={row.displayName} /> : null}
+        {row.avatarUrl ? (
+          <AvatarImage src={row.avatarUrl} alt={row.displayName} />
+        ) : null}
         <AvatarFallback
           className={cn(
             "text-sm font-black",
             row.isCurrentUser
               ? currentUserAvatarTone(row.zone)
-              : "bg-surface-container text-on-surface-variant"
+              : "bg-surface-container text-on-surface-variant",
           )}
         >
           {row.initials}
@@ -300,7 +308,7 @@ function PersonalRow({
         "flex min-h-10 items-center gap-3 rounded-[10px] border border-outline-variant/60 px-3 py-2 text-on-surface-variant transition-colors sm:gap-4 sm:px-4",
         row.isCurrentUser
           ? currentUserRowTone(row.zone)
-          : "bg-transparent hover:bg-surface-container-low"
+          : "bg-transparent hover:bg-surface-container-low",
       )}
     >
       <RankBadge rank={row.rank} highlighted={row.isCurrentUser} />
@@ -311,7 +319,10 @@ function PersonalRow({
             trackAnalyticsEvent({
               eventName: "leaderboard_profile_clicked",
               featureArea: "leaderboards",
-              route: typeof window !== "undefined" ? window.location.pathname : "/leaderboards",
+              route:
+                typeof window !== "undefined"
+                  ? window.location.pathname
+                  : "/leaderboards",
               metadata: {
                 targetUserId: row.userId,
                 rank: row.rank,
@@ -339,14 +350,16 @@ function PersonalRow({
               title={
                 row.connection?.status === "accepted"
                   ? "Friends"
-                  : connectionRequested || row.connection?.status === "pending_sent"
+                  : connectionRequested ||
+                      row.connection?.status === "pending_sent"
                     ? "Friend request sent"
                     : "Add friend"
               }
               aria-label={
                 row.connection?.status === "accepted"
                   ? `${row.displayName} is already your friend`
-                  : connectionRequested || row.connection?.status === "pending_sent"
+                  : connectionRequested ||
+                      row.connection?.status === "pending_sent"
                     ? `Friend request already sent to ${row.displayName}`
                     : `Add ${row.displayName} as a friend`
               }
@@ -361,14 +374,15 @@ function PersonalRow({
                 "inline-flex size-7 items-center justify-center rounded-full border transition",
                 row.connection?.status === "accepted"
                   ? "border-outline-variant bg-surface-container text-success"
-                  : connectionRequested || row.connection?.status === "pending_sent"
+                  : connectionRequested ||
+                      row.connection?.status === "pending_sent"
                     ? "border-outline-variant bg-surface-container-lowest text-primary"
                     : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary-fixed hover:text-primary-dim",
                 (connectionPending ||
                   connectionRequested ||
                   row.connection?.status === "pending_sent" ||
                   row.connection?.status === "accepted") &&
-                  "cursor-not-allowed opacity-70"
+                  "cursor-not-allowed opacity-70",
               )}
             >
               {connectionPending ? (
@@ -403,7 +417,7 @@ function PersonalRow({
                   ? "border-outline-variant bg-surface-container text-success"
                   : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-outline-variant hover:text-success",
                 (!kudosState.viewerCanSend || kudosPending) &&
-                  "cursor-not-allowed opacity-60"
+                  "cursor-not-allowed opacity-60",
               )}
             >
               {kudosPending ? (
@@ -441,19 +455,25 @@ function OrganizationRow({
         "flex min-h-10 items-center gap-3 rounded-[10px] border border-outline-variant/60 px-3 py-2 text-on-surface-variant transition-colors sm:gap-4 sm:px-4",
         row.isCurrentOrganization
           ? "bg-surface-container-high text-on-surface shadow-token-card"
-          : "bg-transparent hover:bg-surface-container-low"
+          : "bg-transparent hover:bg-surface-container-low",
       )}
     >
       <RankBadge rank={row.rank} highlighted={row.isCurrentOrganization} />
       <div
         className={cn(
           "flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full text-on-surface-variant",
-          row.isCurrentOrganization ? "bg-surface-container-high text-on-surface" : "bg-surface-container"
+          row.isCurrentOrganization
+            ? "bg-surface-container-high text-on-surface"
+            : "bg-surface-container",
         )}
       >
         {row.logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={row.logoUrl} alt="" className="h-full w-full object-cover" />
+          <img
+            src={row.logoUrl}
+            alt=""
+            className="h-full w-full object-cover"
+          />
         ) : (
           <Users2 className="size-5" />
         )}
@@ -461,13 +481,15 @@ function OrganizationRow({
       <div className="min-w-0 flex-1 text-left">
         <div className="flex min-w-0 flex-nowrap items-center gap-x-2 gap-y-1">
           <p className="min-w-0 flex-1 truncate text-sm font-black sm:text-base">
-          {row.name}
+            {row.name}
           </p>
         </div>
         <p
           className={cn(
             "mt-1 truncate text-xs font-semibold sm:text-sm",
-            row.isCurrentOrganization ? "text-current/68" : "text-on-surface-variant"
+            row.isCurrentOrganization
+              ? "text-current/68"
+              : "text-on-surface-variant",
           )}
         >
           {t("organizations.rowSubtitle", {
@@ -504,7 +526,8 @@ function SeasonOutcomeBanner({
     return null;
   }
 
-  const isPositive = outcome.outcome === "promoted" || outcome.outcome === "champion";
+  const isPositive =
+    outcome.outcome === "promoted" || outcome.outcome === "champion";
   const isNegative = outcome.outcome === "demoted";
   const replayCopy = getSeasonReplayCopy(outcome, locale);
   const title = t(`outcome.${outcome.outcome}`);
@@ -520,16 +543,20 @@ function SeasonOutcomeBanner({
           ? "border-outline-variant bg-surface-container text-on-surface-variant"
           : isNegative
             ? "border-outline-variant bg-surface-container text-on-surface-variant"
-            : "border-outline-variant bg-surface-container text-on-surface-variant"
+            : "border-outline-variant bg-surface-container text-on-surface-variant",
       )}
     >
       <div className="flex min-w-0 flex-1 items-center gap-3">
-        <div className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-full",
-          isPositive && "bg-surface-container-high text-success",
-          isNegative && "bg-surface-container text-on-surface-variant",
-          !isPositive && !isNegative && "bg-surface-container text-on-surface-variant"
-        )}>
+        <div
+          className={cn(
+            "flex size-10 shrink-0 items-center justify-center rounded-full",
+            isPositive && "bg-surface-container-high text-success",
+            isNegative && "bg-surface-container text-on-surface-variant",
+            !isPositive &&
+              !isNegative &&
+              "bg-surface-container text-on-surface-variant",
+          )}
+        >
           {isPositive ? (
             <Trophy className="size-5" />
           ) : isNegative ? (
@@ -540,7 +567,9 @@ function SeasonOutcomeBanner({
         </div>
         <div className="min-w-0">
           <p className="text-sm font-black">{title}</p>
-          <p className="mt-0.5 text-sm font-medium leading-5 opacity-80">{body}</p>
+          <p className="mt-0.5 text-sm font-medium leading-5 opacity-80">
+            {body}
+          </p>
         </div>
       </div>
       {onReplay ? (
@@ -566,7 +595,9 @@ function EmptyState({ title, body }: { title: string; body: string }) {
         <Trophy className="size-6" />
       </div>
       <h2 className="mt-4 text-lg font-black text-on-surface">{title}</h2>
-      <p className="mt-2 max-w-md text-sm leading-6 text-on-surface-variant">{body}</p>
+      <p className="mt-2 max-w-md text-sm leading-6 text-on-surface-variant">
+        {body}
+      </p>
     </div>
   );
 }
@@ -667,14 +698,20 @@ export function LeaderboardsPage({
   const prefersReducedMotion = reducedMotionOverride ?? detectedReducedMotion;
   const [view, setView] = useState<LeaderboardView>("personal");
   const [band, setBand] = useState<OrganizationBand>(
-    data.organizations.currentOrganization?.band ?? "small"
+    data.organizations.currentOrganization?.band ?? "small",
   );
   const [seasonReplayOpen, setSeasonReplayOpen] = useState(false);
   const [leaderboardInfoOpen, setLeaderboardInfoOpen] = useState(false);
-  const [pendingKudosUserId, setPendingKudosUserId] = useState<string | null>(null);
+  const [pendingKudosUserId, setPendingKudosUserId] = useState<string | null>(
+    null,
+  );
   const [sentKudosUserIds, setSentKudosUserIds] = useState<string[]>([]);
-  const [pendingConnectionUserId, setPendingConnectionUserId] = useState<string | null>(null);
-  const [requestedConnectionUserIds, setRequestedConnectionUserIds] = useState<string[]>([]);
+  const [pendingConnectionUserId, setPendingConnectionUserId] = useState<
+    string | null
+  >(null);
+  const [requestedConnectionUserIds, setRequestedConnectionUserIds] = useState<
+    string[]
+  >([]);
   const [kudosActionError, setKudosActionError] = useState<string | null>(null);
   const [, startKudosTransition] = useTransition();
   const seasonOutcome = data.personal.outcome;
@@ -684,36 +721,53 @@ export function LeaderboardsPage({
   }, [seasonOutcome, viewerUserId]);
   const canShowSeasonReplay =
     seasonReplayEnabled && isReplayableSeasonOutcome(seasonOutcome);
-  const localizedLeague = getLocalizedLeagueName(data.personal.league.id, locale);
+  const localizedLeague = getLocalizedLeagueName(
+    data.personal.league.id,
+    locale,
+  );
   const localizedTiers = data.personal.tiers.map((tier) => ({
     ...tier,
     ...getLocalizedLeagueName(tier.id, locale),
   }));
 
   const isChampionLeague = data.personal.league.id === "champion";
-  const visiblePersonalRows = data.personal.rows.slice(0, PERSONAL_VISIBLE_ROWS);
+  const visiblePersonalRows = data.personal.rows.slice(
+    0,
+    PERSONAL_VISIBLE_ROWS,
+  );
   const currentUserPinned =
     data.personal.currentUser &&
-    !visiblePersonalRows.some((row) => row.userId === data.personal.currentUser?.userId)
+    !visiblePersonalRows.some(
+      (row) => row.userId === data.personal.currentUser?.userId,
+    )
       ? data.personal.currentUser
       : null;
 
   const organizationRows = useMemo(
     () => data.organizations.rows.filter((row) => row.band === band),
-    [band, data.organizations.rows]
+    [band, data.organizations.rows],
   );
-  const visibleOrganizationRows = organizationRows.slice(0, ORGANIZATION_VISIBLE_ROWS);
+  const visibleOrganizationRows = organizationRows.slice(
+    0,
+    ORGANIZATION_VISIBLE_ROWS,
+  );
   const currentOrgPinned =
     data.organizations.currentOrganization &&
     data.organizations.currentOrganization.band === band &&
     !visibleOrganizationRows.some(
-      (row) => row.organizationId === data.organizations.currentOrganization?.organizationId
+      (row) =>
+        row.organizationId ===
+        data.organizations.currentOrganization?.organizationId,
     )
       ? data.organizations.currentOrganization
       : null;
 
   useEffect(() => {
-    if (!autoOpenSeasonReplay || !canShowSeasonReplay || !seasonReplayDismissalKey) {
+    if (
+      !autoOpenSeasonReplay ||
+      !canShowSeasonReplay ||
+      !seasonReplayDismissalKey
+    ) {
       return;
     }
 
@@ -745,14 +799,17 @@ export function LeaderboardsPage({
     trackAnalyticsEvent({
       eventName: "leaderboard_viewed",
       featureArea: "leaderboards",
-      route: typeof window !== "undefined" ? window.location.pathname : "/leaderboards",
-        metadata: {
-          source: data.source,
-          status: data.status,
-          league: data.personal.league.id,
-          leaderboardLanguage: data.leaderboardLanguage,
-          view,
-        },
+      route:
+        typeof window !== "undefined"
+          ? window.location.pathname
+          : "/leaderboards",
+      metadata: {
+        source: data.source,
+        status: data.status,
+        league: data.personal.league.id,
+        leaderboardLanguage: data.leaderboardLanguage,
+        view,
+      },
     });
   }, [
     analyticsEnabled,
@@ -770,7 +827,10 @@ export function LeaderboardsPage({
       trackAnalyticsEvent({
         eventName: "leaderboard_league_outcome_viewed",
         featureArea: "leaderboards",
-        route: typeof window !== "undefined" ? window.location.pathname : "/leaderboards",
+        route:
+          typeof window !== "undefined"
+            ? window.location.pathname
+            : "/leaderboards",
         metadata: {
           outcome: seasonOutcome.outcome,
           seasonId: seasonOutcome.seasonId,
@@ -810,7 +870,7 @@ export function LeaderboardsPage({
         }
 
         setSentKudosUserIds((current) =>
-          current.includes(row.userId) ? current : [...current, row.userId]
+          current.includes(row.userId) ? current : [...current, row.userId],
         );
       } catch {
         setKudosActionError(t("kudos.error"));
@@ -820,7 +880,9 @@ export function LeaderboardsPage({
     });
   }
 
-  function getKudosState(userId: string): LeaderboardKudosTargetState | undefined {
+  function getKudosState(
+    userId: string,
+  ): LeaderboardKudosTargetState | undefined {
     const baseState = data.socialTrust?.kudos.byUserId[userId];
     if (!baseState || !sentKudosUserIds.includes(userId)) return baseState;
 
@@ -843,7 +905,7 @@ export function LeaderboardsPage({
             : "pending_sent";
         if (status === "pending_sent" || status === "none") {
           setRequestedConnectionUserIds((current) =>
-            current.includes(row.userId) ? current : [...current, row.userId]
+            current.includes(row.userId) ? current : [...current, row.userId],
           );
         }
       })
@@ -858,27 +920,55 @@ export function LeaderboardsPage({
       data-testid="leaderboard-page"
       className="min-h-full bg-transparent text-on-surface"
     >
-      <PageContainer size="wide" className="flex flex-col items-center py-5 sm:py-6">
-        <section className="relative flex w-full max-w-[900px] flex-col items-center text-center">
+      <PageContainer size="data" className="flex flex-col py-5 sm:py-6">
+        <section className="relative grid w-full gap-4 rounded-xl border border-outline-variant bg-surface p-4 sm:p-5 lg:grid-cols-[minmax(260px,0.75fr)_minmax(0,1.25fr)] lg:items-center">
           <button
             type="button"
             onClick={() => setLeaderboardInfoOpen(true)}
             aria-label={t("info.triggerLabel")}
             title={t("info.triggerLabel")}
-            className="absolute right-0 top-0 inline-flex size-10 items-center justify-center rounded-full border border-outline-variant bg-surface text-on-surface-variant shadow-none backdrop-blur-md transition hover:border-primary/45 hover:text-on-surface-variant"
+            className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-[10px] border border-outline-variant bg-surface-container-low text-on-surface-variant transition-colors hover:border-primary/45 hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Info className="size-5" />
+            <Info className="size-4" />
           </button>
           {data.status === "unavailable" ? (
             <div
               data-testid="leaderboard-setup-state"
-              className="mb-6 w-full rounded-md border border-outline-variant bg-surface-container px-4 py-3 text-left text-sm font-semibold text-on-surface-variant"
+              className="rounded-lg border border-outline-variant bg-surface-container px-3 py-2 type-body-sm font-medium text-on-surface-variant lg:col-span-2"
             >
               {data.reason}
             </div>
           ) : null}
 
-          <div className="flex w-full items-end justify-center gap-4 overflow-hidden px-2 pb-2 pt-10 sm:gap-8 sm:pt-14">
+          <div className="min-w-0 pr-10 text-left">
+            <p className="type-eyebrow text-primary">{t("weeklyXp")}</p>
+            <h1
+              data-testid="league-title"
+              className="mt-1 type-heading-lg font-semibold text-on-surface"
+            >
+              {localizedLeague.name}
+            </h1>
+            <p className="mt-1 max-w-xl type-body-sm text-on-surface-variant">
+              {getRuleText(data, t)}
+            </p>
+            <div className="mt-3 inline-flex h-8 items-center gap-2 rounded-md bg-surface-container-high px-2.5 type-label font-semibold text-on-surface">
+              <Clock3 className="size-4 text-on-surface-variant" />
+              {t("daysLeft", { count: data.season.daysRemaining })}
+            </div>
+            <SeasonOutcomeBanner
+              data={data}
+              prefersReducedMotion={prefersReducedMotion}
+              locale={locale}
+              t={t}
+              onReplay={
+                canShowSeasonReplay
+                  ? () => setSeasonReplayOpen(true)
+                  : undefined
+              }
+            />
+          </div>
+
+          <div className="flex w-full items-end justify-start gap-3 overflow-x-auto px-1 pb-2 pt-2 sm:gap-5 lg:justify-end">
             {localizedTiers.map((tier) => (
               <LeagueCrest
                 key={tier.id}
@@ -887,32 +977,9 @@ export function LeaderboardsPage({
               />
             ))}
           </div>
-
-          <h1
-            data-testid="league-title"
-            className="type-heading-lg mt-6 font-medium text-on-surface"
-          >
-            {localizedLeague.name}
-          </h1>
-          <p className="mt-2 text-base font-medium text-on-surface-variant sm:text-lg">
-            {getRuleText(data, t)}
-          </p>
-          <div className="mt-5 inline-flex items-center gap-2 text-base font-black text-on-surface">
-            <Clock3 className="size-5 text-on-surface-variant" />
-            {t("daysLeft", { count: data.season.daysRemaining })}
-          </div>
-          <SeasonOutcomeBanner
-            data={data}
-            prefersReducedMotion={prefersReducedMotion}
-            locale={locale}
-            t={t}
-            onReplay={
-              canShowSeasonReplay ? () => setSeasonReplayOpen(true) : undefined
-            }
-          />
         </section>
 
-        <section className="mt-9 flex w-full max-w-[900px] flex-col items-center gap-4">
+        <section className="mt-4 flex w-full flex-col items-start gap-3 sm:flex-row sm:flex-wrap sm:items-center">
           <SegmentedControl
             label={t("viewLabel")}
             value={view}
@@ -937,9 +1004,12 @@ export function LeaderboardsPage({
           ) : null}
 
           {view === "organizations" && !data.organizations.affiliation ? (
-            <div className="w-full rounded-lg border border-outline-variant bg-surface px-4 py-3 text-center text-sm font-semibold text-on-surface-variant">
+            <div className="w-full rounded-lg border border-outline-variant bg-surface px-3 py-2 type-body-sm font-medium text-on-surface-variant">
               {t("organizations.joinPrefix")}{" "}
-              <Link href="/settings" className="text-on-surface-variant hover:underline">
+              <Link
+                href="/settings"
+                className="text-on-surface-variant hover:underline"
+              >
                 {t("organizations.settingsLink")}
               </Link>
               {t("organizations.joinSuffix")}
@@ -949,15 +1019,15 @@ export function LeaderboardsPage({
 
         <section
           data-testid="leaderboard-card"
-          className="mt-5 w-full max-w-[760px] rounded-xl border border-outline-variant bg-surface p-4"
+          className="mt-4 w-full rounded-xl border border-outline-variant bg-surface p-3 sm:p-4"
         >
           {view === "personal" ? (
             data.personal.rows.length > 0 ? (
               <>
                 <div className="flex items-center justify-between gap-3 px-1 pb-3 sm:px-2">
-                <div className="flex items-center gap-2 text-sm font-black text-on-surface-variant">
-                  {isChampionLeague ? (
-                    <Crown className="size-4 text-on-surface-variant" />
+                  <div className="flex items-center gap-2 text-sm font-black text-on-surface-variant">
+                    {isChampionLeague ? (
+                      <Crown className="size-4 text-on-surface-variant" />
                     ) : (
                       <Medal className="size-4 text-primary" />
                     )}
@@ -993,7 +1063,9 @@ export function LeaderboardsPage({
                       kudosPending={pendingKudosUserId === row.userId}
                       onRequestConnection={handleRequestConnection}
                       connectionPending={pendingConnectionUserId === row.userId}
-                      connectionRequested={requestedConnectionUserIds.includes(row.userId)}
+                      connectionRequested={requestedConnectionUserIds.includes(
+                        row.userId,
+                      )}
                     />
                   ))}
                 </ul>
@@ -1009,7 +1081,9 @@ export function LeaderboardsPage({
               <div className="flex flex-col gap-1 px-1 pb-3 text-left sm:flex-row sm:items-center sm:justify-between sm:px-2">
                 <div className="flex items-center gap-2 text-sm font-black text-on-surface-variant">
                   <Users2 className="size-4 text-on-surface-variant" />
-                  {t("organizations.title", { band: t(`organizations.bands.${band}`) })}
+                  {t("organizations.title", {
+                    band: t(`organizations.bands.${band}`),
+                  })}
                 </div>
                 <div className="text-xs font-bold uppercase text-on-surface-variant">
                   {t(`organizations.bandDescriptions.${band}`)}
@@ -1036,10 +1110,7 @@ export function LeaderboardsPage({
         </section>
 
         {view === "personal" && currentUserPinned ? (
-          <section
-            data-testid="current-rank-pinned"
-            className="mt-5 w-full max-w-[760px]"
-          >
+          <section data-testid="current-rank-pinned" className="mt-4 w-full">
             <div className="mb-2 flex items-center gap-2 px-1 text-sm font-black text-on-surface-variant sm:px-2">
               <ChevronUp className="size-4" />
               {t("pinned.yourRank")}
@@ -1064,7 +1135,7 @@ export function LeaderboardsPage({
         {view === "organizations" && currentOrgPinned ? (
           <section
             data-testid="current-organization-pinned"
-            className="mt-5 w-full max-w-[760px]"
+            className="mt-4 w-full"
           >
             <div className="mb-2 flex items-center gap-2 px-1 text-sm font-black text-success sm:px-2">
               <ChevronUp className="size-4" />

@@ -24,7 +24,7 @@ export function IeltsOnboardingWelcome({
         <div className="inline-flex size-12 items-center justify-center rounded-lg bg-primary-container text-on-primary-container">
           <Target className="size-6" />
         </div>
-        <h2 className="type-heading-lg font-bold text-on-surface">
+        <h2 className="type-heading-lg font-semibold text-on-surface">
           {t("welcome_title")}
         </h2>
         <p className="max-w-2xl type-body text-on-surface-variant">

@@ -6,8 +6,8 @@ export type PageContainerSize = "focused" | "standard" | "wide" | "data";
 export const pageContainerSizeClassName: Record<PageContainerSize, string> = {
   focused: "max-w-3xl",
   standard: "max-w-5xl 2xl:max-w-[1504px] 3xl:max-w-[1720px]",
-  wide: "max-w-6xl 2xl:max-w-[1680px] 3xl:max-w-[1960px]",
-  data: "max-w-7xl 2xl:max-w-[1800px] 3xl:max-w-[2200px]",
+  wide: "max-w-6xl 2xl:max-w-[1680px] 3xl:max-w-[2240px]",
+  data: "max-w-7xl 2xl:max-w-none",
 };
 
 interface PageContainerProps extends ComponentPropsWithoutRef<"div"> {

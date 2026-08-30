@@ -43,10 +43,19 @@ export function QuestionHost({
 }) {
   const renderQuestion = getIeltsQuestionRenderer(question.questionType);
   const objective = isObjectiveQuestionType(question.questionType);
-  const renderer = renderQuestion({ question, value, disabled, onChange, context });
+  const renderer = renderQuestion({
+    question,
+    value,
+    disabled,
+    onChange,
+    context,
+  });
   const isFlagged = useMockAnnotationsStore((store) => {
     if (!store.activeAttemptId) return false;
-    return store.flags[mockAnnotationKey(store.activeAttemptId, question.id)] === true;
+    return (
+      store.flags[mockAnnotationKey(store.activeAttemptId, question.id)] ===
+      true
+    );
   });
   const toggleFlag = useMockAnnotationsStore((store) => store.toggleFlag);
   const FlagIcon = isFlagged ? BookmarkCheck : Bookmark;
@@ -54,7 +63,7 @@ export function QuestionHost({
   return (
     <div
       id={`mock-q-${question.id}`}
-      className="scroll-mt-24 rounded-3xl border border-outline-variant bg-surface-container p-5"
+      className="scroll-mt-24 rounded-xl border border-outline-variant bg-surface-container p-5"
     >
       <div className="flex items-start gap-3">
         <div className="flex shrink-0 flex-col items-center gap-2">
@@ -85,7 +94,9 @@ export function QuestionHost({
             renderer
           ) : (
             <>
-              <p className="text-sm font-medium text-on-surface">{question.prompt}</p>
+              <p className="text-sm font-medium text-on-surface">
+                {question.prompt}
+              </p>
               {question.wordLimit !== null ? (
                 <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
                   Write no more than {question.wordLimit}{" "}

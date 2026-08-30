@@ -45,20 +45,20 @@ export function IeltsHome({ data }: { data: IeltsHomeData }) {
   return (
     <PageTransition>
       <ProductPageShell>
-        <PageContainer size="data" className="flex flex-col gap-7 py-6 lg:py-8">
+        <PageContainer size="data" className="flex flex-col gap-5 py-5 lg:py-6">
           <header className="flex flex-col gap-1">
             <p className="type-eyebrow font-semibold uppercase text-primary">
               {t("eyebrow")}
             </p>
-            <h1 className="type-heading-xl font-bold text-balance text-on-surface">
+            <h1 className="type-heading-lg font-semibold text-balance text-on-surface md:type-heading-xl">
               {data.identity.firstName
                 ? t("greeting", { name: data.identity.firstName })
                 : t("greeting_fallback")}
             </h1>
           </header>
 
-          <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.8fr)]">
-            <div className="flex min-w-0 flex-col gap-5">
+          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.75fr)]">
+            <div className="flex min-w-0 flex-col gap-4">
               <IeltsDailyLoopPanel
                 diagnosticReady={diagnosticReady}
                 hasGoal={data.hasGoal}
@@ -80,45 +80,47 @@ export function IeltsHome({ data }: { data: IeltsHomeData }) {
             />
           </div>
 
-          {hasAttempts ? (
-            <section className="flex flex-col gap-3">
-              <h2 className="type-heading-md font-semibold text-on-surface">
-                {t("recent_title")}
-              </h2>
-              <RecentAttempts items={data.recentAttempts} />
-            </section>
-          ) : null}
+          <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+            {hasAttempts ? (
+              <section className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container p-4">
+                <h2 className="type-heading-md font-semibold text-on-surface">
+                  {t("recent_title")}
+                </h2>
+                <RecentAttempts items={data.recentAttempts} />
+              </section>
+            ) : null}
 
-          <section className="flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="type-heading-md font-semibold text-on-surface">
-                {t("featured_title")}
-              </h2>
-              {hasTests ? (
-                <Link
-                  href="/ielts/tests"
-                  className="inline-flex items-center gap-1 type-body-sm font-semibold text-primary hover:underline"
-                >
-                  {t("view_all")}
-                  <ArrowRight className="size-4" />
-                </Link>
-              ) : null}
-            </div>
-
-            {hasTests ? (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {data.featuredTests.map((card) => (
-                  <TestCard key={card.id} card={card} />
-                ))}
+            <section className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container p-4">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="type-heading-md font-semibold text-on-surface">
+                  {t("featured_title")}
+                </h2>
+                {hasTests ? (
+                  <Link
+                    href="/ielts/tests"
+                    className="inline-flex min-h-8 items-center gap-1 type-label font-semibold text-primary hover:underline focus-visible:rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  >
+                    {t("view_all")}
+                    <ArrowRight className="size-4" />
+                  </Link>
+                ) : null}
               </div>
-            ) : (
-              <IeltsEmptyState
-                icon={<GraduationCap className="size-6" />}
-                title={t("empty_tests_title")}
-                body={t("empty_tests_body")}
-              />
-            )}
-          </section>
+
+              {hasTests ? (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+                  {data.featuredTests.slice(0, 2).map((card) => (
+                    <TestCard key={card.id} card={card} compact />
+                  ))}
+                </div>
+              ) : (
+                <IeltsEmptyState
+                  icon={<GraduationCap className="size-6" />}
+                  title={t("empty_tests_title")}
+                  body={t("empty_tests_body")}
+                />
+              )}
+            </section>
+          </div>
         </PageContainer>
       </ProductPageShell>
     </PageTransition>

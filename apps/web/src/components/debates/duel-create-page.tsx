@@ -62,8 +62,10 @@ const difficultyOptions: { value: DifficultyFilter; label: string }[] = [
 ];
 
 function difficultyTone(difficulty: DebateDuelTopicDifficulty) {
-  if (difficulty === "beginner") return "bg-surface-container text-on-surface-variant";
-  if (difficulty === "intermediate") return "bg-surface-container text-on-surface-variant";
+  if (difficulty === "beginner")
+    return "bg-surface-container text-on-surface-variant";
+  if (difficulty === "intermediate")
+    return "bg-surface-container text-on-surface-variant";
   return "bg-error-container text-on-surface-variant";
 }
 
@@ -84,19 +86,20 @@ export function DuelCreatePage({
   const router = useRouter();
   const locale = useLocale();
   const practiceLanguage = coercePracticeLanguage(locale);
-  const localizedTopics = useMemo(
-    () => initialTopics,
-    [initialTopics]
-  );
+  const safeCreateError =
+    locale === "vi"
+      ? "Chưa thể tạo phòng tranh biện. Hãy thử lại. Mã hỗ trợ: DUEL-CREATE-01."
+      : "We couldn’t create the debate room. Try again. Support code: DUEL-CREATE-01.";
+  const localizedTopics = useMemo(() => initialTopics, [initialTopics]);
   const categoryFilters = useMemo(
     () => getLocalizedCategoryOptions(practiceLanguage),
-    [practiceLanguage]
+    [practiceLanguage],
   );
   const initialTopic =
     localizedTopics.find((topic) => topic.title === initialTopicTitle) ??
     localizedTopics[0];
   const [activeRoomCode, setActiveRoomCode] = useState(
-    initialRoomShareCode?.trim().toUpperCase() || null
+    initialRoomShareCode?.trim().toUpperCase() || null,
   );
   const [topicId, setTopicId] = useState(initialTopic?.id ?? "");
   const [categoryFilter, setCategoryFilter] =
@@ -127,13 +130,14 @@ export function DuelCreatePage({
       localizedTopics.find((topic) => topic.id === topicId) ??
       localizedTopics[0] ??
       null,
-    [localizedTopics, topicId]
+    [localizedTopics, topicId],
   );
 
   const filteredTopics = useMemo(() => {
     const matches = localizedTopics.filter((topic) => {
       const categoryMatches =
-        categoryFilter === "all" || getTopicCategoryKey(topic) === categoryFilter;
+        categoryFilter === "all" ||
+        getTopicCategoryKey(topic) === categoryFilter;
       const difficultyMatches =
         difficultyFilter === "all" || topic.difficulty === difficultyFilter;
       return categoryMatches && difficultyMatches;
@@ -162,42 +166,52 @@ export function DuelCreatePage({
     }
 
     startTransition(async () => {
-      const response = await fetch("/api/debate-duels", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          topicTitle: selectedTopic.title,
-          topicKey: getTopicStableKey(selectedTopic),
-          topicCategory: selectedTopic.category,
-          topicCategoryKey: getTopicCategoryKey(selectedTopic),
-          topicDifficulty: selectedTopic.difficulty,
-          topicDescription: selectedTopic.context ?? "",
-          prepTimeSeconds,
-          openingTimeSeconds,
-          rebuttalTimeSeconds,
-          practiceLanguage,
-          sideAssignmentMode,
-          creatorSidePreference:
-            sideAssignmentMode === "choose" ? creatorSidePreference : null,
-        }),
-      });
+      try {
+        const response = await fetch("/api/debate-duels", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            topicTitle: selectedTopic.title,
+            topicKey: getTopicStableKey(selectedTopic),
+            topicCategory: selectedTopic.category,
+            topicCategoryKey: getTopicCategoryKey(selectedTopic),
+            topicDifficulty: selectedTopic.difficulty,
+            topicDescription: selectedTopic.context ?? "",
+            prepTimeSeconds,
+            openingTimeSeconds,
+            rebuttalTimeSeconds,
+            practiceLanguage,
+            sideAssignmentMode,
+            creatorSidePreference:
+              sideAssignmentMode === "choose" ? creatorSidePreference : null,
+          }),
+        });
 
-      const payload = (await response.json()) as
-        | { shareCode: string; room?: DebateDuelRoomView | null }
-        | { error?: string };
+        const payload = (await response.json()) as
+          | { shareCode: string; room?: DebateDuelRoomView | null }
+          | { error?: string };
 
-      if (!response.ok || !("shareCode" in payload)) {
-        setError(
-          ("error" in payload && payload.error) || "Failed to create duel room."
-        );
-        return;
+        if (!response.ok || !("shareCode" in payload)) {
+          console.error("Duel room creation rejected", {
+            status: response.status,
+            supportCode: "DUEL-CREATE-01",
+          });
+          setError(safeCreateError);
+          return;
+        }
+
+        setActiveRoomCode(payload.shareCode);
+        if (payload.room) {
+          await mutate(payload.room, { revalidate: false });
+        }
+        router.replace(`/debates/new?room=${payload.shareCode}`);
+      } catch (cause) {
+        console.error("Duel room creation failed", {
+          cause,
+          supportCode: "DUEL-CREATE-01",
+        });
+        setError(safeCreateError);
       }
-
-      setActiveRoomCode(payload.shareCode);
-      if (payload.room) {
-        await mutate(payload.room, { revalidate: false });
-      }
-      router.replace(`/debates/new?room=${payload.shareCode}`);
     });
   };
 
@@ -206,14 +220,16 @@ export function DuelCreatePage({
       const matchingTopic = localizedTopics.find(
         (topic) =>
           getTopicStableKey(topic) === activeRoom.topicKey ||
-          topic.title === activeRoom.topicTitle
+          topic.title === activeRoom.topicTitle,
       );
       if (matchingTopic) setTopicId(matchingTopic.id);
       setPrepTimeSeconds(activeRoom.config.prepTimeSeconds);
       setOpeningTimeSeconds(activeRoom.config.openingTimeSeconds);
       setRebuttalTimeSeconds(activeRoom.config.rebuttalTimeSeconds);
       setSideAssignmentMode(activeRoom.sideAssignmentMode);
-      setCreatorSidePreference(activeRoom.creatorSidePreference ?? "proposition");
+      setCreatorSidePreference(
+        activeRoom.creatorSidePreference ?? "proposition",
+      );
     }
     setActiveRoomCode(null);
     router.replace("/debates/new");
@@ -238,9 +254,9 @@ export function DuelCreatePage({
               Duel room unavailable
             </h1>
             <p className="mt-3 text-sm text-on-surface-variant">
-              {roomError instanceof Error
-                ? roomError.message
-                : "We could not load this duel room."}
+              {locale === "vi"
+                ? "Chưa thể tải phòng tranh biện. Hãy thử lại từ sảnh. Mã hỗ trợ: DUEL-ROOM-01."
+                : "We couldn’t load this debate room. Try again from the arena. Support code: DUEL-ROOM-01."}
             </p>
             <Button
               type="button"
@@ -274,9 +290,10 @@ export function DuelCreatePage({
             <h1 className="text-2xl font-bold text-on-surface">
               No active motions available
             </h1>
-            <p className="mt-3 text-sm leading-6 text-on-surface-variant">
-              Import the Calico catalog or enable at least one motion before
-              creating a duel room.
+            <p className="mt-2 type-body-sm text-on-surface-variant">
+              {locale === "vi"
+                ? "Hiện chưa có chủ đề nào sẵn sàng. Hãy quay lại sau."
+                : "No motions are ready right now. Check back soon."}
             </p>
             <Button
               type="button"
@@ -293,8 +310,8 @@ export function DuelCreatePage({
 
   return (
     <PageTransition className="min-h-full bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10">
-        <div className="mb-8 grid gap-8 xl:grid-cols-[minmax(0,1fr)_520px] xl:items-end">
+      <div className="mx-auto max-w-[1180px] px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
+        <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-end">
           <div>
             <button
               type="button"
@@ -304,31 +321,31 @@ export function DuelCreatePage({
               <ArrowLeft className="h-4 w-4" />
               1v1 Debate Arena
             </button>
-            <h1 className="mt-4 max-w-2xl text-2xl font-semibold tracking-tight text-on-surface">
+            <h1 className="mt-2 max-w-2xl type-heading-lg font-semibold text-on-surface">
               Create a duel room
             </h1>
-            <p className="mt-3 text-sm text-on-surface-variant sm:text-base">
+            <p className="mt-1 type-body-sm text-on-surface-variant">
               Set up your debate, choose the format, and invite your opponent.
             </p>
           </div>
           <DuelFlowStepper mode="configure" />
         </div>
 
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <main className="rounded-[10px] border border-outline-variant/20 bg-surface p-6 shadow-none sm:p-7 lg:p-8">
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <main className="rounded-xl border border-outline-variant bg-surface p-4 shadow-none sm:p-5">
             <section>
               <div className="flex items-start gap-4">
                 <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
                   1
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-on-surface">
+                  <h2 className="type-title font-semibold text-on-surface">
                     Choose a motion
                   </h2>
                 </div>
               </div>
 
-              <div className="mt-7 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex flex-wrap gap-3">
                   {categoryFilters.slice(0, 5).map((category) => (
                     <button
@@ -339,7 +356,7 @@ export function DuelCreatePage({
                         "h-8 rounded-[10px] border px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring",
                         categoryFilter === category.key
                           ? "border-primary bg-primary text-on-primary"
-                          : "border-outline-variant/30 bg-surface text-on-surface-variant hover:bg-surface-container-low"
+                          : "border-outline-variant/30 bg-surface text-on-surface-variant hover:bg-surface-container-low",
                       )}
                     >
                       {category.label}
@@ -361,7 +378,7 @@ export function DuelCreatePage({
                 </select>
               </div>
 
-              <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                 {filteredTopics.slice(0, 4).map((topic) => {
                   const selected = topic.id === selectedTopic.id;
                   return (
@@ -370,10 +387,10 @@ export function DuelCreatePage({
                       type="button"
                       onClick={() => setTopicId(topic.id)}
                       className={cn(
-                        "group relative flex min-h-[174px] flex-col rounded-[14px] border bg-surface-container-lowest p-4 text-left transition-all duration-200 hover:-translate-y-0.5",
+                        "group relative flex min-h-[120px] flex-col rounded-[10px] border bg-surface p-3 text-left transition-colors duration-150",
                         selected
                           ? "border-primary shadow-none"
-                          : "border-outline-variant hover:border-outline-variant hover:shadow-none"
+                          : "border-outline-variant hover:border-outline-variant hover:shadow-none",
                       )}
                     >
                       {selected && (
@@ -389,15 +406,15 @@ export function DuelCreatePage({
                         <span
                           className={cn(
                             "inline-flex h-5 items-center rounded-[6px] px-2 type-caption font-semibold",
-                            difficultyTone(topic.difficulty)
+                            difficultyTone(topic.difficulty),
                           )}
                         >
                           {formatDifficulty(topic.difficulty)}
                         </span>
                       </div>
 
-                      <div className="mt-4 flex-1">
-                        <h3 className="line-clamp-4 break-words type-body font-semibold text-on-surface">
+                      <div className="mt-3 flex-1">
+                        <h3 className="line-clamp-3 break-words type-label font-semibold text-on-surface">
                           {topic.title}
                         </h3>
                       </div>
@@ -413,14 +430,14 @@ export function DuelCreatePage({
               </div>
             </section>
 
-            <section className="mt-10 border-t border-outline-variant/15 pt-8">
+            <section className="mt-6 border-t border-outline-variant pt-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-start gap-4">
                   <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
                     2
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-on-surface">
+                    <h2 className="type-title font-semibold text-on-surface">
                       Configure format & timers
                     </h2>
                   </div>
@@ -439,7 +456,7 @@ export function DuelCreatePage({
                 </button>
               </div>
 
-              <div className="mt-7 grid gap-5 lg:grid-cols-3">
+              <div className="mt-4 grid gap-3 lg:grid-cols-3">
                 <DurationControl
                   label="Prep time"
                   icon={<Clock3 className="h-4 w-4" />}
@@ -462,35 +479,34 @@ export function DuelCreatePage({
                   onChange={setRebuttalTimeSeconds}
                 />
               </div>
-
             </section>
 
-            <section className="mt-10 border-t border-outline-variant/15 pt-8">
+            <section className="mt-6 border-t border-outline-variant pt-5">
               <div className="flex items-start gap-4">
                 <div className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-bold text-on-primary">
                   3
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-on-surface">
+                  <h2 className="type-title font-semibold text-on-surface">
                     Side assignment
                   </h2>
                 </div>
               </div>
 
-              <div className="mt-7 grid gap-5 lg:grid-cols-2">
+              <div className="mt-4 grid gap-3 lg:grid-cols-2">
                 <button
                   type="button"
                   onClick={() => setSideAssignmentMode("random")}
                   className={cn(
-                    "rounded-[10px] border p-5 text-left transition-all",
+                    "rounded-[10px] border p-3 text-left transition-colors",
                     sideAssignmentMode === "random"
                       ? "border-primary bg-primary/6"
-                      : "border-outline-variant/25 bg-surface"
+                      : "border-outline-variant/25 bg-surface",
                   )}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-[10px] bg-primary/10 text-primary">
-                      <Scale className="h-7 w-7" />
+                    <div className="flex size-8 items-center justify-center rounded-[8px] bg-primary-container text-primary">
+                      <Scale className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
@@ -517,15 +533,15 @@ export function DuelCreatePage({
                   type="button"
                   onClick={() => setSideAssignmentMode("choose")}
                   className={cn(
-                    "rounded-[10px] border p-5 text-left transition-all",
+                    "rounded-[10px] border p-3 text-left transition-colors",
                     sideAssignmentMode === "choose"
                       ? "border-primary bg-primary/6"
-                      : "border-outline-variant/25 bg-surface"
+                      : "border-outline-variant/25 bg-surface",
                   )}
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-[10px] bg-primary/10 text-primary">
-                      <ShieldCheck className="h-7 w-7" />
+                    <div className="flex size-8 items-center justify-center rounded-[8px] bg-primary-container text-primary">
+                      <ShieldCheck className="h-4 w-4" />
                     </div>
                     <div className="min-w-0">
                       <div className="font-semibold text-on-surface">
@@ -555,7 +571,7 @@ export function DuelCreatePage({
                         "rounded-[10px] border px-4 py-3 text-sm font-semibold capitalize transition-colors",
                         creatorSidePreference === side
                           ? "border-primary bg-primary/8 text-primary"
-                          : "border-outline-variant/15 bg-surface text-on-surface"
+                          : "border-outline-variant/15 bg-surface text-on-surface",
                       )}
                     >
                       {side}

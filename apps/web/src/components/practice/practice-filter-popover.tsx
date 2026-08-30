@@ -27,7 +27,13 @@ interface PracticeFilterPopoverProps {
   onReset: () => void;
 }
 
-function FilterGroup({ label, children }: { label: string; children: ReactNode }) {
+function FilterGroup({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
   return (
     <div>
       <Eyebrow className="text-on-surface-variant">{label}</Eyebrow>
@@ -51,10 +57,10 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "rounded-full border px-3.5 py-2 type-label font-medium transition-all active:scale-95",
+        "inline-flex h-8 items-center rounded-[10px] border px-3 type-label font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active
           ? "border-primary bg-primary text-on-primary"
-          : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/35 hover:text-on-surface"
+          : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/35 hover:text-on-surface",
       )}
     >
       {children}
@@ -100,10 +106,10 @@ export function PracticeFilterPopover({
             type="button"
             aria-label={t("filters")}
             className={cn(
-              "relative inline-flex h-12 shrink-0 items-center gap-2.5 rounded-[10px] border bg-surface-container-lowest px-4 type-body-sm font-semibold transition-all hover:bg-surface-container active:scale-[0.97]",
+              "relative inline-flex h-8 shrink-0 items-center gap-2 rounded-[10px] border bg-surface px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               activeFilterCount > 0
                 ? "border-primary/40 text-primary"
-                : "border-outline-variant text-on-surface-variant"
+                : "border-outline-variant text-on-surface-variant",
             )}
           />
         }
@@ -119,11 +125,11 @@ export function PracticeFilterPopover({
 
       <PopoverContent
         align="end"
-        sideOffset={10}
+        sideOffset={8}
         showArrow={false}
-        className="w-[min(calc(100vw-2rem),26rem)] rounded-[1.5rem] p-6"
+        className="w-[min(calc(100vw-2rem),24rem)] rounded-xl border-outline-variant p-4"
       >
-        <div className="space-y-6">
+        <div className="space-y-4">
           <FilterGroup label={t("filter_category")}>
             {categories.map((category) => (
               <FilterChip

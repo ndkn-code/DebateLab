@@ -297,7 +297,7 @@ export function MockSectionView({
           ) : null}
 
           {paused ? (
-            <p className="rounded-2xl bg-error-container px-4 py-3 text-sm font-medium text-error">
+            <p className="rounded-xl bg-error-container px-4 py-3 text-sm font-medium text-error">
               {t("pausedBody")}
             </p>
           ) : null}

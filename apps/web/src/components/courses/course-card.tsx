@@ -1,10 +1,7 @@
 "use client";
 
 import { Link } from "@/i18n/navigation";
-import {
-  BarChart3,
-  Layers3,
-} from "@/components/ui/icons";
+import { BarChart3, Layers3 } from "@/components/ui/icons";
 import { Heading, Text } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import {
@@ -14,9 +11,9 @@ import {
 import type { CourseLibraryItem } from "@/lib/api/courses";
 
 const STATUS_BADGE_STYLES = {
-  "in-progress": "bg-white text-primary",
-  "not-started": "bg-white/92 text-on-surface-variant",
-  completed: "bg-white text-on-surface-variant",
+  "in-progress": "bg-primary-container text-primary",
+  "not-started": "bg-surface text-on-surface-variant",
+  completed: "bg-success-container text-on-success-container",
 } as const;
 
 interface CourseCardProps {
@@ -38,12 +35,17 @@ function ProgressRing({ progress }: { progress: number }) {
   const offset = circumference * (1 - progress / 100);
 
   return (
-    <div className="relative flex h-[44px] w-[44px] items-center justify-center rounded-[10px] border border-outline-variant bg-white">
+    <div
+      className="relative flex size-10 items-center justify-center rounded-[10px] border border-outline-variant bg-surface"
+      role="img"
+      aria-label={`${progress}%`}
+    >
       <svg
         width={size}
         height={size}
         className="-rotate-90"
         viewBox={`0 0 ${size} ${size}`}
+        aria-hidden="true"
       >
         <circle
           cx={size / 2}
@@ -92,20 +94,20 @@ export function CourseCard({
         : startLabel;
   const actionClasses =
     course.status === "not-started"
-      ? "border border-outline-variant bg-white text-on-surface-variant"
-      : "bg-primary text-white";
+      ? "border border-outline-variant bg-surface text-on-surface-variant"
+      : "bg-primary text-on-primary";
 
   const cardContent = (
     <article
       className={cn(
-        "flex h-full flex-col rounded-[10px] border bg-white shadow-none transition-[border-color,background-color,transform] duration-150",
+        "flex h-full flex-col rounded-[10px] border bg-surface shadow-none transition-[border-color,background-color,transform] duration-150",
         course.status === "in-progress"
-          ? "border-primary/50"
+          ? "border-primary/50 bg-primary-container/20"
           : "border-outline-variant",
-        !isMock && "hover:-translate-y-0.5 hover:border-primary/40"
+        !isMock && "hover:-translate-y-0.5 hover:border-primary/40",
       )}
     >
-      <div className="relative mx-3 mt-3 overflow-hidden rounded-[14px]">
+      <div className="relative mx-3 mt-3 overflow-hidden rounded-[10px]">
         <div className="aspect-[1.82/1]">
           <CourseArtwork variant={artworkVariant} />
         </div>
@@ -115,7 +117,7 @@ export function CourseCard({
         <div
           className={cn(
             "type-caption absolute left-3 top-3 inline-flex h-5 items-center rounded-[6px] px-2 font-medium",
-            STATUS_BADGE_STYLES[course.status]
+            STATUS_BADGE_STYLES[course.status],
           )}
         >
           {statusLabel}
@@ -132,11 +134,11 @@ export function CourseCard({
         <Heading level={4} as="h3" className="text-on-surface-variant">
           {course.title}
         </Heading>
-        <Text className="mt-2 line-clamp-2 leading-8 text-on-surface-variant">
+        <Text className="mt-2 line-clamp-2 leading-6 text-on-surface-variant">
           {course.description || descriptionFallbackLabel}
         </Text>
 
-        <div className="mt-auto flex items-end justify-between gap-3 pt-5">
+        <div className="mt-auto flex items-end justify-between gap-3 pt-3">
           <div className="type-caption flex flex-wrap items-center gap-4 text-on-surface-variant">
             <span className="inline-flex items-center gap-1.5">
               <Layers3 className="h-3.5 w-3.5 text-on-surface-variant" />
@@ -151,7 +153,7 @@ export function CourseCard({
           <span
             className={cn(
               "type-label inline-flex h-8 shrink-0 items-center rounded-[10px] px-3",
-              actionClasses
+              actionClasses,
             )}
           >
             {ctaLabel}

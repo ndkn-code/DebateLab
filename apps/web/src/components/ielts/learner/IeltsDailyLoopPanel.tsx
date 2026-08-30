@@ -176,7 +176,7 @@ export function IeltsDailyLoopPanel({
   return (
     <section
       aria-label={t("daily_loop_region_label")}
-      className="min-w-0 rounded-xl border border-outline-variant bg-surface-container p-4 shadow-token-card sm:p-5"
+      className="min-w-0 rounded-xl border border-outline-variant bg-surface-container p-4"
       data-ielts-daily-loop
       data-first-run-grace={retention.isFirstRunGrace ? "true" : "false"}
     >

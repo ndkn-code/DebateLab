@@ -79,19 +79,19 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
         aiDifficulty: config.difficulty,
         side: config.side,
       }),
-    [config]
+    [config],
   );
   const coachPrompt =
     config.practiceTrack === "speaking"
       ? `Help me turn the topic "${config.topicTitle}" into a clear speaking outline with an opening, two main points, and a strong closing.`
       : `Help me prepare for the motion "${config.topicTitle}". Give me a stance, two strong arguments, the weighing, and the most likely rebuttal I need to answer.`;
   const coachHref = `/chat?message=${encodeURIComponent(
-    coachPrompt
+    coachPrompt,
   )}&context=course&contextId=${lesson.course.id}`;
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[2rem] border border-outline-variant/15 bg-white p-6 shadow-token-panel sm:p-8">
+      <div className="rounded-xl border border-outline-variant bg-surface p-4 sm:p-5">
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
           <div className="max-w-2xl">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
@@ -101,8 +101,7 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
               {config.topicTitle || t("practice.title_fallback")}
             </Heading>
             <p className="mt-3 text-sm leading-7 text-on-surface-variant">
-              {config.description ??
-                t("reader.practice_description_fallback")}
+              {config.description ?? t("reader.practice_description_fallback")}
             </p>
           </div>
 
@@ -134,7 +133,7 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
                 variant="outline"
                 className={cn(
                   "text-xs px-2.5 py-0.5",
-                  DIFFICULTY_COLORS[config.difficulty]
+                  DIFFICULTY_COLORS[config.difficulty],
                 )}
               >
                 {tPractice(config.difficulty)}
@@ -146,7 +145,10 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
 
             <div className="flex flex-col gap-3 pt-1">
               <Link href={practiceHref}>
-                <Button size="lg" className="w-full gap-2 bg-primary text-on-primary">
+                <Button
+                  size="lg"
+                  className="w-full gap-2 bg-primary text-on-primary"
+                >
                   <Mic2 className="h-4 w-4" />
                   {t("practice.start_now")}
                 </Button>
@@ -160,7 +162,10 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
                   {t("practice.preview_brief")}
                 </Button>
                 <Link href={coachHref} className="flex-1">
-                  <Button variant="outline" className="w-full border-outline-variant/20">
+                  <Button
+                    variant="outline"
+                    className="w-full border-outline-variant/20"
+                  >
                     <Sparkles className="h-4 w-4" />
                     {t("practice.coach_prep")}
                   </Button>
@@ -181,7 +186,7 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
+            <div className="rounded-[10px] border border-outline-variant bg-surface-container-low p-3">
               <Eyebrow className="font-semibold text-primary">
                 {t("practice.focus_area")}
               </Eyebrow>
@@ -206,7 +211,11 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
               />
               <SummaryStat
                 label={tPractice("mode")}
-                value={getModeLabel(config.practiceTrack, config.mode, tPractice)}
+                value={getModeLabel(
+                  config.practiceTrack,
+                  config.mode,
+                  tPractice,
+                )}
               />
               <SummaryStat
                 label={tPractice("ai_difficulty")}
@@ -241,7 +250,9 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
   );
 }
 
-function normalizePracticeConfig(lesson: LessonWithContext): NormalizedPracticeConfig {
+function normalizePracticeConfig(
+  lesson: LessonWithContext,
+): NormalizedPracticeConfig {
   const content = lesson.content as LegacyPracticeContent;
   const nestedConfig = content.practice_config;
   const practiceTrack =
@@ -276,7 +287,7 @@ function toSide(side?: string): PracticeSide {
 function getModeLabel(
   practiceTrack: PracticeTrack,
   mode: PracticeMode,
-  tPractice: ReturnType<typeof useTranslations>
+  tPractice: ReturnType<typeof useTranslations>,
 ) {
   if (practiceTrack === "speaking") {
     return tPractice("single_speech");
@@ -289,25 +300,17 @@ function getModeLabel(
 
 function getSideLabel(
   side: PracticeSide,
-  tPractice: ReturnType<typeof useTranslations>
+  tPractice: ReturnType<typeof useTranslations>,
 ) {
   if (side === "proposition") return tPractice("for");
   if (side === "opposition") return tPractice("against");
   return tPractice("random");
 }
 
-function SummaryStat({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function SummaryStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-low p-4">
-      <Eyebrow className="font-medium text-on-surface-variant">
-        {label}
-      </Eyebrow>
+    <div className="rounded-[10px] border border-outline-variant bg-surface-container-low p-3">
+      <Eyebrow className="font-medium text-on-surface-variant">{label}</Eyebrow>
       <p className="mt-2 text-sm font-semibold text-on-surface">{value}</p>
     </div>
   );

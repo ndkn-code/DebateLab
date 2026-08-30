@@ -285,6 +285,7 @@
       "settings": "Settings",
       "switchToAdmin": "Switch to Administration",
       "adminShort": "Admin",
+      "teacherMode": "Teacher mode",
       "mode_switcher": "Switch subject and language",
       "subject": "Subject",
       "language": "Language",
@@ -1853,6 +1854,7 @@
   "admin": {
     "title": "Administration",
     "switchToAdmin": "Switch to Administration",
+    "teacherMode": "Preview Teacher mode",
     "backToDashboard": "Back to Dashboard",
     "nav": {
       "overview": "Overview",

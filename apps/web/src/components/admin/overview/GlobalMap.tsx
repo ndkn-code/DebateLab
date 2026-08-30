@@ -40,7 +40,7 @@ export function GlobalMap({ geoData }: Props) {
 
   return (
     <ChartCard title="Global Users" className="relative">
-      <div className="h-[350px]">
+      <div className="h-[220px]">
         <svg
           viewBox="0 0 100 52"
           className="h-full w-full rounded-xl bg-surface-container"
@@ -94,9 +94,11 @@ export function GlobalMap({ geoData }: Props) {
         </svg>
       </div>
       {tooltip && (
-        <div className="absolute top-16 right-6 bg-surface-container-lowest border border-outline-variant/20 rounded-xl px-3 py-2 shadow-md text-sm pointer-events-none">
+        <div className="pointer-events-none absolute right-4 top-14 rounded-[10px] border border-outline-variant bg-surface px-3 py-2 text-sm">
           <p className="font-medium text-on-surface">{tooltip.country}</p>
-          {tooltip.city && <p className="text-on-surface-variant text-xs">{tooltip.city}</p>}
+          {tooltip.city && (
+            <p className="text-on-surface-variant text-xs">{tooltip.city}</p>
+          )}
           <p className="text-primary font-semibold">{tooltip.count} users</p>
         </div>
       )}

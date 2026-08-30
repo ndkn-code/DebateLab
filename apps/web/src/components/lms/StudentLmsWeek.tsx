@@ -153,12 +153,12 @@ function AssignmentRow({
   const status = statusLabel(statusValue, vi);
 
   return (
-    <li className="flex flex-col gap-2 rounded-lg border border-outline-variant bg-surface-container-low p-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+    <li className="flex min-h-11 flex-col gap-2 rounded-[10px] border border-outline-variant bg-surface-container-low px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
       <div className="min-w-0">
         <p className="type-label font-semibold text-on-surface">
           {assignment.title}
         </p>
-        <p className="mt-1 type-caption text-on-surface-variant">
+        <p className="mt-0.5 type-caption text-on-surface-variant">
           {relationLabel(assignment.relationType, vi)}
           {assignment.dueAt
             ? ` · ${vi ? "Hạn" : "Due"} ${formatDateTime(assignment.dueAt, locale, timezone)}`
@@ -167,13 +167,13 @@ function AssignmentRow({
       </div>
       <div className="flex items-center gap-2">
         <span
-          className={`rounded-full px-2 py-1 type-caption font-semibold ${statusTone(statusValue)}`}
+          className={`inline-flex h-5 items-center rounded-md px-1.5 type-caption font-semibold ${statusTone(statusValue)}`}
         >
           {status}
         </span>
         <Link
           href={`/dashboard/clubs/${assignment.clubId}/assignments/${assignment.id}`}
-          className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-outline-variant px-2.5 type-caption font-semibold text-primary hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="inline-flex h-8 items-center gap-1 rounded-[10px] border border-outline-variant px-2.5 type-caption font-semibold text-primary transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           {vi ? "Mở" : "Open"}
           <ExternalLink className="size-3.5" aria-hidden="true" />
@@ -208,8 +208,8 @@ function OccurrenceCard({
   const vi = locale === "vi";
   const attendance = occurrence.attendance;
   return (
-    <article className="rounded-xl border border-outline-variant bg-surface p-4">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+    <article className="rounded-[10px] border border-outline-variant bg-surface p-3 shadow-token-card">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 type-caption text-on-surface-variant">
             <span className="inline-flex items-center gap-1 font-semibold text-primary">
@@ -221,32 +221,32 @@ function OccurrenceCard({
             <span>{occurrence.timezone}</span>
             {attendance ? (
               <span
-                className={`rounded-full px-2 py-0.5 font-semibold ${statusTone(attendance)}`}
+                className={`inline-flex h-5 items-center rounded-md px-1.5 font-semibold ${statusTone(attendance)}`}
               >
                 {statusLabel(attendance, vi)}
               </span>
             ) : null}
           </div>
-          <h3 className="mt-2 type-heading-sm font-semibold text-on-surface">
+          <h3 className="mt-1.5 type-title-sm font-semibold text-on-surface">
             {occurrence.title}
           </h3>
-          <p className="mt-1 type-body-sm text-on-surface-variant">
+          <p className="mt-0.5 type-body-sm text-on-surface-variant">
             {occurrence.classTitle} · {occurrence.courseTitle}
           </p>
           {occurrence.lessonTitle || occurrence.activityTitle ? (
-            <p className="mt-2 type-caption text-on-surface-variant">
+            <p className="mt-1 type-caption text-on-surface-variant">
               {[occurrence.lessonTitle, occurrence.activityTitle]
                 .filter(Boolean)
                 .join(" · ")}
             </p>
           ) : null}
           {occurrence.notes ? (
-            <p className="mt-3 rounded-lg bg-surface-container-low px-3 py-2 type-body-sm text-on-surface-variant">
+            <p className="mt-2 rounded-[10px] bg-surface-container-low px-3 py-2 type-body-sm text-on-surface-variant">
               {occurrence.notes}
             </p>
           ) : null}
         </div>
-        <span className="inline-flex min-h-9 shrink-0 items-center justify-center rounded-lg border border-outline-variant px-3 type-label font-semibold text-on-surface-variant">
+        <span className="inline-flex h-5 shrink-0 items-center justify-center rounded-md border border-outline-variant px-1.5 type-caption font-semibold text-on-surface-variant">
           {vi ? "Lớp IELTS" : "IELTS class"}
         </span>
       </div>
@@ -259,14 +259,14 @@ function OccurrenceCard({
 
       {occurrence.resources.length > 0 ? (
         <section
-          className="mt-4 border-t border-outline-variant pt-3"
+          className="mt-3 border-t border-outline-variant pt-2.5"
           aria-label={vi ? "Tài liệu" : "Resources"}
         >
           <div className="flex items-center gap-2 type-label font-semibold text-on-surface">
             <BookOpenText className="size-4 text-primary" aria-hidden="true" />
             {vi ? "Tài liệu" : "Resources"}
           </div>
-          <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+          <ul className="mt-2 grid gap-1.5 sm:grid-cols-2">
             {occurrence.resources.map((resource) => {
               const href = resource.signedUrl ?? resource.url;
               return (
@@ -276,7 +276,7 @@ function OccurrenceCard({
                       href={href}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex min-h-10 items-center justify-between gap-2 rounded-lg border border-outline-variant px-3 type-body-sm text-primary hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="flex h-10 items-center justify-between gap-2 rounded-[10px] border border-outline-variant px-3 type-body-sm text-primary transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <span className="min-w-0 truncate">{resource.title}</span>
                       <ExternalLink
@@ -285,7 +285,7 @@ function OccurrenceCard({
                       />
                     </a>
                   ) : (
-                    <span className="flex min-h-10 items-center rounded-lg border border-outline-variant px-3 type-body-sm text-on-surface-variant">
+                    <span className="flex h-10 items-center rounded-[10px] border border-outline-variant px-3 type-body-sm text-on-surface-variant">
                       {resource.title}
                     </span>
                   )}
@@ -298,7 +298,7 @@ function OccurrenceCard({
 
       {occurrence.assignments.length > 0 ? (
         <section
-          className="mt-4 border-t border-outline-variant pt-3"
+          className="mt-3 border-t border-outline-variant pt-2.5"
           aria-label={vi ? "Bài tập" : "Assignments"}
         >
           <div className="flex items-center gap-2 type-label font-semibold text-on-surface">
@@ -323,7 +323,7 @@ function OccurrenceCard({
 
 function EmptyState({ vi }: { vi: boolean }) {
   return (
-    <div className="rounded-xl border border-dashed border-outline-variant bg-surface-container-low px-4 py-10 text-center">
+    <div className="rounded-[10px] border border-dashed border-outline-variant bg-surface-container-low px-4 py-8 text-center">
       <CalendarDays
         className="mx-auto size-8 text-on-surface-variant"
         aria-hidden="true"
@@ -362,226 +362,332 @@ export function StudentLmsWeek({
     `/ielts/classes?weekStart=${weekStart}`;
   const hasAnnouncements = data.announcements.length > 0;
   const hasNotifications = data.notifications.length > 0;
+  const sortedOccurrences = [...data.occurrences].sort((left, right) =>
+    left.startsAt.localeCompare(right.startsAt),
+  );
+  const nextOccurrence =
+    sortedOccurrences.find((occurrence) => occurrence.date >= today) ??
+    sortedOccurrences[0];
+  const outstandingAssignments = sortedOccurrences.flatMap((occurrence) =>
+    occurrence.assignments
+      .filter(
+        (assignment) =>
+          !assignment.submissionState ||
+          assignment.gradeStatus === "resubmit_requested",
+      )
+      .map((assignment) => ({ assignment, occurrence })),
+  );
+  const nextAssignment = [...outstandingAssignments].sort((left, right) => {
+    if (!left.assignment.dueAt) return 1;
+    if (!right.assignment.dueAt) return -1;
+    return left.assignment.dueAt.localeCompare(right.assignment.dueAt);
+  })[0];
 
   return (
     <ProductPageShell>
-      <PageContainer size="wide" className="py-5 lg:py-8">
-        <header className="flex flex-col gap-4 border-b border-outline-variant pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <PageContainer size="data" className="py-4 lg:py-5">
+        <header className="flex flex-col gap-3 border-b border-outline-variant pb-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="type-label font-semibold uppercase tracking-widest text-primary">
               {vi ? "Không gian học IELTS" : "IELTS learner workspace"}
             </p>
-            <h1 className="mt-1 type-heading-lg font-semibold text-on-surface">
+            <h1 className="mt-1 type-heading-md font-semibold text-on-surface">
               {vi ? "Lịch học tuần này" : "My learning week"}
             </h1>
-            <p className="mt-1 type-body-sm text-on-surface-variant">
+            <p className="mt-0.5 type-body-sm text-on-surface-variant">
               {vi
                 ? "Xem lớp học, tài liệu, bài tập và nhận xét của giáo viên theo từng ngày."
                 : "See classes, resources, assignments, and teacher feedback by lesson date."}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <Link
               href={weekQuery(addDays(data.range.startDate, -7))}
               aria-label={vi ? "Tuần trước" : "Previous week"}
-              className="inline-flex size-10 items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex size-8 items-center justify-center rounded-[10px] border border-outline-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ChevronLeft className="size-4" aria-hidden="true" />
             </Link>
             <Link
               href="/ielts/classes"
-              className="inline-flex min-h-10 items-center rounded-lg border border-outline-variant px-3 type-label font-semibold hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex h-8 items-center rounded-[10px] border border-outline-variant px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {vi ? "Hôm nay" : "Today"}
             </Link>
             <Link
               href={weekQuery(addDays(data.range.startDate, 7))}
               aria-label={vi ? "Tuần sau" : "Next week"}
-              className="inline-flex size-10 items-center justify-center rounded-lg border border-outline-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex size-8 items-center justify-center rounded-[10px] border border-outline-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ChevronRight className="size-4" aria-hidden="true" />
             </Link>
           </div>
         </header>
 
-        <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-          <p className="type-body-sm font-semibold text-on-surface">
-            {weekLabel}
-          </p>
+        <section className="mt-4 grid gap-3 rounded-[10px] border border-outline-variant bg-surface p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <div className="flex min-w-0 items-start gap-3">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-primary text-on-primary">
+              <ClipboardList className="size-4" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <p className="type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
+                {vi ? "Việc tiếp theo" : "Next action"}
+              </p>
+              <h2 className="mt-0.5 truncate type-title-sm font-semibold text-on-surface">
+                {nextAssignment?.assignment.title ??
+                  nextOccurrence?.title ??
+                  (vi ? "Xem bài được giao" : "Review assigned work")}
+              </h2>
+              <p className="mt-0.5 type-body-sm text-on-surface-variant">
+                {nextAssignment?.assignment.dueAt
+                  ? `${vi ? "Hạn" : "Due"} ${formatDateTime(nextAssignment.assignment.dueAt, locale, timezone)} · ${nextAssignment.occurrence.classTitle}`
+                  : nextOccurrence
+                    ? `${formatDateTime(nextOccurrence.startsAt, locale, nextOccurrence.timezone)} · ${nextOccurrence.classTitle}`
+                    : vi
+                      ? "Tất cả bài tập và phản hồi ở một nơi."
+                      : "Assignments and teacher feedback in one place."}
+              </p>
+            </div>
+          </div>
           <Link
-            href="/ielts/assigned"
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 type-label font-semibold text-on-primary hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            href={
+              nextAssignment
+                ? `/dashboard/clubs/${nextAssignment.assignment.clubId}/assignments/${nextAssignment.assignment.id}`
+                : "/ielts/assigned"
+            }
+            className="inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-3 type-label font-semibold text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
-            <ClipboardList className="size-4" aria-hidden="true" />
-            {vi ? "Bài được giao" : "Assigned work"}
+            {nextAssignment
+              ? vi
+                ? "Mở bài"
+                : "Open work"
+              : vi
+                ? "Bài được giao"
+                : "Assigned work"}
+            <ExternalLink className="size-3.5" aria-hidden="true" />
           </Link>
-        </div>
+        </section>
 
-        <section
-          className="mt-4 grid gap-3"
-          aria-label={vi ? "Lịch học theo tuần" : "Weekly class schedule"}
-        >
-          {dates.map((date) => {
-            const items = grouped.get(date) ?? [];
-            const isToday = date === today;
-            return (
-              <div key={date} className="grid gap-3 lg:grid-cols-[10rem_1fr]">
-                <div
-                  className={`rounded-xl border p-3 lg:self-start ${isToday ? "border-primary bg-primary-container/35" : "border-outline-variant bg-surface-container-low"}`}
-                >
-                  <p className="type-label font-semibold uppercase text-on-surface-variant">
-                    {formatDate(date, locale, { weekday: "long" })}
-                  </p>
-                  <p className="mt-1 type-heading-sm font-semibold text-on-surface">
-                    {formatDate(date, locale, {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </p>
-                  {isToday ? (
-                    <span className="mt-2 inline-flex rounded-full bg-primary px-2 py-0.5 type-caption font-semibold text-on-primary">
-                      {vi ? "Hôm nay" : "Today"}
-                    </span>
-                  ) : null}
-                </div>
-                <div className="grid gap-3">
-                  {items.length > 0 ? (
-                    items.map((item) => (
+        <section className="mt-3" aria-labelledby="student-week-heading">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2
+                id="student-week-heading"
+                className="type-title-sm font-semibold text-on-surface"
+              >
+                {vi ? "Tuần học" : "Learning week"}
+              </h2>
+              <p className="type-caption text-on-surface-variant">
+                {weekLabel}
+              </p>
+            </div>
+            <Link
+              href="/ielts/assigned"
+              className="type-label font-semibold text-primary focus-visible:rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            >
+              {vi ? "Xem tất cả bài tập" : "View all assigned work"}
+            </Link>
+          </div>
+          <div className="mt-2 overflow-x-auto pb-1">
+            <ol className="grid min-w-[36rem] grid-cols-7 overflow-hidden rounded-[10px] border border-outline-variant bg-surface">
+              {dates.map((date) => {
+                const itemCount = (grouped.get(date) ?? []).length;
+                const isToday = date === today;
+                return (
+                  <li
+                    key={date}
+                    aria-current={isToday ? "date" : undefined}
+                    className={`min-h-11 border-l border-outline-variant px-2 py-2 first:border-l-0 ${isToday ? "bg-primary-container/45" : "bg-surface"}`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <p className="type-caption font-semibold uppercase text-on-surface-variant">
+                          {formatDate(date, locale, { weekday: "short" })}
+                        </p>
+                        <p className="type-label font-semibold text-on-surface">
+                          {formatDate(date, locale, { day: "numeric" })}
+                        </p>
+                      </div>
+                      {itemCount > 0 ? (
+                        <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-surface-container-high px-1 type-caption font-semibold text-on-surface-variant">
+                          {itemCount}
+                        </span>
+                      ) : null}
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </div>
+        </section>
+
+        <div className="mt-3 grid gap-4 xl:grid-cols-[minmax(0,1fr)_20rem]">
+          <section
+            className="grid content-start gap-2"
+            aria-label={vi ? "Lịch học theo tuần" : "Weekly class schedule"}
+          >
+            {dates.map((date) => {
+              const items = grouped.get(date) ?? [];
+              const isToday = date === today;
+              if (items.length === 0) return null;
+              return (
+                <div key={date} className="grid gap-2 lg:grid-cols-[8rem_1fr]">
+                  <div
+                    className={`rounded-[10px] border px-3 py-2 lg:self-start ${isToday ? "border-primary bg-primary-container/35" : "border-outline-variant bg-surface-container-low"}`}
+                  >
+                    <p className="type-label font-semibold uppercase text-on-surface-variant">
+                      {formatDate(date, locale, { weekday: "long" })}
+                    </p>
+                    <p className="mt-0.5 type-title-sm font-semibold text-on-surface">
+                      {formatDate(date, locale, {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </p>
+                    {isToday ? (
+                      <span className="mt-1 inline-flex h-5 items-center rounded-md bg-primary px-1.5 type-caption font-semibold text-on-primary">
+                        {vi ? "Hôm nay" : "Today"}
+                      </span>
+                    ) : null}
+                  </div>
+                  <div className="grid gap-2">
+                    {items.map((item) => (
                       <OccurrenceCard
                         key={item.id}
                         occurrence={item}
                         locale={locale}
                         materials={materialsByOccurrence[item.id] ?? []}
                       />
-                    ))
-                  ) : (
-                    <EmptyState vi={vi} />
-                  )}
+                    ))}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </section>
-
-        <div className="mt-8 grid gap-4 lg:grid-cols-2">
-          <section
-            className="rounded-xl border border-outline-variant bg-surface p-4"
-            aria-labelledby="student-announcements-heading"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <h2
-                id="student-announcements-heading"
-                className="flex items-center gap-2 type-heading-sm font-semibold text-on-surface"
-              >
-                <MessageSquareText
-                  className="size-4 text-primary"
-                  aria-hidden="true"
-                />
-                {vi ? "Thông báo lớp" : "Class announcements"}
-              </h2>
-            </div>
-            {hasAnnouncements ? (
-              <ul className="mt-3 grid gap-3">
-                {data.announcements.slice(0, 5).map((announcement) => (
-                  <li
-                    key={announcement.id}
-                    className="border-t border-outline-variant pt-3 first:border-t-0 first:pt-0"
-                  >
-                    <p className="type-label font-semibold text-on-surface">
-                      {announcement.title}
-                    </p>
-                    <p className="mt-1 whitespace-pre-wrap type-body-sm text-on-surface-variant">
-                      {announcement.body}
-                    </p>
-                    {announcement.publishedAt ? (
-                      <p className="mt-2 type-caption text-on-surface-variant">
-                        {formatDateTime(
-                          announcement.publishedAt,
-                          locale,
-                          timezone,
-                        )}
-                      </p>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 type-body-sm text-on-surface-variant">
-                {vi ? "Chưa có thông báo mới." : "No announcements yet."}
-              </p>
-            )}
+              );
+            })}
+            {data.occurrences.length === 0 ? <EmptyState vi={vi} /> : null}
           </section>
-
-          <section
-            className="rounded-xl border border-outline-variant bg-surface p-4"
-            aria-labelledby="student-notifications-heading"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <h2
-                id="student-notifications-heading"
-                className="flex items-center gap-2 type-heading-sm font-semibold text-on-surface"
-              >
-                <BellRing className="size-4 text-primary" aria-hidden="true" />
-                {vi ? "Thông báo của bạn" : "Your notifications"}
-              </h2>
-              {data.unreadNotifications > 0 ? (
-                <span className="rounded-full bg-primary px-2 py-0.5 type-caption font-semibold text-on-primary">
-                  {data.unreadNotifications}
-                </span>
-              ) : null}
-            </div>
-            {hasNotifications ? (
-              <ul className="mt-3 grid gap-2">
-                {data.notifications.slice(0, 5).map((notification) => (
-                  <li
-                    key={notification.id}
-                    className={`rounded-lg border p-3 ${notification.readAt ? "border-outline-variant bg-surface-container-low" : "border-primary/40 bg-primary-container/30"}`}
-                  >
-                    <div className="flex items-start gap-2">
-                      {!notification.readAt ? (
-                        <CheckCircle2
-                          className="mt-0.5 size-4 shrink-0 text-primary"
-                          aria-label={vi ? "Chưa đọc" : "Unread"}
-                        />
-                      ) : null}
-                      <div className="min-w-0">
-                        <p className="type-label font-semibold text-on-surface">
-                          {notification.title}
-                        </p>
-                        <p className="mt-1 type-body-sm text-on-surface-variant">
-                          {notification.body}
-                        </p>
-                        <p className="mt-2 type-caption text-on-surface-variant">
+          <aside className="grid content-start gap-3">
+            <section
+              className="rounded-[10px] border border-outline-variant bg-surface p-3"
+              aria-labelledby="student-announcements-heading"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h2
+                  id="student-announcements-heading"
+                  className="flex items-center gap-2 type-heading-sm font-semibold text-on-surface"
+                >
+                  <MessageSquareText
+                    className="size-4 text-primary"
+                    aria-hidden="true"
+                  />
+                  {vi ? "Thông báo lớp" : "Class announcements"}
+                </h2>
+              </div>
+              {hasAnnouncements ? (
+                <ul className="mt-2 divide-y divide-outline-variant">
+                  {data.announcements.slice(0, 5).map((announcement) => (
+                    <li
+                      key={announcement.id}
+                      className="py-2.5 first:pt-0 last:pb-0"
+                    >
+                      <p className="type-label font-semibold text-on-surface">
+                        {announcement.title}
+                      </p>
+                      <p className="mt-0.5 line-clamp-3 whitespace-pre-wrap type-body-sm text-on-surface-variant">
+                        {announcement.body}
+                      </p>
+                      {announcement.publishedAt ? (
+                        <p className="mt-1 type-caption text-on-surface-variant">
                           {formatDateTime(
-                            notification.createdAt,
+                            announcement.publishedAt,
                             locale,
                             timezone,
                           )}
                         </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-3 type-body-sm text-on-surface-variant">
+                  {vi ? "Chưa có thông báo mới." : "No announcements yet."}
+                </p>
+              )}
+            </section>
+
+            <section
+              className="rounded-[10px] border border-outline-variant bg-surface p-3"
+              aria-labelledby="student-notifications-heading"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <h2
+                  id="student-notifications-heading"
+                  className="flex items-center gap-2 type-heading-sm font-semibold text-on-surface"
+                >
+                  <BellRing
+                    className="size-4 text-primary"
+                    aria-hidden="true"
+                  />
+                  {vi ? "Thông báo của bạn" : "Your notifications"}
+                </h2>
+                {data.unreadNotifications > 0 ? (
+                  <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-md bg-primary px-1.5 type-caption font-semibold text-on-primary">
+                    {data.unreadNotifications}
+                  </span>
+                ) : null}
+              </div>
+              {hasNotifications ? (
+                <ul className="mt-2 divide-y divide-outline-variant">
+                  {data.notifications.slice(0, 5).map((notification) => (
+                    <li
+                      key={notification.id}
+                      className={`py-2.5 first:pt-0 last:pb-0 ${notification.readAt ? "" : "text-on-surface"}`}
+                    >
+                      <div className="flex items-start gap-2">
                         {!notification.readAt ? (
-                          <form
-                            action={markNotificationRead.bind(
-                              null,
-                              notification.id,
-                            )}
-                            className="mt-2"
-                          >
-                            <button className="min-h-10 rounded-lg border border-outline-variant px-2.5 type-caption font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-                              {vi ? "Đánh dấu đã đọc" : "Mark as read"}
-                            </button>
-                          </form>
+                          <CheckCircle2
+                            className="mt-0.5 size-4 shrink-0 text-primary"
+                            aria-label={vi ? "Chưa đọc" : "Unread"}
+                          />
                         ) : null}
+                        <div className="min-w-0">
+                          <p className="type-label font-semibold text-on-surface">
+                            {notification.title}
+                          </p>
+                          <p className="mt-0.5 line-clamp-3 type-body-sm text-on-surface-variant">
+                            {notification.body}
+                          </p>
+                          <p className="mt-1 type-caption text-on-surface-variant">
+                            {formatDateTime(
+                              notification.createdAt,
+                              locale,
+                              timezone,
+                            )}
+                          </p>
+                          {!notification.readAt ? (
+                            <form
+                              action={markNotificationRead.bind(
+                                null,
+                                notification.id,
+                              )}
+                              className="mt-1.5"
+                            >
+                              <button className="h-8 rounded-[10px] border border-outline-variant px-2.5 type-caption font-semibold text-primary transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                                {vi ? "Đánh dấu đã đọc" : "Mark as read"}
+                              </button>
+                            </form>
+                          ) : null}
+                        </div>
                       </div>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-3 type-body-sm text-on-surface-variant">
-                {vi ? "Bạn đã cập nhật." : "You’re all caught up."}
-              </p>
-            )}
-          </section>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-3 type-body-sm text-on-surface-variant">
+                  {vi ? "Bạn đã cập nhật." : "You’re all caught up."}
+                </p>
+              )}
+            </section>
+          </aside>
         </div>
       </PageContainer>
     </ProductPageShell>

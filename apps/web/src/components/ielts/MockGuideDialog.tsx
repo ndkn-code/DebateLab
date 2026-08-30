@@ -50,7 +50,7 @@ export function MockGuideDialog({
           <button
             type="button"
             onClick={() => onOpenChange(false)}
-            className="rounded-full bg-primary px-5 py-2 text-sm font-semibold text-on-primary transition hover:bg-primary/90"
+            className="inline-flex min-h-10 items-center justify-center rounded-[10px] bg-primary px-5 type-label font-semibold text-on-primary transition hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             {copy.guideClose}
           </button>

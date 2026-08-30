@@ -9,7 +9,6 @@ import {
   type ReactNode,
 } from "react";
 import Image from "next/image";
-import { motion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 
 import {
@@ -163,7 +162,7 @@ const SYSTEM_ACHIEVEMENT_KEYS: Record<string, true> = {
 
 function getKnownSystemKey(
   value: string | null | undefined,
-  knownKeys: Record<string, true>
+  knownKeys: Record<string, true>,
 ) {
   const key = normalizeSystemCopyKey(value);
   return key && knownKeys[key] ? key : null;
@@ -177,7 +176,7 @@ function getKnownAchievementKey(achievement: ProfileAchievementItem) {
 
 function localizeAchievementItem(
   achievement: ProfileAchievementItem,
-  t: ReturnType<typeof useTranslations<"profileSocial">>
+  t: ReturnType<typeof useTranslations<"profileSocial">>,
 ): ProfileAchievementItem {
   const key = getKnownAchievementKey(achievement);
   if (!key) return achievement;
@@ -194,39 +193,42 @@ function localizeAchievementItem(
 
 function localizeAchievementsData(
   data: ProfileAchievementsData | null | undefined,
-  t: ReturnType<typeof useTranslations<"profileSocial">>
+  t: ReturnType<typeof useTranslations<"profileSocial">>,
 ) {
   if (!data) return data;
 
   const localizedAchievements = data.achievements.map((achievement) =>
-    localizeAchievementItem(achievement, t)
+    localizeAchievementItem(achievement, t),
   );
   const localizedById = new Map(
-    localizedAchievements.map((achievement) => [achievement.id, achievement])
+    localizedAchievements.map((achievement) => [achievement.id, achievement]),
   );
 
   return {
     ...data,
     achievements: localizedAchievements,
     featured: data.featured.map((achievement) => {
-      return localizedById.get(achievement.id) ?? localizeAchievementItem(achievement, t);
+      return (
+        localizedById.get(achievement.id) ??
+        localizeAchievementItem(achievement, t)
+      );
     }),
   };
 }
 
 function localizePublicProfileData(
   data: PublicProfileData,
-  t: ReturnType<typeof useTranslations<"profileSocial">>
+  t: ReturnType<typeof useTranslations<"profileSocial">>,
 ): PublicProfileData {
   if (!data.profile) return data;
 
   const selectedTitleKey = getKnownSystemKey(
     data.profile.selectedTitle,
-    SYSTEM_TITLE_KEYS
+    SYSTEM_TITLE_KEYS,
   );
   const profileStatusKey = getKnownSystemKey(
     data.profile.profileStatus,
-    SYSTEM_STATUS_KEYS
+    SYSTEM_STATUS_KEYS,
   );
 
   return {
@@ -246,7 +248,7 @@ function localizePublicProfileData(
 function buildTabHref(
   baseHref: string,
   tab: ProfileSocialTab,
-  range: AnalyticsRangePreset
+  range: AnalyticsRangePreset,
 ) {
   const [path, query = ""] = baseHref.split("?");
   const params = new URLSearchParams(query);
@@ -262,7 +264,7 @@ function buildTabHref(
 
 function buildAnalyticsRangeHref(
   baseHref: string,
-  range: AnalyticsRangePreset
+  range: AnalyticsRangePreset,
 ) {
   const [path, query = ""] = baseHref.split("?");
   const params = new URLSearchParams(query);
@@ -290,7 +292,7 @@ function ProfileStatTile({
   return (
     <div
       aria-label={`${label}: ${typeof value === "string" || typeof value === "number" ? value : ""}`}
-      className="flex min-h-11 min-w-0 items-center gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2.5 transition-colors hover:border-primary"
+      className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 transition-colors hover:border-primary"
     >
       {art ? (
         <Image
@@ -301,15 +303,19 @@ function ProfileStatTile({
           unoptimized
           draggable={false}
           aria-hidden="true"
-          className="size-11 shrink-0 object-contain drop-shadow-token-card"
+          className="size-9 shrink-0 object-contain"
         />
       ) : (
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary-container text-primary-dim">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-container text-primary-dim">
           {icon}
         </span>
       )}
       <div className="min-w-0">
-        <Stat size="heading-md" as="p" className="truncate font-extrabold leading-6 text-on-surface">
+        <Stat
+          size="title"
+          as="p"
+          className="truncate font-semibold leading-5 text-on-surface"
+        >
           {value}
         </Stat>
         <p className="truncate type-caption font-semibold text-on-surface-variant">
@@ -338,7 +344,7 @@ function ProfileActionButton({
       onClick={onClick}
       className={cn(
         "inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 text-sm font-semibold text-on-surface shadow-token-card transition hover:border-outline-variant hover:bg-background disabled:cursor-not-allowed disabled:opacity-60",
-        className
+        className,
       )}
     >
       {children}
@@ -357,7 +363,10 @@ function DiscoveryAvatar({ shell }: { shell: ProfileDiscoveryShell }) {
   return (
     <Avatar className="h-11 w-11 shrink-0 border border-outline-variant bg-surface-container">
       {shell.profile.avatarUrl ? (
-        <AvatarImage src={shell.profile.avatarUrl} alt={shell.profile.displayName} />
+        <AvatarImage
+          src={shell.profile.avatarUrl}
+          alt={shell.profile.displayName}
+        />
       ) : null}
       <AvatarFallback className="bg-surface-container text-sm font-semibold text-on-surface">
         {getInitials(shell.profile.displayName)}
@@ -385,15 +394,26 @@ function DiscoveryConnectionButton({
         ? String((result as { status?: unknown }).status ?? "")
         : "";
 
-    if (rawStatus === "cancelled" || rawStatus === "removed" || rawStatus === "declined") {
+    if (
+      rawStatus === "cancelled" ||
+      rawStatus === "removed" ||
+      rawStatus === "declined"
+    ) {
       return { status: "none", viewerCanRequest: true };
     }
 
-    if (rawStatus === "disabled" || rawStatus === "not_found" || rawStatus === "rate_limited") {
+    if (
+      rawStatus === "disabled" ||
+      rawStatus === "not_found" ||
+      rawStatus === "rate_limited"
+    ) {
       return shell.connection;
     }
 
-    const status = coerceProfileConnectionStatus(rawStatus, shell.connection.status);
+    const status = coerceProfileConnectionStatus(
+      rawStatus,
+      shell.connection.status,
+    );
     return {
       status,
       viewerCanRequest: status === "none",
@@ -428,8 +448,9 @@ function DiscoveryConnectionButton({
         disabled={isPending}
         onClick={() =>
           runAction(
-            () => removeProfileConnection({ targetUserId: shell.profile.userId }),
-            t("removed_toast")
+            () =>
+              removeProfileConnection({ targetUserId: shell.profile.userId }),
+            t("removed_toast"),
           )
         }
         className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container px-3 text-xs font-semibold text-on-surface-variant disabled:opacity-60"
@@ -447,13 +468,18 @@ function DiscoveryConnectionButton({
         disabled={isPending}
         onClick={() =>
           runAction(
-            () => cancelProfileConnection({ targetUserId: shell.profile.userId }),
-            t("cancelled_toast")
+            () =>
+              cancelProfileConnection({ targetUserId: shell.profile.userId }),
+            t("cancelled_toast"),
           )
         }
         className="inline-flex h-9 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-xs font-semibold text-on-surface-variant disabled:opacity-60"
       >
-        {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Clock3 className="h-3.5 w-3.5" />}
+        {isPending ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Clock3 className="h-3.5 w-3.5" />
+        )}
         {t("requested")}
       </button>
     );
@@ -472,7 +498,7 @@ function DiscoveryConnectionButton({
                   requesterUserId: shell.profile.userId,
                   response: "accept",
                 }),
-              t("accepted_toast")
+              t("accepted_toast"),
             )
           }
           className="inline-flex h-9 items-center rounded-lg bg-primary px-3 text-xs font-semibold text-on-primary disabled:opacity-60"
@@ -489,7 +515,7 @@ function DiscoveryConnectionButton({
                   requesterUserId: shell.profile.userId,
                   response: "decline",
                 }),
-              t("declined_toast")
+              t("declined_toast"),
             )
           }
           className="inline-flex h-9 items-center rounded-lg border border-outline-variant bg-surface-container-lowest px-3 text-xs font-semibold text-on-surface-variant disabled:opacity-60"
@@ -507,13 +533,18 @@ function DiscoveryConnectionButton({
         disabled={isPending}
         onClick={() =>
           runAction(
-            () => requestProfileConnection({ targetUserId: shell.profile.userId }),
-            t("requested_toast")
+            () =>
+              requestProfileConnection({ targetUserId: shell.profile.userId }),
+            t("requested_toast"),
           )
         }
         className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-xs font-semibold text-on-primary disabled:opacity-60"
       >
-        {isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <UserPlus className="h-3.5 w-3.5" />}
+        {isPending ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <UserPlus className="h-3.5 w-3.5" />
+        )}
         {t("add_friend")}
       </button>
     );
@@ -540,7 +571,7 @@ function DiscoveryPersonCard({
       ...shell,
       connection,
     }),
-    [connection, shell]
+    [connection, shell],
   );
 
   const href = getDiscoveryProfileHref(shell);
@@ -552,7 +583,9 @@ function DiscoveryPersonCard({
           {shell.profile.displayName}
         </p>
         <p className="mt-0.5 truncate text-xs font-medium text-on-surface-variant">
-          {shell.profile.handle ? `@${shell.profile.handle}` : t("private_profile")}
+          {shell.profile.handle
+            ? `@${shell.profile.handle}`
+            : t("private_profile")}
         </p>
         {shell.profile.organization ? (
           <p className="mt-1 truncate text-xs text-on-surface-variant">
@@ -589,11 +622,17 @@ function FindFriendsDrawer({
   onOpenChange: (open: boolean) => void;
 }) {
   const t = useTranslations("profileSocial.discovery");
-  const [activeView, setActiveView] = useState<"search" | "requests" | "friends">("search");
-  const [center, setCenter] = useState<ProfileConnectionCenterData | null>(null);
-  const [suggestions, setSuggestions] = useState<ProfileDiscoverySuggestionsData | null>(null);
+  const [activeView, setActiveView] = useState<
+    "search" | "requests" | "friends"
+  >("search");
+  const [center, setCenter] = useState<ProfileConnectionCenterData | null>(
+    null,
+  );
+  const [suggestions, setSuggestions] =
+    useState<ProfileDiscoverySuggestionsData | null>(null);
   const [query, setQuery] = useState("");
-  const [searchResult, setSearchResult] = useState<ProfileDiscoveryResult | null>(null);
+  const [searchResult, setSearchResult] =
+    useState<ProfileDiscoveryResult | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSearching, startSearchTransition] = useTransition();
   const [isRotating, startRotateTransition] = useTransition();
@@ -610,7 +649,10 @@ function FindFriendsDrawer({
         setCenter(nextCenter);
         setSuggestions(nextSuggestions);
       } catch (error) {
-        showToast(error instanceof Error ? error.message : t("load_error"), "error");
+        showToast(
+          error instanceof Error ? error.message : t("load_error"),
+          "error",
+        );
       } finally {
         setIsLoading(false);
       }
@@ -629,7 +671,10 @@ function FindFriendsDrawer({
         const result = await searchProfileDiscovery({ query });
         setSearchResult(result);
       } catch (error) {
-        showToast(error instanceof Error ? error.message : t("search_error"), "error");
+        showToast(
+          error instanceof Error ? error.message : t("search_error"),
+          "error",
+        );
       }
     });
   }
@@ -643,7 +688,7 @@ function FindFriendsDrawer({
     }
     void navigator.clipboard.writeText(code).then(
       () => showToast(t("copy_success"), "success"),
-      () => showToast(t("copy_failed"), "warning")
+      () => showToast(t("copy_failed"), "warning"),
     );
   }
 
@@ -658,17 +703,26 @@ function FindFriendsDrawer({
         showToast(t("rotate_success"), "success");
         refreshCenter();
       } catch (error) {
-        showToast(error instanceof Error ? error.message : t("rotate_error"), "error");
+        showToast(
+          error instanceof Error ? error.message : t("rotate_error"),
+          "error",
+        );
       }
     });
   }
 
   if (!open) return null;
 
-  const requestCount = (center?.incoming.length ?? 0) + (center?.outgoing.length ?? 0);
+  const requestCount =
+    (center?.incoming.length ?? 0) + (center?.outgoing.length ?? 0);
 
   return (
-    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={t("dialog_label")}>
+    <div
+      className="fixed inset-0 z-50"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("dialog_label")}
+    >
       <button
         type="button"
         aria-label={t("close_find_friends")}
@@ -678,8 +732,12 @@ function FindFriendsDrawer({
       <aside className="absolute right-0 top-0 flex h-full w-full max-w-[440px] flex-col border-l border-outline-variant bg-background shadow-token-card">
         <div className="flex items-center justify-between border-b border-outline-variant px-5 py-4">
           <div>
-            <p className="text-xs font-semibold uppercase text-on-surface-variant">{t("eyebrow")}</p>
-            <h2 className="text-xl font-semibold text-on-surface">{t("title")}</h2>
+            <p className="text-xs font-semibold uppercase text-on-surface-variant">
+              {t("eyebrow")}
+            </p>
+            <h2 className="text-xl font-semibold text-on-surface">
+              {t("title")}
+            </h2>
           </div>
           <button
             type="button"
@@ -708,10 +766,14 @@ function FindFriendsDrawer({
             <button
               key={tab.value}
               type="button"
-              onClick={() => setActiveView(tab.value as "search" | "requests" | "friends")}
+              onClick={() =>
+                setActiveView(tab.value as "search" | "requests" | "friends")
+              }
               className={cn(
                 "relative inline-flex h-12 items-center justify-center gap-1.5 text-sm font-semibold transition",
-                activeView === tab.value ? "text-primary-dim" : "text-on-surface-variant"
+                activeView === tab.value
+                  ? "text-primary-dim"
+                  : "text-on-surface-variant",
               )}
             >
               <span>{tab.label}</span>
@@ -737,7 +799,10 @@ function FindFriendsDrawer({
           {activeView === "search" ? (
             <div className="space-y-5">
               <form onSubmit={handleSearch} className="space-y-3">
-                <label className="text-sm font-semibold text-on-surface" htmlFor="profile-discovery-search">
+                <label
+                  className="text-sm font-semibold text-on-surface"
+                  htmlFor="profile-discovery-search"
+                >
                   {t("search_label")}
                 </label>
                 <div className="flex h-11 items-center gap-2 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 focus-within:border-primary">
@@ -754,7 +819,11 @@ function FindFriendsDrawer({
                     disabled={isSearching}
                     className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-semibold text-on-primary disabled:opacity-60"
                   >
-                    {isSearching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : t("search_button")}
+                    {isSearching ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      t("search_button")
+                    )}
                   </button>
                 </div>
               </form>
@@ -762,7 +831,9 @@ function FindFriendsDrawer({
               <div className="rounded-lg border border-outline-variant bg-surface-container-lowest p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold uppercase text-on-surface-variant">{t("friend_code_label")}</p>
+                    <p className="text-xs font-semibold uppercase text-on-surface-variant">
+                      {t("friend_code_label")}
+                    </p>
                     <p className="mt-1 type-code font-semibold text-on-surface">
                       {center?.friendCode.code ?? t("loading")}
                     </p>
@@ -783,7 +854,11 @@ function FindFriendsDrawer({
                       className="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-outline-variant bg-background text-on-surface disabled:opacity-60"
                       aria-label={t("rotate_friend_code")}
                     >
-                      {isRotating ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}
+                      {isRotating ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <RefreshCw className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -812,7 +887,9 @@ function FindFriendsDrawer({
 
               {suggestions?.suggestions.length ? (
                 <div>
-                  <h3 className="mb-3 text-sm font-semibold text-on-surface">{t("suggestions_title")}</h3>
+                  <h3 className="mb-3 text-sm font-semibold text-on-surface">
+                    {t("suggestions_title")}
+                  </h3>
                   <div className="space-y-2">
                     {suggestions.suggestions.map((shell) => (
                       <DiscoveryPersonCard
@@ -830,7 +907,9 @@ function FindFriendsDrawer({
           {activeView === "requests" ? (
             <div className="space-y-5">
               <div>
-                <h3 className="mb-3 text-sm font-semibold text-on-surface">{t("incoming")}</h3>
+                <h3 className="mb-3 text-sm font-semibold text-on-surface">
+                  {t("incoming")}
+                </h3>
                 <div className="space-y-2">
                   {center?.incoming.length ? (
                     center.incoming.map((shell) => (
@@ -848,7 +927,9 @@ function FindFriendsDrawer({
                 </div>
               </div>
               <div>
-                <h3 className="mb-3 text-sm font-semibold text-on-surface">{t("outgoing")}</h3>
+                <h3 className="mb-3 text-sm font-semibold text-on-surface">
+                  {t("outgoing")}
+                </h3>
                 <div className="space-y-2">
                   {center?.outgoing.length ? (
                     center.outgoing.map((shell) => (
@@ -881,8 +962,12 @@ function FindFriendsDrawer({
               ) : (
                 <div className="rounded-lg border border-dashed border-outline-variant bg-surface-container-lowest px-4 py-12 text-center">
                   <UserRoundPlus className="mx-auto h-8 w-8 text-muted-foreground" />
-                  <p className="mt-3 text-sm font-semibold text-on-surface">{t("no_friends_title")}</p>
-                  <p className="mt-1 text-sm text-on-surface-variant">{t("no_friends_body")}</p>
+                  <p className="mt-3 text-sm font-semibold text-on-surface">
+                    {t("no_friends_title")}
+                  </p>
+                  <p className="mt-1 text-sm text-on-surface-variant">
+                    {t("no_friends_body")}
+                  </p>
                 </div>
               )}
             </div>
@@ -906,7 +991,7 @@ function ProfileConnectionActions({
   const [findFriendsOpen, setFindFriendsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [connection, setConnection] = useState<PublicProfileConnection>(
-    initialConnection ?? { status: "none", viewerCanRequest: false }
+    initialConnection ?? { status: "none", viewerCanRequest: false },
   );
   const cta = getProfileConnectionCta(connection);
 
@@ -933,7 +1018,7 @@ function ProfileConnectionActions({
   function runAction(
     action: () => Promise<unknown>,
     successMessage: string,
-    options: { updateConnection?: boolean } = { updateConnection: true }
+    options: { updateConnection?: boolean } = { updateConnection: true },
   ) {
     startTransition(async () => {
       try {
@@ -945,7 +1030,7 @@ function ProfileConnectionActions({
       } catch (error) {
         showToast(
           error instanceof Error ? error.message : t("actions.error"),
-          "error"
+          "error",
         );
       }
     });
@@ -990,12 +1075,16 @@ function ProfileConnectionActions({
           onClick={() =>
             runAction(
               () => requestProfileConnection({ targetUserId: profile.userId }),
-              t("actions.requested_toast")
+              t("actions.requested_toast"),
             )
           }
           className="border-transparent bg-primary text-on-primary hover:bg-primary-dim"
         >
-          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <UserPlus className="h-4 w-4" />
+          )}
           {t("actions.add_friend")}
         </ProfileActionButton>
       ) : null}
@@ -1006,11 +1095,15 @@ function ProfileConnectionActions({
           onClick={() =>
             runAction(
               () => cancelProfileConnection({ targetUserId: profile.userId }),
-              t("actions.cancelled_toast")
+              t("actions.cancelled_toast"),
             )
           }
         >
-          {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Clock3 className="h-4 w-4" />}
+          {isPending ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Clock3 className="h-4 w-4" />
+          )}
           {t("actions.requested")}
         </ProfileActionButton>
       ) : null}
@@ -1026,7 +1119,7 @@ function ProfileConnectionActions({
                     requesterUserId: profile.userId,
                     response: "accept",
                   }),
-                t("actions.accepted_toast")
+                t("actions.accepted_toast"),
               )
             }
             className="border-transparent bg-primary text-on-primary hover:bg-primary-dim"
@@ -1043,7 +1136,7 @@ function ProfileConnectionActions({
                     requesterUserId: profile.userId,
                     response: "decline",
                   }),
-                t("actions.declined_toast")
+                t("actions.declined_toast"),
               )
             }
           >
@@ -1059,7 +1152,7 @@ function ProfileConnectionActions({
           onClick={() =>
             runAction(
               () => removeProfileConnection({ targetUserId: profile.userId }),
-              t("actions.removed_toast")
+              t("actions.removed_toast"),
             )
           }
         >
@@ -1082,7 +1175,7 @@ function ProfileConnectionActions({
                     reason: "other",
                   }),
                 t("actions.reported_toast"),
-                { updateConnection: false }
+                { updateConnection: false },
               )
             }
           >
@@ -1094,7 +1187,7 @@ function ProfileConnectionActions({
             onClick={() =>
               runAction(
                 () => blockProfile({ targetUserId: profile.userId }),
-                t("actions.blocked_toast")
+                t("actions.blocked_toast"),
               )
             }
           >
@@ -1123,13 +1216,13 @@ function HeaderFeaturedAchievements({
   if (achievements.length === 0) return null;
 
   return (
-    <div className="mt-4 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
+    <div className="mt-3 flex flex-wrap items-center justify-center gap-2 lg:justify-start">
       {achievements.slice(0, 3).map((achievement, index) => (
         <span
           key={achievement.id}
           className={cn(
-            "inline-flex h-9 items-center gap-2 rounded-full py-1 pl-1.5 pr-3.5 type-caption font-bold",
-            FEATURED_CHIP_TONES[index % FEATURED_CHIP_TONES.length]
+            "inline-flex h-8 items-center gap-2 rounded-md py-1 pl-1.5 pr-2.5 type-caption font-semibold",
+            FEATURED_CHIP_TONES[index % FEATURED_CHIP_TONES.length],
           )}
           title={achievement.title}
         >
@@ -1161,31 +1254,39 @@ function ProfileHeader({
 
   if (!profile) return null;
 
-  const handleLabel = profile.handle ? `@${profile.handle}` : t("header.no_handle");
+  const handleLabel = profile.handle
+    ? `@${profile.handle}`
+    : t("header.no_handle");
   const seasonXp = profile.season?.seasonXp ?? 0;
   const statusLine = profile.profileStatus ?? t("header.default_status");
   const leagueTierId = coerceLeagueTierId(profile.season?.leagueTier);
 
   return (
-    <header className="grid gap-6 rounded-xl border border-outline-variant bg-surface p-5 pb-6 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-7">
-      <div className="flex items-start justify-center lg:justify-end">
-        <span className="inline-flex rounded-full border-4 border-primary-container p-1">
-            <Avatar className="h-36 w-36 bg-surface-container sm:h-40 sm:w-40 lg:h-44 lg:w-44">
-              {profile.avatarUrl ? (
-                <AvatarImage src={profile.avatarUrl} alt={profile.displayName} />
-              ) : null}
-              <AvatarFallback className="bg-primary-container text-5xl font-semibold text-on-surface">
-                {getInitials(profile.displayName)}
-              </AvatarFallback>
-            </Avatar>
+    <header className="grid gap-4 rounded-xl border border-outline-variant bg-surface p-4 sm:p-5 lg:grid-cols-[120px_minmax(0,1fr)] lg:items-start lg:gap-5">
+      <div className="flex items-start justify-center lg:justify-start">
+        <span className="inline-flex rounded-full border-2 border-primary-container p-1">
+          <Avatar className="size-24 bg-surface-container sm:size-28">
+            {profile.avatarUrl ? (
+              <AvatarImage src={profile.avatarUrl} alt={profile.displayName} />
+            ) : null}
+            <AvatarFallback className="bg-primary-container type-heading-xl font-semibold text-on-surface">
+              {getInitials(profile.displayName)}
+            </AvatarFallback>
+          </Avatar>
         </span>
       </div>
 
       <div className="min-w-0 pt-1 text-center lg:text-left">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
-            <p className="text-sm font-semibold text-on-surface-variant">{handleLabel}</p>
-            <Display size="lg" as="h1" className="mt-2 text-balance leading-none">
+            <p className="text-sm font-semibold text-on-surface-variant">
+              {handleLabel}
+            </p>
+            <Display
+              size="lg"
+              as="h1"
+              className="mt-1 text-balance leading-tight"
+            >
               {profile.displayName}
             </Display>
           </div>
@@ -1199,7 +1300,7 @@ function ProfileHeader({
 
         <HeaderFeaturedAchievements achievements={featuredAchievements} />
 
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm font-medium text-on-surface-variant lg:justify-start">
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-4 type-label font-medium text-on-surface-variant lg:justify-start">
           {profile.organization ? (
             <span className="inline-flex items-center gap-2">
               <Building2 className="h-4.5 w-4.5 text-on-surface-variant" />
@@ -1212,7 +1313,7 @@ function ProfileHeader({
           </span>
         </div>
 
-        <div className="mt-7 grid grid-cols-2 gap-3 xl:grid-cols-4">
+        <div className="mt-4 grid grid-cols-2 gap-2 xl:grid-cols-4">
           <ProfileStatTile
             art={LEADERBOARD_LEAGUE_ASSETS[leagueTierId]}
             value={profile.season?.rank ? `#${profile.season.rank}` : "—"}
@@ -1265,8 +1366,8 @@ function ProfileTabs({
   const t = useTranslations("profileSocial.tabs");
 
   return (
-    <nav className="flex justify-center border-b border-outline-variant" aria-label={t("label")}>
-      <div className="flex w-full max-w-[560px] items-center justify-center gap-4 sm:gap-10">
+    <nav className="overflow-x-auto" aria-label={t("label")}>
+      <div className="inline-flex min-w-full items-center gap-1 rounded-[10px] border border-outline-variant bg-surface-container p-1 sm:min-w-0">
         {PROFILE_SOCIAL_TABS.map((tab) => {
           const isActive = activeTab === tab;
           const isPending = pendingTab === tab;
@@ -1282,21 +1383,18 @@ function ProfileTabs({
               aria-busy={isPending ? true : undefined}
               data-href={href}
               className={cn(
-                "relative inline-flex h-11 min-w-[7rem] items-center justify-center gap-2 type-label font-medium transition-colors",
+                "relative inline-flex h-8 min-w-[7rem] flex-1 items-center justify-center gap-2 rounded-md px-3 type-label font-medium transition-colors",
                 isActive
-                  ? "text-primary-dim"
-                  : "text-on-surface-variant hover:text-on-surface"
+                  ? "bg-surface text-on-surface shadow-none"
+                  : "text-on-surface-variant hover:text-on-surface",
               )}
             >
-              {isPending ? <Loader2 className="h-5 w-5 animate-spin" /> : TAB_ICONS[tab]}
+              {isPending ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                TAB_ICONS[tab]
+              )}
               {t(tab)}
-              {isActive ? (
-                <motion.span
-                  layoutId="profile-tab-underline"
-                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-                  className="absolute bottom-0 left-3 right-3 h-[2.5px] rounded-full bg-primary"
-                />
-              ) : null}
             </button>
           );
         })}
@@ -1307,30 +1405,28 @@ function ProfileTabs({
 
 function coerceShellFeaturedAchievements(
   value: PublicProfileShell["featuredAchievements"],
-  t: ReturnType<typeof useTranslations<"profileSocial">>
+  t: ReturnType<typeof useTranslations<"profileSocial">>,
 ) {
   if (!Array.isArray(value)) return [];
 
   return value
     .map(coerceProfileAchievementItem)
-    .filter((achievement): achievement is ProfileAchievementItem => Boolean(achievement))
+    .filter((achievement): achievement is ProfileAchievementItem =>
+      Boolean(achievement),
+    )
     .map((achievement) => localizeAchievementItem(achievement, t));
 }
 
-function PrivacyPanel({
-  title,
-  body,
-}: {
-  title: string;
-  body: string;
-}) {
+function PrivacyPanel({ title, body }: { title: string; body: string }) {
   return (
     <section className="rounded-xl border border-dashed border-outline-variant bg-surface-container-lowest px-6 py-16 text-center">
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-surface-container text-on-surface-variant">
         <ShieldCheck className="h-6 w-6" />
       </div>
       <h2 className="mt-5 text-xl font-semibold text-on-surface">{title}</h2>
-      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-on-surface-variant">{body}</p>
+      <p className="mx-auto mt-2 max-w-md text-sm leading-6 text-on-surface-variant">
+        {body}
+      </p>
     </section>
   );
 }
@@ -1403,7 +1499,10 @@ function TabBody({
   }
 
   if (tab === "activities") {
-    if ((!visible.activities && data.state !== "self") || activityFeedData?.state === "private") {
+    if (
+      (!visible.activities && data.state !== "self") ||
+      activityFeedData?.state === "private"
+    ) {
       return (
         <PrivacyPanel
           title={t("states.activities_private.title")}
@@ -1446,19 +1545,19 @@ export function SocialProfilePage({
   const router = useRouter();
   const localizedPublicProfile = useMemo(
     () => localizePublicProfileData(publicProfile, t),
-    [publicProfile, t]
+    [publicProfile, t],
   );
   const localizedAchievementsData = useMemo(
     () => localizeAchievementsData(achievementsData, t),
-    [achievementsData, t]
+    [achievementsData, t],
   );
   const shellFeaturedAchievements = useMemo(
     () =>
       coerceShellFeaturedAchievements(
         localizedPublicProfile.profile?.featuredAchievements ?? null,
-        t
+        t,
       ),
-    [localizedPublicProfile.profile?.featuredAchievements, t]
+    [localizedPublicProfile.profile?.featuredAchievements, t],
   );
   const profile = localizedPublicProfile.profile;
   const pageTitle = profile?.displayName ?? t("title");
@@ -1490,7 +1589,7 @@ export function SocialProfilePage({
         });
       });
     },
-    [activeTab, baseHref, currentRange, router]
+    [activeTab, baseHref, currentRange, router],
   );
 
   const handleTabPrefetch = useCallback(
@@ -1501,7 +1600,7 @@ export function SocialProfilePage({
 
       router.prefetch(buildTabHref(baseHref, nextTab, currentRange));
     },
-    [activeTab, baseHref, currentRange, router]
+    [activeTab, baseHref, currentRange, router],
   );
 
   const handleRangeChange = useCallback(
@@ -1517,7 +1616,7 @@ export function SocialProfilePage({
         });
       });
     },
-    [baseHref, currentRange, router]
+    [baseHref, currentRange, router],
   );
 
   return (
@@ -1526,7 +1625,7 @@ export function SocialProfilePage({
       data-testid="profile-social-page"
       data-locale={localeKey}
     >
-      <div className="mx-auto w-full max-w-[1180px] px-4 py-5 sm:px-6 lg:px-8">
+      <div className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8">
         <div className="sr-only">
           <h1>{pageTitle}</h1>
         </div>

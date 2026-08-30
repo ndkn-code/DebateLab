@@ -25,7 +25,7 @@ function TodayItemCard({
   return (
     <Link
       href={item.launchHref}
-      className="group flex items-center gap-4 rounded-2xl border border-outline-variant bg-surface px-4 py-3.5 transition-colors hover:border-primary hover:bg-surface-container"
+      className="group flex items-center gap-4 rounded-xl border border-outline-variant bg-surface px-4 py-3.5 transition-colors hover:border-primary hover:bg-surface-container"
     >
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-surface-container-high text-on-surface-variant">
         <Icon className="size-5" aria-hidden />
@@ -46,7 +46,9 @@ function TodayItemCard({
             </span>
           ) : null}
         </div>
-        <p className="line-clamp-1 type-body-sm text-on-surface-variant">{rationale}</p>
+        <p className="line-clamp-1 type-body-sm text-on-surface-variant">
+          {rationale}
+        </p>
         <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 type-caption text-on-surface-variant">
           <span className="rounded-full bg-surface-container-high px-2 py-0.5 font-medium">
             {t(`itemkind_${item.kind}`)}
@@ -128,8 +130,8 @@ export function TodayList({
           ) : null}
         </>
       ) : (
-        <div className="flex flex-col items-start gap-3 rounded-2xl border border-outline-variant bg-surface-container p-6">
-          <span className="flex size-11 items-center justify-center rounded-2xl bg-surface-container-high text-on-surface-variant">
+        <div className="flex flex-col items-start gap-3 rounded-xl border border-outline-variant bg-surface-container p-6">
+          <span className="flex size-11 items-center justify-center rounded-xl bg-surface-container-high text-on-surface-variant">
             <ListChecks className="size-5" aria-hidden />
           </span>
           <div>
@@ -142,7 +144,9 @@ export function TodayList({
           </div>
           <Link
             href={hasGoal ? "/ielts/study-plan" : "/ielts/onboarding"}
-            className={cn(buttonVariants({ variant: hasGoal ? "secondary" : "primary" }))}
+            className={cn(
+              buttonVariants({ variant: hasGoal ? "secondary" : "primary" }),
+            )}
           >
             {hasGoal
               ? t("cta_view_plan")

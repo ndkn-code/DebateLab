@@ -200,7 +200,7 @@ function ChoiceGroup({
       {choices.map((choice) => (
         <label
           key={choice.value}
-          className="flex items-center gap-3 rounded-2xl border border-outline-variant bg-surface px-4 py-3 text-on-surface"
+          className="flex items-center gap-3 rounded-xl border border-outline-variant bg-surface px-4 py-3 text-on-surface"
         >
           <input
             type="radio"
@@ -234,7 +234,7 @@ function CheckboxGroup({
       {choices.map((choice) => (
         <label
           key={choice.value}
-          className="flex items-center gap-3 rounded-2xl border border-outline-variant bg-surface px-4 py-3 text-on-surface"
+          className="flex items-center gap-3 rounded-xl border border-outline-variant bg-surface px-4 py-3 text-on-surface"
         >
           <input
             type="checkbox"
@@ -306,7 +306,7 @@ function FallbackQuestion({
       disabled={disabled}
       onChange={(event) => onChange({ value: event.target.value })}
       placeholder="Type your answer"
-      className="w-full rounded-2xl border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant"
+      className="w-full rounded-xl border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant"
     />
   );
 }

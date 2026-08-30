@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { motion, useReducedMotion } from "framer-motion";
+import { useLocale } from "next-intl";
 import { thinkfyMotion } from "@thinkfy/shared/design-system";
 import { AnimatedNumber } from "@/components/motion/animated-number";
 import {
@@ -20,6 +21,7 @@ export interface BandGaugeProps {
   band: BandValue;
   target: BandValue;
   label?: string;
+  targetLabel?: string;
   caption?: React.ReactNode;
   isProvisional?: boolean;
   className?: string;
@@ -29,6 +31,7 @@ export interface BandMeterProps {
   skill: string;
   band: BandValue;
   target: BandValue;
+  targetLabel?: string;
   accent?: IeltsSkill;
   status?: React.ReactNode;
   raw?: number | null;
@@ -61,14 +64,26 @@ function hasBand(value: BandValue): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function localizedDelta(
+  delta: ReturnType<typeof targetDeltaView>,
+  locale: string,
+) {
+  if (locale !== "vi") return delta.text;
+  if (delta.state === "pending") return "Chưa có điểm";
+  if (delta.state === "met") return "Đạt mục tiêu";
+  return `Còn ${formatBandValue(delta.amount)}`;
+}
+
 export function BandGauge({
   band,
   target,
   label = "Band score",
+  targetLabel = "Target",
   caption,
   isProvisional = false,
   className,
 }: BandGaugeProps) {
+  const locale = useLocale();
   const reduceMotion = useReducedMotion();
   const progress = bandProgress(band);
   const targetProgress = bandProgress(target);
@@ -80,7 +95,7 @@ export function BandGauge({
   return (
     <section
       className={cn(
-        "relative overflow-hidden rounded-lg border border-outline-variant bg-surface-container p-5 shadow-token-card",
+        "relative overflow-hidden rounded-xl border border-outline-variant bg-surface-container p-4 sm:p-5",
         className,
       )}
       data-band={numericBand ?? ""}
@@ -91,7 +106,7 @@ export function BandGauge({
       <div className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-center">
         <div className="mx-auto grid w-full max-w-44 justify-items-center">
           <div
-            aria-label={`${label}: ${formatBandValue(numericBand)} out of 9`}
+            aria-label={`${label}: ${formatBandValue(numericBand)} ${locale === "vi" ? "trên 9" : "out of 9"}; ${targetLabel.toLowerCase()} ${formatBandValue(target)}`}
             className="relative size-44"
             role="img"
           >
@@ -140,7 +155,11 @@ export function BandGauge({
             <div className="absolute inset-0 grid place-items-center text-center">
               <div>
                 <p className="type-caption font-semibold uppercase text-on-surface-variant">
-                  {isProvisional ? "Provisional" : label}
+                  {isProvisional
+                    ? locale === "vi"
+                      ? "Tạm tính"
+                      : "Provisional"
+                    : label}
                 </p>
                 <p className="mt-1 type-display font-bold text-on-surface">
                   {numericBand === null ? (
@@ -165,8 +184,12 @@ export function BandGauge({
 
         <div className="grid gap-3 text-center sm:text-left">
           <div>
-            <p className="type-label uppercase text-primary">Target {formatBandValue(target)}</p>
-            <p className="mt-1 type-heading-md text-on-surface">{delta.text}</p>
+            <p className="type-label uppercase text-primary">
+              {targetLabel} {formatBandValue(target)}
+            </p>
+            <p className="mt-1 type-heading-md text-on-surface">
+              {localizedDelta(delta, locale)}
+            </p>
           </div>
           {caption ? (
             <p className="type-body-sm text-on-surface-variant">{caption}</p>
@@ -181,6 +204,7 @@ export function BandMeter({
   skill,
   band,
   target,
+  targetLabel = "Target",
   status,
   raw,
   rawMax,
@@ -188,18 +212,21 @@ export function BandMeter({
   className,
   accent,
 }: BandMeterProps) {
+  const locale = useLocale();
   const reduceMotion = useReducedMotion();
   const progress = bandProgress(band);
   const targetProgress = bandProgress(target);
   const delta = targetDeltaView(band, target);
   const numericBand = hasBand(band) ? clampBand(band) : null;
   const rawText =
-    typeof raw === "number" && typeof rawMax === "number" ? `${raw}/${rawMax}` : null;
+    typeof raw === "number" && typeof rawMax === "number"
+      ? `${raw}/${rawMax}`
+      : null;
 
   return (
     <div
       className={cn(
-        "rounded-lg border border-outline-variant bg-surface-container px-4 py-3",
+        "rounded-xl border border-outline-variant bg-surface-container px-4 py-3",
         className,
       )}
       style={accent ? skillAccentVars(accent) : undefined}
@@ -214,7 +241,7 @@ export function BandMeter({
           <div className="mt-1 flex flex-wrap items-center gap-2 type-caption text-on-surface-variant">
             {status ? status : null}
             {rawText ? <span className="tabular-nums">{rawText}</span> : null}
-            <span>{delta.text}</span>
+            <span>{localizedDelta(delta, locale)}</span>
           </div>
         </div>
         <p className="type-heading-md text-on-surface tabular-nums">
@@ -223,19 +250,17 @@ export function BandMeter({
       </div>
 
       <div
-        aria-label={`${skill}: ${formatBandValue(numericBand)} out of 9, target ${formatBandValue(
+        aria-label={`${skill}: ${formatBandValue(numericBand)} ${locale === "vi" ? "trên 9" : "out of 9"}, ${targetLabel.toLowerCase()} ${formatBandValue(
           target,
         )}`}
-        className="relative mt-3 h-3 overflow-hidden rounded-full bg-surface-container-high"
+        className="relative mt-3 h-3 rounded-full bg-surface-container-high"
         role="img"
       >
         <motion.div
           animate={{ scaleX: progress }}
-          className="absolute inset-y-0 left-0 w-full rounded-full"
+          className="absolute inset-y-0 left-0 w-full overflow-hidden rounded-full bg-[var(--ielts-skill-accent,var(--color-chart-1))]"
           initial={{ scaleX: reduceMotion ? progress : 0 }}
           style={{
-            background:
-              "linear-gradient(90deg, var(--ielts-skill-accent, var(--color-chart-1)), var(--ielts-skill-accent-end, var(--color-chart-6)))",
             transformOrigin: "left center",
           }}
           transition={
@@ -244,14 +269,27 @@ export function BandMeter({
         />
         <div
           aria-hidden="true"
-          className="absolute inset-y-0 w-px rounded-full"
+          className="absolute -inset-y-1 w-0.5 rounded-full ring-1 ring-surface"
           style={{
             backgroundColor:
               "color-mix(in srgb, var(--ielts-skill-accent-text, var(--color-chart-axis)) 70%, var(--color-chart-axis))",
-            left: `${targetProgress * 100}%`,
+            left: `clamp(0.25rem, ${targetProgress * 100}%, calc(100% - 0.25rem))`,
+            transform: "translateX(-50%)",
           }}
         />
       </div>
+      <div
+        aria-hidden="true"
+        className="mt-1.5 grid grid-cols-4 type-caption tabular-nums text-on-surface-variant"
+      >
+        <span>0</span>
+        <span className="text-center">3</span>
+        <span className="text-center">6</span>
+        <span className="text-right">9</span>
+      </div>
+      <p className="mt-1 type-caption text-on-surface-variant">
+        {targetLabel} {formatBandValue(target)}
+      </p>
     </div>
   );
 }

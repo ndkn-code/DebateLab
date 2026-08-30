@@ -169,7 +169,12 @@ function NavLinks({
                       transition={
                         reducedMotion
                           ? { duration: 0 }
-                          : { type: "spring", stiffness: 500, damping: 35 }
+                          : {
+                              type: "spring",
+                              stiffness: 360,
+                              damping: 28,
+                              mass: 0.8,
+                            }
                       }
                       className="sidebar-nav-active-marker pointer-events-none absolute inset-0 z-0 rounded-[10px]"
                       aria-hidden="true"
@@ -189,8 +194,16 @@ function NavLinks({
         ))}
       </nav>
 
-      {/* Back to Dashboard */}
-      <div className="shrink-0 border-t border-outline-variant p-3">
+      {/* Workspace switches */}
+      <div className="shrink-0 space-y-1 border-t border-outline-variant p-3">
+        <Link
+          href="/dashboard/teacher"
+          onClick={onNavClick}
+          className="sidebar-nav-action type-label flex min-h-9 items-center gap-3 rounded-[10px] px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+        >
+          <GraduationCap className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span className="truncate">{t("teacherMode")}</span>
+        </Link>
         <Link
           href="/dashboard"
           onClick={onNavClick}

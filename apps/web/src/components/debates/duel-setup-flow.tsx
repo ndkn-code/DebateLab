@@ -51,7 +51,9 @@ interface DuelFlowStepperProps {
 
 function formatMinutes(seconds: number) {
   const minutes = seconds / 60;
-  return Number.isInteger(minutes) ? `${minutes} min` : `${minutes.toFixed(1)} min`;
+  return Number.isInteger(minutes)
+    ? `${minutes} min`
+    : `${minutes.toFixed(1)} min`;
 }
 
 function formatDifficulty(difficulty: DebateDuelTopicDifficulty) {
@@ -112,16 +114,22 @@ export function DuelFlowStepper({ mode }: DuelFlowStepperProps) {
               step.state === "active" &&
                 "border-primary bg-primary text-on-primary shadow-none",
               step.state === "upcoming" &&
-                "border-outline-variant/45 bg-surface text-on-surface-variant"
+                "border-outline-variant/45 bg-surface text-on-surface-variant",
             )}
           >
-            {step.state === "complete" ? <Check className="h-5 w-5" /> : step.number}
+            {step.state === "complete" ? (
+              <Check className="h-5 w-5" />
+            ) : (
+              step.number
+            )}
           </div>
           <div className="min-w-0">
             <div
               className={cn(
                 "text-sm font-semibold",
-                step.state === "upcoming" ? "text-on-surface-variant" : "text-primary"
+                step.state === "upcoming"
+                  ? "text-on-surface-variant"
+                  : "text-primary",
               )}
             >
               {step.label}
@@ -170,7 +178,9 @@ export function DuelRoundTimeline({
                   "flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
                   active && "border-primary bg-primary text-on-primary",
                   complete && "border-success/20 bg-success/10 text-success",
-                  !active && !complete && "border-outline-variant/30 bg-surface text-on-surface-variant"
+                  !active &&
+                    !complete &&
+                    "border-outline-variant/30 bg-surface text-on-surface-variant",
                 )}
               >
                 {complete ? <Check className="h-4 w-4" /> : index + 1}
@@ -179,7 +189,7 @@ export function DuelRoundTimeline({
                 <div
                   className={cn(
                     "hidden h-0.5 flex-1 rounded-full sm:block",
-                    complete ? "bg-success/40" : "bg-outline-variant/30"
+                    complete ? "bg-success/40" : "bg-outline-variant/30",
                   )}
                 />
               )}
@@ -225,7 +235,7 @@ function DuelPreviewTimeline({
                 "mx-auto flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-semibold",
                 index === 0
                   ? "border-primary bg-primary text-on-primary shadow-none"
-                  : "border-outline-variant/40 bg-surface text-on-surface"
+                  : "border-outline-variant/40 bg-surface text-on-surface",
               )}
             >
               {index + 1}
@@ -264,8 +274,8 @@ function SeatCard({
     ? !sideLocked
       ? "Side pending"
       : ready
-      ? "Ready"
-      : "Joined"
+        ? "Ready"
+        : "Joined"
     : "Open seat";
 
   return (
@@ -277,7 +287,7 @@ function SeatCard({
               "flex h-10 w-10 items-center justify-center rounded-full text-xs font-semibold",
               side === "proposition"
                 ? "bg-primary/10 text-primary"
-                : "bg-error/10 text-error"
+                : "bg-error/10 text-error",
             )}
           >
             {side === "proposition" ? "P" : "O"}
@@ -298,7 +308,7 @@ function SeatCard({
             "rounded-full px-3 py-1 text-xs font-medium",
             ready && "bg-success/10 text-success",
             participant && !ready && "bg-primary/10 text-primary",
-            !participant && "bg-surface-container-low text-primary"
+            !participant && "bg-surface-container-low text-primary",
           )}
         >
           {isViewer && ready ? "You - Ready" : status}
@@ -307,7 +317,11 @@ function SeatCard({
 
       <div className="mt-4 flex items-center gap-3">
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary text-lg font-semibold text-on-primary">
-          {participant ? getInitials(participant.displayName) || "D" : <UserRound className="h-5 w-5" />}
+          {participant ? (
+            getInitials(participant.displayName) || "D"
+          ) : (
+            <UserRound className="h-5 w-5" />
+          )}
         </div>
         <div className="text-sm text-on-surface-variant">
           {participant
@@ -315,9 +329,9 @@ function SeatCard({
               ? "Ready for shared prep."
               : !sideLocked
                 ? "Side reveals when your opponent joins."
-              : ready
-                ? "Waiting for the other debater."
-                : "Needs to mark ready."
+                : ready
+                  ? "Waiting for the other debater."
+                  : "Needs to mark ready."
             : "Share the room code to fill this seat."}
         </div>
       </div>
@@ -358,55 +372,76 @@ export function DuelLobbySetupView({
     setInviteUrl(`${window.location.origin}${invitePath}`);
   }, [invitePath]);
 
-  const participantsByRole = useMemo(
-    () => {
-      const unassigned = room.participants.filter(
-        (participant) => !participant.role
-      );
-      return {
-        proposition:
-          room.participants.find(
-            (participant) => participant.role === "proposition"
-          ) ??
-          unassigned[0] ??
-          null,
-        opposition:
-          room.participants.find(
-            (participant) => participant.role === "opposition"
-          ) ??
-          unassigned[1] ??
-          null,
-      };
-    },
-    [room.participants]
-  );
+  const participantsByRole = useMemo(() => {
+    const unassigned = room.participants.filter(
+      (participant) => !participant.role,
+    );
+    return {
+      proposition:
+        room.participants.find(
+          (participant) => participant.role === "proposition",
+        ) ??
+        unassigned[0] ??
+        null,
+      opposition:
+        room.participants.find(
+          (participant) => participant.role === "opposition",
+        ) ??
+        unassigned[1] ??
+        null,
+    };
+  }, [room.participants]);
 
-  const readyCount = room.participants.filter((participant) => participant.readyAt).length;
+  const readyCount = room.participants.filter(
+    (participant) => participant.readyAt,
+  ).length;
   const bothJoined = room.participants.length === 2;
   const bothReady = bothJoined && readyCount === 2;
   const startMode = bothReady;
   const viewerParticipant =
-    room.participants.find((participant) => participant.userId === room.viewer.id) ?? null;
+    room.participants.find(
+      (participant) => participant.userId === room.viewer.id,
+    ) ?? null;
   const viewerReady = !!viewerParticipant?.readyAt;
 
   const runRoomAction = (path: string, body?: Record<string, unknown>) => {
     setActionError(null);
     startTransition(async () => {
-      const response = await fetch(path, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: body ? JSON.stringify(body) : undefined,
-      });
-      const payload = (await response.json()) as DebateDuelRoomView | { error?: string };
+      try {
+        const response = await fetch(path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: body ? JSON.stringify(body) : undefined,
+        });
+        const payload = (await response.json()) as
+          | DebateDuelRoomView
+          | { error?: string };
 
-      if (!response.ok || !("id" in payload)) {
-        setActionError("error" in payload ? payload.error || "Something went wrong." : "Something went wrong.");
-        return;
-      }
+        if (!response.ok || !("id" in payload)) {
+          console.error("[DUEL-LOBBY-01] Lobby action rejected", {
+            path,
+            status: response.status,
+            error: "error" in payload ? payload.error : undefined,
+          });
+          setActionError(
+            localeParam === "vi"
+              ? "Không thể cập nhật phòng đấu. Vui lòng thử lại. Mã hỗ trợ: DUEL-LOBBY-01"
+              : "We couldn't update the room. Try again. Support code: DUEL-LOBBY-01",
+          );
+          return;
+        }
 
-      await mutate(payload, { revalidate: false });
-      if (payload.status !== "lobby") {
-        router.push(`/debates/${payload.shareCode}`);
+        await mutate(payload, { revalidate: false });
+        if (payload.status !== "lobby") {
+          router.push(`/debates/${payload.shareCode}`);
+        }
+      } catch (error) {
+        console.error("[DUEL-LOBBY-02] Lobby action failed", { path, error });
+        setActionError(
+          localeParam === "vi"
+            ? "Không thể cập nhật phòng đấu. Vui lòng thử lại. Mã hỗ trợ: DUEL-LOBBY-02"
+            : "We couldn't update the room. Try again. Support code: DUEL-LOBBY-02",
+        );
       }
     });
   };
@@ -424,12 +459,16 @@ export function DuelLobbySetupView({
     }
 
     if (room.viewer.isParticipant && !viewerReady) {
-      runRoomAction(`/api/debate-duels/${room.shareCode}/ready`, { ready: true });
+      runRoomAction(`/api/debate-duels/${room.shareCode}/ready`, {
+        ready: true,
+      });
       return;
     }
 
     if (room.viewer.isParticipant && viewerReady && !bothReady) {
-      runRoomAction(`/api/debate-duels/${room.shareCode}/ready`, { ready: false });
+      runRoomAction(`/api/debate-duels/${room.shareCode}/ready`, {
+        ready: false,
+      });
       return;
     }
 
@@ -457,7 +496,9 @@ export function DuelLobbySetupView({
           <div>
             <button
               type="button"
-              onClick={() => router.push(isMatchmaking ? "/debates" : "/debates/new")}
+              onClick={() =>
+                router.push(isMatchmaking ? "/debates" : "/debates/new")
+              }
               className="inline-flex items-center gap-2 text-sm font-medium text-primary"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -498,7 +539,16 @@ export function DuelLobbySetupView({
                         <span className="rounded-full bg-success/10 px-3 py-1 font-medium text-success">
                           {formatDifficulty(room.topicDifficulty)}
                         </span>
-                        <span>~{Math.round((room.config.prepTimeSeconds + room.config.openingTimeSeconds * 2 + room.config.rebuttalTimeSeconds * 2) / 60)} min</span>
+                        <span>
+                          ~
+                          {Math.round(
+                            (room.config.prepTimeSeconds +
+                              room.config.openingTimeSeconds * 2 +
+                              room.config.rebuttalTimeSeconds * 2) /
+                              60,
+                          )}{" "}
+                          min
+                        </span>
                         <span>Structured 1v1</span>
                       </div>
                     </div>
@@ -549,7 +599,10 @@ export function DuelLobbySetupView({
                         Shared prep time
                       </div>
                       <div className="mt-1 text-4xl font-bold text-primary">
-                        {formatMinutes(room.config.prepTimeSeconds).replace(" min", ":00")}
+                        {formatMinutes(room.config.prepTimeSeconds).replace(
+                          " min",
+                          ":00",
+                        )}
                       </div>
                       <div className="mt-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
                         First round
@@ -559,17 +612,27 @@ export function DuelLobbySetupView({
                 </div>
 
                 <div className="rounded-[10px] border border-outline-variant/12 bg-surface p-5">
-                  <h3 className="font-semibold text-on-surface">Readiness checklist</h3>
+                  <h3 className="font-semibold text-on-surface">
+                    Readiness checklist
+                  </h3>
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     {[
                       ["Both debaters are ready", `${readyCount}/2 ready`],
                       ["Browser & mic permissions ready", "All good"],
-                      ["Side assignment locked", room.viewer.role ? getSideLabel(room.viewer.role) : "Assigned"],
+                      [
+                        "Side assignment locked",
+                        room.viewer.role
+                          ? getSideLabel(room.viewer.role)
+                          : "Assigned",
+                      ],
                       ["Room code shared", room.shareCode],
                       ["Timers & format confirmed", "Structured 1v1"],
                       ["AI Judge armed", "Will score fairly"],
                     ].map(([label, value]) => (
-                      <div key={label} className="flex items-center justify-between gap-3 border-b border-outline-variant/10 py-2 text-sm last:border-b-0">
+                      <div
+                        key={label}
+                        className="flex items-center justify-between gap-3 border-b border-outline-variant/10 py-2 text-sm last:border-b-0"
+                      >
                         <span className="inline-flex items-center gap-2 text-on-surface">
                           <CheckCircle2 className="h-4 w-4 text-success" />
                           {label}
@@ -587,7 +650,7 @@ export function DuelLobbySetupView({
                     "grid gap-5",
                     isMatchmaking
                       ? "lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)]"
-                      : "lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]"
+                      : "lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]",
                   )}
                 >
                   <div className="rounded-[10px] border border-outline-variant/12 bg-surface-container-low p-5">
@@ -606,8 +669,9 @@ export function DuelLobbySetupView({
                             Opponent matched
                           </h2>
                           <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-                            This beta duel is matched by invisible MMR. The rating
-                            stays internal while we monitor fairness and quality.
+                            This beta duel is matched by invisible MMR. The
+                            rating stays internal while we monitor fairness and
+                            quality.
                           </p>
                           <div className="mt-4 inline-flex rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">
                             Casual beta - hidden rating only
@@ -616,42 +680,43 @@ export function DuelLobbySetupView({
                       </div>
                     ) : (
                       <div className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_132px] sm:items-center">
-                      <div>
-                        <div className="type-eyebrow text-primary">
-                          Share room code
-                        </div>
-                        <div className="mt-4 flex items-center gap-3">
-                          <div className="text-5xl font-bold text-on-surface">
-                            {room.shareCode}
+                        <div>
+                          <div className="type-eyebrow text-primary">
+                            Share room code
                           </div>
-                          <button
+                          <div className="mt-4 flex items-center gap-3">
+                            <div className="text-5xl font-bold text-on-surface">
+                              {room.shareCode}
+                            </div>
+                            <button
+                              type="button"
+                              onClick={copyInvite}
+                              className="flex h-8 w-12 items-center justify-center rounded-[10px] border border-outline-variant/15 bg-surface text-primary shadow-sm"
+                              aria-label="Copy invite"
+                            >
+                              <Copy className="h-5 w-5" />
+                            </button>
+                          </div>
+                          <p className="mt-3 text-sm text-on-surface-variant">
+                            Share this code with your opponent so they can join
+                            the room.
+                          </p>
+                          <Button
                             type="button"
                             onClick={copyInvite}
-                            className="flex h-8 w-12 items-center justify-center rounded-[10px] border border-outline-variant/15 bg-surface text-primary shadow-sm"
-                            aria-label="Copy invite"
+                            className="mt-4 h-8 w-full rounded-[10px]"
                           >
-                            <Copy className="h-5 w-5" />
-                          </button>
+                            <Link2 className="h-4 w-4" />
+                            {copied ? "Invite copied" : "Copy invite"}
+                          </Button>
                         </div>
-                        <p className="mt-3 text-sm text-on-surface-variant">
-                          Share this code with your opponent so they can join the room.
-                        </p>
-                        <Button
-                          type="button"
-                          onClick={copyInvite}
-                          className="mt-4 h-8 w-full rounded-[10px]"
-                        >
-                          <Link2 className="h-4 w-4" />
-                          {copied ? "Invite copied" : "Copy invite"}
-                        </Button>
-                      </div>
-                      <div className="rounded-[22px] border border-outline-variant/15 bg-surface p-3 text-center shadow-sm">
-                        <QRCodeSVG value={inviteUrl} size={116} level="M" />
-                        <div className="mt-2 text-xs text-on-surface-variant">
-                          Scan to join
+                        <div className="rounded-[22px] border border-outline-variant/15 bg-surface p-3 text-center shadow-sm">
+                          <QRCodeSVG value={inviteUrl} size={116} level="M" />
+                          <div className="mt-2 text-xs text-on-surface-variant">
+                            Scan to join
+                          </div>
                         </div>
                       </div>
-                    </div>
                     )}
                   </div>
 
@@ -663,8 +728,18 @@ export function DuelLobbySetupView({
                         </div>
                         <div className="mt-4 space-y-3 text-sm">
                           {[
-                            ["Room configured", true, "Format, timers, and settings set"],
-                            ["Side assignment selected", true, room.viewer.role ? `You are ${getSideLabel(room.viewer.role)}` : "Reveals when opponent joins"],
+                            [
+                              "Room configured",
+                              true,
+                              "Format, timers, and settings set",
+                            ],
+                            [
+                              "Side assignment selected",
+                              true,
+                              room.viewer.role
+                                ? `You are ${getSideLabel(room.viewer.role)}`
+                                : "Reveals when opponent joins",
+                            ],
                             [
                               isMatchmaking ? "Match found" : "Invite copied",
                               isMatchmaking ? true : copied,
@@ -674,18 +749,30 @@ export function DuelLobbySetupView({
                                   ? "Share link copied"
                                   : "Copy or scan the room code",
                             ],
-                            ["Opponent pending", bothJoined, bothJoined ? "Opponent joined" : "Waiting for opponent"],
+                            [
+                              "Opponent pending",
+                              bothJoined,
+                              bothJoined
+                                ? "Opponent joined"
+                                : "Waiting for opponent",
+                            ],
                           ].map(([label, complete, detail]) => (
                             <div key={String(label)} className="flex gap-3">
                               <CheckCircle2
                                 className={cn(
                                   "mt-0.5 h-4 w-4 shrink-0",
-                                  complete ? "text-success" : "text-on-surface-variant/45"
+                                  complete
+                                    ? "text-success"
+                                    : "text-on-surface-variant/45",
                                 )}
                               />
                               <div>
-                                <div className="font-medium text-on-surface">{label}</div>
-                                <div className="text-xs text-on-surface-variant">{detail}</div>
+                                <div className="font-medium text-on-surface">
+                                  {label}
+                                </div>
+                                <div className="text-xs text-on-surface-variant">
+                                  {detail}
+                                </div>
                               </div>
                             </div>
                           ))}
@@ -738,14 +825,25 @@ export function DuelLobbySetupView({
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-center text-sm">
                       <div className="rounded-[10px] bg-success/10 px-4 py-3 text-success">
-                        <div className="font-semibold">{formatDifficulty(room.topicDifficulty)}</div>
+                        <div className="font-semibold">
+                          {formatDifficulty(room.topicDifficulty)}
+                        </div>
                         <div className="text-xs">Difficulty</div>
                       </div>
                       <div className="rounded-[10px] border border-outline-variant/12 bg-surface-container-low px-4 py-3 text-on-surface">
                         <div className="font-semibold">
-                          ~{Math.round((room.config.prepTimeSeconds + room.config.openingTimeSeconds * 2 + room.config.rebuttalTimeSeconds * 2) / 60)} min
+                          ~
+                          {Math.round(
+                            (room.config.prepTimeSeconds +
+                              room.config.openingTimeSeconds * 2 +
+                              room.config.rebuttalTimeSeconds * 2) /
+                              60,
+                          )}{" "}
+                          min
                         </div>
-                        <div className="text-xs text-on-surface-variant">Estimated length</div>
+                        <div className="text-xs text-on-surface-variant">
+                          Estimated length
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -760,14 +858,19 @@ export function DuelLobbySetupView({
                 onClick={
                   startMode
                     ? () =>
-                        runRoomAction(`/api/debate-duels/${room.shareCode}/ready`, {
-                          ready: false,
-                        })
+                        runRoomAction(
+                          `/api/debate-duels/${room.shareCode}/ready`,
+                          {
+                            ready: false,
+                          },
+                        )
                     : isMatchmaking
                       ? () => router.push("/debates")
                       : onEditSetup
                 }
-                disabled={pending || (!startMode && !isMatchmaking && !onEditSetup)}
+                disabled={
+                  pending || (!startMode && !isMatchmaking && !onEditSetup)
+                }
                 className="h-8 rounded-[10px] border-outline-variant/25 bg-surface text-primary"
               >
                 {startMode ? (
@@ -806,7 +909,8 @@ export function DuelLobbySetupView({
 
             <div className="mt-4 flex items-center justify-center gap-2 text-xs text-on-surface-variant">
               <Lock className="h-3.5 w-3.5" />
-              Credits are charged only when both debaters are ready and the duel starts.
+              Credits are charged only when both debaters are ready and the duel
+              starts.
             </div>
 
             {actionError && (
@@ -818,7 +922,9 @@ export function DuelLobbySetupView({
 
           <aside className="space-y-4 rounded-[10px] border border-outline-variant/15 bg-surface p-5 shadow-none">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="text-xl font-bold text-on-surface">Duel preview</h2>
+              <h2 className="text-xl font-bold text-on-surface">
+                Duel preview
+              </h2>
               <div className="rounded-full bg-primary/8 px-3 py-1 text-xs font-semibold text-primary">
                 <Sparkles className="mr-1 inline h-3.5 w-3.5" />
                 Live preview
@@ -841,7 +947,14 @@ export function DuelLobbySetupView({
                   {room.topicTitle}
                 </h3>
                 <div className="mt-2 text-sm text-on-surface-variant">
-                  Structured 1v1 - ~{Math.round((room.config.prepTimeSeconds + room.config.openingTimeSeconds * 2 + room.config.rebuttalTimeSeconds * 2) / 60)} min total
+                  Structured 1v1 - ~
+                  {Math.round(
+                    (room.config.prepTimeSeconds +
+                      room.config.openingTimeSeconds * 2 +
+                      room.config.rebuttalTimeSeconds * 2) /
+                      60,
+                  )}{" "}
+                  min total
                 </div>
               </div>
             </div>
@@ -849,16 +962,22 @@ export function DuelLobbySetupView({
             <div className="rounded-[22px] border border-outline-variant/12 bg-surface-container-low p-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-on-surface">Room status</div>
+                  <div className="text-sm font-semibold text-on-surface">
+                    Room status
+                  </div>
                   <div className="mt-2 text-2xl font-bold text-primary">
                     {readyCount}/2 ready
                   </div>
                   <p className="text-xs text-on-surface-variant">
-                    {bothReady ? "Both debaters are ready to start." : "Both debaters must be ready to start."}
+                    {bothReady
+                      ? "Both debaters are ready to start."
+                      : "Both debaters must be ready to start."}
                   </p>
                 </div>
                 <div className="rounded-[10px] border border-outline-variant/12 bg-surface px-4 py-3 text-center">
-                  <div className="text-xs text-on-surface-variant">Share code</div>
+                  <div className="text-xs text-on-surface-variant">
+                    Share code
+                  </div>
                   <div className="mt-1 font-bold text-on-surface">
                     {room.shareCode}
                   </div>
@@ -888,7 +1007,9 @@ export function DuelLobbySetupView({
                   <Clock3 className="h-4 w-4 text-primary" />
                   Charged
                 </span>
-                <span className="font-semibold text-on-surface">When duel starts</span>
+                <span className="font-semibold text-on-surface">
+                  When duel starts
+                </span>
               </div>
             </div>
 
@@ -898,12 +1019,15 @@ export function DuelLobbySetupView({
                 AI Judge preview
               </div>
               <p className="mt-3 text-sm leading-6 text-on-surface-variant">
-                After the final rebuttal, AI Judge scores both debaters across key areas.
+                After the final rebuttal, AI Judge scores both debaters across
+                key areas.
               </p>
               <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5 xl:grid-cols-5">
-                {["Burden", "Clash", "Evidence", "Logic", "Delivery"].map((metric) => (
-                  <MetricPill key={metric}>{metric}</MetricPill>
-                ))}
+                {["Burden", "Clash", "Evidence", "Logic", "Delivery"].map(
+                  (metric) => (
+                    <MetricPill key={metric}>{metric}</MetricPill>
+                  ),
+                )}
               </div>
             </div>
 
@@ -975,7 +1099,9 @@ export function DuelPreviewSidebar({
       </div>
 
       <div className="border-t border-outline-variant/15 pt-5">
-        <div className="text-sm font-semibold text-on-surface">Round timeline</div>
+        <div className="text-sm font-semibold text-on-surface">
+          Round timeline
+        </div>
         <div className="mt-5">
           <DuelPreviewTimeline
             prepTimeSeconds={prepTimeSeconds}
@@ -992,28 +1118,36 @@ export function DuelPreviewSidebar({
               <Coins className="h-4 w-4 text-primary" />
               Entry cost
             </span>
-            <span className="text-right font-semibold text-on-surface">{entryCost} Credits</span>
+            <span className="text-right font-semibold text-on-surface">
+              {entryCost} Credits
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-2 text-on-surface-variant">
               <Sparkles className="h-4 w-4 text-primary" />
               Skill matching
             </span>
-            <span className="text-right font-semibold text-success">Balanced</span>
+            <span className="text-right font-semibold text-success">
+              Balanced
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-2 text-on-surface-variant">
               <Copy className="h-4 w-4 text-primary" />
               Share code
             </span>
-            <span className="font-semibold text-on-surface-variant">Locked</span>
+            <span className="font-semibold text-on-surface-variant">
+              Locked
+            </span>
           </div>
           <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-2 text-on-surface-variant">
               <Lock className="h-4 w-4 text-primary" />
               Late join
             </span>
-            <span className="font-semibold text-on-surface-variant">Locked</span>
+            <span className="font-semibold text-on-surface-variant">
+              Locked
+            </span>
           </div>
         </div>
       </div>

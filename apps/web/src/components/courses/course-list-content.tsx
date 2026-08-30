@@ -34,7 +34,7 @@ interface CourseListContentProps {
 
 function getCourseCtaLabel(
   course: CourseLibraryItem,
-  labels: { start: string; continueLearning: string; review: string }
+  labels: { start: string; continueLearning: string; review: string },
 ) {
   if (course.status === "completed") return labels.review;
   if (course.status === "in-progress") return labels.continueLearning;
@@ -43,7 +43,7 @@ function getCourseCtaLabel(
 
 function getStatusLabel(
   course: CourseLibraryItem,
-  t: ReturnType<typeof useTranslations>
+  t: ReturnType<typeof useTranslations>,
 ) {
   if (course.status === "completed") return t("status.completed");
   if (course.status === "in-progress") return t("status.in_progress");
@@ -52,7 +52,7 @@ function getStatusLabel(
 
 function getDifficultyLabel(
   difficulty: CourseLibraryItem["difficulty"],
-  t: ReturnType<typeof useTranslations>
+  t: ReturnType<typeof useTranslations>,
 ) {
   if (difficulty === "beginner") return t("difficulty_beginner");
   if (difficulty === "intermediate") return t("difficulty_intermediate");
@@ -61,15 +61,12 @@ function getDifficultyLabel(
 
 function getRecommendationReasons(
   course: CourseLibraryItem,
-  t: ReturnType<typeof useTranslations>
+  t: ReturnType<typeof useTranslations>,
 ) {
-  const baseKey = `recommendation.reasons.${course.category}.${course.difficulty}` as const;
+  const baseKey =
+    `recommendation.reasons.${course.category}.${course.difficulty}` as const;
 
-  return [
-    t(`${baseKey}.one`),
-    t(`${baseKey}.two`),
-    t(`${baseKey}.three`),
-  ];
+  return [t(`${baseKey}.one`), t(`${baseKey}.two`), t(`${baseKey}.three`)];
 }
 
 function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
@@ -82,25 +79,25 @@ function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
   });
 
   return (
-    <section className="overflow-hidden rounded-[12px] border border-outline-variant bg-white shadow-none">
-      <div className="grid gap-0 2xl:grid-cols-[248px_minmax(0,1fr)_360px]">
+    <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none">
+      <div className="grid gap-0 xl:grid-cols-[190px_minmax(0,1fr)_290px]">
         <div className="p-3">
-          <div className="overflow-hidden rounded-[15px] border border-outline-variant">
+          <div className="overflow-hidden rounded-[10px] border border-outline-variant">
             <div className="aspect-[1.13/1] xl:aspect-[1.16/1]">
               <CourseArtwork variant={resolveCourseArtworkVariant(course)} />
             </div>
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col justify-center px-6 py-6 xl:py-7">
+        <div className="flex min-w-0 flex-col justify-center px-5 py-4">
           <div
             className={cn(
-              "type-eyebrow inline-flex w-fit rounded-full px-3 py-1 font-semibold",
+              "type-caption inline-flex h-5 w-fit items-center rounded-[6px] px-2 font-semibold",
               course.status === "in-progress"
                 ? "bg-primary-container text-primary"
                 : course.status === "completed"
                   ? "bg-surface-container text-on-surface-variant"
-                  : "bg-surface-container text-on-surface-variant"
+                  : "bg-surface-container text-on-surface-variant",
             )}
           >
             {statusLabel}
@@ -108,41 +105,46 @@ function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
 
           <Heading
             level={2}
-            className="mt-4 font-semibold text-on-surface-variant sm:type-heading-xl"
+            className="mt-3 font-semibold text-on-surface sm:type-heading-lg"
           >
             {course.title}
           </Heading>
-          <Text className="mt-3 max-w-[520px] leading-8 text-on-surface-variant">
+          <Text className="mt-2 line-clamp-2 max-w-[520px] leading-6 text-on-surface-variant">
             {course.description || t("description_fallback")}
           </Text>
 
-          <div className="mt-7 flex flex-wrap items-center gap-4 xl:flex-nowrap">
+          <div className="mt-4 flex flex-wrap items-center gap-3 xl:flex-nowrap">
             <span className="type-body shrink-0 font-semibold text-primary">
               {course.progressPercent}% {t("hero.complete")}
             </span>
             <Progress
               value={course.progressPercent}
-              className="h-2.5 w-full max-w-[190px] min-w-[140px] bg-surface-container [&>div]:bg-primary"
+              className="h-2 w-full max-w-[190px] min-w-[140px] bg-surface-container [&>div]:bg-primary"
             />
             <span className="type-body shrink-0 text-on-surface-variant">
-              {course.completedLessonCount} / {course.lessonCount} {t("modules_label")}
+              {course.completedLessonCount} / {course.lessonCount}{" "}
+              {t("modules_label")}
             </span>
           </div>
         </div>
 
-        <div className="border-t border-outline-variant px-7 py-6 2xl:border-l 2xl:border-t-0 2xl:py-7">
+        <div className="border-t border-outline-variant px-5 py-4 xl:border-l xl:border-t-0">
           <div className="flex h-full flex-col justify-between gap-5">
-            <div className="flex items-start gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-surface-container text-primary">
+            <div className="flex items-start gap-3">
+              <div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-surface-container text-primary">
                 <BookOpenCheck className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <Heading level={2} as="p" className="font-semibold text-on-surface-variant">
+                <Heading
+                  level={2}
+                  as="p"
+                  className="font-semibold text-on-surface-variant"
+                >
                   {t("hero.next_up")}
                 </Heading>
                 {course.nextLesson ? (
                   <>
-                    <Text className="mt-2 leading-7 text-on-surface-variant">
+                    <Text className="mt-1 line-clamp-2 leading-6 text-on-surface-variant">
                       {course.nextLesson.title}
                     </Text>
                     <Text className="mt-1 text-on-surface-variant">
@@ -159,7 +161,11 @@ function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
               </div>
             </div>
 
-            <HeroActionLink href={course.ctaHref} label={ctaLabel} disabled={course.isMock === true} />
+            <HeroActionLink
+              href={course.ctaHref}
+              label={ctaLabel}
+              disabled={course.isMock === true}
+            />
           </div>
         </div>
       </div>
@@ -180,8 +186,8 @@ function HeroActionLink({
     <Link
       href={href}
       className={cn(
-        "type-body inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 font-medium text-white transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        disabled && "pointer-events-none opacity-80"
+        "type-label inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        disabled && "pointer-events-none opacity-80",
       )}
     >
       {label}
@@ -196,7 +202,7 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
   const reasons = getRecommendationReasons(course, t);
 
   return (
-    <section className="mt-8">
+    <section className="mt-5">
       <div className="mb-4 flex items-center gap-2.5">
         <Sparkles className="h-4 w-4 text-primary" />
         <Heading level={2} className="font-semibold text-on-surface-variant">
@@ -204,9 +210,9 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
         </Heading>
       </div>
 
-      <div className="overflow-hidden rounded-[12px] border border-outline-variant bg-white shadow-none">
-        <div className="grid gap-4 p-3 lg:grid-cols-[118px_minmax(0,1fr)_320px_156px] lg:items-center lg:gap-5 lg:p-4">
-          <div className="overflow-hidden rounded-[14px] border border-outline-variant">
+      <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none">
+        <div className="grid gap-3 p-3 lg:grid-cols-[88px_minmax(0,1fr)_260px_130px] lg:items-center lg:p-4">
+          <div className="overflow-hidden rounded-[10px] border border-outline-variant">
             <div className="aspect-square">
               <CourseArtwork variant={resolveCourseArtworkVariant(course)} />
             </div>
@@ -222,11 +228,11 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
               </span>
             </div>
 
-            <Text className="mt-2 max-w-[540px] leading-8 text-on-surface-variant">
+            <Text className="mt-1 line-clamp-2 max-w-[540px] leading-6 text-on-surface-variant">
               {course.description || t("description_fallback")}
             </Text>
 
-            <div className="type-body-sm mt-4 flex flex-wrap items-center gap-6 text-on-surface-variant">
+            <div className="type-caption mt-2 flex flex-wrap items-center gap-4 text-on-surface-variant">
               <span>{t("modules_count", { count: course.moduleCount })}</span>
               <span>{getDifficultyLabel(course.difficulty, tp)}</span>
             </div>
@@ -236,11 +242,11 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
             <Text className="font-medium text-on-surface-variant">
               {t("recommendation.why_course")}
             </Text>
-            <div className="mt-3 space-y-3">
-              {reasons.map((reason) => (
+            <div className="mt-2 space-y-2">
+              {reasons.slice(0, 2).map((reason) => (
                 <div
                   key={reason}
-                  className="type-body flex items-start gap-2.5 leading-7 text-on-surface-variant"
+                  className="type-body-sm flex items-start gap-2 leading-5 text-on-surface-variant"
                 >
                   <CheckCircle2 className="mt-1 h-4 w-4 shrink-0 text-success" />
                   <span>{reason}</span>
@@ -253,8 +259,8 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
             <Link
               href={course.isMock ? "#" : course.ctaHref}
               className={cn(
-                "type-body inline-flex h-8 items-center justify-center rounded-[10px] border border-outline-variant bg-white px-4 font-medium text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-                course.isMock && "pointer-events-none"
+                "type-label inline-flex h-8 items-center justify-center rounded-[10px] border border-outline-variant bg-surface px-4 font-medium text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                course.isMock && "pointer-events-none",
               )}
             >
               {t("start")}
@@ -315,7 +321,7 @@ export function CourseListContent({ library }: CourseListContentProps) {
     .slice(0, 4);
 
   return (
-    <PageTransition className="min-h-full bg-surface-container px-4 py-4 sm:px-6 lg:px-8 lg:py-6">
+    <PageTransition className="min-h-full bg-background px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
       <div className="mx-auto max-w-6xl">
         <ProductPageHeader
           title={t("page_headline")}
@@ -340,8 +346,8 @@ export function CourseListContent({ library }: CourseListContentProps) {
                   className={cn(
                     "type-body inline-flex h-8 items-center gap-2 rounded-[10px] border px-3 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     category === filter.value
-                      ? "border-primary bg-primary text-white"
-                      : "border-outline-variant bg-white text-on-surface-variant hover:bg-surface-container"
+                      ? "border-primary bg-primary text-on-primary"
+                      : "border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container",
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -351,7 +357,10 @@ export function CourseListContent({ library }: CourseListContentProps) {
             })}
           </div>
 
-          <Heading level={2} className="mb-4 font-semibold text-on-surface-variant">
+          <Heading
+            level={2}
+            className="mb-4 font-semibold text-on-surface-variant"
+          >
             {t("status.in_progress")}
           </Heading>
 
@@ -374,7 +383,7 @@ export function CourseListContent({ library }: CourseListContentProps) {
               ))}
             </div>
           ) : (
-            <div className="rounded-[10px] border border-dashed border-outline-variant bg-white px-6 py-8 text-center text-on-surface-variant">
+            <div className="rounded-[10px] border border-dashed border-outline-variant bg-surface px-6 py-8 text-center text-on-surface-variant">
               {t("empty_subtitle")}
             </div>
           )}

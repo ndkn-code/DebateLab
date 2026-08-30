@@ -95,6 +95,13 @@ export function DashboardContent({
           <div
             className="mb-4 h-1 overflow-hidden rounded-full bg-outline-variant/30"
             aria-label={t("daily_focus")}
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={Math.min(
+              100,
+              Math.max(0, data.hero.todayGoal.progressPercent),
+            )}
           >
             <div
               className="h-full rounded-full bg-primary transition-[width] duration-300"

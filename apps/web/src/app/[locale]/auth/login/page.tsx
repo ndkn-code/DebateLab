@@ -3,7 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Loader2, Gift } from "@/components/ui/icons";
@@ -11,7 +11,20 @@ import { LogoMark } from "@/components/landing/logo-mark";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 
 function LoginContent() {
-  const t = useTranslations('auth.login');
+  const t = useTranslations("auth.login");
+  const locale = useLocale();
+  const copy =
+    locale === "vi"
+      ? {
+          invited: "Được mời bởi",
+          reward: "Cả hai bạn sẽ nhận thêm Credits.",
+          account: "Một tài khoản cho Tranh biện và IELTS.",
+        }
+      : {
+          invited: "Invited by",
+          reward: "You will both earn bonus Credits.",
+          account: "One account for Debate and IELTS.",
+        };
   const searchParams = useSearchParams();
   const refCode = searchParams.get("ref");
   const next = searchParams.get("next");
@@ -45,46 +58,54 @@ function LoginContent() {
     });
 
     if (authError) {
-      setError(t('error_generic'));
+      setError(t("error_generic"));
       setLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-sm space-y-8">
-      {/* Logo */}
+    <div className="w-full max-w-sm space-y-5">
       <div className="text-center">
-        <Link href="/" className="inline-flex justify-center">
+        <Link
+          href="/"
+          className="inline-flex justify-center rounded-[10px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
           <LogoMark size="lg" priority />
         </Link>
+        <p className="mt-3 type-body-sm text-on-surface-variant">
+          {copy.account}
+        </p>
       </div>
 
-      {/* Invited by banner */}
       {referrerName && (
-        <div className="flex items-center gap-2.5 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3">
+        <div className="flex items-center gap-2.5 rounded-[10px] border border-primary/25 bg-primary-container px-3 py-2">
           <Gift className="h-4 w-4 shrink-0 text-primary" />
-          <p className="text-sm text-on-surface">
-            Invited by <span className="font-semibold">{referrerName}</span> — you&apos;ll both earn bonus Credits!
+          <p className="type-body-sm text-on-surface">
+            {copy.invited} <span className="font-semibold">{referrerName}</span>
+            . {copy.reward}
           </p>
         </div>
       )}
 
       {error && (
-        <p className="rounded-lg bg-error-container/50 px-3 py-2 text-sm text-on-error-container text-center">
+        <p
+          role="alert"
+          className="rounded-[10px] bg-error-container px-3 py-2 text-center type-body-sm text-on-error-container"
+        >
           {error}
         </p>
       )}
 
-      {/* Google OAuth — only auth method */}
       <Button
         type="button"
         variant="outline"
         disabled={loading}
-        className="w-full gap-3 border-outline-variant/30 bg-surface-container-lowest py-5 text-on-surface hover:bg-surface-container-low"
+        aria-busy={loading}
+        className="h-10 w-full gap-3 rounded-[10px] border-outline-variant bg-surface text-on-surface shadow-none hover:bg-surface-container-low"
         onClick={handleGoogleLogin}
       >
         {loading ? (
-          <Loader2 className="h-5 w-5 animate-spin" />
+          <Loader2 className="h-5 w-5 animate-spin motion-reduce:animate-none" />
         ) : (
           <svg className="h-5 w-5" viewBox="0 0 24 24">
             <path
@@ -105,7 +126,7 @@ function LoginContent() {
             />
           </svg>
         )}
-        {t('google')}
+        {t("google")}
       </Button>
     </div>
   );
@@ -113,19 +134,18 @@ function LoginContent() {
 
 export default function LoginPage() {
   return (
-    <main className="relative flex min-h-screen items-center justify-center bg-background px-4 py-8 text-on-surface">
-      <ThemeToggle
-        variant="public"
-        className="absolute right-4 top-4"
-      />
-      <div className="w-full max-w-sm rounded-[12px] border border-outline-variant bg-surface p-6 shadow-none sm:p-8">
-      <Suspense fallback={
-        <div className="w-full max-w-sm text-center">
-          <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
-        </div>
-      }>
-        <LoginContent />
-      </Suspense>
+    <main className="relative flex min-h-dvh items-center justify-center bg-background px-4 py-8 text-on-surface">
+      <ThemeToggle variant="public" className="absolute right-4 top-4" />
+      <div className="w-full max-w-sm rounded-xl border border-outline-variant bg-surface p-5 sm:p-6">
+        <Suspense
+          fallback={
+            <div className="w-full max-w-sm text-center" aria-live="polite">
+              <Loader2 className="mx-auto h-6 w-6 animate-spin text-primary motion-reduce:animate-none" />
+            </div>
+          }
+        >
+          <LoginContent />
+        </Suspense>
       </div>
     </main>
   );

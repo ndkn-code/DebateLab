@@ -24,14 +24,22 @@ import {
   grantUserSubscription,
   updateUserRole,
 } from "@/app/actions/admin-users";
-import { FadeInItem, PageTransition, StaggeredContainer } from "@/components/shared/page-motion";
+import {
+  FadeInItem,
+  PageTransition,
+  StaggeredContainer,
+} from "@/components/shared/page-motion";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import type { EntitlementSource, PlanType, SubscriptionRecord } from "@/lib/entitlements";
+import type {
+  EntitlementSource,
+  PlanType,
+  SubscriptionRecord,
+} from "@/lib/entitlements";
 
 type UserRole = "student" | "teacher" | "admin";
 
@@ -80,9 +88,12 @@ function formatLastOnline(value?: string | null) {
   const absMs = Math.abs(diffMs);
   const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
   if (absMs < 60_000) return "Just now";
-  if (absMs < 3_600_000) return rtf.format(Math.round(diffMs / 60_000), "minute");
-  if (absMs < 86_400_000) return rtf.format(Math.round(diffMs / 3_600_000), "hour");
-  if (absMs < 30 * 86_400_000) return rtf.format(Math.round(diffMs / 86_400_000), "day");
+  if (absMs < 3_600_000)
+    return rtf.format(Math.round(diffMs / 60_000), "minute");
+  if (absMs < 86_400_000)
+    return rtf.format(Math.round(diffMs / 3_600_000), "hour");
+  if (absMs < 30 * 86_400_000)
+    return rtf.format(Math.round(diffMs / 86_400_000), "day");
   return formatDate(value);
 }
 
@@ -94,12 +105,14 @@ function daysUntil(value?: string | null) {
 }
 
 function initials(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join("") || "U";
+  return (
+    name
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "U"
+  );
 }
 
 function sourceLabel(source: EntitlementSource) {
@@ -109,22 +122,30 @@ function sourceLabel(source: EntitlementSource) {
 }
 
 function entitlementTone(source: EntitlementSource) {
-  if (source === "free") return "border-slate-200 bg-slate-50 text-slate-600";
-  if (source === "subscription") return "border-emerald-200 bg-emerald-50 text-emerald-700";
-  return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (source === "free")
+    return "border-outline-variant bg-surface-container text-on-surface-variant";
+  if (source === "subscription")
+    return "border-success/20 bg-success-container text-success-dim";
+  return "border-primary/20 bg-primary-container text-on-primary-container";
 }
 
 function subscriptionIsActive(subscription: SubscriptionRecord | null) {
   return subscription?.status === "active" || subscription?.status === "trial";
 }
 
-export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) {
+export function UserAccessDashboard({
+  users,
+  betaAllAccess,
+  loadError,
+}: Props) {
   const router = useRouter();
   const adminT = useTranslations("admin");
   const [query, setQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [planFilter, setPlanFilter] = useState<PlanType | "all">("all");
-  const [entitlementFilter, setEntitlementFilter] = useState<EntitlementSource | "all">("all");
+  const [entitlementFilter, setEntitlementFilter] = useState<
+    EntitlementSource | "all"
+  >("all");
   const [selectedUserId, setSelectedUserId] = useState(users[0]?.id ?? "");
   const [grantPlan, setGrantPlan] = useState<PlanType>("premium");
   const [grantMonths, setGrantMonths] = useState(12);
@@ -139,27 +160,39 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
         (user.email ?? "").toLowerCase().includes(normalizedQuery) ||
         user.id.toLowerCase().includes(normalizedQuery);
       const matchesRole = roleFilter === "all" || user.role === roleFilter;
-      const matchesPlan = planFilter === "all" || user.entitlement.planType === planFilter;
+      const matchesPlan =
+        planFilter === "all" || user.entitlement.planType === planFilter;
       const matchesEntitlement =
-        entitlementFilter === "all" || user.entitlement.source === entitlementFilter;
+        entitlementFilter === "all" ||
+        user.entitlement.source === entitlementFilter;
       return matchesQuery && matchesRole && matchesPlan && matchesEntitlement;
     });
   }, [entitlementFilter, planFilter, query, roleFilter, users]);
 
   const selectedUser =
-    users.find((user) => user.id === selectedUserId) ?? filteredUsers[0] ?? users[0] ?? null;
+    users.find((user) => user.id === selectedUserId) ??
+    filteredUsers[0] ??
+    users[0] ??
+    null;
 
   const storedPremiumGrants = users.filter((user) =>
     user.subscriptions.some(
       (subscription) =>
         ["premium", "enterprise"].includes(subscription.plan_type) &&
-        subscriptionIsActive(subscription)
-    )
+        subscriptionIsActive(subscription),
+    ),
   ).length;
-  const freeUsers = users.filter((user) => user.entitlement.planType === "free").length;
+  const freeUsers = users.filter(
+    (user) => user.entitlement.planType === "free",
+  ).length;
   const expiringSoon = users.filter((user) => {
     const days = daysUntil(user.latestSubscription?.current_period_end);
-    return days !== null && days >= 0 && days <= 30 && subscriptionIsActive(user.latestSubscription);
+    return (
+      days !== null &&
+      days >= 0 &&
+      days <= 30 &&
+      subscriptionIsActive(user.latestSubscription)
+    );
   }).length;
 
   const handleRoleChange = (userId: string, role: UserRole) => {
@@ -185,10 +218,12 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
 
   return (
     <PageTransition className="min-h-full bg-background text-on-surface-variant">
-      <header className="border-b border-outline-variant bg-surface px-5 py-5 backdrop-blur md:px-7">
+      <header className="border-b border-outline-variant bg-surface px-4 py-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="type-eyebrow text-secondary">{adminT("groups.peoplePrograms")}</p>
+            <p className="type-eyebrow text-secondary">
+              {adminT("groups.peoplePrograms")}
+            </p>
             <h1 className="type-heading-lg mt-1 font-medium text-on-surface">
               Users & Access
             </h1>
@@ -201,7 +236,10 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
               <Sparkles className="h-4 w-4" />
               Invite User
             </Button>
-            <Button variant="outline" className="h-8 gap-2 rounded-[10px] border-outline-variant bg-surface px-3 text-sm transition-all hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+            <Button
+              variant="outline"
+              className="h-8 gap-2 rounded-[10px] border-outline-variant bg-surface px-3 text-sm transition-all hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
               <SlidersHorizontal className="h-4 w-4" />
               Export
             </Button>
@@ -209,8 +247,8 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
         </div>
       </header>
 
-      <main className="mx-auto grid w-full max-w-[1440px] gap-5 px-5 py-5 2xl:grid-cols-[minmax(0,1fr)_350px] md:px-7 lg:py-7">
-        <section className="min-w-0 space-y-5">
+      <main className="grid w-full gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-5 2xl:grid-cols-[minmax(0,1fr)_340px]">
+        <section className="min-w-0 space-y-4">
           {loadError ? (
             <div className="rounded-[10px] border border-error/20 bg-error-container px-4 py-3 text-sm text-error-dim">
               {loadError}
@@ -222,8 +260,12 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
               {
                 icon: Crown,
                 value: betaAllAccess ? users.length : storedPremiumGrants,
-                label: betaAllAccess ? "Beta all-access active" : "Premium access active",
-                detail: betaAllAccess ? "Server flag is enabled" : "Subscription-backed users",
+                label: betaAllAccess
+                  ? "Beta all-access active"
+                  : "Premium access active",
+                detail: betaAllAccess
+                  ? "Server flag is enabled"
+                  : "Subscription-backed users",
                 tone: "blue" as const,
               },
               {
@@ -266,7 +308,9 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
             </label>
             <Select
               value={roleFilter}
-              onChange={(event) => setRoleFilter(event.target.value as UserRole | "all")}
+              onChange={(event) =>
+                setRoleFilter(event.target.value as UserRole | "all")
+              }
               className="h-8 rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
             >
               <option value="all">Role: All</option>
@@ -276,7 +320,9 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
             </Select>
             <Select
               value={planFilter}
-              onChange={(event) => setPlanFilter(event.target.value as PlanType | "all")}
+              onChange={(event) =>
+                setPlanFilter(event.target.value as PlanType | "all")
+              }
               className="h-8 rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
             >
               <option value="all">Plan: All</option>
@@ -287,7 +333,9 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
             <Select
               value={entitlementFilter}
               onChange={(event) =>
-                setEntitlementFilter(event.target.value as EntitlementSource | "all")
+                setEntitlementFilter(
+                  event.target.value as EntitlementSource | "all",
+                )
               }
               className="h-8 rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
             >
@@ -296,7 +344,10 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
               <option value="subscription">Subscription</option>
               <option value="free">Free</option>
             </Select>
-            <Button variant="outline" className="h-8 rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px">
+            <Button
+              variant="outline"
+              className="h-8 rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+            >
               Filters
             </Button>
           </FadeInItem>
@@ -304,7 +355,7 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
           <FadeInItem className="overflow-hidden rounded-[10px] border border-outline-variant bg-surface shadow-none">
             <div className="overflow-x-auto">
               <div className="min-w-[820px] 2xl:min-w-[980px]">
-                <div className="grid grid-cols-[minmax(200px,1fr)_112px_90px_140px_70px_108px_56px] border-b border-outline-variant bg-surface-container px-3 py-3 text-xs font-semibold text-on-surface-variant 2xl:grid-cols-[minmax(240px,1.4fr)_130px_110px_150px_100px_140px_72px] 2xl:px-4">
+                <div className="grid h-10 grid-cols-[minmax(200px,1fr)_112px_90px_140px_70px_108px_56px] items-center border-b border-outline-variant bg-surface-container px-3 type-caption font-semibold text-on-surface-variant 2xl:grid-cols-[minmax(240px,1.4fr)_130px_110px_150px_100px_140px_72px] 2xl:px-4">
                   <span>User</span>
                   <span>Last Online</span>
                   <span>Role</span>
@@ -314,88 +365,115 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                   <span>Actions</span>
                 </div>
                 <div className="divide-y divide-outline-variant">
-                {filteredUsers.map((user) => {
-                  const selected = selectedUser?.id === user.id;
-                  const expiresIn = daysUntil(user.latestSubscription?.current_period_end);
-                  return (
-                    <motion.button
-                      key={user.id}
-                      type="button"
-                      onClick={() => setSelectedUserId(user.id)}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.18, ease: "easeOut" }}
-                      whileHover={{ y: -1 }}
-                      whileTap={{ scale: 0.995 }}
-                      className={cn(
-                        "grid w-full grid-cols-[minmax(200px,1fr)_112px_90px_140px_70px_108px_56px] items-center px-3 py-3 text-left text-sm transition-colors hover:bg-surface-container 2xl:grid-cols-[minmax(240px,1.4fr)_130px_110px_150px_100px_140px_72px] 2xl:px-4",
-                        selected && "bg-surface-container"
-                      )}
-                    >
-                      <span className="flex min-w-0 items-center gap-3">
-                        <Avatar size="lg" className="h-10 w-10 bg-surface-container-high text-on-surface-variant">
-                          {user.avatarUrl ? (
-                            <AvatarImage src={user.avatarUrl} alt={user.displayName} />
-                          ) : null}
-                          <AvatarFallback className="bg-surface-container-high text-sm font-bold text-on-surface-variant">
-                            {initials(user.displayName)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="min-w-0">
-                          <span className="block truncate font-semibold text-on-surface-variant">
-                            {user.displayName}
-                          </span>
-                          <span className="block truncate text-xs text-on-surface-variant">
-                            {user.email ?? user.id}
+                  {filteredUsers.map((user) => {
+                    const selected = selectedUser?.id === user.id;
+                    const expiresIn = daysUntil(
+                      user.latestSubscription?.current_period_end,
+                    );
+                    return (
+                      <motion.button
+                        key={user.id}
+                        type="button"
+                        onClick={() => setSelectedUserId(user.id)}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.18, ease: "easeOut" }}
+                        whileHover={{ y: -1 }}
+                        whileTap={{ scale: 0.995 }}
+                        className={cn(
+                          "grid min-h-10 w-full grid-cols-[minmax(200px,1fr)_112px_90px_140px_70px_108px_56px] items-center border-l-2 border-l-transparent px-3 py-1 text-left text-sm transition-colors hover:bg-surface-container 2xl:grid-cols-[minmax(240px,1.4fr)_130px_110px_150px_100px_140px_72px] 2xl:px-4",
+                          selected &&
+                            "border-l-primary bg-primary-container/45",
+                        )}
+                      >
+                        <span className="flex min-w-0 items-center gap-3">
+                          <Avatar
+                            size="lg"
+                            className="size-8 bg-surface-container-high text-on-surface-variant"
+                          >
+                            {user.avatarUrl ? (
+                              <AvatarImage
+                                src={user.avatarUrl}
+                                alt={user.displayName}
+                              />
+                            ) : null}
+                            <AvatarFallback className="bg-surface-container-high text-sm font-bold text-on-surface-variant">
+                              {initials(user.displayName)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="min-w-0">
+                            <span className="block truncate font-semibold text-on-surface-variant">
+                              {user.displayName}
+                            </span>
+                            <span className="block truncate text-xs text-on-surface-variant">
+                              {user.email ?? user.id}
+                            </span>
                           </span>
                         </span>
-                      </span>
-                      <span className="truncate text-xs font-medium text-on-surface-variant">
-                        {formatLastOnline(user.lastOnlineAt)}
-                      </span>
-                      <span>
-                        <Badge className="gap-1 rounded-md border border-outline-variant bg-surface-container text-on-surface-variant">
-                          <GraduationCap className="h-3 w-3" />
-                          {user.role}
-                        </Badge>
-                      </span>
-                      <span>
-                        <Badge className={cn("gap-1 rounded-md border", entitlementTone(user.entitlement.source))}>
-                          {user.entitlement.source === "free" ? (
-                            <UserRound className="h-3 w-3" />
+                        <span className="truncate text-xs font-medium text-on-surface-variant">
+                          {formatLastOnline(user.lastOnlineAt)}
+                        </span>
+                        <span>
+                          <Badge className="gap-1 rounded-md border border-outline-variant bg-surface-container text-on-surface-variant">
+                            <GraduationCap className="h-3 w-3" />
+                            {user.role}
+                          </Badge>
+                        </span>
+                        <span>
+                          <Badge
+                            className={cn(
+                              "gap-1 rounded-md border",
+                              entitlementTone(user.entitlement.source),
+                            )}
+                          >
+                            {user.entitlement.source === "free" ? (
+                              <UserRound className="h-3 w-3" />
+                            ) : (
+                              <Crown className="h-3 w-3" />
+                            )}
+                            {sourceLabel(user.entitlement.source)}
+                          </Badge>
+                        </span>
+                        <span className="truncate text-xs capitalize text-on-surface-variant">
+                          {user.entitlement.planType}
+                        </span>
+                        <span className="text-on-surface-variant">
+                          {user.latestSubscription?.current_period_end ? (
+                            <>
+                              <span
+                                className={cn(
+                                  expiresIn !== null &&
+                                    expiresIn <= 30 &&
+                                    "text-orange-600",
+                                )}
+                              >
+                                {formatDate(
+                                  user.latestSubscription.current_period_end,
+                                )}
+                              </span>
+                              <span className="block text-xs text-on-surface-variant">
+                                {expiresIn !== null
+                                  ? `In ${Math.max(expiresIn, 0)} days`
+                                  : "-"}
+                              </span>
+                            </>
                           ) : (
-                            <Crown className="h-3 w-3" />
+                            "-"
                           )}
-                          {sourceLabel(user.entitlement.source)}
-                        </Badge>
-                      </span>
-                      <span className="truncate text-xs capitalize text-on-surface-variant">{user.entitlement.planType}</span>
-                      <span className="text-on-surface-variant">
-                        {user.latestSubscription?.current_period_end ? (
-                          <>
-                            <span className={cn(expiresIn !== null && expiresIn <= 30 && "text-orange-600")}>
-                              {formatDate(user.latestSubscription.current_period_end)}
-                            </span>
-                            <span className="block text-xs text-on-surface-variant">
-                              {expiresIn !== null ? `In ${Math.max(expiresIn, 0)} days` : "-"}
-                            </span>
-                          </>
-                        ) : (
-                          "-"
-                        )}
-                      </span>
-                      <span className="flex justify-end pr-2 text-on-surface-variant">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </span>
-                    </motion.button>
-                  );
-                })}
+                        </span>
+                        <span className="flex justify-end pr-2 text-on-surface-variant">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </span>
+                      </motion.button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
             <div className="flex items-center justify-between border-t border-outline-variant px-4 py-3 text-sm text-on-surface-variant">
               <span>
-                Showing {filteredUsers.length === 0 ? 0 : 1} to {filteredUsers.length} of {users.length} users
+                Showing {filteredUsers.length === 0 ? 0 : 1} to{" "}
+                {filteredUsers.length} of {users.length} users
               </span>
               <span className="inline-flex h-5 items-center rounded-[6px] border border-outline-variant bg-surface px-2 text-xs">
                 250 / page
@@ -410,7 +488,10 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
               <div className="flex items-start gap-4">
                 <Avatar className="h-16 w-16 bg-surface-container-high text-on-surface-variant">
                   {selectedUser.avatarUrl ? (
-                    <AvatarImage src={selectedUser.avatarUrl} alt={selectedUser.displayName} />
+                    <AvatarImage
+                      src={selectedUser.avatarUrl}
+                      alt={selectedUser.displayName}
+                    />
                   ) : null}
                   <AvatarFallback className="bg-surface-container-high text-lg font-bold text-on-surface-variant">
                     {initials(selectedUser.displayName)}
@@ -420,7 +501,9 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                   <h2 className="truncate text-lg font-bold text-on-surface-variant">
                     {selectedUser.displayName}
                   </h2>
-                  <p className="truncate text-sm text-on-surface-variant">{selectedUser.email ?? selectedUser.id}</p>
+                  <p className="truncate text-sm text-on-surface-variant">
+                    {selectedUser.email ?? selectedUser.id}
+                  </p>
                   <p className="mt-1 text-xs text-on-surface-variant">
                     Joined {formatDate(selectedUser.createdAt)}
                   </p>
@@ -433,7 +516,9 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
               <Button
                 type="button"
                 onClick={() =>
-                  router.push(`/dashboard/admin/users/${selectedUser.id}/analytics`)
+                  router.push(
+                    `/dashboard/admin/users/${selectedUser.id}/analytics`,
+                  )
                 }
                 className="h-8 w-full justify-center gap-2 rounded-[10px] bg-primary text-primary-foreground transition-all hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
               >
@@ -448,7 +533,10 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                 <Select
                   value={selectedUser.role}
                   onChange={(event) =>
-                    handleRoleChange(selectedUser.id, event.target.value as UserRole)
+                    handleRoleChange(
+                      selectedUser.id,
+                      event.target.value as UserRole,
+                    )
                   }
                   disabled={isPending}
                   className="rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
@@ -465,7 +553,9 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
               <div className="rounded-lg border border-outline-variant bg-surface-container p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm font-bold text-on-surface">Premium Access</p>
+                    <p className="text-sm font-bold text-on-surface">
+                      Premium Access
+                    </p>
                     <p className="mt-1 text-xs text-on-surface-variant">
                       {selectedUser.entitlement.reason}
                     </p>
@@ -474,15 +564,17 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                     className={cn(
                       "rounded-md",
                       selectedUser.entitlement.hasPremiumAccess
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-slate-100 text-slate-600"
+                        ? "bg-success-container text-success-dim"
+                        : "bg-surface-container text-on-surface-variant",
                     )}
                   >
-                    {selectedUser.entitlement.hasPremiumAccess ? "Active" : "Free"}
+                    {selectedUser.entitlement.hasPremiumAccess
+                      ? "Active"
+                      : "Free"}
                   </Badge>
                 </div>
                 <div className="mt-4 flex items-center gap-3">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                  <div className="flex size-8 items-center justify-center rounded-[8px] bg-success-container text-success-dim">
                     <Crown className="h-5 w-5" />
                   </div>
                   <div className="min-w-0">
@@ -501,11 +593,15 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
               </div>
 
               <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
-                <p className="text-sm font-bold text-on-surface">Manual Grant</p>
+                <p className="text-sm font-bold text-on-surface">
+                  Manual Grant
+                </p>
                 <div className="mt-3 grid grid-cols-[1fr_92px] gap-2">
                   <Select
                     value={grantPlan}
-                    onChange={(event) => setGrantPlan(event.target.value as PlanType)}
+                    onChange={(event) =>
+                      setGrantPlan(event.target.value as PlanType)
+                    }
                     disabled={isPending}
                     className="rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
                   >
@@ -515,7 +611,9 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                   </Select>
                   <Select
                     value={String(grantMonths)}
-                    onChange={(event) => setGrantMonths(Number(event.target.value))}
+                    onChange={(event) =>
+                      setGrantMonths(Number(event.target.value))
+                    }
                     disabled={isPending}
                     className="rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
                   >
@@ -530,33 +628,47 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
                   disabled={isPending}
                   className="mt-3 h-8 w-full rounded-[10px] bg-primary text-primary-foreground transition-all hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
                 >
-                  {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldCheck className="h-4 w-4" />}
+                  {isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <ShieldCheck className="h-4 w-4" />
+                  )}
                   Manage Access
                 </Button>
               </div>
 
               <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
-                <p className="text-sm font-bold text-on-surface">Subscription Records</p>
+                <p className="text-sm font-bold text-on-surface">
+                  Subscription Records
+                </p>
                 <div className="mt-3 space-y-3">
                   {selectedUser.subscriptions.length > 0 ? (
-                    selectedUser.subscriptions.slice(0, 4).map((subscription) => (
-                      <div key={subscription.id} className="rounded-lg border border-outline-variant p-3">
-                        <div className="flex items-center justify-between gap-3">
-                          <div>
-                            <p className="text-sm font-semibold capitalize text-on-surface">
-                              {subscription.plan_type} / {subscription.status}
-                            </p>
-                            <p className="text-xs text-on-surface-variant">
-                              {formatDate(subscription.current_period_start)} to{" "}
-                              {formatDate(subscription.current_period_end)}
-                            </p>
+                    selectedUser.subscriptions
+                      .slice(0, 4)
+                      .map((subscription) => (
+                        <div
+                          key={subscription.id}
+                          className="rounded-lg border border-outline-variant p-3"
+                        >
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold capitalize text-on-surface">
+                                {subscription.plan_type} / {subscription.status}
+                              </p>
+                              <p className="text-xs text-on-surface-variant">
+                                {formatDate(subscription.current_period_start)}{" "}
+                                to {formatDate(subscription.current_period_end)}
+                              </p>
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="rounded-md capitalize"
+                            >
+                              {subscription.status}
+                            </Badge>
                           </div>
-                          <Badge variant="outline" className="rounded-md capitalize">
-                            {subscription.status}
-                          </Badge>
                         </div>
-                      </div>
-                    ))
+                      ))
                   ) : (
                     <p className="rounded-lg bg-surface-container px-3 py-3 text-sm text-on-surface-variant">
                       No subscription records yet.
@@ -566,13 +678,25 @@ export function UserAccessDashboard({ users, betaAllAccess, loadError }: Props) 
               </div>
 
               <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
-                <p className="text-sm font-bold text-on-surface">Feature Access</p>
+                <p className="text-sm font-bold text-on-surface">
+                  Feature Access
+                </p>
                 <div className="mt-3 space-y-2 text-sm">
-                  {["AI Feedback", "Advanced Analytics", "Custom Rubrics", "Premium Courses"].map((feature) => (
-                    <div key={feature} className="flex items-center justify-between">
+                  {[
+                    "AI Feedback",
+                    "Advanced Analytics",
+                    "Custom Rubrics",
+                    "Premium Courses",
+                  ].map((feature) => (
+                    <div
+                      key={feature}
+                      className="flex items-center justify-between"
+                    >
                       <span className="text-on-surface-variant">{feature}</span>
-                      <Badge className="rounded-md bg-emerald-100 text-emerald-700">
-                        {selectedUser.entitlement.hasPremiumAccess ? "Included" : "Free"}
+                      <Badge className="h-5 rounded-[6px] bg-success-container px-2 type-caption text-success-dim">
+                        {selectedUser.entitlement.hasPremiumAccess
+                          ? "Included"
+                          : "Free"}
                       </Badge>
                     </div>
                   ))}
@@ -618,20 +742,25 @@ function MetricCard({
 }) {
   const toneClasses = {
     blue: "bg-surface-container text-on-surface-variant",
-    green: "bg-emerald-50 text-emerald-700",
-    slate: "bg-slate-100 text-slate-600",
-    amber: "bg-amber-50 text-amber-700",
+    green: "bg-success-container text-success-dim",
+    slate: "bg-surface-container text-on-surface-variant",
+    amber: "bg-warning-container text-on-warning-container",
   } satisfies Record<typeof tone, string>;
 
   return (
-    <div className="flex items-center gap-4 rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none transition-all duration-150 hover:border-outline focus-within:ring-2 focus-within:ring-ring/30">
-      <div className={cn("flex h-14 w-14 shrink-0 items-center justify-center rounded-full", toneClasses[tone])}>
-        <Icon className="h-6 w-6" />
+    <div className="flex min-h-20 items-center gap-3 rounded-[10px] border border-outline-variant bg-surface p-3 transition-colors duration-150 hover:border-outline focus-within:ring-2 focus-within:ring-ring/30">
+      <div
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-[8px]",
+          toneClasses[tone],
+        )}
+      >
+        <Icon className="h-4 w-4" />
       </div>
       <div>
-        <p className="text-2xl font-bold text-on-surface-variant">{value}</p>
-        <p className="text-sm font-semibold text-on-surface-variant">{label}</p>
-        <p className="mt-1 text-xs text-on-surface-variant">{detail}</p>
+        <p className="type-heading-md font-semibold text-on-surface">{value}</p>
+        <p className="type-label font-semibold text-on-surface">{label}</p>
+        <p className="type-caption text-on-surface-variant">{detail}</p>
       </div>
     </div>
   );

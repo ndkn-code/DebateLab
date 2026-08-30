@@ -16,11 +16,11 @@ export function IeltsEmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-outline-variant bg-surface-container-low px-6 py-12 text-center">
+    <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed border-outline-variant bg-surface-container-low px-5 py-8 text-center">
       {icon ? (
         <span
           aria-hidden="true"
-          className="flex size-12 items-center justify-center rounded-2xl bg-surface-container-high text-on-surface-variant"
+          className="flex size-12 items-center justify-center rounded-xl bg-surface-container-high text-on-surface-variant"
         >
           {icon}
         </span>

@@ -79,11 +79,11 @@ function ClassRow({ item }: { item: AdminClassListRow }) {
   return (
     <Link
       href={`/dashboard/admin/classes/${item.id}`}
-      className="grid grid-cols-[1.8fr_0.7fr_1.2fr_0.7fr_0.8fr_1fr_52px] items-center border-b border-outline-variant/15 px-4 py-3 text-sm transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container/50 hover:shadow-sm active:scale-[0.998]"
+      className="grid min-h-10 grid-cols-[1.8fr_0.7fr_1.2fr_0.7fr_0.8fr_1fr_40px] items-center border-b border-outline-variant/15 px-3 py-1 text-sm transition-colors duration-150 hover:bg-surface-container/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/50"
     >
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary">
-          <Users className="h-5 w-5" />
+        <div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-primary-container text-primary">
+          <Users className="h-4 w-4" />
         </div>
         <div className="min-w-0">
           <p className="truncate font-semibold text-on-surface">{item.title}</p>
@@ -95,7 +95,7 @@ function ClassRow({ item }: { item: AdminClassListRow }) {
       <div>
         <span
           className={cn(
-            "inline-flex rounded-full border px-2 py-0.5 text-xs font-semibold",
+            "inline-flex h-5 items-center rounded-[6px] border px-2 type-caption font-semibold",
             statusTone(item.status),
           )}
         >
@@ -156,12 +156,12 @@ function ClassCard({ item }: { item: AdminClassListRow }) {
   return (
     <Link
       href={`/dashboard/admin/classes/${item.id}`}
-      className="block rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-primary/30 hover:shadow-md active:scale-[0.995]"
+      className="block rounded-[10px] border border-outline-variant bg-surface p-3 transition-colors duration-150 hover:border-primary/35 hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary">
-            <Users className="h-5 w-5" />
+          <div className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-primary-container text-primary">
+            <Users className="h-4 w-4" />
           </div>
           <div className="min-w-0">
             <h2 className="truncate text-sm font-bold text-on-surface">
@@ -174,7 +174,7 @@ function ClassCard({ item }: { item: AdminClassListRow }) {
         </div>
         <span
           className={cn(
-            "rounded-full border px-2 py-0.5 text-xs font-semibold",
+            "inline-flex h-5 items-center rounded-[6px] border px-2 type-caption font-semibold",
             statusTone(item.status),
           )}
         >
@@ -226,7 +226,9 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
   const [editingSchedule, setEditingSchedule] =
     useState<AdminClassSchedule | null>(null);
   const [isPending, startTransition] = useTransition();
-  const createDialogRef = useAdminDialogFocus<HTMLFormElement>(createOpen, () => setCreateOpen(false));
+  const createDialogRef = useAdminDialogFocus<HTMLFormElement>(createOpen, () =>
+    setCreateOpen(false),
+  );
   const isSchedulesView = searchParams.get("view") === "schedules";
   const classChartData = useMemo(
     () =>
@@ -277,10 +279,12 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
   }
 
   return (
-    <PageTransition className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+    <PageTransition className="w-full px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
       <div className="flex flex-col gap-3 border-b border-outline-variant pb-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="type-eyebrow text-secondary">{adminT("groups.operations")}</p>
+          <p className="type-eyebrow text-secondary">
+            {adminT("groups.operations")}
+          </p>
           <h1 className="type-heading-lg mt-1 font-medium text-on-surface">
             {t("title")}
           </h1>
@@ -452,7 +456,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
           <FadeInItem>
             <form
               onSubmit={handleFilterSubmit}
-              className="mt-6 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md"
+              className="mt-4 rounded-[10px] border border-outline-variant bg-surface p-3"
             >
               <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto]">
                 <label className="relative block">
@@ -461,13 +465,13 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
                     name="q"
                     defaultValue={searchDefaults.q}
                     placeholder={t("searchPlaceholder")}
-                    className="h-11 w-full rounded-lg border border-outline-variant/40 bg-background pl-10 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/15"
+                    className="h-8 w-full rounded-[10px] border border-outline-variant bg-surface pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-ring/40"
                   />
                 </label>
                 <select
                   name="status"
                   defaultValue={searchDefaults.status}
-                  className="h-11 rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary"
+                  className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/40"
                 >
                   <option value="all">{t("status.all")}</option>
                   <option value="active">{t("status.active")}</option>
@@ -477,14 +481,14 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
                 <select
                   name="sort"
                   defaultValue={searchDefaults.sort}
-                  className="h-11 rounded-lg border border-outline-variant/40 bg-background px-3 text-sm outline-none focus:border-primary"
+                  className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/40"
                 >
                   <option value="newest">{t("sort.newest")}</option>
                   <option value="oldest">{t("sort.oldest")}</option>
                   <option value="title">{t("sort.title")}</option>
                   <option value="attendance">{t("sort.attendance")}</option>
                 </select>
-                <button className="inline-flex h-11 items-center justify-center gap-2 rounded-lg border border-outline-variant/40 bg-background px-4 text-sm font-semibold text-on-surface transition-all duration-200 hover:-translate-y-0.5 hover:bg-surface-container active:scale-[0.98]">
+                <button className="inline-flex h-8 items-center justify-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 type-label font-semibold text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
                   <Filter className="h-4 w-4" />
                   {t("filters")}
                 </button>
@@ -492,8 +496,8 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
             </form>
           </FadeInItem>
 
-          <FadeInItem className="mt-4 hidden overflow-hidden rounded-lg border border-outline-variant/30 bg-surface-container-lowest shadow-sm lg:block">
-            <div className="grid grid-cols-[1.8fr_0.7fr_1.2fr_0.7fr_0.8fr_1fr_52px] border-b border-outline-variant/20 bg-surface-container px-4 py-3 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+          <FadeInItem className="mt-3 hidden overflow-hidden rounded-[10px] border border-outline-variant bg-surface lg:block">
+            <div className="grid h-10 grid-cols-[1.8fr_0.7fr_1.2fr_0.7fr_0.8fr_1fr_40px] items-center border-b border-outline-variant bg-surface-container px-3 type-caption font-semibold text-on-surface-variant">
               <div>{t("table.class")}</div>
               <div>{t("table.status")}</div>
               <div>{t("table.dates")}</div>
@@ -560,7 +564,12 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
       )}
 
       {createOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/30 px-4 backdrop-blur-sm" onKeyDown={(event) => { if (event.key === "Escape") setCreateOpen(false); }}>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-scrim/30 px-4 backdrop-blur-sm"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setCreateOpen(false);
+          }}
+        >
           <form
             onSubmit={(event) => {
               event.preventDefault();
@@ -579,7 +588,10 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
           >
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 id="create-class-dialog-title" className="text-lg font-bold text-on-surface">
+                <h2
+                  id="create-class-dialog-title"
+                  className="text-lg font-bold text-on-surface"
+                >
                   {t("create.title")}
                 </h2>
                 <p className="text-sm text-on-surface-variant">

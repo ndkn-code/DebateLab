@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { MessageSquareText, Send } from "@/components/ui/icons";
+import { MessageSquareText, Send, Sparkles } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Heading, Text } from "@/components/ui/typography";
 import { ChatBubble } from "./chat-bubble";
@@ -171,27 +171,41 @@ export function ChatArea({
   return (
     <div className="relative flex min-w-0 flex-1 bg-transparent">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-        <button
-          onClick={onOpenSidebar}
-          className="absolute left-4 top-4 z-10 flex h-11 w-11 items-center justify-center rounded-xl text-on-surface-variant transition-colors hover:bg-surface-container lg:hidden"
-          aria-label={t("conversations")}
-        >
-          <MessageSquareText className="h-5 w-5" />
-        </button>
+        <header className="flex min-h-14 items-center gap-3 border-b border-outline-variant bg-surface px-3 sm:px-4">
+          <button
+            type="button"
+            onClick={onOpenSidebar}
+            className="flex size-8 items-center justify-center rounded-[10px] text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+            aria-label={t("conversations")}
+          >
+            <MessageSquareText className="size-4" />
+          </button>
+          <span className="flex size-8 items-center justify-center rounded-[10px] bg-primary-container text-primary">
+            <Sparkles className="size-4" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <h1 className="truncate type-title font-semibold text-on-surface">
+              {t("header_title")}
+            </h1>
+            <p className="truncate type-caption text-on-surface-variant">
+              {t("header_subtitle")}
+            </p>
+          </div>
+        </header>
 
         <div
           ref={scrollRef}
           className={cn(
             "flex-1 overflow-y-auto px-4 sm:px-6",
             showWelcome
-              ? "pb-4 pt-10 sm:pb-6 sm:pt-12"
+              ? "pb-4 pt-5 sm:pb-6 sm:pt-8"
               : "pb-4 pt-6 sm:pb-6 sm:pt-8",
           )}
         >
           <div
             className={cn(
               "mx-auto w-full",
-              showWelcome ? "max-w-[680px]" : "max-w-[800px]",
+              showWelcome ? "max-w-[720px]" : "max-w-[880px]",
             )}
           >
             {loadError ? (
@@ -239,9 +253,9 @@ export function ChatArea({
           </div>
         </div>
 
-        <div className="px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
-          <div className="mx-auto w-full max-w-[720px]">
-            <div className="flex items-end gap-2.5 rounded-2xl border border-outline-variant/70 bg-surface px-3 py-2.5 shadow-[0_10px_36px_-24px_hsl(var(--primary)/0.55)] transition-shadow focus-within:border-primary/45 focus-within:shadow-[0_12px_42px_-20px_hsl(var(--primary)/0.4)]">
+        <div className="border-t border-outline-variant bg-surface-container-low/35 px-4 py-3 sm:px-6">
+          <div className="mx-auto w-full max-w-[800px]">
+            <div className="flex items-end gap-2 rounded-xl border border-outline-variant bg-surface px-2.5 py-2 shadow-token-card transition-colors focus-within:border-primary/45 focus-within:ring-2 focus-within:ring-ring/20">
               <textarea
                 ref={inputRef}
                 value={input}
@@ -257,6 +271,7 @@ export function ChatArea({
                 disabled={!input.trim() || isLoading}
                 size="icon"
                 className="h-8 w-8 shrink-0 rounded-[10px] bg-primary text-on-primary shadow-none disabled:opacity-40"
+                aria-label={t("input_placeholder")}
               >
                 <Send className="h-4 w-4" />
               </Button>

@@ -39,24 +39,26 @@ const ACTIVITY_META = {
 
 const STATUS_STYLES = {
   completed: {
-    node: "border-emerald-500 bg-emerald-500 text-white",
-    card: "border-emerald-500/15 bg-emerald-500/5",
-    badge: "border-emerald-500/20 bg-emerald-500/10 text-emerald-600",
+    node: "border-success/30 bg-success-container text-on-success-container",
+    card: "bg-success-container/35",
+    badge: "border-success/25 bg-success-container text-on-success-container",
   },
   active: {
     node: "border-primary bg-primary text-on-primary ring-4 ring-primary/15",
-    card: "border-primary/20 bg-primary/5 shadow-token-card",
+    card: "bg-primary-container",
     badge: "border-primary/20 bg-primary/10 text-primary",
   },
   locked: {
     node: "border-outline-variant/25 bg-surface-container text-on-surface-variant",
-    card: "border-outline-variant/10 bg-surface-container-low opacity-80",
-    badge: "border-outline-variant/20 bg-surface-container text-on-surface-variant",
+    card: "bg-surface-container-low opacity-80",
+    badge:
+      "border-outline-variant/20 bg-surface-container text-on-surface-variant",
   },
   default: {
-    node: "border-outline-variant/30 bg-surface-container-lowest text-on-surface",
-    card: "border-outline-variant/15 bg-surface-container-lowest",
-    badge: "border-outline-variant/20 bg-surface-container-low text-on-surface-variant",
+    node: "border-outline-variant bg-surface text-on-surface",
+    card: "bg-surface",
+    badge:
+      "border-outline-variant/20 bg-surface-container-low text-on-surface-variant",
   },
 } as const;
 
@@ -75,7 +77,7 @@ interface SortableCoursePathItem extends CoursePathItem {
 
 export function buildCoursePathSections(
   course: CourseWithModules,
-  labels: CoursePathLabels
+  labels: CoursePathLabels,
 ): CoursePathSection[] {
   const isEnrolled = !!course.enrollment;
   const sections = course.modules.map((module) => {
@@ -96,7 +98,7 @@ export function buildCoursePathSections(
           active: false,
           locked: !isEnrolled,
           orderIndex: lesson.order_index,
-        })
+        }),
       ),
       ...(module.activities ?? []).map(
         (activity): SortableCoursePathItem => ({
@@ -116,12 +118,12 @@ export function buildCoursePathSections(
           active: false,
           locked: !isEnrolled,
           orderIndex: activity.order_index,
-        })
+        }),
       ),
     ].sort((left, right) => left.orderIndex - right.orderIndex);
 
     const completedCount = module.lessons.filter(
-      (lesson) => lesson.progress?.status === "completed"
+      (lesson) => lesson.progress?.status === "completed",
     ).length;
     const trackableCount = module.lessons.length;
     const progressPercent =
@@ -188,11 +190,11 @@ export function CourseLearningPath({ course }: CourseLearningPathProps) {
   });
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-5">
       {sections.map((section) => (
-        <section key={section.id} className="space-y-5">
-          <div className="rounded-[12px] border border-outline-variant bg-surface-container-lowest p-5 shadow-none sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <section key={section.id} className="space-y-3">
+          <div className="rounded-xl border border-outline-variant bg-surface p-4 shadow-none">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
               <div>
                 <Eyebrow className="font-semibold text-primary">
                   {t("detail.module")}
@@ -201,13 +203,13 @@ export function CourseLearningPath({ course }: CourseLearningPathProps) {
                   {section.title}
                 </Heading>
                 {section.description ? (
-                  <p className="mt-2 max-w-2xl text-sm leading-6 text-on-surface-variant">
+                  <p className="mt-1 line-clamp-2 max-w-2xl type-body-sm text-on-surface-variant">
                     {section.description}
                   </p>
                 ) : null}
               </div>
 
-              <div className="min-w-[220px] rounded-[10px] bg-surface-container p-4">
+              <div className="min-w-[210px] rounded-[10px] bg-surface-container p-3">
                 <div className="flex items-center justify-between text-xs text-on-surface-variant">
                   <span>
                     {t("detail.lessons_completed", {
@@ -215,17 +217,19 @@ export function CourseLearningPath({ course }: CourseLearningPathProps) {
                       total: section.trackableCount,
                     })}
                   </span>
-                  <span>{t("detail.steps", { count: section.totalItemCount })}</span>
+                  <span>
+                    {t("detail.steps", { count: section.totalItemCount })}
+                  </span>
                 </div>
-                <Progress value={section.progressPercent} className="mt-3" />
+                <Progress
+                  value={section.progressPercent}
+                  className="mt-2 h-2"
+                />
               </div>
             </div>
           </div>
 
-          <div className="relative space-y-5">
-            <div className="absolute bottom-0 left-5 top-6 w-px bg-outline-variant/20 md:hidden" />
-            <div className="absolute bottom-0 left-1/2 top-6 hidden w-px -translate-x-1/2 bg-outline-variant/20 md:block" />
-
+          <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface divide-y divide-outline-variant">
             {section.items.map((item, index) => (
               <PathNode key={item.id} item={item} index={index} />
             ))}
@@ -238,7 +242,6 @@ export function CourseLearningPath({ course }: CourseLearningPathProps) {
 
 function PathNode({ item, index }: { item: CoursePathItem; index: number }) {
   const t = useTranslations("dashboard.courses");
-  const side = index % 2 === 0 ? "md:justify-start" : "md:justify-end";
   const statusKey = item.completed
     ? "completed"
     : item.locked
@@ -249,7 +252,8 @@ function PathNode({ item, index }: { item: CoursePathItem; index: number }) {
   const styles = STATUS_STYLES[statusKey];
   const iconMeta =
     item.kind === "lesson"
-      ? LESSON_META[item.typeKey as keyof typeof LESSON_META] ?? LESSON_META.article
+      ? (LESSON_META[item.typeKey as keyof typeof LESSON_META] ??
+        LESSON_META.article)
       : undefined;
   const activityMeta =
     item.kind === "activity"
@@ -260,73 +264,70 @@ function PathNode({ item, index }: { item: CoursePathItem; index: number }) {
   const content = (
     <div
       className={cn(
-        "w-full rounded-[10px] border p-4 transition-[border-color,background-color,transform] duration-150 md:w-[calc(50%-2.5rem)]",
-        styles.card
+        "flex min-h-14 w-full items-center gap-3 px-3 py-2.5 transition-colors duration-150",
+        styles.card,
       )}
     >
-      <div className="flex items-start gap-4">
-        <div
-          className={cn(
-            "flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] border",
-            styles.node
-          )}
-        >
-          {item.completed ? <Check className="h-5 w-5" /> : <Icon className="h-5 w-5" />}
-        </div>
+      <div
+        className={cn(
+          "flex size-8 shrink-0 items-center justify-center rounded-[8px] border",
+          styles.node,
+        )}
+      >
+        {item.completed ? (
+          <Check className="h-4 w-4" />
+        ) : (
+          <Icon className="h-4 w-4" />
+        )}
+      </div>
 
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline" className={cn("capitalize", styles.badge)}>
+            {item.typeLabel}
+          </Badge>
+          {item.active ? (
             <Badge variant="outline" className={cn("capitalize", styles.badge)}>
-              {item.typeLabel}
+              {t("detail.current")}
             </Badge>
-            {item.active ? (
-              <Badge variant="outline" className={cn("capitalize", styles.badge)}>
-                {t("detail.current")}
-              </Badge>
-            ) : null}
-            {item.locked ? (
-              <Badge variant="outline" className={cn("capitalize", styles.badge)}>
-                <Lock className="mr-1 h-3 w-3" />
-                {t("detail.locked")}
-              </Badge>
-            ) : null}
-          </div>
-
-          <Heading level={4} as="h4" className="mt-3">{item.title}</Heading>
-          {item.description ? (
-            <p className="mt-2 text-sm leading-6 text-on-surface-variant">
-              {item.description}
-            </p>
           ) : null}
-
-          <div className="mt-4 flex items-center gap-3 text-xs text-on-surface-variant">
-            <span>{item.kind === "lesson" ? t("detail.lesson") : t("detail.activity")}</span>
-            <span>&middot;</span>
-            <span>{item.durationMinutes} min</span>
-          </div>
+          {item.locked ? (
+            <Badge variant="outline" className={cn("capitalize", styles.badge)}>
+              <Lock className="mr-1 h-3 w-3" />
+              {t("detail.locked")}
+            </Badge>
+          ) : null}
         </div>
+        <Heading
+          level={4}
+          as="h4"
+          className="mt-1 line-clamp-1 type-label font-semibold"
+        >
+          {item.title}
+        </Heading>
+      </div>
+
+      <div className="shrink-0 text-right type-caption text-on-surface-variant">
+        <span className="block">
+          {item.kind === "lesson" ? t("detail.lesson") : t("detail.activity")}
+        </span>
+        <span>{item.durationMinutes} min</span>
       </div>
     </div>
   );
 
   return (
-    <div className={cn("relative flex", side)}>
-      <div
-        className={cn(
-          "absolute left-2 top-6 h-6 w-6 rounded-full border-4 border-background md:left-1/2 md:-translate-x-1/2",
-          styles.node
-        )}
-      />
-
-      <div className="w-full pl-12 md:pl-0">
-        {item.href && !item.locked ? (
-          <Link href={item.href} className="group block">
-            {content}
-          </Link>
-        ) : (
-          content
-        )}
-      </div>
+    <div data-step={index + 1}>
+      {item.href && !item.locked ? (
+        <Link
+          href={item.href}
+          className="group block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
+        >
+          {content}
+        </Link>
+      ) : (
+        content
+      )}
     </div>
   );
 }

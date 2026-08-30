@@ -35,21 +35,22 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
   const summary = useMemo(() => extractFirstParagraph(markdown), [markdown]);
   const exampleRows = useMemo(
     () => extractExampleRows(markdown, t),
-    [markdown, t]
+    [markdown, t],
   );
   const commonMistake = useMemo(
     () =>
-      extractCommonMistake(sections) ?? t("reader.article_common_mistake_fallback"),
-    [sections, t]
+      extractCommonMistake(sections) ??
+      t("reader.article_common_mistake_fallback"),
+    [sections, t],
   );
   const tryThis = useMemo(
     () => extractTryThis(sections) ?? t("reader.article_try_this_fallback"),
-    [sections, t]
+    [sections, t],
   );
 
   return (
     <div className="space-y-3.5">
-      <article className="rounded-[22px] border border-outline-variant bg-surface-container px-5 py-4">
+      <article className="rounded-xl border border-outline-variant bg-surface-container px-4 py-3">
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-surface-container text-on-surface-variant">
             <Lightbulb className="h-5 w-5" />
@@ -65,7 +66,7 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
         </div>
       </article>
 
-      <article className="rounded-[22px] border border-outline-variant bg-surface-container px-5 py-4">
+      <article className="rounded-xl border border-outline-variant bg-surface-container px-4 py-3">
         <div className="flex items-start gap-3">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary-container text-on-surface-variant">
             <MessageCircle className="h-5 w-5" />
@@ -77,7 +78,9 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
             <div className="mt-2 space-y-1.5 text-sm leading-7 text-on-surface-variant">
               {exampleRows.map((row) => (
                 <p key={`${row.label}-${row.text}`}>
-                  <span className="font-semibold text-on-surface-variant">{row.label}:</span>{" "}
+                  <span className="font-semibold text-on-surface-variant">
+                    {row.label}:
+                  </span>{" "}
                   {row.text}
                 </p>
               ))}
@@ -86,7 +89,7 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
         </div>
       </article>
 
-      <article className="rounded-[18px] border border-outline-variant bg-surface-container px-4 py-3">
+      <article className="rounded-[10px] border border-outline-variant bg-surface-container px-4 py-3">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-surface-container text-on-surface-variant">
             <AlertTriangle className="h-5 w-5" />
@@ -102,7 +105,7 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
         </div>
       </article>
 
-      <details className="group overflow-hidden rounded-[18px] border border-outline-variant bg-surface-container">
+      <details className="group overflow-hidden rounded-[10px] border border-outline-variant bg-surface-container">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface-container text-on-surface-variant">
@@ -119,7 +122,7 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
         </div>
       </details>
 
-      <details className="group overflow-hidden rounded-[22px] border border-outline-variant bg-surface-container">
+      <details className="group overflow-hidden rounded-xl border border-outline-variant bg-surface-container">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4">
           <div>
             <Heading level={4} as="p" className="text-on-surface-variant">
@@ -184,12 +187,12 @@ function extractFirstParagraph(markdown: string) {
 
 function extractExampleRows(
   markdown: string,
-  t: ReturnType<typeof useTranslations>
+  t: ReturnType<typeof useTranslations>,
 ): ExampleRow[] {
   const explicitRows = Array.from(
     markdown.matchAll(
-      /(?:^|\n)\s*>?\s*\*\*(Claim|Reasoning|Reason|Warrant|Evidence|Impact):\*\*\s*(.+)$/gim
-    )
+      /(?:^|\n)\s*>?\s*\*\*(Claim|Reasoning|Reason|Warrant|Evidence|Impact):\*\*\s*(.+)$/gim,
+    ),
   )
     .map((match) => ({
       label: normalizeExampleLabel(match[1] ?? "", t),
@@ -210,28 +213,22 @@ function extractExampleRows(
   return [
     {
       label: t("reader.article_example_claim_label"),
-      text:
-        fallbackSentences[0] ??
-        t("reader.article_summary_fallback"),
+      text: fallbackSentences[0] ?? t("reader.article_summary_fallback"),
     },
     {
       label: t("reader.article_example_reason_label"),
-      text:
-        fallbackSentences[1] ??
-        t("reader.article_try_this_fallback"),
+      text: fallbackSentences[1] ?? t("reader.article_try_this_fallback"),
     },
     {
       label: t("reader.article_example_impact_label"),
-      text:
-        fallbackSentences[2] ??
-        t("reader.article_common_mistake_fallback"),
+      text: fallbackSentences[2] ?? t("reader.article_common_mistake_fallback"),
     },
   ];
 }
 
 function normalizeExampleLabel(
   label: string,
-  t: ReturnType<typeof useTranslations>
+  t: ReturnType<typeof useTranslations>,
 ) {
   const normalized = label.toLowerCase();
 
@@ -239,7 +236,11 @@ function normalizeExampleLabel(
     return t("reader.article_example_claim_label");
   }
 
-  if (normalized === "warrant" || normalized === "reason" || normalized === "reasoning") {
+  if (
+    normalized === "warrant" ||
+    normalized === "reason" ||
+    normalized === "reasoning"
+  ) {
     return t("reader.article_example_reason_label");
   }
 
@@ -253,8 +254,8 @@ function normalizeExampleLabel(
 function extractCommonMistake(sections: ArticleSection[]) {
   const targetSection = sections.find((section) =>
     /common mistake|common mistakes|mistakes to avoid|avoid/i.test(
-      section.heading ?? ""
-    )
+      section.heading ?? "",
+    ),
   );
 
   const bullet =
@@ -267,8 +268,8 @@ function extractCommonMistake(sections: ArticleSection[]) {
 function extractTryThis(sections: ArticleSection[]) {
   const targetSection = sections.find((section) =>
     /practice|exercise|putting it all together|tips|next step/i.test(
-      section.heading ?? ""
-    )
+      section.heading ?? "",
+    ),
   );
 
   if (!targetSection) return null;

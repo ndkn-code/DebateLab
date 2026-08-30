@@ -45,7 +45,7 @@ const ACHIEVEMENT_CATEGORY_KEYS: Record<string, true> = {
 
 function getCategoryLabel(
   category: string,
-  t: ReturnType<typeof useTranslations<"profileSocial.achievements">>
+  t: ReturnType<typeof useTranslations<"profileSocial.achievements">>,
 ) {
   return ACHIEVEMENT_CATEGORY_KEYS[category]
     ? t(`categories.${category}`)
@@ -54,7 +54,7 @@ function getCategoryLabel(
 
 function sortAchievements(
   achievements: ProfileAchievementItem[],
-  sort: AchievementSort
+  sort: AchievementSort,
 ) {
   return [...achievements].sort((left, right) => {
     if (sort === "category") {
@@ -66,7 +66,8 @@ function sortAchievements(
 
     if (sort === "progress") {
       return (
-        getAchievementProgressPercent(right) - getAchievementProgressPercent(left) ||
+        getAchievementProgressPercent(right) -
+          getAchievementProgressPercent(left) ||
         left.sortOrder - right.sortOrder
       );
     }
@@ -136,7 +137,11 @@ function AchievementInfoDialog({
         </button>
 
         <div className="flex flex-col items-center text-center">
-          <AchievementMedallion achievement={achievement} size="lg" className="!size-28" />
+          <AchievementMedallion
+            achievement={achievement}
+            size="lg"
+            className="!size-28"
+          />
           <Eyebrow className="mt-4 text-on-surface-variant">
             {getCategoryLabel(achievement.category, t)}
           </Eyebrow>
@@ -157,7 +162,8 @@ function AchievementInfoDialog({
           <div className="flex items-center justify-between text-sm">
             <span className="font-bold text-on-surface">{t("progress")}</span>
             <span className="font-semibold tabular-nums text-on-surface-variant">
-              {achievement.progressValue != null && achievement.progressTarget != null
+              {achievement.progressValue != null &&
+              achievement.progressTarget != null
                 ? `${achievement.progressValue} / ${achievement.progressTarget}`
                 : achievement.unlocked
                   ? t("complete")
@@ -182,9 +188,7 @@ function AchievementInfoDialog({
             </p>
           </div>
           <div className="rounded-2xl bg-primary-container p-3.5">
-            <Eyebrow className="text-primary-dim">
-              {t("title_reward")}
-            </Eyebrow>
+            <Eyebrow className="text-primary-dim">{t("title_reward")}</Eyebrow>
             <p className="mt-1 truncate type-body font-extrabold text-on-surface">
               {achievement.titleReward ?? t("none")}
             </p>
@@ -264,8 +268,8 @@ function AchievementCard({
         ease: [0.22, 1, 0.36, 1],
       }}
       className={cn(
-        "relative flex cursor-pointer flex-col items-center rounded-xl border bg-surface-container-lowest p-5 pt-6 text-center transition-colors hover:border-primary",
-        featured ? "border-primary/40" : "border-outline-variant"
+        "relative flex cursor-pointer flex-col items-center rounded-xl border bg-surface-container-lowest p-4 pt-5 text-center transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        featured ? "border-primary/40" : "border-outline-variant",
       )}
     >
       {canFeature ? (
@@ -282,17 +286,17 @@ function AchievementCard({
               : t("feature_label", { title: achievement.title })
           }
           className={cn(
-            "absolute right-4 top-4 flex size-9 items-center justify-center rounded-full transition-all active:scale-90",
+            "absolute right-3 top-3 flex size-8 items-center justify-center rounded-[10px] transition-colors",
             featured
-              ? "bg-reward text-on-reward shadow-token-card"
+              ? "bg-reward text-on-reward"
               : "bg-surface-container text-on-surface-variant hover:text-on-surface",
-            featureDisabled && "cursor-not-allowed opacity-40"
+            featureDisabled && "cursor-not-allowed opacity-40",
           )}
         >
           <Star className={cn("size-4.5", featured && "fill-current")} />
         </button>
       ) : featured ? (
-        <span className="absolute right-4 top-4 flex size-9 items-center justify-center rounded-full bg-reward text-on-reward shadow-token-card">
+        <span className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-[10px] bg-reward text-on-reward">
           <Star className="size-4.5 fill-current" />
         </span>
       ) : null}
@@ -303,14 +307,14 @@ function AchievementCard({
         showFeaturedStar={false}
       />
 
-      <h3 className="mt-4 line-clamp-2 type-title font-extrabold leading-6 text-on-surface">
+      <h3 className="mt-3 line-clamp-2 type-title font-semibold leading-5 text-on-surface">
         {achievement.title}
       </h3>
       <p className="mt-1 type-caption font-semibold text-on-surface-variant">
         {getCategoryLabel(achievement.category, t)}
       </p>
 
-      <div className="mt-auto w-full pt-5">
+      <div className="mt-auto w-full pt-4">
         {achievement.unlocked ? (
           <p className="inline-flex items-center gap-1.5 type-caption font-bold text-success-dim">
             <CheckCircle2 className="size-4" />
@@ -348,9 +352,8 @@ export function ProfileAchievementsTab({
 }) {
   const t = useTranslations("profileSocial.achievements");
   const prefersReducedMotion = useReducedMotion();
-  const [currentData, setCurrentData] = useState<ProfileAchievementsData | null>(
-    data ?? null
-  );
+  const [currentData, setCurrentData] =
+    useState<ProfileAchievementsData | null>(data ?? null);
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState<AchievementSort>("featured");
   const [selected, setSelected] = useState<ProfileAchievementItem | null>(null);
@@ -366,14 +369,16 @@ export function ProfileAchievementsTab({
   const categories = ["all", ...(effectiveData?.categories ?? [])];
   const featuredIds = normalizeFeaturedAchievementIds(
     effectiveData?.featured.map((achievement) => achievement.id) ?? [],
-    effectiveData?.maxFeatured ?? 4
+    effectiveData?.maxFeatured ?? 4,
   );
   const visibleAchievements = useMemo(() => {
     const achievements = effectiveData?.achievements ?? [];
     const filtered =
       category === "all"
         ? achievements
-        : achievements.filter((achievement) => achievement.category === category);
+        : achievements.filter(
+            (achievement) => achievement.category === category,
+          );
     return sortAchievements(filtered, sort);
   }, [category, effectiveData?.achievements, sort]);
   const unlockedPercent = effectiveData?.totalCount
@@ -392,7 +397,7 @@ export function ProfileAchievementsTab({
       ...effectiveData,
       achievements,
       featured: achievements.filter(
-        (achievement) => achievement.unlocked && nextSet.has(achievement.id)
+        (achievement) => achievement.unlocked && nextSet.has(achievement.id),
       ),
     });
   }
@@ -404,7 +409,7 @@ export function ProfileAchievementsTab({
       ? currentIds.filter((id) => id !== achievement.id)
       : normalizeFeaturedAchievementIds(
           [...currentIds, achievement.id],
-          effectiveData.maxFeatured
+          effectiveData.maxFeatured,
         );
 
     startTransition(async () => {
@@ -415,7 +420,7 @@ export function ProfileAchievementsTab({
       } catch (error) {
         showToast(
           error instanceof Error ? error.message : t("featured_error"),
-          "error"
+          "error",
         );
       }
     });
@@ -426,13 +431,15 @@ export function ProfileAchievementsTab({
   }
 
   return (
-    <div className="grid gap-6">
-      <div className="flex flex-col gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-5 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex items-center gap-4">
-          <span className="flex size-12 items-center justify-center rounded-2xl bg-warning-container text-on-warning-container">
-            <Award className="size-6" />
+    <div className="grid gap-4">
+      <div className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-3">
+          <span className="flex size-9 items-center justify-center rounded-lg bg-warning-container text-on-warning-container">
+            <Award className="size-5" />
           </span>
-          <h2 className="text-lg font-extrabold text-on-surface">{t("title")}</h2>
+          <h2 className="text-lg font-extrabold text-on-surface">
+            {t("title")}
+          </h2>
         </div>
         <div className="w-full sm:max-w-[300px]">
           <div className="flex items-center justify-between type-caption font-bold tabular-nums">
@@ -465,10 +472,10 @@ export function ProfileAchievementsTab({
                 type="button"
                 onClick={() => setCategory(item)}
                 className={cn(
-                  "inline-flex h-11 items-center rounded-full border px-4 text-sm font-bold transition-all active:scale-95",
+                  "inline-flex h-8 items-center rounded-[10px] border px-3 type-label font-semibold transition-colors",
                   active
                     ? "border-primary bg-primary text-on-primary shadow-token-primary"
-                    : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/35 hover:text-on-surface"
+                    : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/35 hover:text-on-surface",
                 )}
               >
                 {item === "all" ? t("all") : getCategoryLabel(item, t)}
@@ -481,7 +488,7 @@ export function ProfileAchievementsTab({
           <select
             value={sort}
             onChange={(event) => setSort(event.target.value as AchievementSort)}
-            className="h-11 w-full appearance-none rounded-full border border-outline-variant bg-surface-container-lowest pl-4 pr-10 text-sm font-bold text-on-surface outline-none transition focus:border-primary/45"
+            className="h-8 w-full appearance-none rounded-[10px] border border-outline-variant bg-surface-container-lowest pl-3 pr-9 type-label font-semibold text-on-surface outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-ring"
           >
             <option value="featured">{t("sort_featured")}</option>
             <option value="recent">{t("sort_recent")}</option>

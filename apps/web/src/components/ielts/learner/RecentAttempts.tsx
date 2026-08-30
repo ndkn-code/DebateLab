@@ -28,17 +28,20 @@ export function RecentAttempts({ items }: { items: IeltsAttemptSummary[] }) {
   const locale = useLocale();
 
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="overflow-hidden rounded-xl border border-outline-variant bg-surface">
       {items.map((item) => {
         const complete = isAttemptComplete(item.status);
         const when = formatWhen(item.submittedAt ?? item.startedAt, locale);
         const scored = complete && item.overallBand !== null;
 
         return (
-          <li key={item.attemptId}>
+          <li
+            key={item.attemptId}
+            className="border-b border-outline-variant last:border-b-0"
+          >
             <Link
               href={item.resultsHref}
-              className="group flex items-center gap-4 rounded-2xl border border-outline-variant bg-surface-container px-4 py-3.5 transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-token-card"
+              className="group flex min-h-11 items-center gap-3 px-3 py-2.5 transition-colors hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring"
             >
               <div className="min-w-0 flex-1">
                 <p className="type-body-sm font-semibold text-on-surface line-clamp-1">
@@ -49,7 +52,7 @@ export function RecentAttempts({ items }: { items: IeltsAttemptSummary[] }) {
                   {when ? ` · ${when}` : ""}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-3">
+              <div className="flex shrink-0 items-center gap-2">
                 <div className="text-right">
                   <p className="type-caption uppercase tracking-wide text-on-surface-variant">
                     {t("overall_band")}
@@ -60,10 +63,12 @@ export function RecentAttempts({ items }: { items: IeltsAttemptSummary[] }) {
                       scored ? "text-primary" : "text-on-surface-variant",
                     )}
                   >
-                    {complete ? formatBand(item.overallBand) : t("status_in_progress")}
+                    {complete
+                      ? formatBand(item.overallBand)
+                      : t("status_in_progress")}
                   </p>
                 </div>
-                <ChevronRight className="size-5 text-on-surface-variant transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
+                <ChevronRight className="size-4 text-on-surface-variant transition-transform group-hover:translate-x-0.5 group-hover:text-primary" />
               </div>
             </Link>
           </li>
