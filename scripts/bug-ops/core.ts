@@ -110,6 +110,10 @@ function required(value: string | undefined, name: string): string {
   return value.trim();
 }
 
+function statusMatches(actual: string | undefined, expected: string): boolean {
+  return actual?.toLowerCase() === expected.toLowerCase();
+}
+
 function safeBaseUrl(value: string, name: string): string {
   const url = new URL(value);
   const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
@@ -196,7 +200,7 @@ export class ClickUpClient {
     try {
       const before = await this.get(taskId);
       const status = before.status?.status;
-      if (status !== "Ready for Agent") {
+      if (!statusMatches(status, "Ready for Agent")) {
         throw new Error(`Task ${taskId} is not claimable; current status is ${status ?? "unknown"}`);
       }
       await this.request(`/task/${encodeURIComponent(taskId)}`, {
@@ -204,7 +208,7 @@ export class ClickUpClient {
         body: JSON.stringify({ status: "Agent Working" }),
       });
       const claimed = await this.get(taskId);
-      if (claimed.status?.status !== "Agent Working") {
+      if (!statusMatches(claimed.status?.status, "Agent Working")) {
         throw new Error(`Task ${taskId} claim could not be verified`);
       }
       return claimed;
