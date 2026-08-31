@@ -30,10 +30,11 @@ Do not deploy until all are complete:
 For optional backend traces, export `GRAFANA_OTLP_TRACES_ENDPOINT` before
 running the deploy script. It must be the HTTPS Grafana Cloud endpoint ending
 in `/v1/traces` (for example, the OTLP gateway URL from the Grafana stack
-details). The script injects the endpoint as a normal environment variable and
-the authorization value from Secret Manager; neither service logs credentials.
-Without the endpoint, the router still accepts alerts and uses OpenTelemetry's
-no-op provider locally.
+details) and the `grafana-otlp-auth-header` Secret Manager secret must exist.
+The script injects the endpoint as a normal environment variable and the
+authorization value from Secret Manager; neither service logs credentials. If
+the endpoint is omitted, the OTLP secret is not required or mounted, and the
+router still accepts alerts with tracing disabled.
 
 The deployer needs permission to enable APIs, run Cloud Build, deploy Cloud Run, create Pub/Sub resources/service accounts, and bind narrowly scoped IAM roles in `thinkfy-debatelab-prod`.
 

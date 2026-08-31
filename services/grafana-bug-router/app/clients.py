@@ -145,7 +145,7 @@ class ClickUpClient:
             f"**Trace ID:** `{event.trace_id or 'unavailable'}`",
             f"**Faro session ID:** `{event.faro_session_id or 'unavailable'}`",
             f"**Debug ID:** `{event.debug_id or 'unavailable'}`",
-            f"**Grafana:** {event.grafana_url}",
+            f"**Grafana:** {event.grafana_url or 'unavailable'}",
             "\n## Error",
             safe_message,
             "\n## Original-source frames",

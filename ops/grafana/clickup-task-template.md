@@ -1,5 +1,9 @@
 # {{severity}} · {{service_name}} · {{error_title}}
 
+Values are copied from the sanitized Grafana alert. Optional diagnostic values
+are `unavailable` when Grafana did not provide them; do not invent or infer
+trace IDs, sessions, routes, releases, commits, or source frames.
+
 **Fingerprint:** `{{error_fingerprint}}`
 
 **Status:** {{status}}
