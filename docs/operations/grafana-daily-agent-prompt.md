@@ -5,17 +5,31 @@ ClickUp task per run. Use `gpt-5.6-luna` with high reasoning.
 
 1. From the repository root, run
    `npm run bugops -- clickup list --status "Ready for Agent" --limit 20`.
-   Choose the highest-severity task; break ties by oldest first-seen time. If
-   there is no task, report “No production bug ready” and stop without changes.
+   Use only the task objects returned by this command. Require a task name with
+   a leading `[P0]`, `[P1]`, `[P2]`, or `[P3]` and a description containing the
+   exact incident marker
+   `<!-- grafana-incident:<environment>:<service>:<fingerprint> -->`.
+   Parse severity from that name and `First seen:` as an ISO-8601 timestamp
+   from the description. Choose the highest severity (`P0` first), then the
+   oldest parseable first-seen timestamp, then the lowest task ID. Do not infer
+   missing or malformed metadata. If no valid task remains, report “No
+   production bug ready” and stop without changes.
 2. Claim it with `npm run bugops -- clickup claim TASK_ID`. If the claim fails,
-   choose no replacement during this run; report the conflict and stop.
-3. Create a new isolated git worktree from the current integration branch and a
-   branch named `codex/bug-TASK_ID-short-slug`. Never edit the shared checkout.
+   report the conflict and stop; never choose a replacement task during this
+   run. This automation must be configured with non-overlapping runs, so a run
+   must not start while another run is active.
+3. Confirm the shared checkout is clean with `git status --porcelain` and
+   confirm `origin/main` exists. Create a new isolated git worktree from the
+   explicit `origin/main` ref, with a branch named
+   `codex/bug-TASK_ID-short-slug`. Never edit the shared checkout.
 4. Read the task and query its fingerprint with
-   `npm run bugops -- grafana incident FINGERPRINT --from 24h`. This command
-   queries Loki only. Use the task's direct Grafana URL to inspect Tempo when a
-   trace ID is present. Use the read-only Grafana credential. Do not display,
-   copy into source, or commit any credential or sensitive user content.
+   `npm run bugops -- grafana incident FINGERPRINT --from 24h`; the fingerprint
+   must come from the required incident marker, never from guesswork or another
+   task. This command queries Loki only. When a trace ID is present, optionally
+   inspect Tempo using the task's direct Grafana URL if Grafana UI/API access is
+   available; if Tempo is unavailable, continue with Loki and mark Tempo as
+   unavailable. Use the read-only Grafana credential. Do not display, copy into
+   source, or commit any credential or sensitive user content.
 5. Correlate the actual source-mapped frames, release SHA, trace ID (from
    Grafana/Tempo when present), service, normalized route, and debug ID. Treat
    missing fields as unavailable; never infer them from another event.
