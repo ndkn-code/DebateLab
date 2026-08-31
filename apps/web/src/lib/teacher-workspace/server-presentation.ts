@@ -13,6 +13,7 @@ import {
 } from "@/lib/api/class-lms/teacher-calendar-model";
 import { loadTeacherReviewQueue } from "@/lib/api/class-lms/teacher-review-queue";
 import { loadTeacherWorkspaceCapability } from "@/lib/api/class-lms/teacher-workspace-capability";
+import { isTeacherWorkspaceAccessBoundaryError } from "./errors";
 import {
   buildTeacherWorkspaceDemoPresentation,
   isExplicitTeacherWorkspaceDemo,
@@ -219,8 +220,7 @@ export async function loadTeacherWorkspacePresentation(input: {
       })),
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    if (message === "Unauthorized" || message.includes("Forbidden")) {
+    if (isTeacherWorkspaceAccessBoundaryError(error)) {
       return { ...fallback, state: "denied" };
     }
     console.error("teacher workspace presentation failed", error);
