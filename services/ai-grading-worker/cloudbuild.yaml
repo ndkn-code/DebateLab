@@ -6,9 +6,9 @@ steps:
       - --tag=${_IMAGE}
       - .
   - name: gcr.io/cloud-builders/docker
-    args: [push, ${_IMAGE}]
+    args: ["push", "${_IMAGE}"]
 images:
-  - ${_IMAGE}
+  - "${_IMAGE}"
 substitutions:
   _IMAGE: asia-southeast1-docker.pkg.dev/thinkfy-debatelab-prod/debatelab-workers/ai-grading-worker:manual
 options:
