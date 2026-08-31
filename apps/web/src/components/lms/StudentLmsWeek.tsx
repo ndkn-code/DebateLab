@@ -151,6 +151,24 @@ function AssignmentRow({
       ? assignment.gradeStatus
       : assignment.submissionState;
   const status = statusLabel(statusValue, vi);
+  const outcome = assignment.ieltsResult;
+  const hasObjectiveOutcome =
+    outcome?.readingBand != null || outcome?.listeningBand != null;
+  const hasTeacherOutcome =
+    assignment.teacherPublished &&
+    (outcome?.writingBand != null || outcome?.speakingBand != null);
+  const actionLabel =
+    assignment.gradeStatus === "resubmit_requested"
+      ? vi
+        ? "Nộp lại"
+        : "Resubmit"
+      : assignment.submissionState
+        ? vi
+          ? "Xem bài"
+          : "View submission"
+        : vi
+          ? "Bắt đầu"
+          : "Start";
 
   return (
     <li className="flex min-h-11 flex-col gap-2 rounded-[10px] border border-outline-variant bg-surface-container-low px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
@@ -175,7 +193,7 @@ function AssignmentRow({
           href={`/dashboard/clubs/${assignment.clubId}/assignments/${assignment.id}`}
           className="inline-flex h-8 items-center gap-1 rounded-[10px] border border-outline-variant px-2.5 type-caption font-semibold text-primary transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          {vi ? "Mở" : "Open"}
+          {actionLabel}
           <ExternalLink className="size-3.5" aria-hidden="true" />
         </Link>
       </div>
@@ -190,6 +208,62 @@ function AssignmentRow({
           {assignment.feedback ? (
             <p className="mt-1 whitespace-pre-wrap">{assignment.feedback}</p>
           ) : null}
+        </div>
+      ) : null}
+      {outcome ? (
+        <div className="grid gap-2 rounded-lg border border-outline-variant bg-surface px-3 py-2 type-caption text-on-surface sm:basis-full sm:grid-cols-2">
+          <div>
+            <p className="font-semibold">
+              {vi ? "Kết quả tức thì" : "Immediate outcomes"}
+            </p>
+            <p className="mt-1 text-on-surface-variant">
+              {hasObjectiveOutcome
+                ? [
+                    outcome.readingBand != null
+                      ? `${vi ? "Đọc" : "Reading"} ${outcome.readingBand}`
+                      : null,
+                    outcome.listeningBand != null
+                      ? `${vi ? "Nghe" : "Listening"} ${outcome.listeningBand}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : vi
+                  ? "Chưa có kết quả Đọc/Nghe"
+                  : "No Reading/Listening result yet"}
+            </p>
+            {outcome.provisionalBand != null ? (
+              <p className="mt-1 font-semibold text-warning">
+                {vi ? "Tạm tính" : "Provisional"}: {outcome.provisionalBand}
+              </p>
+            ) : null}
+          </div>
+          <div>
+            <p className="font-semibold">
+              {vi ? "Phản hồi giáo viên" : "Teacher feedback"}
+            </p>
+            <p className="mt-1 text-on-surface-variant">
+              {hasTeacherOutcome
+                ? [
+                    outcome.writingBand != null
+                      ? `${vi ? "Viết" : "Writing"} ${outcome.writingBand}`
+                      : null,
+                    outcome.speakingBand != null
+                      ? `${vi ? "Nói" : "Speaking"} ${outcome.speakingBand}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")
+                : vi
+                  ? "Viết/Nói sẽ hiển thị sau khi giáo viên công bố."
+                  : "Writing/Speaking appears after teacher publication."}
+            </p>
+            {outcome.officialOverallBand != null ? (
+              <p className="mt-1 font-semibold text-success">
+                {vi ? "Đã công bố" : "Published"}: {outcome.officialOverallBand}
+              </p>
+            ) : null}
+          </div>
         </div>
       ) : null}
     </li>

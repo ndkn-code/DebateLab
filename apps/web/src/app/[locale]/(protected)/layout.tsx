@@ -20,8 +20,89 @@ import type {
   LeaderboardSeasonOutcome,
 } from "@/lib/leaderboards/types";
 import type { Profile } from "@/types/database";
+import { loadTeacherSidebarSummary } from "@/lib/api/class-lms/teacher-workspace-sidebar";
+import type { TeacherWorkspaceNavigation } from "@/lib/teacher-workspace/presentation";
 
 export const dynamic = "force-dynamic";
+
+async function getTeacherNavigation(
+  requestPath: string,
+): Promise<TeacherWorkspaceNavigation | undefined> {
+  const unlocalizedPath = requestPath.replace(/^\/(?:en|vi)(?=\/)/, "");
+  const isTeacherRoute = unlocalizedPath.startsWith("/dashboard/teacher");
+
+  try {
+    const summary = await loadTeacherSidebarSummary();
+    return {
+      canAccess: summary.capability.canAccess,
+      isAdminPreview: summary.capability.isPlatformAdmin,
+      classCount: summary.classCount,
+      pendingReviewCount:
+        summary.pendingReviewCount + summary.pendingHomeworkCount,
+      items: summary.items,
+    };
+  } catch {
+    if (!isTeacherRoute) return undefined;
+    // The teacher route owns its denied/error state. Keeping a path-scoped
+    // fallback here prevents the shell from flashing learner navigation.
+    return {
+      canAccess: true,
+      isAdminPreview: false,
+      classCount: 0,
+      pendingReviewCount: 0,
+      items: [
+        {
+          key: "calendar",
+          label: "Teaching Calendar",
+          href: "/dashboard/teacher/calendar",
+          badge: null,
+        },
+        {
+          key: "classes",
+          label: "My Classes",
+          href: "/dashboard/teacher/classes",
+          badge: null,
+        },
+        {
+          key: "review_queue",
+          label: "Review Queue",
+          href: "/dashboard/teacher/review-queue",
+          badge: null,
+        },
+        {
+          key: "assignments",
+          label: "Assignments",
+          href: "/dashboard/teacher/assignments",
+          badge: null,
+        },
+        {
+          key: "gradebook",
+          label: "Gradebook",
+          href: "/dashboard/teacher/gradebook",
+          badge: null,
+        },
+        {
+          key: "attendance",
+          label: "Attendance",
+          href: "/dashboard/teacher/attendance",
+          badge: null,
+        },
+        {
+          key: "materials",
+          label: "Materials",
+          href: "/dashboard/teacher/materials",
+          badge: null,
+        },
+        {
+          key: "announcements",
+          label: "Announcements",
+          href: "/dashboard/teacher/announcements",
+          badge: null,
+        },
+      ],
+    };
+  }
+}
 
 async function getShellSeasonReplayOutcome(
   userId: string,
@@ -63,6 +144,8 @@ export default async function ProtectedLayout({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
+  const requestPath =
+    (await headers()).get("x-thinkfy-pathname") ?? "/dashboard";
   const leaderboardLanguage = coerceLeaderboardLanguage(locale);
   const supabase = await createClient();
 
@@ -82,6 +165,7 @@ export default async function ProtectedLayout({
         devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id,
         activeSubject,
       );
+      const teacherNavigation = await getTeacherNavigation(requestPath);
       return (
         <ProtectedShell
           profile={DEV_ADMIN_PROFILE}
@@ -90,14 +174,13 @@ export default async function ProtectedLayout({
           activeSubject={activeSubject}
           isEnrolledIeltsStudent={isEnrolledIeltsStudent}
           seasonReplayEnabled={false}
+          teacherNavigation={teacherNavigation}
         >
           {children}
         </ProtectedShell>
       );
     }
 
-    const requestPath =
-      (await headers()).get("x-thinkfy-pathname") ?? "/dashboard";
     const unlocalizedPath = requestPath.replace(/^\/(?:en|vi)(?=\/)/, "");
     redirect(`/auth/login?next=${encodeURIComponent(unlocalizedPath)}`);
   }
@@ -122,6 +205,7 @@ export default async function ProtectedLayout({
         user.id,
         activeSubject,
       );
+      const teacherNavigation = await getTeacherNavigation(requestPath);
       return (
         <ProtectedShell
           profile={DEV_ADMIN_PROFILE}
@@ -131,6 +215,7 @@ export default async function ProtectedLayout({
           isEnrolledIeltsStudent={isEnrolledIeltsStudent}
           seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
           seasonReplayOutcome={seasonReplayOutcome}
+          teacherNavigation={teacherNavigation}
         >
           {children}
         </ProtectedShell>
@@ -149,6 +234,7 @@ export default async function ProtectedLayout({
     user.id,
     activeSubject,
   );
+  const teacherNavigation = await getTeacherNavigation(requestPath);
 
   return (
     <ProtectedShell
@@ -159,6 +245,7 @@ export default async function ProtectedLayout({
       isEnrolledIeltsStudent={isEnrolledIeltsStudent}
       seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
       seasonReplayOutcome={seasonReplayOutcome}
+      teacherNavigation={teacherNavigation}
     >
       {children}
     </ProtectedShell>

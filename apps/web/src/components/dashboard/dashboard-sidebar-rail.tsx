@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import {
   BookOpen,
@@ -21,6 +22,11 @@ import {
   Swords,
   Trophy,
   UserRound,
+  Users,
+  ListChecks,
+  ChartColumnBig,
+  CheckCircle2,
+  Megaphone,
 } from "@/components/ui/icons";
 import { ProductIcon } from "@/components/ui/product-icon";
 import { useTranslations } from "next-intl";
@@ -41,6 +47,7 @@ import type {
   NotificationInboxSnapshot,
   NotificationUiOperations,
 } from "@/components/notifications/contracts";
+import type { TeacherWorkspaceNavigation } from "@/lib/teacher-workspace/presentation";
 
 export type DashboardSidebarNavItem = Omit<DashboardNavItem, "key"> & {
   key:
@@ -48,7 +55,17 @@ export type DashboardSidebarNavItem = Omit<DashboardNavItem, "key"> & {
     | "ielts_speaking"
     | "ielts_classes"
     | "ielts_coach"
-    | "ielts_profile";
+    | "ielts_profile"
+    | "calendar"
+    | "classes"
+    | "review_queue"
+    | "assignments"
+    | "gradebook"
+    | "attendance"
+    | "materials"
+    | "announcements";
+  label?: string;
+  badge?: number | null;
 };
 
 function SpeakingRehearsalIcon({ className }: { className?: string }) {
@@ -73,6 +90,14 @@ const NAV_ICONS = {
   ielts_coach: Sparkles,
   ielts_profile: UserRound,
   resources: BookOpenText,
+  calendar: CalendarDays,
+  classes: Users,
+  review_queue: ListChecks,
+  assignments: ClipboardList,
+  gradebook: ChartColumnBig,
+  attendance: CheckCircle2,
+  materials: BookOpenText,
+  announcements: Megaphone,
 } as const;
 
 interface DashboardSidebarRailProps {
@@ -89,6 +114,7 @@ interface DashboardSidebarRailProps {
     NotificationUiOperations,
     "listInbox" | "markRead" | "markAllRead" | "muteObject"
   >;
+  teacherNavigation?: TeacherWorkspaceNavigation;
 }
 
 export function DashboardSidebarRail({
@@ -102,13 +128,23 @@ export function DashboardSidebarRail({
   activeSubject,
   notificationInbox,
   notificationOperations,
+  teacherNavigation,
 }: DashboardSidebarRailProps) {
   const t = useTranslations("dashboard.home");
   const tNav = useTranslations("dashboard.nav");
   const [referralOpen, setReferralOpen] = useState(false);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const reducedMotion = useReducedMotion();
-  const canUseTeacherWorkspace = isAdmin || profile?.role === "teacher";
+  const isTeacherPersona = pathname.startsWith("/dashboard/teacher");
+  const canUseTeacherWorkspace =
+    Boolean(teacherNavigation?.canAccess) ||
+    isAdmin ||
+    profile?.role === "teacher";
+  const teacherDemoSuffix =
+    isTeacherPersona && searchParams.get("demo") === "teacher"
+      ? "?demo=teacher"
+      : "";
 
   const isActiveItem = (item: DashboardSidebarNavItem) => {
     if (!item.href || item.status === "coming-soon") {
@@ -157,6 +193,21 @@ export function DashboardSidebarRail({
 
     if (item.key === "resources") {
       return pathname.startsWith("/resources");
+    }
+
+    if (
+      item.key === "calendar" ||
+      item.key === "classes" ||
+      item.key === "review_queue" ||
+      item.key === "assignments" ||
+      item.key === "gradebook" ||
+      item.key === "attendance" ||
+      item.key === "materials" ||
+      item.key === "announcements"
+    ) {
+      return item.key === "calendar"
+        ? pathname === "/dashboard/teacher" || pathname.startsWith(item.href)
+        : pathname.startsWith(item.href);
     }
 
     if (item.key === "ielts_home") {
@@ -220,7 +271,8 @@ export function DashboardSidebarRail({
             const isUnavailable = item.status === "coming-soon" || !href;
             const isActive = isActiveItem(item);
             const label =
-              item.key === "analytics" ? tNav("profile") : tNav(item.key);
+              item.label ??
+              (item.key === "analytics" ? tNav("profile") : tNav(item.key));
 
             const content = (
               <>
@@ -228,6 +280,11 @@ export function DashboardSidebarRail({
                   <Icon className="h-5 w-5 shrink-0" />
                   <span className="truncate">{label}</span>
                 </span>
+                {item.badge ? (
+                  <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-error px-1.5 type-caption font-bold text-on-error">
+                    {item.badge}
+                  </span>
+                ) : null}
                 {isUnavailable ? (
                   <span
                     className={cn(
@@ -260,7 +317,7 @@ export function DashboardSidebarRail({
             return (
               <Link
                 key={item.key}
-                href={href}
+                href={`${href}${isTeacherPersona ? teacherDemoSuffix : ""}`}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "group relative isolate flex h-8 items-center justify-between rounded-lg px-2 text-sm font-medium transition-all",
@@ -294,28 +351,30 @@ export function DashboardSidebarRail({
 
         <div className="shrink-0 p-2">
           <div className="space-y-1">
-            <button
-              type="button"
-              disabled={!referralCode}
-              onClick={() => {
-                if (referralCode) setReferralOpen(true);
-              }}
-              data-testid="dashboard-sidebar-referral"
-              className={cn(
-                "flex h-8 w-full items-center justify-between rounded-lg px-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
-                "sidebar-nav-action",
-              )}
-            >
-              <span className="flex min-w-0 items-center gap-3">
-                <Gift
-                  className={cn("h-5 w-5 shrink-0", "text-sidebar-muted")}
-                />
-                <span className="truncate">
-                  {t("invite_friend_reward", { count: inviteReward })}
+            {!isTeacherPersona ? (
+              <button
+                type="button"
+                disabled={!referralCode}
+                onClick={() => {
+                  if (referralCode) setReferralOpen(true);
+                }}
+                data-testid="dashboard-sidebar-referral"
+                className={cn(
+                  "flex h-8 w-full items-center justify-between rounded-lg px-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-60",
+                  "sidebar-nav-action",
+                )}
+              >
+                <span className="flex min-w-0 items-center gap-3">
+                  <Gift
+                    className={cn("h-5 w-5 shrink-0", "text-sidebar-muted")}
+                  />
+                  <span className="truncate">
+                    {t("invite_friend_reward", { count: inviteReward })}
+                  </span>
                 </span>
-              </span>
-              <ChevronRight className="h-4 w-4" />
-            </button>
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            ) : null}
             {canUseTeacherWorkspace ? (
               <div className="space-y-1" aria-label={tNav("workspaceModes")}>
                 {isAdmin ? (
@@ -338,7 +397,7 @@ export function DashboardSidebarRail({
                   </Link>
                 ) : null}
                 <Link
-                  href="/dashboard/teacher"
+                  href={isTeacherPersona ? "/dashboard" : "/dashboard/teacher"}
                   aria-current={
                     pathname.startsWith("/dashboard/teacher")
                       ? "page"
@@ -351,11 +410,21 @@ export function DashboardSidebarRail({
                       : "sidebar-nav-action",
                   )}
                 >
-                  <GraduationCap
-                    className="h-5 w-5 shrink-0"
-                    aria-hidden="true"
-                  />
-                  <span>{tNav("teacherMode")}</span>
+                  {isTeacherPersona ? (
+                    <Home className="h-5 w-5 shrink-0" aria-hidden="true" />
+                  ) : (
+                    <GraduationCap
+                      className="h-5 w-5 shrink-0"
+                      aria-hidden="true"
+                    />
+                  )}
+                  <span>
+                    {isTeacherPersona
+                      ? currentLocale === "vi"
+                        ? "Chế độ học viên"
+                        : "Learner mode"
+                      : tNav("teacherMode")}
+                  </span>
                 </Link>
               </div>
             ) : null}
@@ -365,6 +434,16 @@ export function DashboardSidebarRail({
               operations={notificationOperations}
             />
             <ThemeToggle />
+            <Link
+              href={activeSubject === "ielts" ? "/ielts/profile" : "/profile"}
+              className={cn(
+                "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-colors",
+                "sidebar-nav-action",
+              )}
+            >
+              <UserRound className="h-5 w-5 shrink-0" />
+              <span className="truncate">{tNav("profile")}</span>
+            </Link>
             <Link
               href={activeSubject === "ielts" ? "/ielts/settings" : "/settings"}
               className={cn(

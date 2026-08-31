@@ -20,6 +20,7 @@ import type {
   NotificationInboxSnapshot,
   NotificationUiOperations,
 } from "@/components/notifications/contracts";
+import type { TeacherWorkspaceNavigation } from "@/lib/teacher-workspace/presentation";
 
 interface ProtectedShellProps {
   children: React.ReactNode;
@@ -38,6 +39,7 @@ interface ProtectedShellProps {
     NotificationUiOperations,
     "listInbox" | "markRead" | "markAllRead" | "muteObject"
   >;
+  teacherNavigation?: TeacherWorkspaceNavigation;
 }
 
 function useViewportScrollLock() {
@@ -170,6 +172,7 @@ export function ProtectedShell({
   seasonReplayReviewMode = false,
   notificationInbox,
   notificationOperations,
+  teacherNavigation,
 }: ProtectedShellProps) {
   useViewportScrollLock();
   const mainScrollRef = useScrollBoundaryLock<HTMLElement>();
@@ -269,6 +272,7 @@ export function ProtectedShell({
           isEnrolledIeltsStudent={isEnrolledIeltsStudent}
           notificationInbox={notificationInbox}
           notificationOperations={notificationOperations}
+          teacherNavigation={teacherNavigation}
         />
         <main
           ref={mainScrollRef}

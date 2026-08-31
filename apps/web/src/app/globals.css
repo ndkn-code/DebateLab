@@ -773,6 +773,31 @@
   --chart-marker-border: var(--color-outline-variant);
   --chart-marker-foreground: var(--color-on-surface);
   --chart-ring-background: var(--color-surface-container);
+
+  /* Teacher calendar class palette. These paired surface/ink/accent values
+     remain intentionally stable across themes so a saved class color keeps
+     the same identity while preserving text contrast. */
+  --teacher-class-blue-bg: #dbeafe;
+  --teacher-class-blue-fg: #1e3a8a;
+  --teacher-class-blue-border: #2563eb;
+  --teacher-class-teal-bg: #ccfbf1;
+  --teacher-class-teal-fg: #134e4a;
+  --teacher-class-teal-border: #0f766e;
+  --teacher-class-amber-bg: #fef3c7;
+  --teacher-class-amber-fg: #78350f;
+  --teacher-class-amber-border: #d97706;
+  --teacher-class-coral-bg: #fee2e2;
+  --teacher-class-coral-fg: #7f1d1d;
+  --teacher-class-coral-border: #dc2626;
+  --teacher-class-violet-bg: #ede9fe;
+  --teacher-class-violet-fg: #4c1d95;
+  --teacher-class-violet-border: #7c3aed;
+  --teacher-class-pink-bg: #fce7f3;
+  --teacher-class-pink-fg: #831843;
+  --teacher-class-pink-border: #db2777;
+  --teacher-class-slate-bg: #e2e8f0;
+  --teacher-class-slate-fg: #0f172a;
+  --teacher-class-slate-border: #475569;
 }
 
 /* ───────── Thinkfy web v2 foundation ─────────

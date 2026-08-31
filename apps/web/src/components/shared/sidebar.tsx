@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ComponentType } from "react";
+import { useSearchParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -69,6 +70,7 @@ import type {
   NotificationInboxSnapshot,
   NotificationUiOperations,
 } from "@/components/notifications/contracts";
+import type { TeacherWorkspaceNavigation } from "@/lib/teacher-workspace/presentation";
 
 type SidebarNavItem = {
   href?: string;
@@ -206,6 +208,7 @@ interface SidebarProps {
     NotificationUiOperations,
     "listInbox" | "markRead" | "markAllRead" | "muteObject"
   >;
+  teacherNavigation?: TeacherWorkspaceNavigation;
 }
 
 function NavContent({
@@ -219,6 +222,7 @@ function NavContent({
   isEnrolledIeltsStudent,
   notificationInbox,
   notificationOperations,
+  teacherNavigation,
 }: {
   collapsed: boolean;
   profile: SidebarProps["profile"];
@@ -233,15 +237,25 @@ function NavContent({
     NotificationUiOperations,
     "listInbox" | "markRead" | "markAllRead" | "muteObject"
   >;
+  teacherNavigation?: TeacherWorkspaceNavigation;
 }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const t = useTranslations("dashboard.nav");
   const tc = useTranslations("common");
   const ts = useTranslations("dashboard.home");
   const isAdmin = profile?.role === "admin";
-  const canUseTeacherWorkspace = isAdmin || profile?.role === "teacher";
+  const isTeacherPersona = pathname.startsWith("/dashboard/teacher");
+  const canUseTeacherWorkspace =
+    Boolean(teacherNavigation?.canAccess) ||
+    isAdmin ||
+    profile?.role === "teacher";
   const canDuel = DUEL_ENABLED || isAdmin;
+  const teacherDemoSuffix =
+    isTeacherPersona && searchParams.get("demo") === "teacher"
+      ? "?demo=teacher"
+      : "";
   const displayName =
     profile?.display_name || userEmail?.split("@")[0] || "User";
   const initials = displayName
@@ -250,8 +264,9 @@ function NavContent({
     .join("")
     .slice(0, 2)
     .toUpperCase();
-  const navItems =
-    currentSubject === "ielts"
+  const navItems = isTeacherPersona
+    ? []
+    : currentSubject === "ielts"
       ? enrollmentVisible(IELTS_NAV_ITEMS, isEnrolledIeltsStudent)
       : NAV_ITEMS;
 
@@ -306,6 +321,55 @@ function NavContent({
 
       {/* Nav Links */}
       <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3 md:overflow-hidden md:overscroll-none">
+        {isTeacherPersona
+          ? teacherNavigation?.items.map((item) => {
+              const labels =
+                currentLocale === "vi"
+                  ? {
+                      calendar: "Lịch giảng dạy",
+                      classes: "Lớp của tôi",
+                      review_queue: "Hàng đợi chấm bài",
+                      assignments: "Bài tập",
+                      gradebook: "Sổ điểm",
+                      attendance: "Điểm danh",
+                      materials: "Tài liệu",
+                      announcements: "Thông báo",
+                    }
+                  : null;
+              const label = labels?.[item.key] ?? item.label;
+              const isActive =
+                item.key === "calendar"
+                  ? pathname === "/dashboard/teacher" ||
+                    pathname.startsWith(item.href)
+                  : pathname.startsWith(item.href);
+              return (
+                <Link
+                  key={item.key}
+                  href={`${item.href}${teacherDemoSuffix}`}
+                  onClick={onNavClick}
+                  aria-current={isActive ? "page" : undefined}
+                  className={cn(
+                    "flex min-h-8 items-center gap-3 rounded-lg px-2 py-1 text-sm font-medium transition-all",
+                    collapsed && "justify-center px-0",
+                    isActive ? "sidebar-nav-selected" : "sidebar-nav-idle",
+                  )}
+                >
+                  <GraduationCap
+                    className="h-5 w-5 shrink-0"
+                    aria-hidden="true"
+                  />
+                  {!collapsed ? (
+                    <span className="truncate">{label}</span>
+                  ) : null}
+                  {!collapsed && item.badge ? (
+                    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-error px-1.5 type-caption font-bold text-on-error">
+                      {item.badge}
+                    </span>
+                  ) : null}
+                </Link>
+              );
+            })
+          : null}
         {canUseTeacherWorkspace ? (
           <div className="space-y-1" aria-label={t("workspaceModes")}>
             {isAdmin ? (
@@ -352,72 +416,76 @@ function NavContent({
             </Link>
           </div>
         ) : null}
-        {navItems.map((item) => {
-          const href = item.href;
-          const isExactRoot = href === "/dashboard" || href === "/ielts/home";
-          const isActive = href
-            ? pathname === href ||
-              (item.key === "duel"
-                ? pathname.startsWith("/debates")
-                : !isExactRoot && pathname.startsWith(href))
-            : false;
-          const Icon = item.icon;
-          const label = item.key === "analytics" ? t("profile") : t(item.key);
-          const isUnavailable =
-            item.status === "coming-soon" ||
-            !href ||
-            (item.key === "duel" && !canDuel);
-          const content = (
-            <>
-              <Icon className="h-5 w-5 shrink-0" />
-              {!collapsed && (
+        {!isTeacherPersona
+          ? navItems.map((item) => {
+              const href = item.href;
+              const isExactRoot =
+                href === "/dashboard" || href === "/ielts/home";
+              const isActive = href
+                ? pathname === href ||
+                  (item.key === "duel"
+                    ? pathname.startsWith("/debates")
+                    : !isExactRoot && pathname.startsWith(href))
+                : false;
+              const Icon = item.icon;
+              const label =
+                item.key === "analytics" ? t("profile") : t(item.key);
+              const isUnavailable =
+                item.status === "coming-soon" ||
+                !href ||
+                (item.key === "duel" && !canDuel);
+              const content = (
                 <>
-                  <span className="truncate">{label}</span>
-                  {isUnavailable ? (
-                    <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-white/[0.08] px-1.5 py-0.5 type-caption font-semibold uppercase text-sidebar-muted/75">
-                      <Lock className="h-3 w-3" />
-                      {ts("coming_soon")}
-                    </span>
-                  ) : null}
+                  <Icon className="h-5 w-5 shrink-0" />
+                  {!collapsed && (
+                    <>
+                      <span className="truncate">{label}</span>
+                      {isUnavailable ? (
+                        <span className="ml-auto inline-flex shrink-0 items-center gap-1 rounded-full bg-white/[0.08] px-1.5 py-0.5 type-caption font-semibold uppercase text-sidebar-muted/75">
+                          <Lock className="h-3 w-3" />
+                          {ts("coming_soon")}
+                        </span>
+                      ) : null}
+                    </>
+                  )}
                 </>
-              )}
-            </>
-          );
+              );
 
-          if (isUnavailable || !href) {
-            return (
-              <div
-                key={item.key}
-                aria-disabled="true"
-                className={cn(
-                  "flex h-8 cursor-not-allowed items-center gap-3 rounded-lg px-2 text-sm font-medium text-sidebar-muted/50 opacity-75",
-                  collapsed && "justify-center px-0",
-                )}
-                title={
-                  collapsed ? `${label} - ${ts("coming_soon")}` : undefined
-                }
-              >
-                {content}
-              </div>
-            );
-          }
+              if (isUnavailable || !href) {
+                return (
+                  <div
+                    key={item.key}
+                    aria-disabled="true"
+                    className={cn(
+                      "flex h-8 cursor-not-allowed items-center gap-3 rounded-lg px-2 text-sm font-medium text-sidebar-muted/50 opacity-75",
+                      collapsed && "justify-center px-0",
+                    )}
+                    title={
+                      collapsed ? `${label} - ${ts("coming_soon")}` : undefined
+                    }
+                  >
+                    {content}
+                  </div>
+                );
+              }
 
-          return (
-            <Link
-              key={item.key}
-              href={href}
-              onClick={onNavClick}
-              className={cn(
-                "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-all",
-                collapsed && "justify-center px-0",
-                isActive ? "sidebar-nav-selected" : "sidebar-nav-idle",
-              )}
-              title={collapsed ? label : undefined}
-            >
-              {content}
-            </Link>
-          );
-        })}
+              return (
+                <Link
+                  key={item.key}
+                  href={href}
+                  onClick={onNavClick}
+                  className={cn(
+                    "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-all",
+                    collapsed && "justify-center px-0",
+                    isActive ? "sidebar-nav-selected" : "sidebar-nav-idle",
+                  )}
+                  title={collapsed ? label : undefined}
+                >
+                  {content}
+                </Link>
+              );
+            })
+          : null}
       </nav>
 
       {/* User section */}
@@ -526,6 +594,7 @@ export function Sidebar({
   isEnrolledIeltsStudent = false,
   notificationInbox,
   notificationOperations,
+  teacherNavigation,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
@@ -533,6 +602,7 @@ export function Sidebar({
   const currentLocale = coerceAppLocale(useLocale());
   const tc = useTranslations("common");
   const useDashboardRail = !pathname.startsWith("/dashboard/admin");
+  const isTeacherPersona = pathname.startsWith("/dashboard/teacher");
   const isAdmin = profile?.role === "admin";
   const canDuel = DUEL_ENABLED || isAdmin;
   const debateNavItems: DashboardNavItem[] = [
@@ -561,8 +631,27 @@ export function Sidebar({
     { key: "analytics", href: "/profile", status: "live" },
     { key: "resources", href: "/resources", status: "live" },
   ];
-  const dashboardNavItems: DashboardSidebarNavItem[] =
-    activeSubject === "ielts"
+  const dashboardNavItems: DashboardSidebarNavItem[] = isTeacherPersona
+    ? (teacherNavigation?.items ?? []).map((item) => ({
+        key: item.key,
+        href: item.href,
+        status: "live" as const,
+        badge: item.badge,
+        label:
+          currentLocale === "vi"
+            ? {
+                calendar: "Lịch giảng dạy",
+                classes: "Lớp của tôi",
+                review_queue: "Hàng đợi chấm bài",
+                assignments: "Bài tập",
+                gradebook: "Sổ điểm",
+                attendance: "Điểm danh",
+                materials: "Tài liệu",
+                announcements: "Thông báo",
+              }[item.key]
+            : item.label,
+      }))
+    : activeSubject === "ielts"
       ? enrollmentVisible(IELTS_DASHBOARD_NAV_ITEMS, isEnrolledIeltsStudent)
       : debateNavItems;
 
@@ -589,6 +678,7 @@ export function Sidebar({
           activeSubject={activeSubject}
           notificationInbox={notificationInbox}
           notificationOperations={notificationOperations}
+          teacherNavigation={teacherNavigation}
         />
       ) : (
         <aside
@@ -608,6 +698,7 @@ export function Sidebar({
             isEnrolledIeltsStudent={isEnrolledIeltsStudent}
             notificationInbox={notificationInbox}
             notificationOperations={notificationOperations}
+            teacherNavigation={teacherNavigation}
           />
           {/* Collapse toggle */}
           <button
@@ -654,6 +745,7 @@ export function Sidebar({
               isEnrolledIeltsStudent={isEnrolledIeltsStudent}
               notificationInbox={notificationInbox}
               notificationOperations={notificationOperations}
+              teacherNavigation={teacherNavigation}
               onNavClick={() => {
                 // Sheet auto-closes when navigation happens via link click
               }}

@@ -1,0 +1,307 @@
+.calendarShell {
+  --calendar-gutter: 4.5rem;
+  --calendar-hour: 64px;
+  --calendar-days: 7;
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 12px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.scrollRegion {
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.calendarCanvas {
+  min-width: 940px;
+}
+
+.dayCanvas {
+  min-width: 36rem;
+}
+
+.sharedGrid {
+  display: grid;
+  grid-template-columns: var(--calendar-gutter) repeat(
+      var(--calendar-days),
+      minmax(118px, 1fr)
+    );
+}
+
+.headerGrid {
+  position: sticky;
+  top: 0;
+  z-index: 18;
+  min-height: 58px;
+  border-bottom: 1px solid var(--color-outline-variant);
+  background: var(--color-surface);
+}
+
+.timezoneCell {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 0 0.35rem 0.65rem;
+  color: var(--color-on-surface-variant);
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.dayHeader {
+  min-width: 0;
+  padding: 0.55rem 0.55rem 0.5rem;
+  border-left: 1px solid var(--color-outline-variant);
+  text-align: left;
+}
+
+.dayHeader[data-today="true"] {
+  background: color-mix(
+    in srgb,
+    var(--color-primary-container) 46%,
+    transparent
+  );
+}
+
+.dayHeaderTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem;
+  color: var(--color-on-surface-variant);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
+}
+
+.dayNumber {
+  margin-top: 0.15rem;
+  color: var(--color-on-surface);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.dayHeader[data-today="true"] .dayNumber {
+  color: var(--color-primary);
+}
+
+.bodyGrid {
+  position: relative;
+}
+
+.timeGutter,
+.dayColumn {
+  position: relative;
+  height: calc(var(--calendar-hour) * 12);
+}
+
+.timeGutter {
+  background: var(--color-surface-container-lowest);
+}
+
+.dayColumn {
+  min-width: 0;
+  border-left: 1px solid var(--color-outline-variant);
+  background: var(--color-surface);
+}
+
+.dayColumn[data-today="true"] {
+  background: color-mix(
+    in srgb,
+    var(--color-primary-container) 16%,
+    var(--color-surface)
+  );
+}
+
+.hourLine {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  border-top: 1px solid var(--color-outline-variant);
+  pointer-events: none;
+}
+
+.halfHourLine {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  border-top: 1px dashed
+    color-mix(in srgb, var(--color-outline-variant) 60%, transparent);
+  pointer-events: none;
+}
+
+.timeLabel {
+  position: absolute;
+  right: 0.5rem;
+  z-index: 3;
+  transform: translateY(-50%);
+  color: var(--color-on-surface-variant);
+  font-size: 0.6875rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.eventButton {
+  position: absolute;
+  z-index: 5;
+  min-height: 26px;
+  overflow: hidden;
+  border: 1px solid var(--event-border);
+  border-left-width: 4px;
+  border-radius: 8px;
+  background: var(--event-bg);
+  color: var(--event-fg);
+  padding: 0.28rem 0.38rem;
+  text-align: left;
+  transition:
+    filter 120ms ease,
+    box-shadow 120ms ease,
+    transform 120ms ease;
+}
+
+.eventButton:hover {
+  filter: brightness(0.98);
+  box-shadow: var(--shadow-card);
+}
+
+.eventButton:focus-visible {
+  z-index: 12;
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.eventButton[data-status="cancelled"] {
+  opacity: 0.72;
+  text-decoration: line-through;
+}
+
+.eventButton[data-status="completed"] {
+  border-style: double;
+}
+
+.eventTime {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: inherit;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.eventTitle {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 0.15rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.eventMeta {
+  display: block;
+  overflow: hidden;
+  margin-top: 0.15rem;
+  color: color-mix(in srgb, var(--event-fg) 78%, transparent);
+  font-size: 0.65rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.currentTime {
+  position: absolute;
+  z-index: 10;
+  left: var(--calendar-gutter);
+  right: 0;
+  height: 2px;
+  background: var(--color-error);
+  pointer-events: none;
+}
+
+.currentTime::before {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 9px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--color-error);
+  content: "";
+}
+
+.agendaList {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.agendaDay {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  gap: 0.8rem;
+}
+
+.agendaDate {
+  position: sticky;
+  top: 0.5rem;
+  align-self: start;
+}
+
+.monthGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  border-left: 1px solid var(--color-outline-variant);
+  border-top: 1px solid var(--color-outline-variant);
+}
+
+.monthCell {
+  min-height: 8.5rem;
+  border-right: 1px solid var(--color-outline-variant);
+  border-bottom: 1px solid var(--color-outline-variant);
+  padding: 0.45rem;
+}
+
+.monthCell[data-outside="true"] {
+  background: var(--color-surface-container-low);
+  color: var(--color-on-surface-variant);
+}
+
+.mobileFallback {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .desktopCalendar {
+    display: none;
+  }
+
+  .mobileFallback {
+    display: block;
+  }
+
+  .agendaDay {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  .agendaDate {
+    position: static;
+  }
+
+  .calendarShell {
+    border-radius: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eventButton {
+    transition: none;
+  }
+}
