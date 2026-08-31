@@ -76,6 +76,27 @@ test("ClickUp claims serialize local clients and only one wins", async () => {
   }
 });
 
+test("ClickUp claim accepts lowercase API statuses and writes canonical statuses", async () => {
+  let status = "ready for agent";
+  let updateBody: unknown;
+  const fetchImpl: FetchLike = async (_input, init) => {
+    if (init?.method === "PUT") {
+      updateBody = JSON.parse(String(init.body));
+      status = "agent working";
+    }
+    return response({ id: "1", name: "Broken", status: { status } });
+  };
+  const client = new ClickUpClient(
+    { CLICKUP_API_TOKEN: "token", CLICKUP_BUG_LIST_ID: "lowercase-status-list" },
+    fetchImpl,
+  );
+
+  const claimed = await client.claim("1");
+
+  assert.equal(claimed.status?.status, "agent working");
+  assert.deepEqual(updateBody, { status: "Agent Working" });
+});
+
 test("Grafana query uses a bearer header and POST body", async () => {
   let captured: { url?: string; init?: RequestInit } = {};
   const fetchImpl: FetchLike = async (input, init) => {
