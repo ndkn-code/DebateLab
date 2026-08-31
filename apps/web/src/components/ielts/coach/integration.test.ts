@@ -7,7 +7,7 @@ import { buildIeltsCoachChatRequest } from "./request";
 const ASSIGNMENT_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const ATTEMPT_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
 
-test("IELTS Coach requests always carry the isolated product context", () => {
+test("IELTS Coach requests always carry an explicit isolated product context", () => {
   const request = buildIeltsCoachChatRequest({
     message: "  Help me improve coherence  ",
     conversationId: null,
@@ -27,7 +27,7 @@ test("IELTS Coach requests always carry the isolated product context", () => {
   assert.equal("conversationId" in request, false);
 });
 
-test("authorized actions resolve only to deterministic IELTS destinations", () => {
+test("authorized coach actions resolve only to deterministic IELTS destinations", () => {
   const assignment = resolveIeltsCoachActionDestination({
     locale: "en",
     action: {
@@ -66,9 +66,21 @@ test("authorized actions resolve only to deterministic IELTS destinations", () =
     },
   });
   assert.equal(speaking?.href, "/en/ielts/speaking-rehearsal");
+
+  const plan = resolveIeltsCoachActionDestination({
+    locale: "en",
+    action: {
+      kind: "open_study_plan",
+      resourceId: "ielts-study-plan",
+      skill: "reading",
+      criterion: "reading",
+      label: "Open plan",
+    },
+  });
+  assert.equal(plan?.href, "/en/ielts/study-plan");
 });
 
-test("action resolution fails closed on model-authored ids and URLs", () => {
+test("client action resolution fails closed on model-authored ids or URLs", () => {
   const unsafeAssignment = resolveIeltsCoachActionDestination({
     locale: "en",
     action: {
@@ -87,7 +99,17 @@ test("action resolution fails closed on model-authored ids and URLs", () => {
       label: "Mismatch",
     },
   });
+  const inventedPlan = resolveIeltsCoachActionDestination({
+    locale: "en",
+    action: {
+      kind: "open_study_plan",
+      resourceId: "another-plan",
+      skill: "reading",
+      label: "Invented",
+    },
+  });
 
   assert.equal(unsafeAssignment, null);
   assert.equal(mismatchedPractice, null);
+  assert.equal(inventedPlan, null);
 });

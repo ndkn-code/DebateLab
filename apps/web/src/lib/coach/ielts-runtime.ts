@@ -299,6 +299,9 @@ function actionResources(
 }> {
   const weakness = context.weaknesses.find((item) => item.skill === skill);
   const criterion = criterionName(weakness?.criterion ?? skill);
+  const publishedFeedback = context.teacherPublishedFeedback.find(
+    (item) => item.skill === skill,
+  );
   return [
     ...context.assignedWork
       .filter((item) => item.skill === skill)
@@ -306,11 +309,20 @@ function actionResources(
         id: item.assignmentId,
         kind: "start_assignment" as const,
         skill,
-        criterion: item.criterion
-          ? criterionName(item.criterion)
-          : undefined,
+        criterion: item.criterion ? criterionName(item.criterion) : undefined,
         title: item.title,
       })),
+    ...(publishedFeedback
+      ? [
+          {
+            id: publishedFeedback.attemptId,
+            kind: "review_feedback" as const,
+            skill,
+            criterion,
+            title: `Review published ${skill} feedback`,
+          },
+        ]
+      : []),
     {
       id: `ielts-practice:${skill}:${criterion}`,
       kind: "start_practice" as const,
@@ -587,7 +599,9 @@ export async function runIeltsCoachTurn(params: {
     };
   }
   const actions = actionResources(context, skill);
-  const rubricIds = new Set(rubricResult?.evidence.map((item) => item.sourceId));
+  const rubricIds = new Set(
+    rubricResult?.evidence.map((item) => item.sourceId),
+  );
   const learnerSources = new Map(
     evidence.map((item) => {
       const publishedTeacherRevision = teacherRevision(
@@ -599,30 +613,34 @@ export async function runIeltsCoachTurn(params: {
         item.evidenceId,
         {
           evidenceId: item.evidenceId,
-          sourceType: teacher ? "teacher_published" as const : "learner_record" as const,
+          sourceType: teacher
+            ? ("teacher_published" as const)
+            : ("learner_record" as const),
           sourceLocator: teacher
             ? `teacher-feedback/${item.evidenceId}`
             : `learner-record/${item.evidenceId}`,
-          version:
-            teacher
-              ? publishedTeacherRevision
-              : item.observedAt ?? context.version,
+          version: teacher
+            ? publishedTeacherRevision
+            : (item.observedAt ?? context.version),
         },
       ] as const;
     }),
   );
   const approvedKnowledgeSources = new Map(
-    knowledge.map((item) => [
-      item.sourceId,
-      {
-        evidenceId: item.sourceId,
-        sourceType: rubricIds.has(item.sourceId)
-          ? "approved_rubric" as const
-          : "approved_exemplar" as const,
-        sourceLocator: item.sourceLocator ?? "published-corpus",
-        version: item.version,
-      },
-    ] as const),
+    knowledge.map(
+      (item) =>
+        [
+          item.sourceId,
+          {
+            evidenceId: item.sourceId,
+            sourceType: rubricIds.has(item.sourceId)
+              ? ("approved_rubric" as const)
+              : ("approved_exemplar" as const),
+            sourceLocator: item.sourceLocator ?? "published-corpus",
+            version: item.version,
+          },
+        ] as const,
+    ),
   );
   const authorization: IeltsCoachServerAuthorization = {
     learnerEvidence: new Map(evidence.map((item) => [item.evidenceId, item])),
@@ -662,7 +680,12 @@ export async function runIeltsCoachTurn(params: {
         });
         return assessed.disposition === "accept" ||
           assessed.disposition === "limit"
-          ? [{ role: item.role, content: assessed.normalizedText.slice(0, 1_500) }]
+          ? [
+              {
+                role: item.role,
+                content: assessed.normalizedText.slice(0, 1_500),
+              },
+            ]
           : [];
       }),
     ),

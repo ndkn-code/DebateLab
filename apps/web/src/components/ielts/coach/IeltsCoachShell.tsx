@@ -12,6 +12,8 @@ import {
 } from "@/components/beautifului";
 import { Button } from "@/components/ui/button";
 import { ProductIcon } from "@/components/ui/product-icon";
+import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
+import type { IeltsCoachResponseMetadata } from "@/lib/coach/ielts-api-contract";
 import {
   IeltsCoachAssistantMessage,
   evidenceAuthorityLabel,
@@ -189,6 +191,41 @@ export function IeltsCoachShell() {
     setInput("");
   };
 
+  const trackStartedAction = useCallback(
+    (metadata: IeltsCoachResponseMetadata) => {
+      const { action } = metadata.coach;
+      trackAnalyticsEvent({
+        eventName: "ielts_ai_coach_started_task",
+        featureArea: "ielts",
+        route: `/${locale}/ielts/coach`,
+        metadata: {
+          recommendation_id: metadata.runId,
+          task_id: action.resourceId,
+          action_kind: action.kind,
+          skill: action.skill,
+          criterion: action.criterion ?? null,
+          prompt_version: metadata.promptVersion,
+          rubric_version: metadata.rubricVersion,
+        },
+      });
+      try {
+        window.sessionStorage.setItem(
+          "ielts_coach_action_attribution_v1",
+          JSON.stringify({
+            version: 1,
+            recommendationId: metadata.runId,
+            taskId: action.resourceId,
+            actionKind: action.kind,
+            startedAt: new Date().toISOString(),
+          }),
+        );
+      } catch {
+        // Attribution must never block the learner's chosen action.
+      }
+    },
+    [locale],
+  );
+
   const header = (
     <IeltsCoachHeader
       copy={copy}
@@ -344,6 +381,9 @@ export function IeltsCoachShell() {
           metadata={latestAssistant?.metadata}
           disabled={isLoading}
           onAction={(destination) => {
+            if (latestAssistant?.metadata) {
+              trackStartedAction(latestAssistant.metadata);
+            }
             if (destination.external) {
               window.location.href = destination.href;
               return;
