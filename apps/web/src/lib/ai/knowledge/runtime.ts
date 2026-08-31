@@ -328,6 +328,77 @@ async function rpcRows(
   return Array.isArray(result.data) ? result.data : [];
 }
 
+const QUERY_EMBEDDING_CACHE_TTL_MS = 5_000;
+const QUERY_EMBEDDING_CACHE_LIMIT = 128;
+const queryEmbeddingPromises = new Map<
+  string,
+  {
+    expiresAt: number;
+    promise: ReturnType<typeof createKnowledgeEmbedding>;
+  }
+>();
+
+async function hasApprovedActiveKnowledge(
+  client: SupabaseClient,
+  collectionSlug: KnowledgeCollectionKey,
+) {
+  const collection = await client
+    .from("ai_knowledge_collections")
+    .select("id, active_version")
+    .eq("slug", collectionSlug)
+    .eq("is_active", true)
+    .maybeSingle();
+  if (collection.error) {
+    throw new Error(`knowledge_collection_state:${collection.error.message}`);
+  }
+  if (!collection.data?.id) return false;
+  const items = await client
+    .from("ai_knowledge_items")
+    .select("id", { count: "exact", head: true })
+    .eq("collection_id", collection.data.id)
+    .eq("collection_version", collection.data.active_version)
+    .eq("review_status", "approved")
+    .limit(1);
+  if (items.error) {
+    throw new Error(`knowledge_collection_items:${items.error.message}`);
+  }
+  return (items.count ?? 0) > 0;
+}
+
+function cachedQueryEmbedding(params: {
+  collection: KnowledgeCollectionKey;
+  query: string;
+  timeoutMs: number;
+}) {
+  const now = Date.now();
+  const cacheKey = hash({
+    collection: params.collection,
+    query: params.query,
+  });
+  const cached = queryEmbeddingPromises.get(cacheKey);
+  if (cached && cached.expiresAt > now) return cached.promise;
+  if (queryEmbeddingPromises.size >= QUERY_EMBEDDING_CACHE_LIMIT) {
+    for (const [key, value] of queryEmbeddingPromises) {
+      if (value.expiresAt <= now) queryEmbeddingPromises.delete(key);
+    }
+    if (queryEmbeddingPromises.size >= QUERY_EMBEDDING_CACHE_LIMIT) {
+      queryEmbeddingPromises.clear();
+    }
+  }
+  const promise = createKnowledgeEmbedding({
+    collection: params.collection,
+    text: params.query,
+    inputType: "query",
+    timeoutMs: params.timeoutMs,
+  });
+  queryEmbeddingPromises.set(cacheKey, {
+    expiresAt: now + QUERY_EMBEDDING_CACHE_TTL_MS,
+    promise,
+  });
+  void promise.catch(() => queryEmbeddingPromises.delete(cacheKey));
+  return promise;
+}
+
 async function logRetrieval(
   client: SupabaseClient,
   params: GenericKnowledgeSearchParams,
@@ -404,11 +475,25 @@ export async function searchGenericKnowledge(
   const config = getKnowledgeCollectionConfig(params.collection);
   const cacheKey = hash({ ...params, supabase: undefined, config });
   try {
+    // Avoid spending an embedding request when a collection has no published,
+    // approved evidence yet. This is especially important during rollout and
+    // keeps the bundled rubric fallback fast and quota-independent.
+    if (!(await hasApprovedActiveKnowledge(client, params.collection))) {
+      return {
+        collection: "knowledge",
+        context: "",
+        evidence: [],
+        data: { items: [], collectionVersion: null },
+        cacheKey,
+        cacheHit: false,
+        latencyMs: Date.now() - startedAt,
+        skippedReason: "no_approved_knowledge",
+      };
+    }
     const embedding = await withDeadline(
-      createKnowledgeEmbedding({
+      cachedQueryEmbedding({
         collection: params.collection,
-        text: params.query,
-        inputType: "query",
+        query: params.query,
         timeoutMs: params.deadlineMs ?? DEFAULT_TIMEOUT,
       }),
       params.deadlineMs ?? DEFAULT_TIMEOUT,
