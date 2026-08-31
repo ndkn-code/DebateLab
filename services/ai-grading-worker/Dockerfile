@@ -13,7 +13,6 @@ RUN npm ci --omit=dev --ignore-scripts
 
 COPY apps/web/src apps/web/src
 COPY apps/web/tsconfig.json apps/web/tsconfig.json
-COPY apps/web/next-env.d.ts apps/web/next-env.d.ts
 COPY packages/shared packages/shared
 COPY services/ai-grading-worker services/ai-grading-worker
 
