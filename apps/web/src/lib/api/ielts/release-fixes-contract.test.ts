@@ -38,6 +38,13 @@ const mockKnowledgeImporter = readFileSync(
   ),
   "utf8",
 );
+const teacherWorkspaceRollout = readFileSync(
+  resolve(
+    process.cwd(),
+    "../../supabase/migrations/20260831150000_enable_ielts_teacher_workspace.sql",
+  ),
+  "utf8",
+);
 
 test("AI telemetry constraint preserves every runtime output type", () => {
   for (const outputType of [
@@ -131,4 +138,15 @@ test("IELTS mock importer is coaching-only, review-gated, and cannot publish", (
     mockKnowledgeImporter,
     /\.select\([^)]*(?:answer|explanation|response)/s,
   );
+});
+
+test("teacher workspace rollout is IELTS-class scoped and preserves explicit flags", () => {
+  assert.match(teacherWorkspaceRollout, /c\.program_type = 'ielts'/);
+  assert.match(teacherWorkspaceRollout, /c\.status = 'active'/);
+  assert.match(teacherWorkspaceRollout, /c\.club_id is not null/);
+  assert.match(teacherWorkspaceRollout, /scope', 'ielts_class_only'/);
+  assert.match(teacherWorkspaceRollout, /after insert on public\.classes/);
+  assert.match(teacherWorkspaceRollout, /do nothing/);
+  assert.doesNotMatch(teacherWorkspaceRollout, /class_id\s*,\s*null/);
+  assert.match(teacherWorkspaceRollout, /from public, anon, authenticated/);
 });
