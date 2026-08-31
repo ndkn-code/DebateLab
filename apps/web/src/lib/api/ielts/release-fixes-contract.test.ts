@@ -136,7 +136,7 @@ test("IELTS mock importer is coaching-only, review-gated, and cannot publish", (
   assert.doesNotMatch(mockKnowledgeImporter, /publishAiKnowledgeVersion/);
   assert.doesNotMatch(
     mockKnowledgeImporter,
-    /\.select\([^)]*(?:answer|explanation|response)/s,
+    /\.select\([\s\S]*?(?:answer|explanation|response)/,
   );
 });
 
