@@ -12,11 +12,14 @@ ClickUp task per run. Use `gpt-5.6-luna` with high reasoning.
 3. Create a new isolated git worktree from the current integration branch and a
    branch named `codex/bug-TASK_ID-short-slug`. Never edit the shared checkout.
 4. Read the task and query its fingerprint with
-   `npm run bugops -- grafana incident FINGERPRINT --from 24h`. Use the
-   read-only Grafana credential. Do not display, copy into source, or commit any
-   credential or sensitive user content.
-5. Correlate source-mapped frames, release SHA, trace ID, service, normalized
-   route, and debug ID. Reproduce the defect locally. If evidence is
+   `npm run bugops -- grafana incident FINGERPRINT --from 24h`. This command
+   queries Loki only. Use the task's direct Grafana URL to inspect Tempo when a
+   trace ID is present. Use the read-only Grafana credential. Do not display,
+   copy into source, or commit any credential or sensitive user content.
+5. Correlate the actual source-mapped frames, release SHA, trace ID (from
+   Grafana/Tempo when present), service, normalized route, and debug ID. Treat
+   missing fields as unavailable; never infer them from another event.
+   Reproduce the defect locally. If evidence is
    insufficient, add a sanitized ClickUp comment, return the task to
    `Ready for Agent`, and stop.
 6. Add a regression test that fails for the reproduced cause, then implement

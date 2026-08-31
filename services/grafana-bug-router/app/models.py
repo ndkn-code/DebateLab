@@ -29,7 +29,7 @@ class BugEventV1(BaseModel):
     trace_id: str | None = Field(default=None, alias="traceId", max_length=64)
     faro_session_id: str | None = Field(default=None, alias="faroSessionId", max_length=128)
     debug_id: str | None = Field(default=None, alias="debugId", max_length=128)
-    grafana_url: HttpUrl = Field(alias="grafanaUrl")
+    grafana_url: HttpUrl | None = Field(default=None, alias="grafanaUrl")
 
     @field_validator("source_frames")
     @classmethod

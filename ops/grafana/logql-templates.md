@@ -6,7 +6,14 @@ not commit its credentials.
 
 The application and Cloud Run telemetry must emit `environment`,
 `error_fingerprint`, `service_name`, `feature_area`, and (when present)
-`faro_session_id` as indexed labels or JSON fields.
+`faro_session_id` as indexed labels or JSON fields. `environment` and
+`service_name` are the canonical names used by the alert policy and router;
+do not substitute `deployment_environment` or `service` in new rules.
+
+The stream selector below requires `environment` to be an indexed Loki label.
+If the installed Faro/Cloud Run pipeline stores it only as a JSON field, first
+adapt the selector to `{job="..."} | json | environment="production"` and
+verify the result in Explore before enabling the rule.
 
 ## New production fingerprints (P2)
 
@@ -14,7 +21,7 @@ Use this as query `A`, reduce by `error_fingerprint` and `service_name`, and
 alert when the last value is at least one:
 
 ```logql
-sum by (error_fingerprint, service_name) (
+sum by (error_fingerprint, service_name, environment) (
   count_over_time({environment="production"} | json | level="error" [5m])
 )
 ```
@@ -28,7 +35,7 @@ notifications update the existing incident instead of creating another task.
 Occurrences query; alert at `>= 3` over 15 minutes:
 
 ```logql
-sum by (error_fingerprint, service_name) (
+sum by (error_fingerprint, service_name, environment) (
   count_over_time({environment="production"} | json | level="error" [15m])
 )
 ```
@@ -44,7 +51,7 @@ worker from the webhook annotations.
 Alert on the first occurrence within five minutes:
 
 ```logql
-sum by (error_fingerprint, service_name, feature_area) (
+sum by (error_fingerprint, service_name, environment, feature_area) (
   count_over_time(
     {environment="production"}
       | json
@@ -57,13 +64,22 @@ sum by (error_fingerprint, service_name, feature_area) (
 
 ## Required notification labels and annotations
 
-Every firing notification must include:
+Every firing notification should include these labels when the source record
+contains them:
 
 - Labels: `error_fingerprint`, `service_name`, `environment`, `severity`,
   `feature_area`, and `clickup_status`.
 - Annotations: sanitized error title/message, first/last seen, occurrence and
   affected-session counts, release SHA, route, trace ID, Faro session ID,
-  application debug ID, and a direct Grafana URL.
+  application debug ID, and a direct Grafana URL. Preserve absent values as
+  empty/unavailable; never infer a route, trace, session, release, or source
+  frame from unrelated events.
+
+The count queries only decide whether a fingerprint fires. They do not carry
+arbitrary source frames or event fields into the notification automatically.
+Configure notification annotations to use the actual alert-series values (or
+the direct Grafana generator URL) and validate a real Faro and Cloud Run event
+before rollout. Keep source frames out of high-cardinality labels.
 
 Never include user text, email addresses, authorization material, recordings,
 transcripts, essays, prompts, or request/response bodies.

@@ -73,10 +73,13 @@ def sanitize_route(value: str | None) -> str | None:
     return path[:300]
 
 
-def safe_https_url(value: str | None, fallback: str | None = None) -> str:
-    candidate = value or fallback or "https://grafana.com/"
-    parsed = urlsplit(candidate)
-    if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
-        return "https://grafana.com/"
-    # Query strings can contain alert labels. The Grafana alert path is sufficient for triage.
-    return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))[:2000]
+def safe_https_url(value: str | None, fallback: str | None = None) -> str | None:
+    for candidate in (value, fallback):
+        if not candidate:
+            continue
+        parsed = urlsplit(candidate)
+        if parsed.scheme != "https" or not parsed.netloc or parsed.username or parsed.password:
+            continue
+        # Query strings can contain alert labels. The Grafana alert path is sufficient for triage.
+        return urlunsplit((parsed.scheme, parsed.netloc, parsed.path, "", ""))[:2000]
+    return None

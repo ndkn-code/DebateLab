@@ -9,7 +9,7 @@ spec:
   groupBy:
     - error_fingerprint
     - service_name
-    - deployment_environment
+    - environment
   resolveAfter: 30m
   rules:
     - id: new-production-fingerprint

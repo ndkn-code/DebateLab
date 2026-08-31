@@ -47,6 +47,24 @@ def test_unknown_severity_falls_back_to_p2(grafana_payload: dict) -> None:
     assert event.severity == "p2"
 
 
+def test_service_name_is_canonical_router_service_label(grafana_payload: dict) -> None:
+    grafana_payload["alerts"][0]["labels"]["service_name"] = "thinkfy-api"
+    grafana_payload["alerts"][0]["labels"].pop("service")
+    event = transform_webhook(
+        GrafanaWebhook.model_validate(grafana_payload), json.dumps(grafana_payload).encode()
+    )[0]
+    assert event.service == "thinkfy-api"
+
+
+def test_missing_generator_url_stays_unavailable(grafana_payload: dict) -> None:
+    grafana_payload["externalURL"] = None
+    grafana_payload["alerts"][0]["generatorURL"] = None
+    event = transform_webhook(
+        GrafanaWebhook.model_validate(grafana_payload), json.dumps(grafana_payload).encode()
+    )[0]
+    assert event.grafana_url is None
+
+
 def test_schema_rejects_unknown_fields(grafana_payload: dict) -> None:
     event = transform_webhook(
         GrafanaWebhook.model_validate(grafana_payload), json.dumps(grafana_payload).encode()

@@ -5,7 +5,13 @@ import hmac
 
 import pytest
 
-from app.security import SignatureError, sanitize_route, sanitize_text, verify_grafana_signature
+from app.security import (
+    SignatureError,
+    safe_https_url,
+    sanitize_route,
+    sanitize_text,
+    verify_grafana_signature,
+)
 
 
 def test_valid_timestamped_hmac_is_accepted() -> None:
@@ -48,6 +54,15 @@ def test_sanitization_removes_pii_credentials_and_queries() -> None:
 def test_sanitization_bounds_and_normalizes_text() -> None:
     assert sanitize_text(" a\n b\x00 c ", 5) == "a b c"
     assert sanitize_text("x" * 20, 10) == "x" * 10
+
+
+def test_invalid_or_missing_grafana_url_is_not_replaced_with_a_fake_link() -> None:
+    assert safe_https_url(None, None) is None
+    assert safe_https_url("http://grafana.invalid/alert", None) is None
+    assert (
+        safe_https_url("http://grafana.invalid/alert", "https://robusttrawler160.grafana.net/")
+        == "https://robusttrawler160.grafana.net/"
+    )
 
 
 @pytest.mark.parametrize(

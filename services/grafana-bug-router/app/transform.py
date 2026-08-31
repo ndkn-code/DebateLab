@@ -82,7 +82,9 @@ def transform_webhook(payload: GrafanaWebhook, raw_body: bytes) -> list[BugEvent
                     "alertRule": sanitize_text(labels.get("alertname") or payload.receiver, 180),
                     "severity": severity,
                     "status": alert.status,
-                    "service": sanitize_text(labels.get("service") or "thinkfy-web", 100),
+                    "service": sanitize_text(
+                        labels.get("service_name") or labels.get("service") or "thinkfy-web", 100
+                    ),
                     "environment": sanitize_text(labels.get("environment") or "production", 40),
                     "releaseSha": _release_sha(labels.get("release_sha")),
                     "errorTitle": title,
