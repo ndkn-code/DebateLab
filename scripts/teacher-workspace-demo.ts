@@ -42,6 +42,8 @@ export function buildTeacherWorkspaceDemoManifest(input: {
   weekStart?: string;
 }): TeacherWorkspaceDemoManifest {
   const weekStart = input.weekStart ?? "2026-08-31";
+  const id = (key: string) =>
+    deterministicUuid(`${input.organizationId}:${input.teacherId}:${key}`);
   const classSpecs = [
     {
       key: "ielts-foundation",
@@ -69,7 +71,7 @@ export function buildTeacherWorkspaceDemoManifest(input: {
     },
   ] as const;
   const classes = classSpecs.map((spec) => ({
-    id: deterministicUuid(`class:${spec.key}`),
+    id: id(`class:${spec.key}`),
     code: spec.code,
     club_id: input.organizationId,
     title: spec.title,
@@ -85,7 +87,7 @@ export function buildTeacherWorkspaceDemoManifest(input: {
     metadata: metadata({ classKey: spec.key }),
   }));
   const courses = classSpecs.map((spec, index) => ({
-    id: deterministicUuid(`course:${spec.key}`),
+    id: id(`course:${spec.key}`),
     title: `[Demo] ${spec.title.replace("[Demo] ", "")} Course`,
     slug: `teacher-workspace-demo-${spec.key}`,
     description: "Tagged teacher workspace demo course.",
@@ -103,16 +105,16 @@ export function buildTeacherWorkspaceDemoManifest(input: {
     metadata: metadata({ classKey: spec.key }),
   }));
   const modules = classSpecs.map((spec) => ({
-    id: deterministicUuid(`module:${spec.key}`),
-    course_id: deterministicUuid(`course:${spec.key}`),
+    id: id(`module:${spec.key}`),
+    course_id: id(`course:${spec.key}`),
     title: `[Demo] ${spec.title} Module`,
     description: "Demo module",
     order_index: 0,
     sort_order: 0,
   }));
   const lessons = classSpecs.map((spec) => ({
-    id: deterministicUuid(`lesson:${spec.key}`),
-    module_id: deterministicUuid(`module:${spec.key}`),
+    id: id(`lesson:${spec.key}`),
+    module_id: id(`module:${spec.key}`),
     title: `[Demo] ${spec.title} Lesson`,
     slug: `teacher-workspace-demo-${spec.key}`,
     type: "article",
@@ -122,8 +124,8 @@ export function buildTeacherWorkspaceDemoManifest(input: {
     is_published: true,
   }));
   const activities = classSpecs.map((spec) => ({
-    id: deterministicUuid(`activity:${spec.key}`),
-    module_id: deterministicUuid(`module:${spec.key}`),
+    id: id(`activity:${spec.key}`),
+    module_id: id(`module:${spec.key}`),
     activity_type: "lesson",
     title: `[Demo] ${spec.title} Practice`,
     description: "Demo practice activity",
@@ -171,14 +173,14 @@ export function buildTeacherWorkspaceDemoManifest(input: {
     const cls = classByKey(spec.key);
     const course = courseByKey(spec.key);
     tables.class_course_assignments.push({
-      id: deterministicUuid(`class-course:${spec.key}`),
+      id: id(`class-course:${spec.key}`),
       class_id: cls.id,
       course_id: course.id,
       assigned_by: input.teacherId,
       metadata: metadata({ classKey: spec.key }),
     });
     tables.lms_pilot_flags.push({
-      id: deterministicUuid(`pilot:${spec.key}`),
+      id: id(`pilot:${spec.key}`),
       club_id: input.organizationId,
       class_id: cls.id,
       feature_key: "teacher_workspace_v2",
@@ -193,7 +195,7 @@ export function buildTeacherWorkspaceDemoManifest(input: {
       color_token: spec.color,
     });
     tables.class_memberships.push({
-      id: deterministicUuid(`teacher-membership:${cls.id}`),
+      id: id(`teacher-membership:${cls.id}`),
       class_id: cls.id,
       user_id: input.teacherId,
       member_role: "teacher",
@@ -204,7 +206,7 @@ export function buildTeacherWorkspaceDemoManifest(input: {
     });
     input.learnerIds.forEach((learnerId, index) =>
       tables.class_memberships.push({
-        id: deterministicUuid(`student-membership:${cls.id}:${learnerId}`),
+        id: id(`student-membership:${cls.id}:${learnerId}`),
         class_id: cls.id,
         user_id: learnerId,
         member_role: "student",
@@ -215,7 +217,7 @@ export function buildTeacherWorkspaceDemoManifest(input: {
       }),
     );
     for (const kind of ["reading", "speaking"] as const) {
-      const resourceId = deterministicUuid(`resource:${spec.key}:${kind}`);
+      const resourceId = id(`resource:${spec.key}:${kind}`);
       tables.lms_resources.push({
         id: resourceId,
         club_id: input.organizationId,
@@ -232,7 +234,7 @@ export function buildTeacherWorkspaceDemoManifest(input: {
         metadata: metadata({ classKey: spec.key, licensed: true }),
       });
       tables.lms_resource_assignments.push({
-        id: deterministicUuid(`resource-assignment:${spec.key}:${kind}`),
+        id: id(`resource-assignment:${spec.key}:${kind}`),
         resource_id: resourceId,
         class_id: cls.id,
         assigned_by: input.teacherId,
@@ -278,7 +280,7 @@ export function buildTeacherWorkspaceDemoManifest(input: {
     const cls = classByKey(classKey);
     const date = atDate(weekStart, dayOffset);
     tables.class_schedules.push({
-      id: deterministicUuid(`schedule:${classKey}:${dayOffset}:${startTime}`),
+      id: id(`schedule:${classKey}:${dayOffset}:${startTime}`),
       class_id: cls.id,
       course_id: courseByKey(classKey).id,
       title: `[Demo] ${title}`,
@@ -350,7 +352,7 @@ export function buildTeacherWorkspaceDemoManifest(input: {
     autoMarked,
   ] of assignmentSpecs) {
     const cls = classByKey(classKey);
-    const assignmentId = deterministicUuid(`assignment:${assignmentKey}`);
+    const assignmentId = id(`assignment:${assignmentKey}`);
     tables.club_assignments.push({
       id: assignmentId,
       club_id: input.organizationId,
@@ -388,13 +390,13 @@ export function buildTeacherWorkspaceDemoManifest(input: {
             ? "returned"
             : "graded";
       tables.club_assignment_submissions.push({
-        id: deterministicUuid(`submission:${assignmentKey}:${learnerId}`),
+        id: id(`submission:${assignmentKey}:${learnerId}`),
         assignment_id: assignmentId,
         club_id: input.organizationId,
         class_id: cls.id,
         user_id: learnerId,
         source_type: "manual",
-        source_id: deterministicUuid(`source:${assignmentKey}:${learnerId}`),
+        source_id: id(`source:${assignmentKey}:${learnerId}`),
         submission_state: "submitted",
         status: queueState === "graded" ? "reviewed" : "submitted",
         grade_status: queueState,
@@ -418,7 +420,7 @@ export function buildTeacherWorkspaceDemoManifest(input: {
   const ielts = classByKey("ielts-foundation");
   const ieltsCourse = courseByKey("ielts-foundation");
   const ieltsLesson = lessons.find(
-    (row) => row.module_id === deterministicUuid("module:ielts-foundation"),
+    (row) => row.module_id === id("module:ielts-foundation"),
   )!;
   (
     [
@@ -427,7 +429,7 @@ export function buildTeacherWorkspaceDemoManifest(input: {
       [2, "cancelled"],
     ] as const
   ).forEach(([offset, status], index) => {
-    const occurrenceId = deterministicUuid(`occurrence:${status}`);
+    const occurrenceId = id(`occurrence:${status}`);
     const schedule = tables.class_schedules.find(
       (row) =>
         row.class_id === ielts.id &&
@@ -455,13 +457,13 @@ export function buildTeacherWorkspaceDemoManifest(input: {
     });
     tables.lms_occurrence_assignments.push({
       occurrence_id: occurrenceId,
-      assignment_id: deterministicUuid("assignment:ielts-writing"),
+      assignment_id: id("assignment:ielts-writing"),
       relation_type: "homework",
       added_by: input.teacherId,
     });
     tables.lms_occurrence_resources.push({
       occurrence_id: occurrenceId,
-      resource_id: deterministicUuid("resource:ielts-foundation:reading"),
+      resource_id: id("resource:ielts-foundation:reading"),
       order_index: 0,
       required: true,
       added_by: input.teacherId,
@@ -470,14 +472,14 @@ export function buildTeacherWorkspaceDemoManifest(input: {
       ...[input.teacherId, ...input.learnerIds].map((userId) => ({
         occurrence_id: occurrenceId,
         user_id: userId,
-        class_membership_id: deterministicUuid(
+        class_membership_id: id(
           `${userId === input.teacherId ? "teacher" : "student"}-membership:${ielts.id}${userId === input.teacherId ? "" : `:${userId}`}`,
         ),
         enrollment_status: "enrolled",
       })),
     );
     if (index < 2) {
-      const sessionId = deterministicUuid(`attendance-session:${status}`);
+      const sessionId = id(`attendance-session:${status}`);
       tables.class_attendance_sessions.push({
         id: sessionId,
         class_id: ielts.id,
@@ -491,7 +493,7 @@ export function buildTeacherWorkspaceDemoManifest(input: {
       });
       input.learnerIds.forEach((userId, learnerIndex) =>
         tables.class_attendance_records.push({
-          id: deterministicUuid(`attendance-record:${status}:${userId}`),
+          id: id(`attendance-record:${status}:${userId}`),
           session_id: sessionId,
           user_id: userId,
           status: learnerIndex % 2 === 0 ? "present" : "late",
@@ -500,9 +502,9 @@ export function buildTeacherWorkspaceDemoManifest(input: {
       );
     }
   });
-  const announcementId = deterministicUuid("announcement:welcome");
+  const announcementId = id("announcement:welcome");
   tables.lms_outbox_events.push({
-    id: deterministicUuid("outbox:announcement:welcome"),
+    id: id("outbox:announcement:welcome"),
     club_id: input.organizationId,
     class_id: ielts.id,
     event_type: "announcement",
@@ -518,7 +520,7 @@ export function buildTeacherWorkspaceDemoManifest(input: {
   });
   for (const row of tables.club_assignments)
     tables.lms_outbox_events.push({
-      id: deterministicUuid(`outbox:assignment:${row.id}`),
+      id: id(`outbox:assignment:${row.id}`),
       club_id: input.organizationId,
       class_id: row.class_id,
       event_type: "assignment_published",
@@ -546,7 +548,7 @@ export function buildTeacherWorkspaceDemoManifest(input: {
   });
   for (const recipientId of [input.teacherId, ...input.learnerIds])
     tables.lms_notifications.push({
-      id: deterministicUuid(`notification:${recipientId}`),
+      id: id(`notification:${recipientId}`),
       recipient_id: recipientId,
       event_type: "announcement",
       dedupe_key: `${TEACHER_WORKSPACE_DEMO_TAG}:welcome:${recipientId}`,

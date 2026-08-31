@@ -20,6 +20,14 @@ test("builds a deterministic tagged fixture covering the teacher workspace loop"
   const first = buildTeacherWorkspaceDemoManifest(input);
   const second = buildTeacherWorkspaceDemoManifest(input);
   assert.deepEqual(first, second);
+  const otherOrganization = buildTeacherWorkspaceDemoManifest({
+    ...input,
+    organizationId: "00000000-0000-4000-8000-000000000099",
+  });
+  assert.notEqual(
+    first.tables.classes[0]?.id,
+    otherOrganization.tables.classes[0]?.id,
+  );
   assert.equal(first.tag, TEACHER_WORKSPACE_DEMO_TAG);
   assert.equal(first.tables.classes.length, 3);
   for (const table of [
