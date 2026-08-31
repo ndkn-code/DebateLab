@@ -35,13 +35,38 @@ const sanitized = sanitizeTelemetryItem({
 });
 
 assert.deepEqual(sanitized, {
-  payload: "[redacted]",
+  payload: { essay: "[redacted]" },
   requestBody: "[redacted]",
   context: {
     route: "/en/practice",
     debugId: "debug-safe",
     authorization: "[redacted]",
     nested: { transcript: "[redacted]", status: "failed" },
+  },
+});
+
+const eventTransportItem = sanitizeTelemetryItem({
+  type: "event",
+  payload: {
+    name: "practice_started",
+    attributes: {
+      route: "/en/practice?attempt=private",
+      email: "learner@example.com",
+      payload: "private event details",
+    },
+  },
+});
+
+assert.equal(typeof eventTransportItem.payload, "object");
+assert.deepEqual(eventTransportItem, {
+  type: "event",
+  payload: {
+    name: "practice_started",
+    attributes: {
+      route: "/en/practice",
+      email: "[redacted]",
+      payload: "[redacted]",
+    },
   },
 });
 

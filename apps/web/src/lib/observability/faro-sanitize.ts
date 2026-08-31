@@ -53,8 +53,23 @@ function isSensitiveKey(key: string) {
   ].some((sensitive) => normalized.includes(sensitive));
 }
 
-function sanitizeValue(value: unknown, key: string, depth: number): unknown {
-  if (isSensitiveKey(key)) return "[redacted]";
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function sanitizeValue(
+  value: unknown,
+  key: string,
+  depth: number,
+  preserveTransportPayload = false
+): unknown {
+  // Faro TransportItems use a top-level object-valued `payload` envelope.
+  // Preserve that schema while still sanitizing every field inside it.
+  const isTransportPayload =
+    key === "payload" && preserveTransportPayload && isRecord(value);
+  if (isSensitiveKey(key) && !isTransportPayload) {
+    return "[redacted]";
+  }
   if (depth > MAX_DEPTH) return "[truncated]";
 
   if (typeof value === "string") {
@@ -71,7 +86,12 @@ function sanitizeValue(value: unknown, key: string, depth: number): unknown {
     return Object.fromEntries(
       Object.entries(value).map(([childKey, childValue]) => [
         childKey,
-        sanitizeValue(childValue, childKey, depth + 1),
+        sanitizeValue(
+          childValue,
+          childKey,
+          depth + 1,
+          depth === 0 && childKey === "payload"
+        ),
       ])
     );
   }
