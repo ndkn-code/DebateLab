@@ -50,13 +50,13 @@ export default async function TeacherWorkspacePage({
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
-    if (!isAdminPreview || !message.includes("lms_lesson_occurrences")) {
+    if (!message.includes("lms_lesson_occurrences")) {
       throw error;
     }
     const startDate = fallbackWeekStart(filters.weekStart);
     const end = new Date(`${startDate}T00:00:00Z`);
     end.setUTCDate(end.getUTCDate() + 6);
-    console.warn("Teacher preview schedule is not available in this environment", {
+    console.warn("Teacher schedule is not available in this environment", {
       error,
     });
     data = {
