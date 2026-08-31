@@ -1,9 +1,16 @@
-import type { OrganizationRole, OrganizationStatus, OrganizationType } from "./contracts";
+import type {
+  OrganizationRole,
+  OrganizationStatus,
+  OrganizationType,
+} from "./contracts";
 import { normalizeOrganizationRole } from "./compatibility";
 
 export type OrganizationLabelContext = "singular" | "plural" | "short";
 
-const TYPE_LABELS: Record<OrganizationType, Record<OrganizationLabelContext, string>> = {
+const TYPE_LABELS: Record<
+  OrganizationType,
+  Record<OrganizationLabelContext, string>
+> = {
   club: { singular: "Club", plural: "Clubs", short: "Club" },
   school: { singular: "School", plural: "Schools", short: "School" },
 };
@@ -32,7 +39,9 @@ export function getOrganizationTypeLabel(
   return TYPE_LABELS[type][context];
 }
 
-export function getOrganizationRoleLabel(value: OrganizationRole | "coach"): string {
+export function getOrganizationRoleLabel(
+  value: OrganizationRole | "coach",
+): string {
   const role = normalizeOrganizationRole(value);
   return role ? ROLE_LABELS[role] : "";
 }
@@ -53,4 +62,3 @@ export function getOrganizationRoleLabelForLegacy(value: unknown): string {
   const role = normalizeOrganizationRole(value);
   return role ? ROLE_LABELS[role] : "";
 }
-
