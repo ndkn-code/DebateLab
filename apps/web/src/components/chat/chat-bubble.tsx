@@ -1,9 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
+import { useLocale, useTranslations } from "next-intl";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import {
+  BeautifulFollowUps,
+  BeautifulStreamingText,
+  BeautifulToolChip,
+} from "@/components/beautifului";
 import {
   BookOpen,
   Check,
@@ -50,67 +56,173 @@ interface ChatBubbleProps {
 const BLOCK_STYLES: Record<
   CoachResponseBlockType,
   {
-    label: string;
     icon: typeof Sparkles;
     className: string;
     iconClassName: string;
   }
 > = {
   opening_formula: {
-    label: "Try this",
     icon: Target,
     className: "border-l-primary/45",
     iconClassName: "text-primary",
   },
   template: {
-    label: "Try this",
     icon: PenLine,
     className: "border-l-primary/35",
     iconClassName: "text-primary-dim",
   },
   diagnosis: {
-    label: "Note",
     icon: Radar,
     className: "border-l-primary/35",
     iconClassName: "text-primary",
   },
   coach_tip: {
-    label: "Tip",
     icon: Lightbulb,
-    className: "border-l-[#D8A537]/45",
-    iconClassName: "text-on-surface-variant",
+    className: "border-l-warning/45",
+    iconClassName: "text-warning",
   },
   common_mistake: {
-    label: "Common mistake",
     icon: CircleAlert,
     className: "border-l-error/35",
     iconClassName: "text-error",
   },
   example: {
-    label: "Example",
     icon: BookOpen,
     className: "border-l-primary/35",
     iconClassName: "text-primary",
   },
   drill: {
-    label: "Drill",
     icon: Dumbbell,
     className: "border-l-secondary/35",
     iconClassName: "text-secondary-dim",
   },
   next_steps: {
-    label: "Next move",
     icon: ListChecks,
     className: "border-l-secondary/35",
     iconClassName: "text-secondary-dim",
   },
   clarifying_question: {
-    label: "Question",
     icon: CircleHelp,
     className: "border-l-primary/35",
     iconClassName: "text-primary",
   },
 };
+
+const CHAT_BUBBLE_COPY = {
+  en: {
+    blockLabels: {
+      opening_formula: "Try this",
+      template: "Try this",
+      diagnosis: "Note",
+      coach_tip: "Tip",
+      common_mistake: "Common mistake",
+      example: "Example",
+      drill: "Drill",
+      next_steps: "Next move",
+      clarifying_question: "Question",
+    },
+    openingStepTitles: ["Motion", "Stance", "Thesis", "Roadmap"],
+    step: "Step",
+    openingBlueprint: "Opening blueprint",
+    part: "part",
+    parts: "parts",
+    tryTemplate: "Try this template",
+    useTemplate: "Use template",
+    coachTip: "Coach tip",
+    watchOut: "Watch out",
+    exampleOpening: "Example opening",
+    addMotionDetails: "Add motion details",
+    takeaway: "Takeaway",
+    replayAnimation: "Replay animation",
+    buildingVisual: "Building visual…",
+    showVisual: "Show visual explainer",
+    copyResponse: "Copy response",
+    helpful: "Helpful",
+    notHelpful: "Not helpful",
+    responseStopped: "Response stopped early.",
+    continue: "Continue",
+    continuePrompt: "Please continue your last answer.",
+    visualPreparing: "Building visual explainer",
+    visualPreparingDetail: "The diagram will appear here automatically.",
+    openingTemplateDraft:
+      "Today, we are debating whether [motion]. Our side believes [stance]. We support this because [reason 1] and [reason 2]. By the end of this debate, we will show that [main claim].",
+    motionDetailsDraft: "Motion:\nSide:",
+  },
+  vi: {
+    blockLabels: {
+      opening_formula: "Thử cách này",
+      template: "Thử cách này",
+      diagnosis: "Lưu ý",
+      coach_tip: "Mẹo",
+      common_mistake: "Lỗi thường gặp",
+      example: "Ví dụ",
+      drill: "Bài luyện",
+      next_steps: "Bước tiếp theo",
+      clarifying_question: "Câu hỏi",
+    },
+    openingStepTitles: ["Kiến nghị", "Lập trường", "Luận đề", "Lộ trình"],
+    step: "Bước",
+    openingBlueprint: "Khung mở bài",
+    part: "phần",
+    parts: "phần",
+    tryTemplate: "Thử mẫu này",
+    useTemplate: "Dùng mẫu",
+    coachTip: "Mẹo từ HLV",
+    watchOut: "Cần tránh",
+    exampleOpening: "Ví dụ mở bài",
+    addMotionDetails: "Thêm kiến nghị và phe",
+    takeaway: "Điểm cần nhớ",
+    replayAnimation: "Xem lại minh họa",
+    buildingVisual: "Đang tạo minh họa…",
+    showVisual: "Xem minh họa",
+    copyResponse: "Sao chép phản hồi",
+    helpful: "Hữu ích",
+    notHelpful: "Không hữu ích",
+    responseStopped: "Phản hồi đã dừng sớm.",
+    continue: "Tiếp tục",
+    continuePrompt: "Vui lòng tiếp tục câu trả lời vừa rồi.",
+    visualPreparing: "Đang tạo sơ đồ giải thích",
+    visualPreparingDetail: "Sơ đồ sẽ tự động xuất hiện tại đây.",
+    openingTemplateDraft:
+      "Hôm nay, chúng ta tranh biện về [kiến nghị]. Phe của chúng ta cho rằng [lập trường]. Chúng ta bảo vệ lập trường này vì [lý do 1] và [lý do 2]. Cuối bài, chúng ta sẽ chứng minh [luận điểm chính].",
+    motionDetailsDraft: "Kiến nghị:\nPhe:",
+  },
+} satisfies Record<
+  "en" | "vi",
+  {
+    blockLabels: Record<CoachResponseBlockType, string>;
+    openingStepTitles: string[];
+    step: string;
+    openingBlueprint: string;
+    part: string;
+    parts: string;
+    tryTemplate: string;
+    useTemplate: string;
+    coachTip: string;
+    watchOut: string;
+    exampleOpening: string;
+    addMotionDetails: string;
+    takeaway: string;
+    replayAnimation: string;
+    buildingVisual: string;
+    showVisual: string;
+    copyResponse: string;
+    helpful: string;
+    notHelpful: string;
+    responseStopped: string;
+    continue: string;
+    continuePrompt: string;
+    visualPreparing: string;
+    visualPreparingDetail: string;
+    openingTemplateDraft: string;
+    motionDetailsDraft: string;
+  }
+>;
+
+function useChatBubbleCopy() {
+  const locale = useLocale();
+  return locale.startsWith("vi") ? CHAT_BUBBLE_COPY.vi : CHAT_BUBBLE_COPY.en;
+}
 
 function isCoachMessageMetadata(
   metadata: ChatMessageLocal["metadata"],
@@ -336,10 +448,6 @@ function OpeningBlueprintIcon({ className }: { className?: string }) {
 }
 
 const OPENING_STEP_ICONS = [Target, User, Lightbulb, ListChecks];
-const OPENING_STEP_TITLES = ["Motion", "Stance", "Thesis", "Roadmap"];
-const OPENING_TEMPLATE_DRAFT =
-  "Today, we are debating whether [motion]. Our side believes [stance]. We support this because [reason 1] and [reason 2]. By the end of this debate, we will show that [main claim].";
-const MOTION_DETAILS_DRAFT = "Motion:\nSide:";
 const TEMPLATE_PLACEHOLDER_PATTERN =
   /\[(motion|stance|side|reason|claim|argument|impact)[^\]]*\]/i;
 const MISSING_CONTEXT_PATTERN =
@@ -381,7 +489,12 @@ function sentenceCase(value: string) {
   return `${value.charAt(0).toUpperCase()}${value.slice(1)}`;
 }
 
-function parseOpeningStep(item: string, index: number) {
+function parseOpeningStep(
+  item: string,
+  index: number,
+  titles: string[],
+  stepLabel: string,
+) {
   const cleaned = plainTextFromMarkdown(item);
   const separatorIndex = cleaned.indexOf(":");
 
@@ -393,7 +506,7 @@ function parseOpeningStep(item: string, index: number) {
   }
 
   return {
-    title: OPENING_STEP_TITLES[index] ?? `Step ${index + 1}`,
+    title: titles[index] ?? `${stepLabel} ${index + 1}`,
     body: sentenceCase(cleaned),
   };
 }
@@ -415,9 +528,12 @@ function CoachOpeningBlueprint({
   onDraftMessage?: (text: string) => void;
   actionsDisabled?: boolean;
 }) {
+  const copy = useChatBubbleCopy();
   const steps =
     formulaBlock.items && formulaBlock.items.length > 0
-      ? formulaBlock.items.map(parseOpeningStep)
+      ? formulaBlock.items.map((item, index) =>
+          parseOpeningStep(item, index, copy.openingStepTitles, copy.step),
+        )
       : [];
 
   if (steps.length < 3 || steps.length > 4) return null;
@@ -431,11 +547,13 @@ function CoachOpeningBlueprint({
               <OpeningBlueprintIcon className="h-[19px] w-[19px]" />
             </div>
             <div className="min-w-0">
-              <div className="type-eyebrow text-primary">Opening Blueprint</div>
+              <div className="type-eyebrow text-primary">
+                {copy.openingBlueprint}
+              </div>
             </div>
           </div>
           <div className="rounded-md border border-primary/20 bg-surface px-2 py-1 type-caption font-semibold text-primary">
-            {steps.length} {steps.length === 1 ? "part" : "parts"}
+            {steps.length} {steps.length === 1 ? copy.part : copy.parts}
           </div>
         </div>
       </div>
@@ -450,17 +568,17 @@ function CoachOpeningBlueprint({
                 key={`${formulaBlock.id}-step-${index}`}
                 className="flex min-h-[66px] gap-3 rounded-xl border border-outline-variant/12 bg-surface-container p-3"
               >
-                <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary shadow-token-primary">
+                <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary type-caption font-bold text-on-primary shadow-token-primary">
                   {index + 1}
                 </span>
                 <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <StepIcon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <div className="text-sm font-semibold leading-5 text-on-surface">
+                  <div className="type-label font-semibold text-on-surface">
                     {step.title}
                   </div>
-                  <p className="mt-1 text-sm leading-5 text-on-surface-variant">
+                  <p className="mt-1 type-body-sm text-on-surface-variant">
                     {step.body}
                   </p>
                 </div>
@@ -478,22 +596,22 @@ function CoachOpeningBlueprint({
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="type-eyebrow text-primary">
-                    Try This Template
+                    {copy.tryTemplate}
                   </div>
                   {templateBlock.body && (
-                    <p className="mt-2 text-sm leading-6 text-on-surface-variant">
+                    <p className="mt-2 type-body-sm text-on-surface-variant">
                       {plainTextFromMarkdown(templateBlock.body)}
                     </p>
                   )}
                   {onDraftMessage && (
                     <button
                       type="button"
-                      onClick={() => onDraftMessage(OPENING_TEMPLATE_DRAFT)}
+                      onClick={() => onDraftMessage(copy.openingTemplateDraft)}
                       disabled={actionsDisabled}
-                      className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-3 py-1.5 text-xs font-semibold text-on-primary shadow-token-primary transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-50"
+                      className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-3 py-1.5 type-caption font-semibold text-on-primary shadow-token-primary transition-colors hover:bg-primary-dim disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       <Sparkles className="h-3.5 w-3.5" />
-                      Use template
+                      {copy.useTemplate}
                     </button>
                   )}
                 </div>
@@ -506,13 +624,13 @@ function CoachOpeningBlueprint({
               <div className="rounded-xl border border-warning/32 bg-surface-container p-3">
                 <div className="flex items-center gap-2 type-eyebrow text-warning">
                   <Lightbulb className="h-4 w-4" />
-                  Coach Tip
+                  {copy.coachTip}
                 </div>
-                <h4 className="mt-2 text-sm font-semibold leading-5 text-on-surface">
+                <h4 className="mt-2 type-label font-semibold text-on-surface">
                   {tipBlock.title}
                 </h4>
                 {tipBlock.body && (
-                  <p className="mt-2 text-sm leading-5 text-on-surface-variant">
+                  <p className="mt-2 type-body-sm text-on-surface-variant">
                     {plainTextFromMarkdown(tipBlock.body)}
                   </p>
                 )}
@@ -523,13 +641,13 @@ function CoachOpeningBlueprint({
               <div className="rounded-xl border border-error/24 bg-surface-container p-3">
                 <div className="flex items-center gap-2 type-eyebrow text-error">
                   <CircleAlert className="h-4 w-4" />
-                  Watch Out
+                  {copy.watchOut}
                 </div>
-                <h4 className="mt-2 text-sm font-semibold leading-5 text-on-surface">
+                <h4 className="mt-2 type-label font-semibold text-on-surface">
                   {mistakeBlock.title}
                 </h4>
                 {mistakeBlock.body && (
-                  <p className="mt-2 text-sm leading-5 text-on-surface-variant">
+                  <p className="mt-2 type-body-sm text-on-surface-variant">
                     {plainTextFromMarkdown(mistakeBlock.body)}
                   </p>
                 )}
@@ -546,9 +664,11 @@ function CoachOpeningBlueprint({
               <BookOpen className="h-[18px] w-[18px]" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="type-eyebrow text-primary">Example Opening</div>
+              <div className="type-eyebrow text-primary">
+                {copy.exampleOpening}
+              </div>
               {exampleBlock.body && (
-                <p className="mt-1 text-sm leading-5 text-on-surface-variant">
+                <p className="mt-1 type-body-sm text-on-surface-variant">
                   {plainTextFromMarkdown(exampleBlock.body)}
                 </p>
               )}
@@ -561,6 +681,7 @@ function CoachOpeningBlueprint({
 }
 
 function CoachBlockCard({ block }: { block: CoachResponseBlock }) {
+  const copy = useChatBubbleCopy();
   const style = BLOCK_STYLES[block.type];
   const Icon = style.icon;
 
@@ -577,10 +698,10 @@ function CoachBlockCard({ block }: { block: CoachResponseBlock }) {
         />
         <div className="min-w-0 flex-1">
           <div className="type-eyebrow text-on-surface-variant">
-            {style.label}
+            {copy.blockLabels[block.type]}
           </div>
           {block.title ? (
-            <h3 className="mt-0.5 text-sm font-semibold leading-5 text-on-surface">
+            <h3 className="mt-0.5 type-label font-semibold text-on-surface">
               {block.title}
             </h3>
           ) : null}
@@ -590,7 +711,7 @@ function CoachBlockCard({ block }: { block: CoachResponseBlock }) {
             </MiniMarkdown>
           )}
           {block.items && block.items.length > 0 && (
-            <ul className="mt-1.5 space-y-1 text-sm leading-6 text-on-surface-variant">
+            <ul className="mt-1.5 space-y-1 type-body-sm text-on-surface-variant">
               {block.items.map((item, itemIndex) => (
                 <li
                   key={`${block.id}-item-${itemIndex}`}
@@ -617,10 +738,14 @@ function CoachFollowUpQuestion({
   onDraftMessage?: (text: string) => void;
   actionsDisabled?: boolean;
 }) {
+  const copy = useChatBubbleCopy();
   const questionText = `${block.title} ${block.body ?? ""}`.toLowerCase();
   const canDraftMotionDetails =
     Boolean(onDraftMessage) &&
-    (questionText.includes("motion") || questionText.includes("side"));
+    (questionText.includes("motion") ||
+      questionText.includes("side") ||
+      questionText.includes("kiến nghị") ||
+      questionText.includes("phe"));
 
   return (
     <div className="mt-4 max-w-[720px] type-body text-on-surface-variant">
@@ -629,12 +754,12 @@ function CoachFollowUpQuestion({
       {canDraftMotionDetails && onDraftMessage && (
         <button
           type="button"
-          onClick={() => onDraftMessage(MOTION_DETAILS_DRAFT)}
+          onClick={() => onDraftMessage(copy.motionDetailsDraft)}
           disabled={actionsDisabled}
           className="mt-2 inline-flex h-8 items-center gap-2 rounded-[10px] border border-primary/20 bg-surface px-3 type-caption font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Sparkles className="h-3.5 w-3.5" />
-          Add motion details
+          {copy.addMotionDetails}
         </button>
       )}
     </div>
@@ -673,6 +798,8 @@ function CoachVisualExplainerCard({
 }: {
   visual: CoachVisualExplainerSpec;
 }) {
+  const copy = useChatBubbleCopy();
+  const shouldReduceMotion = useReducedMotion();
   const [replayKey, setReplayKey] = useState(0);
   const explanation = buildVisualExplanation(visual);
   const connectorByStepId = new Map(
@@ -697,9 +824,12 @@ function CoachVisualExplainerCard({
         {titleIsFormula && !visual.subtitle ? null : (
           <motion.div
             key={`${replayKey}-title`}
-            initial={{ opacity: 0, y: 6 }}
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.28, ease: "easeOut" }}
+            transition={{
+              duration: shouldReduceMotion ? 0 : 0.28,
+              ease: "easeOut",
+            }}
             className="text-center"
           >
             {!titleIsFormula ? (
@@ -734,18 +864,22 @@ function CoachVisualExplainerCard({
             return (
               <div key={`${replayKey}-formula-${step.id}`} className="contents">
                 <motion.span
-                  initial={{ opacity: 0, y: 8 }}
+                  initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay, duration: 0.32, ease: "easeOut" }}
-                  className="relative inline-flex px-1 pb-2 text-2xl font-semibold leading-tight text-on-surface sm:text-3xl"
+                  transition={{
+                    delay: shouldReduceMotion ? 0 : delay,
+                    duration: shouldReduceMotion ? 0 : 0.32,
+                    ease: "easeOut",
+                  }}
+                  className="relative inline-flex px-1 pb-2 type-heading-lg text-on-surface"
                 >
                   {step.label}
                   <motion.span
-                    initial={{ scaleX: 0 }}
+                    initial={shouldReduceMotion ? false : { scaleX: 0 }}
                     animate={{ scaleX: 1 }}
                     transition={{
-                      delay: delay + 0.18,
-                      duration: 0.38,
+                      delay: shouldReduceMotion ? 0 : delay + 0.18,
+                      duration: shouldReduceMotion ? 0 : 0.38,
                       ease: "easeOut",
                     }}
                     className={cn(
@@ -756,14 +890,14 @@ function CoachVisualExplainerCard({
                 </motion.span>
                 {index < visual.steps.length - 1 ? (
                   <motion.span
-                    initial={{ opacity: 0, y: 4 }}
+                    initial={shouldReduceMotion ? false : { opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{
-                      delay: delay + 0.12,
-                      duration: 0.22,
+                      delay: shouldReduceMotion ? 0 : delay + 0.12,
+                      duration: shouldReduceMotion ? 0 : 0.22,
                       ease: "easeOut",
                     }}
-                    className="pb-2 text-xl font-medium text-on-surface-variant sm:text-2xl"
+                    className="pb-2 type-heading-md text-on-surface-variant"
                     aria-label={connectorLabel ?? symbol}
                   >
                     {symbol}
@@ -777,11 +911,11 @@ function CoachVisualExplainerCard({
         {explanation ? (
           <motion.p
             key={`${replayKey}-body`}
-            initial={{ opacity: 0, y: 8 }}
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
-              delay: 0.34 + visual.steps.length * 0.18,
-              duration: 0.35,
+              delay: shouldReduceMotion ? 0 : 0.34 + visual.steps.length * 0.18,
+              duration: shouldReduceMotion ? 0 : 0.35,
               ease: "easeOut",
             }}
             className="mx-auto mt-8 max-w-[620px] type-body text-on-surface-variant"
@@ -793,28 +927,30 @@ function CoachVisualExplainerCard({
         {visual.takeaway ? (
           <motion.div
             key={`${replayKey}-takeaway`}
-            initial={{ opacity: 0, y: 8 }}
+            initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{
-              delay: 0.48 + visual.steps.length * 0.18,
-              duration: 0.32,
+              delay: shouldReduceMotion ? 0 : 0.48 + visual.steps.length * 0.18,
+              duration: shouldReduceMotion ? 0 : 0.32,
               ease: "easeOut",
             }}
             className="mt-6 border-t border-outline-variant pt-4 type-body text-on-surface"
           >
-            <span className="font-semibold">Takeaway: </span>
+            <span className="font-semibold">{copy.takeaway}: </span>
             <span className="text-on-surface-variant">{visual.takeaway}</span>
           </motion.div>
         ) : null}
 
-        <button
-          type="button"
-          onClick={() => setReplayKey((key) => key + 1)}
-          className="mt-6 inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 type-label font-semibold text-on-surface transition-colors hover:border-primary/30 hover:bg-primary/5"
-        >
-          <RotateCcw className="h-4 w-4" />
-          Replay animation
-        </button>
+        {!shouldReduceMotion ? (
+          <button
+            type="button"
+            onClick={() => setReplayKey((key) => key + 1)}
+            className="mt-6 inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 type-label font-semibold text-on-surface transition-colors hover:border-primary/30 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
+            {copy.replayAnimation}
+          </button>
+        ) : null}
       </div>
     </section>
   );
@@ -829,20 +965,21 @@ function VisualizeButton({
   disabled?: boolean;
   loading?: boolean;
 }) {
+  const copy = useChatBubbleCopy();
   if (!onClick) return null;
   return (
     <button
       type="button"
       onClick={onClick}
       disabled={disabled || loading}
-      className="mt-4 inline-flex h-9 items-center gap-2 rounded-full border border-primary/18 bg-primary/5 px-3 text-sm font-semibold text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-55"
+      className="mt-4 inline-flex h-9 items-center gap-2 rounded-full border border-primary/18 bg-primary/5 px-3 type-label font-semibold text-primary transition-colors hover:bg-primary/10 disabled:cursor-not-allowed disabled:opacity-55 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
     >
       {loading ? (
         <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary/25 border-t-primary" />
       ) : (
         <Play className="h-3.5 w-3.5" />
       )}
-      {loading ? "Building visual..." : "Show visual explainer"}
+      {loading ? copy.buildingVisual : copy.showVisual}
     </button>
   );
 }
@@ -856,30 +993,24 @@ function CoachSuggestedActions({
   onSendMessage?: (text: string) => void;
   disabled?: boolean;
 }) {
+  const t = useTranslations("dashboard.chat.coach");
   if (!onSendMessage || actions.length === 0) return null;
   return (
-    <div className="mt-4 flex flex-wrap gap-2">
-      {actions.slice(0, 3).map((action, index) => (
-        <button
-          key={`${action.label}-${index}`}
-          type="button"
-          onClick={() => onSendMessage(action.prompt)}
-          disabled={disabled}
-          className={cn(
-            "rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
-            action.variant === "primary"
-              ? "border-primary bg-primary text-on-primary shadow-token-primary hover:bg-primary-dim"
-              : "border-primary/20 bg-surface text-primary hover:bg-primary/5",
-          )}
-        >
-          {action.label}
-        </button>
-      ))}
-    </div>
+    <BeautifulFollowUps
+      label={t("recommended_next_steps")}
+      items={actions.slice(0, 3).map((action, index) => ({
+        id: `${action.label}-${index}`,
+        label: action.label,
+        value: action.prompt,
+      }))}
+      onSelect={(action) => onSendMessage(action.value)}
+      disabled={disabled}
+    />
   );
 }
 
 function AssistantActions({ content }: { content: string }) {
+  const copy = useChatBubbleCopy();
   const [copied, setCopied] = useState(false);
   const [vote, setVote] = useState<"up" | "down" | null>(null);
 
@@ -904,8 +1035,8 @@ function AssistantActions({ content }: { content: string }) {
         type="button"
         onClick={copyMessage}
         className={iconButtonClass}
-        title="Copy response"
-        aria-label="Copy response"
+        title={copy.copyResponse}
+        aria-label={copy.copyResponse}
       >
         {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
       </button>
@@ -916,8 +1047,8 @@ function AssistantActions({ content }: { content: string }) {
           iconButtonClass,
           vote === "up" && "bg-primary/10 text-primary",
         )}
-        title="Helpful"
-        aria-label="Helpful"
+        title={copy.helpful}
+        aria-label={copy.helpful}
       >
         <ThumbsUp className="h-4 w-4" />
       </button>
@@ -928,8 +1059,8 @@ function AssistantActions({ content }: { content: string }) {
           iconButtonClass,
           vote === "down" && "bg-error/10 text-error",
         )}
-        title="Not helpful"
-        aria-label="Not helpful"
+        title={copy.notHelpful}
+        aria-label={copy.notHelpful}
       >
         <ThumbsDown className="h-4 w-4" />
       </button>
@@ -947,6 +1078,9 @@ function AssistantMessage({
   isVisualizing = false,
   onRequestVisualize,
 }: ChatBubbleProps) {
+  const t = useTranslations("dashboard.chat");
+  const copy = useChatBubbleCopy();
+  const shouldReduceMotion = useReducedMotion();
   const metadata = renderStructuredMetadata
     ? getRenderableMetadata(message.metadata, message.content)
     : null;
@@ -993,38 +1127,45 @@ function AssistantMessage({
       : null;
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 6 }}
+      layout={!shouldReduceMotion}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.18, ease: "easeOut" }}
+      transition={{
+        duration: shouldReduceMotion ? 0 : 0.18,
+        ease: "easeOut",
+      }}
       className="group flex gap-3"
     >
       <div className="mt-3 h-2 w-2 shrink-0 rounded-full bg-primary" />
 
       <div className="min-w-0 flex-1">
         <div className="mb-1.5 flex flex-wrap items-center gap-2">
-          <div className="text-sm font-semibold text-on-surface">Coach</div>
+          <div className="type-label font-semibold text-on-surface">
+            {t("header_title")}
+          </div>
           {isStreaming && (
-            <span className="text-xs font-medium text-on-surface-variant">
-              writing...
+            <span className="type-caption font-medium text-on-surface-variant">
+              {t("coach.pending")}
             </span>
           )}
         </div>
 
         {message.content ? (
           <motion.div
-            layout
-            transition={{ duration: 0.16, ease: "easeOut" }}
+            layout={!shouldReduceMotion}
+            transition={{
+              duration: shouldReduceMotion ? 0 : 0.16,
+              ease: "easeOut",
+            }}
             className="max-w-[760px] px-0 py-1 type-body"
           >
-            <div className="prose max-w-none prose-p:my-3 prose-p:leading-8 prose-ul:my-3 prose-ol:my-3 prose-li:my-1.5 prose-li:leading-7 prose-strong:font-semibold prose-strong:text-on-surface prose-headings:text-on-surface prose-headings:mb-2 prose-headings:mt-5 prose-p:text-on-surface prose-li:text-on-surface prose-a:text-primary prose-code:rounded prose-code:bg-surface-container prose-code:px-1 prose-code:py-0.5 prose-code:text-primary prose-pre:rounded-xl prose-pre:bg-surface-container">
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                {message.content}
-              </ReactMarkdown>
-              {isStreaming && (
-                <span className="ml-0.5 inline-block h-4 w-0.5 animate-pulse bg-primary align-text-bottom" />
-              )}
-            </div>
+            <BeautifulStreamingText streaming={isStreaming}>
+              <div className="prose max-w-none prose-p:my-3 prose-p:leading-8 prose-ul:my-3 prose-ol:my-3 prose-li:my-1.5 prose-li:leading-7 prose-strong:font-semibold prose-strong:text-on-surface prose-headings:text-on-surface prose-headings:mb-2 prose-headings:mt-5 prose-p:text-on-surface prose-li:text-on-surface prose-a:text-primary prose-code:rounded prose-code:bg-surface-container prose-code:px-1 prose-code:py-0.5 prose-code:text-primary prose-pre:rounded-xl prose-pre:bg-surface-container">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {message.content}
+                </ReactMarkdown>
+              </div>
+            </BeautifulStreamingText>
           </motion.div>
         ) : null}
 
@@ -1091,18 +1232,16 @@ function AssistantMessage({
         ) : null}
 
         {message.isTruncated && !isStreaming && (
-          <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-on-surface-variant">
-            <span>Response stopped early.</span>
+          <div className="mt-2 flex flex-wrap items-center gap-2 type-caption text-on-surface-variant">
+            <span>{copy.responseStopped}</span>
             {onSendMessage && (
               <button
                 type="button"
-                onClick={() =>
-                  onSendMessage("Please continue your last answer.")
-                }
+                onClick={() => onSendMessage(copy.continuePrompt)}
                 disabled={actionsDisabled}
                 className="rounded-md border border-primary/20 bg-surface px-2.5 py-1 font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
               >
-                Continue
+                {copy.continue}
               </button>
             )}
           </div>
@@ -1117,37 +1256,41 @@ function AssistantMessage({
 }
 
 function CoachVisualPreparingCard() {
+  const [expanded, setExpanded] = useState(false);
+  const copy = useChatBubbleCopy();
+  const shouldReduceMotion = useReducedMotion();
+
   return (
     <motion.section
-      initial={{ opacity: 0, y: 8 }}
+      initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.24, ease: "easeOut" }}
+      transition={{
+        duration: shouldReduceMotion ? 0 : 0.24,
+        ease: "easeOut",
+      }}
       className="mt-5 max-w-[820px] overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none"
       aria-live="polite"
     >
-      <div className="flex items-center gap-3 border-b border-outline-variant px-5 py-4">
-        <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/8 text-primary">
-          <Sparkles className="h-4 w-4" />
-        </span>
-        <div>
-          <div className="text-sm font-semibold text-on-surface">
-            Preparing visual explainer
-          </div>
-          <div className="text-xs text-on-surface-variant">
-            The diagram will appear here automatically.
-          </div>
-        </div>
+      <div className="border-b border-outline-variant px-5 py-4">
+        <BeautifulToolChip
+          label={copy.visualPreparing}
+          status="running"
+          icon={<Sparkles className="size-3.5" aria-hidden="true" />}
+          detail={copy.visualPreparingDetail}
+          expanded={expanded}
+          onExpandedChange={setExpanded}
+        />
       </div>
       <div className="space-y-5 px-5 py-6">
-        <div className="mx-auto h-5 w-3/5 animate-pulse rounded-full bg-surface-container" />
+        <div className="mx-auto h-5 w-3/5 animate-pulse rounded-full bg-surface-container motion-reduce:animate-none" />
         <div className="flex items-center justify-center gap-4">
-          <div className="h-16 w-24 animate-pulse rounded-[18px] bg-surface-container sm:w-32" />
+          <div className="h-16 w-24 animate-pulse rounded-[18px] bg-surface-container motion-reduce:animate-none sm:w-32" />
           <div className="h-px w-6 bg-surface-container-high sm:w-8" />
-          <div className="h-16 w-24 animate-pulse rounded-[18px] bg-surface-container sm:w-32" />
+          <div className="h-16 w-24 animate-pulse rounded-[18px] bg-surface-container motion-reduce:animate-none sm:w-32" />
           <div className="hidden h-px w-8 bg-surface-container-high sm:block" />
-          <div className="hidden h-16 w-32 animate-pulse rounded-[18px] bg-surface-container sm:block" />
+          <div className="hidden h-16 w-32 animate-pulse rounded-[18px] bg-surface-container motion-reduce:animate-none sm:block" />
         </div>
-        <div className="mx-auto h-3 w-4/5 animate-pulse rounded-full bg-surface-container" />
+        <div className="mx-auto h-3 w-4/5 animate-pulse rounded-full bg-surface-container motion-reduce:animate-none" />
       </div>
     </motion.section>
   );
@@ -1159,7 +1302,7 @@ function UserMessage({ message }: { message: ChatMessageLocal }) {
       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary shadow-token-primary">
         <User className="h-4 w-4" />
       </div>
-      <div className="max-w-[min(76%,680px)] rounded-xl rounded-tr-md bg-primary px-4 py-2.5 text-sm leading-6 text-on-primary shadow-none">
+      <div className="max-w-[min(76%,680px)] rounded-xl rounded-tr-md bg-primary px-4 py-2.5 type-body text-on-primary shadow-none">
         <p className="whitespace-pre-wrap">{message.content}</p>
       </div>
     </div>

@@ -1362,6 +1362,7 @@
         }
       },
       "input_placeholder": "Ask your AI Coach anything...",
+      "send": "Send",
       "google_ai_consent": "Use Google Gemini 3.5 Flash Lite for faster AI Coach replies? Your chat message and relevant coaching context will be sent to Google to generate the response. Select Cancel to keep using the non-Google fallback.",
       "new_conversation": "New conversation",
       "conversations": "Conversations",

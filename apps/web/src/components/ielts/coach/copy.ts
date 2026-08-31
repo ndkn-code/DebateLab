@@ -2,6 +2,7 @@ export type CoachLocale = "en" | "vi";
 
 export const IELTS_COACH_COPY = {
   en: {
+    coachName: "IELTS AI Coach",
     eyebrow: "IELTS · AI practice support",
     title: "Ask about your next IELTS move",
     intro:
@@ -22,10 +23,27 @@ export const IELTS_COACH_COPY = {
     sourcesEmpty: "Sources appear here when a response uses them.",
     sourceAuthority: "Authority",
     sourceVersion: "Version",
+    diagnosisTitle: "Evidence-based diagnosis",
+    scoreSummary: "Band snapshot",
+    evidenceUsedTitle: "What the coach used",
+    currentBand: "Current",
+    targetBand: "Target",
+    scoreAuthority: "Score status",
+    notAvailable: "Not enough evidence",
     recommendationTitle: "Recommended next step",
     recommendation: "Apply the advice in one focused IELTS practice task.",
     recommendationSource: "AI coaching suggestion",
+    whyItHelps: "Why this helps",
+    actionUnavailable:
+      "This recommendation cannot be opened safely. Ask the coach for another task.",
+    practiceEstimateDisclaimer:
+      "Practice guidance only. This is not an official IELTS, Cambridge, British Council, or IDP result.",
     confidence: "Confidence",
+    confidenceLevels: {
+      low: "Low",
+      medium: "Medium",
+      high: "High",
+    },
     authority: "Authority",
     provisional: "Provisional",
     startPractice: "Choose a practice task",
@@ -49,6 +67,7 @@ export const IELTS_COACH_COPY = {
     ],
   },
   vi: {
+    coachName: "Trợ lý AI IELTS",
     eyebrow: "IELTS · Hỗ trợ luyện tập bằng AI",
     title: "Hỏi về bước IELTS tiếp theo của bạn",
     intro: "Nhận giải thích ngắn gọn rồi chuyển thẳng sang bài luyện phù hợp.",
@@ -68,10 +87,27 @@ export const IELTS_COACH_COPY = {
     sourcesEmpty: "Nguồn sẽ xuất hiện ở đây khi câu trả lời sử dụng chúng.",
     sourceAuthority: "Mức độ tin cậy",
     sourceVersion: "Phiên bản",
+    diagnosisTitle: "Chẩn đoán dựa trên bằng chứng",
+    scoreSummary: "Tóm tắt band",
+    evidenceUsedTitle: "Dữ liệu trợ lý đã sử dụng",
+    currentBand: "Hiện tại",
+    targetBand: "Mục tiêu",
+    scoreAuthority: "Trạng thái điểm",
+    notAvailable: "Chưa đủ bằng chứng",
     recommendationTitle: "Bước tiếp theo được đề xuất",
     recommendation: "Áp dụng lời khuyên trong một bài luyện IELTS tập trung.",
     recommendationSource: "Đề xuất huấn luyện bằng AI",
+    whyItHelps: "Vì sao bài này hữu ích",
+    actionUnavailable:
+      "Không thể mở đề xuất này một cách an toàn. Hãy yêu cầu trợ lý chọn bài khác.",
+    practiceEstimateDisclaimer:
+      "Chỉ phục vụ luyện tập. Đây không phải kết quả chính thức của IELTS, Cambridge, British Council hoặc IDP.",
     confidence: "Độ tin cậy",
+    confidenceLevels: {
+      low: "Thấp",
+      medium: "Trung bình",
+      high: "Cao",
+    },
     authority: "Nguồn đề xuất",
     provisional: "Tạm thời",
     startPractice: "Chọn bài luyện",

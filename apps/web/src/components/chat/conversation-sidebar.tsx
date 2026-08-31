@@ -1,9 +1,19 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { useTranslations } from "next-intl";
-import { Plus, Trash2, ChevronDown } from "@/components/ui/icons";
+import { useLocale, useTranslations } from "next-intl";
+import {
+  ChevronDown,
+  MessageSquareText,
+  Plus,
+  Trash2,
+} from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import {
+  BeautifulSidebarNav,
+  BeautifulSidebarRow,
+  BeautifulSidebarSearch,
+} from "@/components/beautifului";
 import {
   Sheet,
   SheetContent,
@@ -30,10 +40,19 @@ function SidebarContent({
   onSelect,
   onNewChat,
   onDelete,
-}: Omit<ConversationSidebarProps, "open" | "onOpenChange">) {
+  collapsed = false,
+  onCollapsedChange,
+  mobile = false,
+}: Omit<ConversationSidebarProps, "open" | "onOpenChange"> & {
+  collapsed?: boolean;
+  onCollapsedChange?: (collapsed: boolean) => void;
+  mobile?: boolean;
+}) {
   const [isPending, startTransition] = useTransition();
   const [showRepeated, setShowRepeated] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const t = useTranslations("dashboard.chat");
+  const locale = useLocale();
   const repeatedConversations = useMemo(() => {
     const titleCounts = new Map<string, number>();
     for (const conversation of conversations) {
@@ -50,16 +69,21 @@ function SidebarContent({
     () => new Set(repeatedConversations.map((conversation) => conversation.id)),
     [repeatedConversations],
   );
-  const visibleConversations = useMemo(
-    () =>
-      showRepeated
-        ? conversations
-        : conversations.filter(
-            (conversation) =>
-              !repeatedIds.has(conversation.id) || conversation.id === activeId,
-          ),
-    [activeId, conversations, repeatedIds, showRepeated],
-  );
+  const visibleConversations = useMemo(() => {
+    const base = showRepeated
+      ? conversations
+      : conversations.filter(
+          (conversation) =>
+            !repeatedIds.has(conversation.id) || conversation.id === activeId,
+        );
+    const query = searchQuery.trim().toLocaleLowerCase(locale);
+    if (!query) return base;
+    return base.filter((conversation) =>
+      [conversation.title, conversation.preview]
+        .filter(Boolean)
+        .some((value) => value?.toLocaleLowerCase(locale).includes(query)),
+    );
+  }, [activeId, conversations, locale, repeatedIds, searchQuery, showRepeated]);
 
   const handleDelete = (event: React.MouseEvent, id: string) => {
     event.stopPropagation();
@@ -69,107 +93,143 @@ function SidebarContent({
     });
   };
 
+  const collapseLabel = locale.startsWith("vi")
+    ? "Thu gọn thanh hội thoại"
+    : "Collapse conversation sidebar";
+  const expandLabel = locale.startsWith("vi")
+    ? "Mở rộng thanh hội thoại"
+    : "Expand conversation sidebar";
+
   return (
-    <div className="flex h-full flex-col bg-surface">
-      <div className="border-b border-outline-variant/60 p-3">
+    <BeautifulSidebarNav
+      collapsed={mobile ? false : collapsed}
+      onCollapsedChange={mobile ? undefined : onCollapsedChange}
+      collapseLabel={collapseLabel}
+      expandLabel={expandLabel}
+      header={
+        <span className="block truncate px-1 type-label font-semibold text-on-surface">
+          {t("conversations")}
+        </span>
+      }
+      primaryAction={
         <Button
           onClick={onNewChat}
-          className="h-8 w-full gap-2 rounded-[10px] bg-primary type-label font-medium text-on-primary shadow-none"
+          title={collapsed ? t("new_chat") : undefined}
+          aria-label={t("new_chat")}
+          className={cn(
+            "h-8 gap-2 rounded-[10px] bg-primary type-label font-medium text-on-primary shadow-none",
+            collapsed ? "w-8 px-0" : "w-full",
+          )}
         >
           <Plus className="h-4 w-4" />
-          {t("new_chat")}
+          {!collapsed ? t("new_chat") : null}
         </Button>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-2 py-3">
-        {conversations.length === 0 ? (
-          <div className="px-3 py-8">
-            <p className="text-sm leading-6 text-on-surface-variant">
+      }
+      search={
+        conversations.length > 0 && !collapsed ? (
+          <BeautifulSidebarSearch
+            value={searchQuery}
+            onValueChange={setSearchQuery}
+            placeholder={t("conversations")}
+            label={t("conversations")}
+            collapsed={collapsed}
+          />
+        ) : null
+      }
+      className={mobile ? "w-full" : undefined}
+    >
+      {conversations.length === 0 ? (
+        <div className={cn("py-6", collapsed ? "px-1" : "px-2")}>
+          {collapsed ? (
+            <MessageSquareText
+              className="mx-auto size-4 text-on-surface-variant"
+              aria-hidden="true"
+            />
+          ) : (
+            <p className="type-body-sm text-on-surface-variant">
               {t("sidebar_empty")}
             </p>
-          </div>
-        ) : (
-          <div className="space-y-1">
-            {repeatedConversations.length > 0 && !showRepeated ? (
-              <button
-                type="button"
-                onClick={() => setShowRepeated(true)}
-                aria-expanded={false}
-                className="flex min-h-9 w-full items-center justify-between rounded-[10px] px-3 py-2 text-left text-sm text-on-surface-variant transition-colors hover:bg-surface-container-low/70 hover:text-on-surface"
-              >
-                <span className="truncate">{t("new_conversation")}</span>
-                <span className="flex items-center gap-1 text-xs text-on-surface-variant/65">
-                  {repeatedConversations.length}
-                  <ChevronDown className="h-3.5 w-3.5" />
-                </span>
-              </button>
-            ) : null}
-            {showRepeated && repeatedConversations.length > 0 ? (
-              <button
-                type="button"
-                onClick={() => setShowRepeated(false)}
-                aria-expanded={true}
-                className="flex min-h-8 w-full items-center justify-between rounded-[10px] px-3 py-1.5 text-left text-xs font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low/70"
-              >
-                <span>{t("new_conversation")}</span>
-                <ChevronDown className="h-3.5 w-3.5 rotate-180" />
-              </button>
-            ) : null}
-            {visibleConversations.map((conversation) => {
-              return (
-                <div
-                  key={conversation.id}
-                  className={cn(
-                    "group flex min-h-10 min-w-0 items-center gap-1 rounded-[10px] border transition-colors",
-                    activeId === conversation.id
-                      ? "border-primary/16 bg-primary/5 text-on-surface"
-                      : "border-transparent bg-transparent text-on-surface hover:border-outline-variant/14 hover:bg-surface-container-low/70",
-                  )}
-                >
+          )}
+        </div>
+      ) : (
+        <div className="space-y-1">
+          {!collapsed && repeatedConversations.length > 0 && !showRepeated ? (
+            <button
+              type="button"
+              onClick={() => setShowRepeated(true)}
+              aria-expanded={false}
+              className="flex min-h-9 w-full items-center justify-between rounded-[10px] px-2 py-2 text-left type-caption text-on-surface-variant transition-colors hover:bg-surface-container-low/70 hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="truncate">{t("new_conversation")}</span>
+              <span className="flex items-center gap-1 text-xs text-on-surface-variant/65">
+                {repeatedConversations.length}
+                <ChevronDown className="h-3.5 w-3.5" />
+              </span>
+            </button>
+          ) : null}
+          {!collapsed && showRepeated && repeatedConversations.length > 0 ? (
+            <button
+              type="button"
+              onClick={() => setShowRepeated(false)}
+              aria-expanded={true}
+              className="flex min-h-8 w-full items-center justify-between rounded-[10px] px-2 py-1.5 text-left type-caption font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span>{t("new_conversation")}</span>
+              <ChevronDown className="h-3.5 w-3.5 rotate-180" />
+            </button>
+          ) : null}
+          {visibleConversations.map((conversation) => {
+            return (
+              <BeautifulSidebarRow
+                key={conversation.id}
+                active={activeId === conversation.id}
+                collapsed={collapsed}
+                icon={
+                  <MessageSquareText className="size-4" aria-hidden="true" />
+                }
+                label={conversation.title || t("new_conversation")}
+                onClick={() => onSelect(conversation.id)}
+                trailing={
                   <button
                     type="button"
-                    onClick={() => onSelect(conversation.id)}
-                    className="min-h-10 min-w-0 flex-1 px-3 py-2 text-left"
-                  >
-                    <span className="block truncate text-sm font-medium">
-                      {conversation.title || t("new_conversation")}
-                    </span>
-                  </button>
-
-                  <button
                     onClick={(event) => handleDelete(event, conversation.id)}
                     disabled={isPending}
-                    className="mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-on-surface-variant opacity-0 transition-opacity hover:bg-red-500/10 hover:text-red-500 focus:opacity-100 group-hover:opacity-100"
+                    className="flex size-7 items-center justify-center rounded-lg text-on-surface-variant opacity-0 transition-[background-color,color,opacity] hover:bg-error/10 hover:text-error focus:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group-hover:opacity-100"
                     aria-label={t("delete_conversation")}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="size-3.5" aria-hidden="true" />
                   </button>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
+                }
+              />
+            );
+          })}
+        </div>
+      )}
+    </BeautifulSidebarNav>
   );
 }
 
 export function ConversationSidebar(props: ConversationSidebarProps) {
   const { open, onOpenChange, ...rest } = props;
   const t = useTranslations("dashboard.chat");
+  const [collapsed, setCollapsed] = useState(false);
 
   return (
     <>
-      <div className="hidden w-60 shrink-0 border-r border-outline-variant bg-surface lg:block">
-        <SidebarContent {...rest} />
+      <div className="hidden shrink-0 border-r border-outline-variant bg-surface lg:block">
+        <SidebarContent
+          {...rest}
+          collapsed={collapsed}
+          onCollapsedChange={setCollapsed}
+        />
       </div>
 
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent side="left" className="w-60 p-0">
+        <SheetContent side="left" className="w-72 p-0">
           <SheetHeader className="sr-only">
             <SheetTitle>{t("conversations")}</SheetTitle>
           </SheetHeader>
-          <SidebarContent {...rest} />
+          <SidebarContent {...rest} mobile />
         </SheetContent>
       </Sheet>
     </>

@@ -1,11 +1,17 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocale } from "next-intl";
-import Link from "next/link";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import {
+  BeautifulChatFrame,
+  BeautifulContextCards,
+  BeautifulFollowUps,
+  BeautifulPromptBar,
+  type BeautifulContextItem,
+} from "@/components/beautifului";
+import { Button } from "@/components/ui/button";
 import { ProductIcon } from "@/components/ui/product-icon";
-import { cn } from "@/lib/utils";
 import {
   IeltsCoachAssistantMessage,
   evidenceAuthorityLabel,
@@ -13,25 +19,73 @@ import {
   getIeltsEvidence,
   type IeltsCoachMessage,
 } from "./IeltsCoachMessage";
+import { IeltsCoachHeader, IeltsCoachRecommendation } from "./IeltsCoachPanels";
 import { IELTS_COACH_COPY, type CoachLocale } from "./copy";
-import { readIeltsCoachStream, type IeltsCoachStreamEvent } from "./stream";
+import { buildIeltsCoachChatRequest } from "./request";
+import {
+  IeltsCoachStreamError,
+  readIeltsCoachStream,
+  type IeltsCoachStreamEvent,
+} from "./stream";
 
 export function IeltsCoachShell() {
   const currentLocale = useLocale();
   const locale: CoachLocale = currentLocale === "vi" ? "vi" : "en";
   const copy = IELTS_COACH_COPY[locale];
+  const router = useRouter();
   const [messages, setMessages] = useState<IeltsCoachMessage[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [lastQuestion, setLastQuestion] = useState<string | null>(null);
   const conversationIdRef = useRef<string | null>(null);
-  const visibleEvidence = useMemo(
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const lastRequestRef = useRef<{
+    question: string;
+    requestId: string;
+  } | null>(null);
+
+  const latestAssistant = useMemo(
     () =>
       [...messages]
         .reverse()
-        .find((message) => getIeltsEvidence(message.metadata).length > 0),
+        .find(
+          (message) =>
+            message.role === "assistant" && message.status === "complete",
+        ),
     [messages],
   );
+  const evidence = useMemo(
+    () => getIeltsEvidence(latestAssistant?.metadata),
+    [latestAssistant],
+  );
+  const contextItems = useMemo<BeautifulContextItem[]>(
+    () =>
+      evidence.slice(0, 3).map((item) => ({
+        id: `${item.evidenceId}-${item.version}`,
+        title: evidenceTypeLabel(item.sourceType, locale),
+        body: (
+          <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+            <dt>{copy.sourceAuthority}</dt>
+            <dd className="text-right font-medium text-on-surface">
+              {evidenceAuthorityLabel(item.sourceType, locale)}
+            </dd>
+            <dt>{copy.sourceVersion}</dt>
+            <dd className="text-right font-medium text-on-surface">
+              {item.version}
+            </dd>
+          </dl>
+        ),
+        sourceLabel: item.sourceLocator,
+        sourceKind: evidenceAuthorityLabel(item.sourceType, locale),
+        meta: `v${item.version}`,
+      })),
+    [copy.sourceAuthority, copy.sourceVersion, evidence, locale],
+  );
+
+  useEffect(() => {
+    const viewport = scrollRef.current;
+    if (!viewport) return;
+    viewport.scrollTop = viewport.scrollHeight;
+  }, [messages]);
 
   const applyStreamEvent = useCallback(
     (assistantId: string, event: IeltsCoachStreamEvent) => {
@@ -56,10 +110,10 @@ export function IeltsCoachShell() {
   );
 
   const sendMessage = useCallback(
-    async (question: string) => {
+    async (question: string, requestId = crypto.randomUUID()) => {
       const text = question.trim();
       if (!text || isLoading) return;
-      setLastQuestion(text);
+      lastRequestRef.current = { question: text, requestId };
       setInput("");
       const timestamp = Date.now();
       const assistantId = `ielts-assistant-${timestamp}`;
@@ -84,15 +138,16 @@ export function IeltsCoachShell() {
       try {
         const response = await fetch("/api/chat", {
           method: "POST",
+          credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            message: text,
-            conversationId: conversationIdRef.current,
-            context: "ielts-coach",
-            contextId: null,
-            practiceLanguage: locale,
-            googleAiConsent: false,
-          }),
+          body: JSON.stringify(
+            buildIeltsCoachChatRequest({
+              message: text,
+              conversationId: conversationIdRef.current,
+              requestId,
+              locale,
+            }),
+          ),
         });
         await readIeltsCoachStream(response, (event) =>
           applyStreamEvent(assistantId, event),
@@ -106,10 +161,17 @@ export function IeltsCoachShell() {
         );
       } catch (error) {
         console.error("IELTS coach UI request failed", error);
+        const errorMessage =
+          error instanceof IeltsCoachStreamError ? error.message : copy.error;
         setMessages((current) =>
           current.map((message) =>
             message.id === assistantId
-              ? { ...message, content: "", status: "error" }
+              ? {
+                  ...message,
+                  content: "",
+                  status: "error",
+                  errorMessage,
+                }
               : message,
           ),
         );
@@ -117,49 +179,62 @@ export function IeltsCoachShell() {
         setIsLoading(false);
       }
     },
-    [applyStreamEvent, isLoading, locale],
+    [applyStreamEvent, copy.error, isLoading, locale],
   );
 
   const startNewConversation = () => {
     conversationIdRef.current = null;
+    lastRequestRef.current = null;
     setMessages([]);
     setInput("");
-    setLastQuestion(null);
   };
 
-  return (
-    <main className="mx-auto grid h-full min-h-0 w-full max-w-[1440px] gap-4 p-3 sm:p-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:p-6">
-      <section className="flex min-h-[620px] min-w-0 flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface">
-        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-outline-variant px-4 py-4 sm:px-5">
-          <div className="min-w-0">
-            <p className="type-eyebrow text-primary">{copy.eyebrow}</p>
-            <h1 className="mt-1 type-heading-lg text-on-surface">
-              {copy.title}
-            </h1>
-            <p className="mt-1 type-body-sm text-on-surface-variant">
-              {copy.intro}
-            </p>
-          </div>
-          {messages.length > 0 ? (
-            <Button
-              variant="outline"
-              disabled={isLoading}
-              onClick={startNewConversation}
-            >
-              <ProductIcon name="plus" size="sm" />
-              {copy.newChat}
-            </Button>
-          ) : null}
-        </header>
+  const header = (
+    <IeltsCoachHeader
+      copy={copy}
+      hasMessages={messages.length > 0}
+      isLoading={isLoading}
+      onNewConversation={startNewConversation}
+    />
+  );
 
+  const composer = (
+    <div className="border-t border-outline-variant bg-surface-container-low/45 p-3 sm:px-5 sm:py-4">
+      <BeautifulPromptBar
+        value={input}
+        onValueChange={setInput}
+        onSubmit={(value) => void sendMessage(value)}
+        placeholder={copy.placeholder}
+        submitLabel={copy.send}
+        disabled={isLoading}
+        className="mx-auto max-w-3xl"
+        footer={
+          <span className="px-1 type-caption text-on-surface-variant">
+            {copy.composerHint}
+          </span>
+        }
+      />
+    </div>
+  );
+
+  return (
+    <main className="grid h-full min-h-0 w-full gap-4 p-3 sm:p-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:p-6">
+      <BeautifulChatFrame
+        header={header}
+        composer={composer}
+        className="min-h-[620px] rounded-xl border border-outline-variant shadow-token-card"
+      >
         <div
-          className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5"
+          ref={scrollRef}
+          className="h-full overflow-y-auto px-4 py-5 sm:px-5"
+          role="log"
           aria-label={copy.conversationLabel}
+          aria-busy={isLoading}
         >
           {messages.length === 0 ? (
             <div className="mx-auto flex min-h-[360px] max-w-2xl flex-col justify-center">
-              <span className="flex size-11 items-center justify-center rounded-xl bg-primary-container text-primary">
-                <ProductIcon name="sparkles" size="lg" weight="duotone" />
+              <span className="flex size-10 items-center justify-center rounded-[10px] bg-primary-container text-primary">
+                <ProductIcon name="sparkles" size="md" weight="duotone" />
               </span>
               <h2 className="mt-4 type-heading-lg text-on-surface">
                 {copy.emptyTitle}
@@ -173,7 +248,7 @@ export function IeltsCoachShell() {
                     key={prompt}
                     type="button"
                     onClick={() => void sendMessage(prompt)}
-                    className="min-h-11 rounded-[10px] border border-outline-variant bg-surface-container-low px-3 py-2.5 text-left type-label text-on-surface transition-colors hover:border-primary/40 hover:bg-primary-container focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                    className="min-h-11 rounded-[10px] border border-outline-variant bg-surface px-3 py-2.5 text-left type-label text-on-surface transition-[border-color,background-color,transform] duration-150 hover:border-primary/30 hover:bg-primary/5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {prompt}
                   </button>
@@ -181,11 +256,11 @@ export function IeltsCoachShell() {
               </div>
             </div>
           ) : (
-            <div className="mx-auto max-w-3xl space-y-4">
+            <div className="mx-auto max-w-3xl space-y-5">
               {messages.map((message) =>
                 message.role === "user" ? (
                   <div key={message.id} className="flex justify-end">
-                    <div className="max-w-[86%] rounded-xl bg-primary px-4 py-3 type-body-sm text-on-primary sm:max-w-[72%]">
+                    <div className="max-w-[88%] rounded-xl bg-surface-container px-4 py-2.5 type-body-sm text-on-surface sm:max-w-[72%]">
                       {message.content}
                     </div>
                   </div>
@@ -200,81 +275,35 @@ export function IeltsCoachShell() {
               {!isLoading && messages.at(-1)?.status === "error" ? (
                 <Button
                   variant="outline"
-                  onClick={() => lastQuestion && void sendMessage(lastQuestion)}
+                  onClick={() => {
+                    const request = lastRequestRef.current;
+                    if (request) {
+                      void sendMessage(request.question, request.requestId);
+                    }
+                  }}
                 >
                   <ProductIcon name="refresh" size="sm" />
                   {copy.retry}
                 </Button>
               ) : null}
               {!isLoading && messages.at(-1)?.status === "complete" ? (
-                <div className="rounded-xl border border-outline-variant bg-surface-container-low p-3">
-                  <p className="type-label font-semibold text-on-surface">
-                    {copy.followUps}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {copy.followUpPrompts.map((prompt) => (
-                      <button
-                        key={prompt}
-                        type="button"
-                        onClick={() => void sendMessage(prompt)}
-                        className="min-h-8 rounded-[10px] border border-outline-variant bg-surface px-3 py-1.5 type-caption font-medium text-on-surface transition-colors hover:bg-primary-container focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-                      >
-                        {prompt}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <BeautifulFollowUps
+                  label={copy.followUps}
+                  items={copy.followUpPrompts.map((prompt, index) => ({
+                    id: `ielts-follow-up-${index}`,
+                    label: prompt,
+                    value: prompt,
+                  }))}
+                  onSelect={(item) => void sendMessage(item.value)}
+                />
               ) : null}
             </div>
           )}
         </div>
-
-        <form
-          className="border-t border-outline-variant bg-surface-container-low/50 p-3 sm:p-4"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void sendMessage(input);
-          }}
-        >
-          <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-xl border border-outline-variant bg-surface p-2 focus-within:border-primary/50 focus-within:ring-3 focus-within:ring-ring/20">
-            <textarea
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter" && !event.shiftKey) {
-                  event.preventDefault();
-                  void sendMessage(input);
-                }
-              }}
-              rows={1}
-              disabled={isLoading}
-              placeholder={copy.placeholder}
-              aria-label={copy.placeholder}
-              className="max-h-32 min-h-10 flex-1 resize-none bg-transparent px-2 py-2 type-body-sm text-on-surface outline-none placeholder:text-on-surface-variant disabled:opacity-60"
-            />
-            <Button
-              type="submit"
-              size="icon-lg"
-              disabled={isLoading || !input.trim()}
-              aria-label={copy.send}
-            >
-              <ProductIcon
-                name={isLoading ? "loader" : "send"}
-                size="sm"
-                className={cn(
-                  isLoading && "animate-spin motion-reduce:animate-none",
-                )}
-              />
-            </Button>
-          </div>
-          <p className="mx-auto mt-2 max-w-3xl type-caption text-on-surface-variant">
-            {copy.composerHint}
-          </p>
-        </form>
-      </section>
+      </BeautifulChatFrame>
 
       <aside
-        className="space-y-4 lg:overflow-y-auto"
+        className="space-y-3 lg:overflow-y-auto"
         aria-label={copy.sourcesTitle}
       >
         <section className="rounded-xl border border-outline-variant bg-surface p-4">
@@ -291,52 +320,37 @@ export function IeltsCoachShell() {
           </p>
         </section>
 
-        <section className="rounded-xl border border-outline-variant bg-surface p-4">
-          <div className="flex items-center gap-2 type-title text-on-surface">
-            <ProductIcon name="book" size="sm" className="text-primary" />
-            {copy.sourcesTitle}
-          </div>
-          {visibleEvidence ? (
-            <div className="mt-3 space-y-2">
-              {getIeltsEvidence(visibleEvidence.metadata)
-                .slice(0, 3)
-                .map((item) => (
-                  <div
-                    key={`${item.sourceId}-${item.version}`}
-                    className="rounded-[10px] bg-surface-container-low p-3"
-                  >
-                    <p className="type-label font-semibold text-on-surface">
-                      {evidenceTypeLabel(item.itemType, locale)}
-                    </p>
-                    <p className="mt-1 type-caption text-on-surface-variant">
-                      {evidenceAuthorityLabel(item.authorityTier, locale)} · v
-                      {item.version}
-                    </p>
-                  </div>
-                ))}
+        {contextItems.length > 0 ? (
+          <BeautifulContextCards
+            label={copy.sourcesTitle}
+            countLabel={`${contextItems.length}`}
+            items={contextItems}
+          />
+        ) : (
+          <section className="rounded-xl border border-dashed border-outline-variant bg-surface-container-low/35 p-4">
+            <div className="flex items-center gap-2 type-title text-on-surface">
+              <ProductIcon name="book" size="sm" className="text-primary" />
+              {copy.sourcesTitle}
             </div>
-          ) : (
             <p className="mt-2 type-body-sm text-on-surface-variant">
               {copy.sourcesEmpty}
             </p>
-          )}
-        </section>
+          </section>
+        )}
 
-        <section className="rounded-xl border border-primary/25 bg-primary-container/45 p-4">
-          <p className="type-eyebrow text-primary">
-            {copy.practiceShortcutTitle}
-          </p>
-          <p className="mt-3 type-body-sm text-on-surface-variant">
-            {copy.practiceShortcutBody}
-          </p>
-          <Link
-            href={`/${locale}/ielts/tests`}
-            className={buttonVariants({ className: "mt-4 w-full" })}
-          >
-            {copy.startPractice}
-            <ProductIcon name="arrowRight" size="sm" />
-          </Link>
-        </section>
+        <IeltsCoachRecommendation
+          copy={copy}
+          locale={locale}
+          metadata={latestAssistant?.metadata}
+          disabled={isLoading}
+          onAction={(destination) => {
+            if (destination.external) {
+              window.location.href = destination.href;
+              return;
+            }
+            router.push(destination.href);
+          }}
+        />
       </aside>
     </main>
   );

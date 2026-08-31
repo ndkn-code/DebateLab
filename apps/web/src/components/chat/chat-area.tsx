@@ -2,9 +2,14 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
-import { MessageSquareText, Send, Sparkles } from "@/components/ui/icons";
+import { MessageSquareText, Sparkles } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { Heading, Text } from "@/components/ui/typography";
+import {
+  BeautifulChatFrame,
+  BeautifulLoadingState,
+  BeautifulPromptBar,
+} from "@/components/beautifului";
 import { ChatBubble } from "./chat-bubble";
 import { CoachQuickActions } from "./coach-quick-actions";
 import { TypingIndicator } from "./typing-indicator";
@@ -87,14 +92,13 @@ function ChatLoadError({ onRetryLoad }: { onRetryLoad?: () => void }) {
 }
 
 function ChatConversationLoading() {
+  const t = useTranslations("dashboard.chat");
   return (
-    <div className="mx-auto max-w-[720px] space-y-4 px-1 py-4">
-      <div className="h-10 w-2/3 animate-pulse rounded-2xl bg-surface-container-high/70" />
-      <div className="ml-5 space-y-2">
-        <div className="h-4 w-24 animate-pulse rounded bg-surface-container-high/70" />
-        <div className="h-4 w-full animate-pulse rounded bg-surface-container-high/45" />
-        <div className="h-4 w-4/5 animate-pulse rounded bg-surface-container-high/45" />
-      </div>
+    <div className="mx-auto flex min-h-64 max-w-[720px] items-center justify-center px-1 py-4">
+      <BeautifulLoadingState
+        label={t("coach.refreshing_insights")}
+        variant="orbit"
+      />
     </div>
   );
 }
@@ -115,7 +119,6 @@ export function ChatArea({
   const t = useTranslations("dashboard.chat");
   const [input, setInput] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -128,40 +131,20 @@ export function ChatArea({
     if (!msg.trim() || isLoading) return;
     onSendMessage(msg);
     setInput("");
-    if (inputRef.current) {
-      inputRef.current.style.height = "auto";
-    }
   };
 
-  const resizeAndFocusComposer = () => {
+  const focusComposer = () => {
     window.requestAnimationFrame(() => {
-      if (!inputRef.current) return;
-      inputRef.current.focus();
-      inputRef.current.style.height = "auto";
-      inputRef.current.style.height = `${Math.min(
-        inputRef.current.scrollHeight,
-        160,
-      )}px`;
+      const composer = document.querySelector<HTMLTextAreaElement>(
+        '[data-debate-coach-composer="true"] textarea',
+      );
+      composer?.focus();
     });
   };
 
   const handleDraftMessage = (text: string) => {
     setInput((current) => (current.length > 0 ? current : text));
-    resizeAndFocusComposer();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      handleSubmit();
-    }
-  };
-
-  const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setInput(e.target.value);
-    const textarea = e.target;
-    textarea.style.height = "auto";
-    textarea.style.height = `${Math.min(textarea.scrollHeight, 160)}px`;
+    focusComposer();
   };
 
   const showWelcome = messages.length === 0 && !hasConversation;
@@ -169,8 +152,9 @@ export function ChatArea({
     isLoading && hasConversation && messages.length === 0;
 
   return (
-    <div className="relative flex min-w-0 flex-1 bg-transparent">
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+    <BeautifulChatFrame
+      className="relative min-w-0 flex-1 bg-transparent"
+      header={
         <header className="flex min-h-14 items-center gap-3 border-b border-outline-variant bg-surface px-3 sm:px-4">
           <button
             type="button"
@@ -192,93 +176,89 @@ export function ChatArea({
             </p>
           </div>
         </header>
-
+      }
+      composer={
+        <div className="border-t border-outline-variant bg-surface-container-low/35 px-3 py-3 sm:px-6">
+          <div
+            className="mx-auto w-full max-w-[800px]"
+            data-debate-coach-composer="true"
+          >
+            <BeautifulPromptBar
+              value={input}
+              onValueChange={setInput}
+              onSubmit={handleSubmit}
+              placeholder={t("input_placeholder")}
+              submitLabel={t("send")}
+              disabled={isLoading}
+            />
+          </div>
+        </div>
+      }
+    >
+      <div
+        ref={scrollRef}
+        className={cn(
+          "h-full overflow-y-auto px-4 sm:px-6",
+          showWelcome
+            ? "pb-4 pt-5 sm:pb-6 sm:pt-8"
+            : "pb-4 pt-6 sm:pb-6 sm:pt-8",
+        )}
+      >
         <div
-          ref={scrollRef}
           className={cn(
-            "flex-1 overflow-y-auto px-4 sm:px-6",
-            showWelcome
-              ? "pb-4 pt-5 sm:pb-6 sm:pt-8"
-              : "pb-4 pt-6 sm:pb-6 sm:pt-8",
+            "mx-auto w-full",
+            showWelcome ? "max-w-[720px]" : "max-w-[880px]",
           )}
         >
-          <div
-            className={cn(
-              "mx-auto w-full",
-              showWelcome ? "max-w-[720px]" : "max-w-[880px]",
-            )}
-          >
-            {loadError ? (
-              <ChatLoadError onRetryLoad={onRetryLoad} />
-            ) : showConversationLoading ? (
-              <ChatConversationLoading />
-            ) : showWelcome ? (
-              <div className="flex min-h-full items-center justify-center">
-                <CoachEmptyState
-                  coachEnvelope={coachEnvelope}
-                  onPromptSelect={handleSubmit}
-                  isLoading={isLoading || isInsightsLoading}
-                />
-              </div>
-            ) : (
-              <div className="pb-4">
-                <div className="space-y-5">
-                  {messages.map((msg) => {
-                    const isStreamingAssistant =
-                      msg.role === "assistant" && msg.status === "streaming";
-                    const isWaitingForFirstToken =
-                      isStreamingAssistant && msg.content.length === 0;
+          {loadError ? (
+            <ChatLoadError onRetryLoad={onRetryLoad} />
+          ) : showConversationLoading ? (
+            <ChatConversationLoading />
+          ) : showWelcome ? (
+            <div className="flex min-h-full items-center justify-center">
+              <CoachEmptyState
+                coachEnvelope={coachEnvelope}
+                onPromptSelect={handleSubmit}
+                isLoading={isLoading || isInsightsLoading}
+              />
+            </div>
+          ) : (
+            <div className="pb-4">
+              <div className="space-y-5">
+                {messages.map((msg) => {
+                  const isStreamingAssistant =
+                    msg.role === "assistant" && msg.status === "streaming";
+                  const isWaitingForFirstToken =
+                    isStreamingAssistant && msg.content.length === 0;
 
-                    if (isWaitingForFirstToken) {
-                      return <TypingIndicator key={msg.id} />;
-                    }
-
+                  if (isWaitingForFirstToken) {
                     return (
-                      <ChatBubble
+                      <TypingIndicator
                         key={msg.id}
-                        message={msg}
-                        isStreaming={isStreamingAssistant}
-                        onSendMessage={handleSubmit}
-                        onDraftMessage={handleDraftMessage}
-                        actionsDisabled={isLoading || isInsightsLoading}
-                        renderStructuredMetadata
-                        isVisualizing={visualizingMessageId === msg.id}
-                        onRequestVisualize={onRequestVisualize}
+                        label={t("coach.refreshing_insights")}
                       />
                     );
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+                  }
 
-        <div className="border-t border-outline-variant bg-surface-container-low/35 px-4 py-3 sm:px-6">
-          <div className="mx-auto w-full max-w-[800px]">
-            <div className="flex items-end gap-2 rounded-xl border border-outline-variant bg-surface px-2.5 py-2 shadow-token-card transition-colors focus-within:border-primary/45 focus-within:ring-2 focus-within:ring-ring/20">
-              <textarea
-                ref={inputRef}
-                value={input}
-                onChange={handleInput}
-                onKeyDown={handleKeyDown}
-                placeholder={t("input_placeholder")}
-                rows={1}
-                className="min-h-[28px] flex-1 resize-none bg-transparent px-1 py-1 type-body text-on-surface placeholder:text-on-surface-variant/60 outline-none"
-                style={{ maxHeight: 160 }}
-              />
-              <Button
-                onClick={() => handleSubmit()}
-                disabled={!input.trim() || isLoading}
-                size="icon"
-                className="h-8 w-8 shrink-0 rounded-[10px] bg-primary text-on-primary shadow-none disabled:opacity-40"
-                aria-label={t("input_placeholder")}
-              >
-                <Send className="h-4 w-4" />
-              </Button>
+                  return (
+                    <ChatBubble
+                      key={msg.id}
+                      message={msg}
+                      isStreaming={isStreamingAssistant}
+                      onSendMessage={handleSubmit}
+                      onDraftMessage={handleDraftMessage}
+                      actionsDisabled={isLoading || isInsightsLoading}
+                      renderStructuredMetadata
+                      isVisualizing={visualizingMessageId === msg.id}
+                      onRequestVisualize={onRequestVisualize}
+                    />
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
-    </div>
+    </BeautifulChatFrame>
   );
 }

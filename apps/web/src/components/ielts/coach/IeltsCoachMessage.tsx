@@ -2,84 +2,152 @@
 
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { useEffect, useState } from "react";
+import {
+  BeautifulLoadingState,
+  BeautifulStreamingText,
+} from "@/components/beautifului";
 import { ProductIcon } from "@/components/ui/product-icon";
-import type { CoachMessageMetadata } from "@/types";
+import type { IeltsCoachResponseMetadata } from "@/lib/coach/ielts-api-contract";
+import type { IeltsCoachOutput } from "@/lib/coach/ielts-contract";
 import { IELTS_COACH_COPY, type CoachLocale } from "./copy";
 
 export type IeltsCoachMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
-  metadata?: CoachMessageMetadata | null;
+  metadata?: IeltsCoachResponseMetadata | null;
   status: "streaming" | "complete" | "error";
+  errorMessage?: string;
 };
 
 export function getIeltsEvidence(
-  metadata: CoachMessageMetadata | null | undefined,
+  metadata: IeltsCoachResponseMetadata | null | undefined,
 ) {
-  if (!metadata?.coachCorpusEvidence?.length) return [];
-  const collection = metadata.coachCorpusCollection?.toLowerCase() ?? "";
-  return metadata.coachCorpusEvidence.filter((item) => {
-    const itemType = item.itemType.toLowerCase();
-    const locator = item.sourceLocator?.toLowerCase() ?? "";
-    return (
-      collection.includes("ielts") ||
-      itemType.includes("ielts") ||
-      locator.includes("ielts")
-    );
-  });
+  return metadata?.evidenceReferences ?? [];
 }
 
 const EVIDENCE_LABELS = {
   en: {
-    band_descriptor: "Band descriptor",
-    rubric_manifest: "Scoring rubric",
-    learner_context: "Your learning history",
-    writing_exemplar: "Writing example",
-    speaking_exemplar: "Speaking example",
-    default: "IELTS reference",
+    learner_record: "Your learning history",
+    teacher_published: "Published teacher feedback",
+    approved_rubric: "Approved IELTS rubric",
+    approved_exemplar: "Approved IELTS example",
   },
   vi: {
-    band_descriptor: "Mô tả band",
-    rubric_manifest: "Tiêu chí chấm điểm",
-    learner_context: "Lịch sử học của bạn",
-    writing_exemplar: "Bài mẫu Viết",
-    speaking_exemplar: "Bài mẫu Nói",
-    default: "Tài liệu IELTS",
+    learner_record: "Lịch sử học của bạn",
+    teacher_published: "Phản hồi giáo viên đã công bố",
+    approved_rubric: "Tiêu chí IELTS đã duyệt",
+    approved_exemplar: "Ví dụ IELTS đã duyệt",
   },
 } as const;
 
-const AUTHORITY_LABELS = {
-  en: {
-    official: "Official source",
-    examiner_authored: "Examiner-authored",
-    qualified_adjudicator: "Qualified reviewer",
-    coaching_only: "Coaching reference",
-    default: "Reviewed reference",
-  },
-  vi: {
-    official: "Nguồn chính thức",
-    examiner_authored: "Do giám khảo biên soạn",
-    qualified_adjudicator: "Người đánh giá đủ chuyên môn",
-    coaching_only: "Tài liệu hướng dẫn",
-    default: "Tài liệu đã được xem xét",
-  },
-} as const;
-
-export function evidenceTypeLabel(itemType: string, locale: CoachLocale) {
-  const labels = EVIDENCE_LABELS[locale];
-  return labels[itemType as keyof typeof labels] ?? labels.default;
+export function evidenceTypeLabel(
+  sourceType: IeltsCoachOutput["sources"][number]["sourceType"],
+  locale: CoachLocale,
+) {
+  return EVIDENCE_LABELS[locale][sourceType];
 }
 
 export function evidenceAuthorityLabel(
-  authorityTier: string | null | undefined,
+  sourceType: IeltsCoachOutput["sources"][number]["sourceType"],
   locale: CoachLocale,
 ) {
-  const labels = AUTHORITY_LABELS[locale];
-  return authorityTier
-    ? (labels[authorityTier as keyof typeof labels] ?? labels.default)
-    : labels.default;
+  if (sourceType === "teacher_published") {
+    return locale === "vi" ? "Giáo viên xác nhận" : "Teacher confirmed";
+  }
+  if (sourceType === "learner_record") {
+    return locale === "vi" ? "Dữ liệu của bạn" : "Your record";
+  }
+  return locale === "vi" ? "Nguồn đã duyệt" : "Approved source";
+}
+
+export function scoreAuthorityLabel(
+  authority: IeltsCoachOutput["scoreAuthority"]["effective"],
+  locale: CoachLocale,
+) {
+  if (authority === "teacher_confirmed") {
+    return locale === "vi" ? "Giáo viên xác nhận" : "Teacher confirmed";
+  }
+  if (authority === "objective") {
+    return locale === "vi"
+      ? "Điểm khách quan đã kiểm tra"
+      : "Verified objective score";
+  }
+  if (authority === "ai_provisional") {
+    return locale === "vi"
+      ? "Ước tính luyện tập bằng AI"
+      : "AI practice estimate";
+  }
+  return locale === "vi" ? "Chưa đủ bằng chứng" : "Insufficient evidence";
+}
+
+function StructuredCoachResponse({
+  metadata,
+  locale,
+}: {
+  metadata: IeltsCoachResponseMetadata;
+  locale: CoachLocale;
+}) {
+  const copy = IELTS_COACH_COPY[locale];
+  const output = metadata.coach;
+  const currentBand = output.bandCriterionGap.current?.band ?? null;
+
+  return (
+    <div className="mt-3 space-y-3">
+      <section className="rounded-xl bg-surface-container-low p-3">
+        <p className="type-eyebrow text-primary">{copy.scoreSummary}</p>
+        <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <div className="rounded-[10px] bg-surface p-2.5">
+            <p className="type-caption text-on-surface-variant">
+              {copy.currentBand}
+            </p>
+            <p className="type-title font-semibold text-on-surface">
+              {currentBand ?? copy.notAvailable}
+            </p>
+          </div>
+          <div className="rounded-[10px] bg-surface p-2.5">
+            <p className="type-caption text-on-surface-variant">
+              {copy.targetBand}
+            </p>
+            <p className="type-title font-semibold text-on-surface">
+              {output.bandCriterionGap.targetBand ?? copy.notAvailable}
+            </p>
+          </div>
+          <div className="col-span-2 rounded-[10px] bg-surface p-2.5 sm:col-span-1">
+            <p className="type-caption text-on-surface-variant">
+              {copy.scoreAuthority}
+            </p>
+            <p className="type-label font-semibold text-on-surface">
+              {scoreAuthorityLabel(output.scoreAuthority.effective, locale)}
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {output.learnerEvidenceUsed.length > 0 ? (
+        <details className="rounded-xl border border-outline-variant bg-surface px-3 py-2.5">
+          <summary className="cursor-pointer type-label font-semibold text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            {copy.evidenceUsedTitle} ({output.learnerEvidenceUsed.length})
+          </summary>
+          <ul className="mt-2 space-y-1.5">
+            {output.learnerEvidenceUsed.slice(0, 4).map((item) => (
+              <li
+                key={item.evidenceId}
+                className="flex gap-2 type-body-sm text-on-surface-variant"
+              >
+                <ProductIcon
+                  name="shieldCheck"
+                  size="sm"
+                  className="mt-0.5 shrink-0 text-primary"
+                />
+                <span>{item.summary}</span>
+              </li>
+            ))}
+          </ul>
+        </details>
+      ) : null}
+    </div>
+  );
 }
 
 export function IeltsCoachAssistantMessage({
@@ -90,78 +158,40 @@ export function IeltsCoachAssistantMessage({
   locale: CoachLocale;
 }) {
   const copy = IELTS_COACH_COPY[locale];
-  const evidence = getIeltsEvidence(message.metadata);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
-  useEffect(() => {
-    if (message.status !== "streaming") return undefined;
-    const startedAt = Date.now();
-    const timer = window.setInterval(
-      () => setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000)),
-      1000,
-    );
-    return () => window.clearInterval(timer);
-  }, [message.status]);
 
   return (
-    <article className="rounded-xl border border-outline-variant bg-surface p-4">
+    <article className="group/answer py-1">
       <div className="mb-3 flex items-center gap-2 type-label font-semibold text-on-surface">
-        <span className="flex size-7 items-center justify-center rounded-lg bg-primary-container text-primary">
+        <span className="flex size-7 items-center justify-center rounded-lg bg-primary-container text-primary ring-1 ring-inset ring-primary/15">
           <ProductIcon name="sparkles" size="sm" weight="duotone" />
         </span>
-        IELTS AI Coach
+        {copy.coachName}
       </div>
       {message.status === "streaming" && !message.content ? (
-        <div
-          className="flex items-center gap-2 rounded-xl border border-outline-variant bg-surface-container-low px-3 py-2 type-label text-on-surface-variant"
-          role="status"
-        >
-          <ProductIcon
-            name="sparkles"
-            size="sm"
-            className="animate-pulse text-primary motion-reduce:animate-none"
-          />
-          {copy.thinking}
-          <span aria-hidden="true" className="ml-auto tabular-nums">
-            {elapsedSeconds}s
-          </span>
-        </div>
+        <BeautifulLoadingState label={copy.thinking} variant="orbit" />
       ) : message.status === "error" ? (
         <p className="type-body-sm text-error" role="alert">
-          {copy.error}
+          {message.errorMessage ?? copy.error}
         </p>
       ) : (
-        <div className="prose prose-sm max-w-none text-on-surface prose-headings:text-on-surface prose-p:my-2 prose-p:leading-6 prose-strong:text-on-surface prose-ul:my-2 prose-li:my-1 dark:prose-invert">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {message.content}
-          </ReactMarkdown>
-        </div>
-      )}
-      {evidence.length > 0 ? (
-        <div className="mt-4 grid gap-2 sm:grid-cols-2">
-          {evidence.slice(0, 2).map((item) => (
-            <div
-              key={`${item.sourceId}-${item.version}`}
-              className="rounded-[10px] border border-outline-variant bg-surface-container-low p-3"
-            >
-              <div className="flex items-center gap-2 type-label font-semibold text-on-surface">
-                <ProductIcon name="book" size="sm" className="text-primary" />
-                {evidenceTypeLabel(item.itemType, locale)}
+        <>
+          {message.content ? (
+            <BeautifulStreamingText streaming={message.status === "streaming"}>
+              <div className="prose prose-sm max-w-none text-on-surface prose-headings:text-on-surface prose-p:my-2 prose-p:leading-6 prose-strong:text-on-surface prose-ul:my-2 prose-li:my-1 dark:prose-invert">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {message.content}
+                </ReactMarkdown>
               </div>
-              <dl className="mt-2 grid grid-cols-[auto_1fr] gap-x-2 gap-y-1 type-caption text-on-surface-variant">
-                <dt>{copy.sourceAuthority}</dt>
-                <dd className="text-right font-medium text-on-surface">
-                  {evidenceAuthorityLabel(item.authorityTier, locale)}
-                </dd>
-                <dt>{copy.sourceVersion}</dt>
-                <dd className="text-right font-medium text-on-surface">
-                  {item.version}
-                </dd>
-              </dl>
-            </div>
-          ))}
-        </div>
-      ) : null}
+            </BeautifulStreamingText>
+          ) : null}
+          {message.metadata ? (
+            <StructuredCoachResponse
+              metadata={message.metadata}
+              locale={locale}
+            />
+          ) : null}
+        </>
+      )}
     </article>
   );
 }
