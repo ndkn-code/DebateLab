@@ -16,6 +16,15 @@ export function classifyProviderFailure(error: unknown): AiFailureKind {
   if (error instanceof DOMException && error.name === "AbortError") return "deadline_exceeded";
   const status = source?.status ?? source?.code;
   const message = error instanceof Error ? error.message : String(source?.message ?? error);
+  // Groq can reject a JSON-mode completion with HTTP 400 after the model
+  // generated malformed JSON. That is an output/schema failure, not a bad
+  // caller request, and must remain eligible for the next declared model.
+  if (
+    status === 400 &&
+    /failed to validate json|failed_generation/i.test(message)
+  ) {
+    return "schema_invalid";
+  }
   if (status === 400 || /invalid (request|argument|json|model)/i.test(message)) return "invalid_request";
   if (status === 401 || status === 403 || /api key|unauthenticated|permission denied|forbidden/i.test(message)) return "misconfiguration";
   if (status === 402 || /budget|payment required/i.test(message)) return "budget_exhausted";

@@ -195,6 +195,106 @@ async function run() {
   assert.equal(ieltsCoachFallback.output.value, "fast-fallback");
   assert.equal(ieltsCoachFallback.fallbackUsed, true);
   assert.equal(calls, 2);
+
+  calls = 0;
+  globalThis.fetch = (async (_input, init) => {
+    calls += 1;
+    const request = JSON.parse(String(init?.body)) as { model?: string };
+    if (request.model === ieltsCoachPolicy.candidates[0]?.model) {
+      if (calls === 1) {
+        return new Response(
+          JSON.stringify({
+            choices: [{ message: { content: '{"value":42}' } }],
+            usage: {},
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          error: {
+            message:
+              "Failed to validate JSON. Please adjust your prompt. See 'failed_generation' for more details.",
+          },
+        }),
+        { status: 400 },
+      );
+    }
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: '{"value":"schema-fallback"}' } }],
+        usage: {},
+      }),
+      { status: 200 },
+    );
+  }) as typeof fetch;
+  const ieltsSchemaFallback = await generateStructured({
+    task: "ielts_coach_chat",
+    prompt: "return json",
+    schema: z.object({ value: z.string() }),
+    context: {
+      task: "ielts_coach_chat",
+      sourceRoute: "core-test",
+      outputType: "test",
+    },
+  });
+  assert.equal(ieltsSchemaFallback.output.value, "schema-fallback");
+  assert.equal(ieltsSchemaFallback.fallbackUsed, true);
+  assert.equal(
+    calls,
+    3,
+    "a JSON-mode validation rejection during repair must advance to fallback",
+  );
+
+  let strictResponseFormat: unknown;
+  globalThis.fetch = (async (_input, init) => {
+    const request = JSON.parse(String(init?.body)) as {
+      response_format?: unknown;
+    };
+    strictResponseFormat = request.response_format;
+    return new Response(
+      JSON.stringify({
+        choices: [
+          { message: { content: '{"value":"strict","note":null}' } },
+        ],
+        usage: {},
+      }),
+      { status: 200 },
+    );
+  }) as typeof fetch;
+  const strictStructured = await generateStructured({
+    task: "ielts_coach_chat",
+    prompt: "return json",
+    schema: z
+      .object({ value: z.string(), note: z.string().optional() })
+      .strict(),
+    context: {
+      task: "ielts_coach_chat",
+      sourceRoute: "core-test",
+      outputType: "test",
+    },
+    policy: {
+      candidates: [{ provider: "groq", model: "openai/gpt-oss-20b" }],
+    },
+  });
+  assert.equal(strictStructured.output.value, "strict");
+  assert.equal(strictStructured.output.note, undefined);
+  assert.deepEqual(strictResponseFormat, {
+    type: "json_schema",
+    json_schema: {
+      name: "ielts_coach_chat_response",
+      strict: true,
+      schema: {
+        type: "object",
+        properties: {
+          value: { type: "string" },
+          note: { anyOf: [{ type: "string" }, { type: "null" }] },
+        },
+        required: ["value", "note"],
+        additionalProperties: false,
+      },
+    },
+  });
 }
 
 void run().finally(() => {

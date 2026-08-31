@@ -13,6 +13,10 @@ export interface AdapterRequest {
   temperature: number;
   maxOutputTokens: number;
   responseFormat: "json" | "text";
+  jsonSchema?: {
+    name: string;
+    schema: Record<string, unknown>;
+  };
   signal: AbortSignal;
   context: AiExecutionContext;
   phase: "primary" | "schema_repair";

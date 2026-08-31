@@ -15,6 +15,7 @@ import {
 } from "./contracts";
 import { extractJsonObject } from "./json";
 import { getAiTaskPolicy } from "./policies";
+import { z } from "zod";
 
 function resolvePolicy(task: AiTextRequest["task"], override?: Partial<AiTaskPolicy>): AiTaskPolicy {
   return { ...getAiTaskPolicy(task), ...override };
@@ -66,6 +67,7 @@ async function invoke(params: {
   phase: "primary" | "schema_repair";
   candidateIndex: number;
   responseFormat: "json" | "text";
+  jsonSchema?: AdapterRequest["jsonSchema"];
 }): Promise<{ response: AdapterResponse; attempt: AiAttempt }> {
   const startedAt = Date.now();
   const controller = new AbortController();
@@ -83,6 +85,7 @@ async function invoke(params: {
       temperature: params.policy.temperature,
       maxOutputTokens: params.policy.maxOutputTokens,
       responseFormat: params.responseFormat,
+      jsonSchema: params.jsonSchema,
       signal: controller.signal,
       context: params.context,
       phase: params.phase,
@@ -122,6 +125,158 @@ async function invoke(params: {
   } finally {
     clearTimeout(timer);
   }
+}
+
+function strictProviderSchema(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(strictProviderSchema);
+  if (!value || typeof value !== "object") return value;
+
+  const source = value as Record<string, unknown>;
+  const output = Object.fromEntries(
+    Object.entries(source).map(([key, entry]) => [
+      key,
+      strictProviderSchema(entry),
+    ]),
+  );
+  if (Array.isArray(output.oneOf)) {
+    output.anyOf = output.oneOf;
+    delete output.oneOf;
+  }
+  if (Array.isArray(output.anyOf)) {
+    output.anyOf = output.anyOf.flatMap((variant) => {
+      if (
+        variant &&
+        typeof variant === "object" &&
+        !Array.isArray(variant) &&
+        Object.keys(variant).length === 1 &&
+        Array.isArray((variant as Record<string, unknown>).anyOf)
+      ) {
+        return (variant as { anyOf: unknown[] }).anyOf;
+      }
+      return [variant];
+    });
+  }
+  if (
+    output.type === "object" &&
+    output.properties &&
+    typeof output.properties === "object" &&
+    !Array.isArray(output.properties)
+  ) {
+    const properties = output.properties as Record<string, unknown>;
+    const originallyRequired = new Set(
+      Array.isArray(output.required)
+        ? output.required.filter(
+            (entry): entry is string => typeof entry === "string",
+          )
+        : [],
+    );
+    output.properties = Object.fromEntries(
+      Object.entries(properties).map(([key, property]) => {
+        if (originallyRequired.has(key)) return [key, property];
+        const variants =
+          property &&
+          typeof property === "object" &&
+          !Array.isArray(property) &&
+          Object.keys(property).length === 1 &&
+          Array.isArray((property as Record<string, unknown>).anyOf)
+            ? (property as { anyOf: unknown[] }).anyOf
+            : [property];
+        return [key, { anyOf: [...variants, { type: "null" }] }];
+      }),
+    );
+    output.required = Object.keys(properties);
+    output.additionalProperties = false;
+  }
+  return output;
+}
+
+function providerJsonSchema<T>(request: AiStructuredRequest<T>) {
+  try {
+    const generated = z.toJSONSchema(request.schema) as Record<
+      string,
+      unknown
+    >;
+    // Provider schemas do not need the draft declaration and some constrained
+    // decoders reject it even though the remaining schema is supported.
+    const { $schema: _draft, ...schema } = generated;
+    return {
+      request: {
+        name: `${request.task}_response`,
+        schema: strictProviderSchema(schema) as Record<string, unknown>,
+      },
+      normalizationSchema: schema,
+    };
+  } catch {
+    // Zod refinements that cannot be represented as JSON Schema still retain
+    // the existing JSON-object + application validation path.
+    return undefined;
+  }
+}
+
+function matchingObjectSchema(
+  value: Record<string, unknown>,
+  schema: Record<string, unknown>,
+): Record<string, unknown> {
+  if (schema.properties && typeof schema.properties === "object") {
+    return schema;
+  }
+  const variants = [schema.anyOf, schema.oneOf]
+    .flatMap((entry) => (Array.isArray(entry) ? entry : []))
+    .filter(
+      (entry): entry is Record<string, unknown> =>
+        Boolean(entry) && typeof entry === "object" && !Array.isArray(entry),
+    );
+  return (
+    variants.find((variant) => {
+      const properties = variant.properties;
+      if (!properties || typeof properties !== "object") return false;
+      return Object.entries(properties as Record<string, unknown>).every(
+        ([key, property]) => {
+          const constant =
+            property && typeof property === "object"
+              ? (property as Record<string, unknown>).const
+              : undefined;
+          return constant === undefined || value[key] === constant;
+        },
+      );
+    }) ?? schema
+  );
+}
+
+/** Convert strict-schema nullable placeholders back to omitted optionals. */
+function normalizeProviderOptionals(value: unknown, schema: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  if (!schema || typeof schema !== "object" || Array.isArray(schema)) {
+    return value;
+  }
+  const schemaObject = schema as Record<string, unknown>;
+  if (Array.isArray(value)) {
+    return value.map((item) =>
+      normalizeProviderOptionals(item, schemaObject.items),
+    );
+  }
+  if (typeof value !== "object") return value;
+  const source = value as Record<string, unknown>;
+  const effectiveSchema = matchingObjectSchema(source, schemaObject);
+  const properties =
+    effectiveSchema.properties &&
+    typeof effectiveSchema.properties === "object" &&
+    !Array.isArray(effectiveSchema.properties)
+      ? (effectiveSchema.properties as Record<string, unknown>)
+      : {};
+  const required = new Set(
+    Array.isArray(effectiveSchema.required)
+      ? effectiveSchema.required.filter(
+          (entry): entry is string => typeof entry === "string",
+        )
+      : [],
+  );
+  return Object.fromEntries(
+    Object.entries(source).flatMap(([key, entry]) => {
+      if (entry === null && !required.has(key)) return [];
+      return [[key, normalizeProviderOptionals(entry, properties[key])]];
+    }),
+  );
 }
 
 function result<T>(params: {
@@ -218,6 +373,14 @@ export async function generateText(request: AiTextRequest): Promise<AiResult<str
 export async function generateStructured<T>(request: AiStructuredRequest<T>): Promise<AiResult<T>> {
   const policy = resolvePolicy(request.task, request.policy);
   const context = withTrace(request.context, policy, true);
+  // Enable constrained decoding only for contracts whose complete schema has
+  // been exercised against Groq's supported subset. Other grading schemas keep
+  // their existing application-validation path until individually qualified.
+  const jsonSchema =
+    request.task === "ielts_coach_chat" ||
+    request.task === "ielts_coach_metadata"
+      ? providerJsonSchema(request)
+      : undefined;
   const startedAt = Date.now();
   const attempts: AiAttempt[] = [];
   let finalError: AiExecutionError | null = null;
@@ -241,11 +404,15 @@ export async function generateStructured<T>(request: AiStructuredRequest<T>): Pr
           phase: repair === 0 ? "primary" : "schema_repair",
           candidateIndex: index,
           responseFormat: "json",
+          jsonSchema: jsonSchema?.request,
         });
         attempts.push(invocation.attempt);
         let raw: unknown;
         try {
-          raw = extractJsonObject(invocation.response.text);
+          raw = normalizeProviderOptionals(
+            extractJsonObject(invocation.response.text),
+            jsonSchema?.normalizationSchema,
+          );
         } catch (error) {
           await auditSchemaInvalid({ invocation, candidate, context, phase: repair === 0 ? "primary" : "schema_repair", candidateIndex: index, error });
           finalError = new AiExecutionError({ message: error instanceof Error ? error.message : "Model response was invalid JSON", kind: "schema_invalid", attempts });

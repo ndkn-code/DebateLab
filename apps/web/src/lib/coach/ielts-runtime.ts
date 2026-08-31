@@ -54,6 +54,7 @@ type IeltsCoachActionResource = {
   skill: IeltsSkill;
   criterion?: IeltsCriterion;
   title: string;
+  label: string;
 };
 
 export class IeltsCoachRuntimeError extends Error {
@@ -303,7 +304,9 @@ function actionResources(
   context: IeltsCoachLearnerContext,
   skill: IeltsSkill,
   recommendation: IeltsQuestionRecommendation | null,
+  locale: IeltsCoachLocale,
 ): IeltsCoachActionResource[] {
+  const vi = locale === "vi";
   const weakness = context.weaknesses.find((item) => item.skill === skill);
   const criterion = criterionName(weakness?.criterion ?? skill);
   const publishedFeedback = context.teacherPublishedFeedback.find(
@@ -318,6 +321,7 @@ function actionResources(
         skill,
         criterion: item.criterion ? criterionName(item.criterion) : undefined,
         title: item.title,
+        label: vi ? "Bắt đầu bài được giao" : "Start assignment",
       })),
     ...(publishedFeedback
       ? [
@@ -327,6 +331,7 @@ function actionResources(
             skill,
             criterion,
             title: `Review published ${skill} feedback`,
+            label: vi ? "Xem phản hồi của giáo viên" : "Review teacher feedback",
           },
         ]
       : []),
@@ -337,6 +342,7 @@ function actionResources(
           skill,
           criterion,
           title: `${recommendation.title}: ${recommendation.prompt}`,
+          label: vi ? "Bắt đầu bài luyện" : "Start practice",
         }
       : {
           id: `ielts-practice:${skill}:${criterion}`,
@@ -344,6 +350,7 @@ function actionResources(
           skill,
           criterion,
           title: `${skill} ${criterion} practice`,
+          label: vi ? "Bắt đầu bài luyện" : "Start practice",
         },
     {
       id: "ielts-study-plan",
@@ -351,6 +358,7 @@ function actionResources(
       skill,
       criterion,
       title: "IELTS study plan",
+      label: vi ? "Mở kế hoạch học" : "Open study plan",
     },
     {
       id: "ielts-support",
@@ -358,6 +366,7 @@ function actionResources(
       skill,
       criterion,
       title: "Trusted adult or local support",
+      label: vi ? "Tìm người hỗ trợ" : "Seek support",
     },
   ];
 }
@@ -367,14 +376,14 @@ function coachContractShapeInstructions() {
     "Return only one JSON object with every key below; do not add markdown.",
     "contractVersion='ielts-coach.v1'; product='ielts'; locale must match the request.",
     "outcome is recommendation, needs_evidence, or safety_escalation.",
-    "diagnosis={summary,skill,criteria}; criteria must belong to diagnosis.skill.",
+    "diagnosis={summary,skill,criteria}; copy action.skill into diagnosis.skill and include action.criterion in diagnosis.criteria when criterion is non-null.",
     "learnerEvidenceUsed is an array of exact, unchanged objects copied from authorized_learner_evidence.",
     "bandCriterionGap={criterion,current,targetBand,gapBands,explanation}. When no authorized current score or target exists, use outcome='needs_evidence' and set current,targetBand,gapBands to null.",
     "recommendedTask={taskId,title,instructions,whyItHelps,expectedSignal}; taskId must equal action.resourceId.",
     "confidence={level,value,limitations}; level is low, medium, or high and value is 0..1.",
     "sources is an array of exact, unchanged objects copied from authorized_sources.",
     "scoreAuthority={effective,learnerLabel,isOfficialTestResult}; isOfficialTestResult is always false. When current is null, effective and learnerLabel must be null.",
-    "action={kind,resourceId,skill,criterion?,label}; copy kind, resourceId, skill, and criterion exactly from one authorized action, and write only its learner-facing label.",
+    "action={kind,resourceId,skill,criterion?,label}; copy kind, resourceId, skill, criterion, and label exactly from one authorized action. Use null for an authorized action whose criterion is absent.",
   ].join("\n");
 }
 
@@ -774,7 +783,7 @@ export async function runIeltsCoachTurn(params: {
     criterion: criterionName(weakness?.criterion ?? skill),
     message: initialBoundary.normalizedText,
   });
-  const actions = actionResources(context, skill, recommendation);
+  const actions = actionResources(context, skill, recommendation, params.locale);
   const rubricIds = new Set(
     rubricResult?.evidence.map((item) => item.sourceId),
   );

@@ -161,6 +161,7 @@ test("schema recovery returns an authorized actionable contract", () => {
     skill: "writing" as const,
     criterion: "task_response" as const,
     title: "Writing task response practice",
+    label: "Start practice",
   };
   const authorization: IeltsCoachServerAuthorization = {
     learnerEvidence: new Map(
@@ -207,6 +208,7 @@ test("schema recovery gives a new learner a drill without inventing a band", () 
     skill: "writing" as const,
     criterion: "task_response" as const,
     title: "Writing task response practice",
+    label: "Start practice",
   };
   const authorization: IeltsCoachServerAuthorization = {
     learnerEvidence: new Map(),

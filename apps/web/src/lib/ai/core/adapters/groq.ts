@@ -8,6 +8,10 @@ interface GroqResponse {
   error?: { message?: string };
 }
 
+function supportsStrictJsonSchema(model: string) {
+  return model === "openai/gpt-oss-20b" || model === "openai/gpt-oss-120b";
+}
+
 export async function generateGroq(request: AdapterRequest): Promise<AdapterResponse> {
   const apiKey = configured(process.env.GROQ_API_KEY, "GROQ_API_KEY");
   const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
@@ -19,7 +23,21 @@ export async function generateGroq(request: AdapterRequest): Promise<AdapterResp
       messages: request.messages,
       temperature: request.temperature,
       max_tokens: request.maxOutputTokens,
-      ...(request.responseFormat === "json" ? { response_format: { type: "json_object" } } : {}),
+      ...(request.responseFormat === "json"
+        ? {
+            response_format:
+              request.jsonSchema && supportsStrictJsonSchema(request.model)
+                ? {
+                    type: "json_schema",
+                    json_schema: {
+                      name: request.jsonSchema.name,
+                      strict: true,
+                      schema: request.jsonSchema.schema,
+                    },
+                  }
+                : { type: "json_object" },
+          }
+        : {}),
     }),
   });
   const payload = (await response.json().catch(() => ({}))) as GroqResponse;

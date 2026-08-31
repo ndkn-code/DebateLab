@@ -44,7 +44,9 @@ export function parseIeltsCoachOutput(value: unknown): IeltsCoachOutput {
 export function normalizeAndValidateIeltsCoachOutput(
   value: unknown,
 ): IeltsCoachOutput {
-  return parseIeltsCoachOutput(trimStrings(value));
+  return parseIeltsCoachOutput(
+    trimStrings(normalizeNullableProviderOptionals(value)),
+  );
 }
 
 /**
@@ -147,4 +149,36 @@ function trimStrings(value: unknown): unknown {
     );
   }
   return value;
+}
+
+/**
+ * Strict provider JSON Schema represents optional fields as required nullable
+ * properties. Convert only the contract's known optional transport fields
+ * back to their canonical omitted form before Zod and authorization checks.
+ */
+function normalizeNullableProviderOptionals(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(normalizeNullableProviderOptionals);
+  }
+  if (!value || typeof value !== "object") return value;
+  const output = Object.fromEntries(
+    Object.entries(value).map(([key, entry]) => [
+      key,
+      normalizeNullableProviderOptionals(entry),
+    ]),
+  );
+  const looksLikeEvidence =
+    typeof output.evidenceId === "string" &&
+    typeof output.kind === "string" &&
+    typeof output.summary === "string";
+  if (looksLikeEvidence) {
+    if (output.score === null) delete output.score;
+    if (output.observedAt === null) delete output.observedAt;
+  }
+  const looksLikeAction =
+    typeof output.resourceId === "string" &&
+    typeof output.skill === "string" &&
+    typeof output.label === "string";
+  if (looksLikeAction && output.criterion === null) delete output.criterion;
+  return output;
 }
