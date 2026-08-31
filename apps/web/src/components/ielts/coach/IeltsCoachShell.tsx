@@ -8,6 +8,8 @@ import { ProductIcon } from "@/components/ui/product-icon";
 import { cn } from "@/lib/utils";
 import {
   IeltsCoachAssistantMessage,
+  evidenceAuthorityLabel,
+  evidenceTypeLabel,
   getIeltsEvidence,
   type IeltsCoachMessage,
 } from "./IeltsCoachMessage";
@@ -127,7 +129,7 @@ export function IeltsCoachShell() {
 
   return (
     <main className="mx-auto grid h-full min-h-0 w-full max-w-[1440px] gap-4 p-3 sm:p-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:p-6">
-      <section className="flex min-h-[620px] min-w-0 flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-token-card">
+      <section className="flex min-h-[620px] min-w-0 flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface">
         <header className="flex flex-wrap items-start justify-between gap-3 border-b border-outline-variant px-4 py-4 sm:px-5">
           <div className="min-w-0">
             <p className="type-eyebrow text-primary">{copy.eyebrow}</p>
@@ -275,7 +277,7 @@ export function IeltsCoachShell() {
         className="space-y-4 lg:overflow-y-auto"
         aria-label={copy.sourcesTitle}
       >
-        <section className="rounded-xl border border-outline-variant bg-surface p-4 shadow-token-card">
+        <section className="rounded-xl border border-outline-variant bg-surface p-4">
           <div className="flex items-center gap-2 type-title text-on-surface">
             <ProductIcon
               name="shieldCheck"
@@ -289,7 +291,7 @@ export function IeltsCoachShell() {
           </p>
         </section>
 
-        <section className="rounded-xl border border-outline-variant bg-surface p-4 shadow-token-card">
+        <section className="rounded-xl border border-outline-variant bg-surface p-4">
           <div className="flex items-center gap-2 type-title text-on-surface">
             <ProductIcon name="book" size="sm" className="text-primary" />
             {copy.sourcesTitle}
@@ -303,11 +305,12 @@ export function IeltsCoachShell() {
                     key={`${item.sourceId}-${item.version}`}
                     className="rounded-[10px] bg-surface-container-low p-3"
                   >
-                    <p className="type-label font-semibold capitalize text-on-surface">
-                      {item.itemType.replaceAll("_", " ")}
+                    <p className="type-label font-semibold text-on-surface">
+                      {evidenceTypeLabel(item.itemType, locale)}
                     </p>
                     <p className="mt-1 type-caption text-on-surface-variant">
-                      {item.authorityTier ?? copy.provisional} · v{item.version}
+                      {evidenceAuthorityLabel(item.authorityTier, locale)} · v
+                      {item.version}
                     </p>
                   </div>
                 ))}

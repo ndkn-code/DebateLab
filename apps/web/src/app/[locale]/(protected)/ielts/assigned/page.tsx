@@ -1,5 +1,9 @@
 import { listLearnerAssignedTests } from "@/lib/api/ielts/learner-assignments-repository";
 import { AssignedTestsList } from "@/components/ielts/assignments/AssignedTestsList";
+import {
+  PageContainer,
+  ProductPageShell,
+} from "@/components/shared/product-layout";
 
 export const metadata = { title: "Assigned IELTS tests" };
 export const dynamic = "force-dynamic";
@@ -13,8 +17,10 @@ export default async function IeltsAssignedTestsPage({
   const tests = await listLearnerAssignedTests();
 
   return (
-    <main className="mx-auto w-full max-w-3xl px-4 py-6">
-      <AssignedTestsList tests={tests} locale={locale} />
-    </main>
+    <ProductPageShell>
+      <PageContainer size="data" className="py-5 lg:py-6">
+        <AssignedTestsList tests={tests} locale={locale} />
+      </PageContainer>
+    </ProductPageShell>
   );
 }
