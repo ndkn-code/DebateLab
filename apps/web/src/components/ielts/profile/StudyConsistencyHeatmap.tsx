@@ -3,7 +3,9 @@
 import { useLocale } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { ArrowRight } from "@/components/ui/icons";
-import { cn } from "@/lib/utils";
+import GitHubActivity, {
+  type Contribution,
+} from "@/components/ui/github-activity";
 import type { IeltsConsistencyDayView, IeltsProfileView } from "./types";
 
 const COPY = {
@@ -54,54 +56,34 @@ function interpolate(
   );
 }
 
-function activityLevel(day: IeltsConsistencyDayView): 0 | 1 | 2 | 3 {
+function activityLevel(day: IeltsConsistencyDayView): 0 | 1 | 2 | 3 | 4 {
+  if (day.completedTasks >= 4 || day.completedMinutes >= 60) return 4;
   if (day.completedTasks >= 3 || day.completedMinutes >= 45) return 3;
   if (day.completedTasks >= 2 || day.completedMinutes >= 25) return 2;
   if (day.completedTasks >= 1 || day.completedMinutes > 0) return 1;
   return 0;
 }
 
-const LEVEL_CLASS = {
-  0: "bg-surface-container-high text-on-surface-variant",
-  1: "bg-success-container text-on-success-container",
-  2: "bg-success/55 text-on-surface",
-  3: "bg-success text-on-success",
-} as const;
+function alignContributionsToSunday(
+  contributions: Contribution[],
+): Contribution[] {
+  const firstDate = contributions[0]?.date;
+  if (!firstDate) return contributions;
 
-function HeatmapCell({
-  day,
-  locale,
-}: {
-  day: IeltsConsistencyDayView;
-  locale: string;
-}) {
-  const copy = COPY[locale === "vi" ? "vi" : "en"];
-  const level = activityLevel(day);
-  const date = new Intl.DateTimeFormat(locale === "vi" ? "vi-VN" : "en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(new Date(`${day.date}T12:00:00Z`));
-  const label = interpolate(copy.day, {
-    date,
-    minutes: day.completedMinutes,
-    tasks: day.completedTasks,
-    planned: day.plannedMinutes,
+  const firstDay = new Date(`${firstDate}T00:00:00Z`).getUTCDay();
+  if (firstDay === 0) return contributions;
+
+  const padding = Array.from({ length: firstDay }, (_, index) => {
+    const date = new Date(`${firstDate}T00:00:00Z`);
+    date.setUTCDate(date.getUTCDate() - (firstDay - index));
+    return {
+      date: date.toISOString().slice(0, 10),
+      count: 0,
+      level: 0 as const,
+    };
   });
-  return (
-    <abbr
-      aria-label={label}
-      className={cn(
-        "grid size-7 cursor-help place-items-center rounded-md border border-outline-variant type-caption font-semibold no-underline outline-none transition-transform duration-150 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none sm:size-6",
-        LEVEL_CLASS[level],
-      )}
-      tabIndex={day.completedTasks > 0 ? 0 : -1}
-      title={label}
-    >
-      {day.completedTasks > 0 ? Math.min(day.completedTasks, 3) : ""}
-      {day.completedTasks >= 3 ? <span className="sr-only">+</span> : null}
-    </abbr>
-  );
+
+  return [...padding, ...contributions];
 }
 
 export function StudyConsistencyHeatmap({ view }: { view: IeltsProfileView }) {
@@ -111,6 +93,17 @@ export function StudyConsistencyHeatmap({ view }: { view: IeltsProfileView }) {
   const activeDays = days.filter((day) => day.completedTasks > 0).length;
   const totalMinutes = days.reduce((sum, day) => sum + day.completedMinutes, 0);
   const totalTasks = days.reduce((sum, day) => sum + day.completedTasks, 0);
+  const contributions = alignContributionsToSunday(
+    days.map((day) => ({
+      date: day.date,
+      count: day.completedTasks,
+      level: activityLevel(day),
+    })),
+  );
+  const dateFormatter = new Intl.DateTimeFormat(
+    locale === "vi" ? "vi-VN" : "en-GB",
+    { day: "numeric", month: "short", year: "numeric" },
+  );
 
   return (
     <section
@@ -161,38 +154,34 @@ export function StudyConsistencyHeatmap({ view }: { view: IeltsProfileView }) {
         </p>
       ) : null}
 
-      <div
-        className="mt-4 overflow-x-auto pb-2"
-        role="group"
-        aria-label={copy.title}
-      >
-        <div className="grid w-max grid-flow-col grid-rows-7 gap-1">
-          {days.map((day) => (
-            <HeatmapCell day={day} key={day.date} locale={locale} />
-          ))}
-        </div>
+      <div className="mt-4 overflow-x-auto pb-2">
+        <GitHubActivity
+          aria-hidden="true"
+          className="[&>p:first-child]:hidden"
+          contributions={contributions}
+          repos={[]}
+          year={Number(days.at(-1)?.date.slice(0, 4)) || undefined}
+          accent="var(--success)"
+          months={Math.max(1, Math.ceil(days.length / 28))}
+          showMonths
+          label={copy.title}
+        />
       </div>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-3 type-caption text-on-surface-variant">
-        <span>{view.consistency.timezone}</span>
-        <div
-          className="flex items-center gap-1.5"
-          aria-label={`${copy.less} – ${copy.more}`}
-        >
-          <span>{copy.less}</span>
-          {copy.levels.map((label, index) => (
-            <span
-              aria-label={label}
-              className={cn(
-                "size-4 rounded border border-outline-variant",
-                LEVEL_CLASS[index as 0 | 1 | 2 | 3],
-              )}
-              key={label}
-              role="img"
-            />
-          ))}
-          <span>{copy.more}</span>
-        </div>
-      </div>
+      <ul className="sr-only">
+        {days.map((day) => (
+          <li key={day.date}>
+            {interpolate(copy.day, {
+              date: dateFormatter.format(new Date(`${day.date}T12:00:00Z`)),
+              tasks: day.completedTasks,
+              minutes: day.completedMinutes,
+              planned: day.plannedMinutes,
+            })}
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 type-caption text-on-surface-variant">
+        {view.consistency.timezone}
+      </p>
     </section>
   );
 }

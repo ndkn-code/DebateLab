@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { MessageSquareText, Sparkles } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import ProximitySidebar, {
+  type ProximitySection,
+} from "@/components/ui/proximity-sidebar";
 import { Heading, Text } from "@/components/ui/typography";
 import {
   BeautifulChatFrame,
@@ -29,6 +32,10 @@ interface ChatAreaProps {
   visualizingMessageId?: string | null;
   onRequestVisualize?: (messageId: string) => void;
   onRetryLoad?: () => void;
+}
+
+function getMessageSectionId(messageId: string, index: number) {
+  return `coach-message-${messageId.replace(/[^a-zA-Z0-9_-]/g, "-")}-${index}`;
 }
 
 function CoachEmptyState({
@@ -150,6 +157,29 @@ export function ChatArea({
   const showWelcome = messages.length === 0 && !hasConversation;
   const showConversationLoading =
     isLoading && hasConversation && messages.length === 0;
+  const conversationSections = useMemo<ProximitySection[]>(
+    () =>
+      messages.flatMap((message, index) =>
+        message.content.trim().length > 0
+          ? [
+              {
+                id: getMessageSectionId(message.id, index),
+                label:
+                  message.content
+                    .replace(/[#*_`>\n]+/g, " ")
+                    .replace(/\s+/g, " ")
+                    .trim()
+                    .slice(0, 72) || `${t("conversations")} ${index + 1}`,
+                kind:
+                  message.role === "user"
+                    ? ("subtitle" as const)
+                    : ("body" as const),
+              },
+            ]
+          : [],
+      ),
+    [messages, t],
+  );
 
   return (
     <BeautifulChatFrame
@@ -195,69 +225,90 @@ export function ChatArea({
         </div>
       }
     >
-      <div
-        ref={scrollRef}
-        className={cn(
-          "h-full overflow-y-auto px-4 sm:px-6",
-          showWelcome
-            ? "pb-4 pt-5 sm:pb-6 sm:pt-8"
-            : "pb-4 pt-6 sm:pb-6 sm:pt-8",
-        )}
-      >
+      <div className="relative h-full">
         <div
+          ref={scrollRef}
           className={cn(
-            "mx-auto w-full",
-            showWelcome ? "max-w-[720px]" : "max-w-[880px]",
+            "h-full overflow-y-auto px-4 sm:px-6",
+            showWelcome
+              ? "pb-4 pt-5 sm:pb-6 sm:pt-8"
+              : "pb-4 pt-6 sm:pb-6 sm:pt-8",
           )}
         >
-          {loadError ? (
-            <ChatLoadError onRetryLoad={onRetryLoad} />
-          ) : showConversationLoading ? (
-            <ChatConversationLoading />
-          ) : showWelcome ? (
-            <div className="flex min-h-full items-center justify-center">
-              <CoachEmptyState
-                coachEnvelope={coachEnvelope}
-                onPromptSelect={handleSubmit}
-                isLoading={isLoading || isInsightsLoading}
-              />
-            </div>
-          ) : (
-            <div className="pb-4">
-              <div className="space-y-5">
-                {messages.map((msg) => {
-                  const isStreamingAssistant =
-                    msg.role === "assistant" && msg.status === "streaming";
-                  const isWaitingForFirstToken =
-                    isStreamingAssistant && msg.content.length === 0;
-
-                  if (isWaitingForFirstToken) {
-                    return (
-                      <TypingIndicator
-                        key={msg.id}
-                        label={t("coach.refreshing_insights")}
-                      />
-                    );
-                  }
-
-                  return (
-                    <ChatBubble
-                      key={msg.id}
-                      message={msg}
-                      isStreaming={isStreamingAssistant}
-                      onSendMessage={handleSubmit}
-                      onDraftMessage={handleDraftMessage}
-                      actionsDisabled={isLoading || isInsightsLoading}
-                      renderStructuredMetadata
-                      isVisualizing={visualizingMessageId === msg.id}
-                      onRequestVisualize={onRequestVisualize}
-                    />
-                  );
-                })}
+          <div
+            className={cn(
+              "mx-auto w-full",
+              showWelcome ? "max-w-[720px]" : "max-w-[880px]",
+            )}
+          >
+            {loadError ? (
+              <ChatLoadError onRetryLoad={onRetryLoad} />
+            ) : showConversationLoading ? (
+              <ChatConversationLoading />
+            ) : showWelcome ? (
+              <div className="flex min-h-full items-center justify-center">
+                <CoachEmptyState
+                  coachEnvelope={coachEnvelope}
+                  onPromptSelect={handleSubmit}
+                  isLoading={isLoading || isInsightsLoading}
+                />
               </div>
-            </div>
-          )}
+            ) : (
+              <div className="pb-4">
+                <div className="space-y-5">
+                  {messages.map((msg) => {
+                    const isStreamingAssistant =
+                      msg.role === "assistant" && msg.status === "streaming";
+                    const isWaitingForFirstToken =
+                      isStreamingAssistant && msg.content.length === 0;
+
+                    if (isWaitingForFirstToken) {
+                      return (
+                        <TypingIndicator
+                          key={msg.id}
+                          label={t("coach.refreshing_insights")}
+                        />
+                      );
+                    }
+
+                    const sectionId = getMessageSectionId(
+                      msg.id,
+                      messages.indexOf(msg),
+                    );
+
+                    return (
+                      <section
+                        id={sectionId}
+                        key={msg.id}
+                        className="scroll-mt-6"
+                      >
+                        <ChatBubble
+                          message={msg}
+                          isStreaming={isStreamingAssistant}
+                          onSendMessage={handleSubmit}
+                          onDraftMessage={handleDraftMessage}
+                          actionsDisabled={isLoading || isInsightsLoading}
+                          renderStructuredMetadata
+                          isVisualizing={visualizingMessageId === msg.id}
+                          onRequestVisualize={onRequestVisualize}
+                        />
+                      </section>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
+        {conversationSections.length > 1 ? (
+          <aside className="absolute inset-y-0 right-0 hidden w-[150px] xl:block">
+            <ProximitySidebar
+              sections={conversationSections}
+              side="right"
+              activeOffset={0.4}
+            />
+          </aside>
+        ) : null}
       </div>
     </BeautifulChatFrame>
   );

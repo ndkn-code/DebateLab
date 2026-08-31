@@ -19,6 +19,11 @@ const approvedPathFragments = [
   // globals.css; the few literals are bklit internals (heatmap default ramp,
   // pattern presets, bug-number comments). We do not hand-edit 80 vendored files.
   "apps/web/src/components/charts/",
+  // Vendored Rare UI registry components. Product surfaces configure their
+  // documented props; the upstream component source is intentionally intact.
+  "apps/web/src/components/ui/bounce-sidebar.tsx",
+  "apps/web/src/components/ui/proximity-sidebar.tsx",
+  "apps/web/src/components/ui/github-activity.tsx",
   "apps/web/src/app/[locale]/auth/login/page.tsx",
   "apps/web/src/components/admin/feedback-popups/FeedbackPopupsDashboard.tsx",
   "apps/web/src/components/admin/users/UserAccessDashboard.tsx",
@@ -66,6 +71,9 @@ const typographyApprovedFragments = [
   "packages/shared/src/design-system/",
   "apps/web/src/app/globals.css",
   "apps/web/src/components/ui/typography.tsx",
+  "apps/web/src/components/ui/bounce-sidebar.tsx",
+  "apps/web/src/components/ui/proximity-sidebar.tsx",
+  "apps/web/src/components/ui/github-activity.tsx",
   "apps/web/src/lib/email/templates.tsx",
   "apps/web/src/app/email/unsubscribe/route.ts",
   "apps/web/src/lib/settings.ts",

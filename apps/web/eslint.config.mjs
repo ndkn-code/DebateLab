@@ -144,6 +144,11 @@ const eslintConfig = defineConfig([
     // Vendored bklit ChartKit internals are governed through design-system
     // audit tokens while the app migrates analytics surfaces onto the wrapper.
     "src/components/charts/**",
+    // Vendored Rare UI registry components remain byte-for-byte aligned with
+    // their MIT-licensed upstream implementations.
+    "src/components/ui/bounce-sidebar.tsx",
+    "src/components/ui/proximity-sidebar.tsx",
+    "src/components/ui/github-activity.tsx",
     "next-env.d.ts",
   ]),
 ]);

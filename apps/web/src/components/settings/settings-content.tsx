@@ -32,6 +32,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import {
+  BounceSidebar,
+  type BounceSidebarItem,
+} from "@/components/ui/bounce-sidebar";
 import { DurationControl } from "@/components/shared/duration-control";
 import { ProductPageHeader } from "@/components/shared/product-layout";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
@@ -678,8 +682,34 @@ export function SettingsContent({
 
     return groups;
   }, [settingsSections]);
+  const bounceSidebarNavigation = useMemo(() => {
+    const items: BounceSidebarItem[] = [];
+    const sectionIds: Array<SettingsSectionId | null> = [];
+
+    for (const group of settingsSectionGroups) {
+      items.push({ label: group.group, heading: true });
+      sectionIds.push(null);
+
+      for (const section of group.sections) {
+        items.push({ label: section.label });
+        sectionIds.push(section.id);
+      }
+    }
+
+    return { items, sectionIds };
+  }, [settingsSectionGroups]);
   const [activeSection, setActiveSection] =
     useState<SettingsSectionId>("profile");
+  const activeBounceSidebarIndex = Math.max(
+    0,
+    bounceSidebarNavigation.sectionIds.indexOf(activeSection),
+  );
+  const activeBounceSidebarItem =
+    bounceSidebarNavigation.items[activeBounceSidebarIndex];
+  const activeBounceSidebarLabel =
+    typeof activeBounceSidebarItem === "string"
+      ? activeBounceSidebarItem
+      : activeBounceSidebarItem?.label;
   const manualActiveSectionRef = useRef<SettingsSectionId | null>(null);
   const getSectionElement = useCallback((sectionId: SettingsSectionId) => {
     return (
@@ -1037,38 +1067,22 @@ export function SettingsContent({
 
         <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
           <aside className="hidden lg:block">
-            <nav className="sticky top-6 rounded-xl border border-outline-variant bg-surface p-2 shadow-none dark:border-outline-variant/70 dark:bg-surface/95">
-              {settingsSectionGroups.map((group, groupIndex) => (
-                <div
-                  key={`${group.group}-${groupIndex}`}
-                  className="mt-5 first:mt-0"
-                >
-                  <p className="px-2 text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-                    {group.group}
-                  </p>
-                  <div className="mt-2 space-y-1">
-                    {group.sections.map((section) => (
-                      <button
-                        key={section.id}
-                        type="button"
-                        onClick={() => scrollToSection(section.id)}
-                        aria-current={
-                          activeSection === section.id ? "page" : undefined
-                        }
-                        className={cn(
-                          "flex h-9 w-full items-center gap-2 rounded-lg px-2 text-left text-sm font-medium transition-colors",
-                          activeSection === section.id
-                            ? "bg-primary-container text-primary-dim"
-                            : "text-on-surface-variant hover:bg-background hover:text-on-surface",
-                        )}
-                      >
-                        {section.icon}
-                        <span className="truncate">{section.label}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
+            <nav
+              aria-label={t("headline")}
+              className="sticky top-6 rounded-xl border border-outline-variant bg-surface p-4 shadow-none dark:border-outline-variant/70 dark:bg-surface/95"
+            >
+              <p className="sr-only" aria-live="polite">
+                {activeBounceSidebarLabel}
+              </p>
+              <BounceSidebar
+                items={bounceSidebarNavigation.items}
+                value={activeBounceSidebarIndex}
+                onChange={(index) => {
+                  const sectionId = bounceSidebarNavigation.sectionIds[index];
+                  if (sectionId) scrollToSection(sectionId);
+                }}
+                dotColor="var(--primary)"
+              />
             </nav>
           </aside>
 
