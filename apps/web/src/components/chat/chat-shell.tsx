@@ -7,6 +7,13 @@ import { ConversationSidebar } from "./conversation-sidebar";
 import { ChatArea } from "./chat-area";
 import { PageTransition } from "@/components/shared/page-motion";
 import { coercePracticeLanguage } from "@/lib/practice-language";
+import { captureHandledError } from "@/lib/observability/faro-client";
+import {
+  chatFailureFingerprint,
+  parseChatErrorDetails,
+  sanitizeChatErrorDetails,
+  shouldCaptureChatHttpFailure,
+} from "@/lib/api/chat-error";
 import type { ConversationWithPreview } from "@/lib/api/chat";
 import type { ChatMessage } from "@/types/database";
 import type {
@@ -258,10 +265,39 @@ export function ChatShell({
       setMessages((prev) => [...prev, assistantMsg]);
       setIsLoading(true);
 
+      const requestId = crypto.randomUUID();
+      let clientFailureReported = false;
+      let responseFailureHandled = false;
+      const reportClientFailure = (details: {
+        status?: number;
+        code?: string;
+        requestId?: string;
+      }) => {
+        if (clientFailureReported) return;
+        clientFailureReported = true;
+        captureHandledError(
+          new Error("Chat request failed"),
+          {
+            requestId: details.requestId ?? requestId,
+            status: details.status ?? null,
+            code: details.code ?? "UNKNOWN",
+            featureArea: "ai-coach",
+            route: "/api/chat",
+          },
+          {
+            fingerprint: chatFailureFingerprint(details),
+            type: "chat_request",
+          },
+        );
+      };
+
       try {
         const res = await fetch("/api/chat", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-thinkfy-request-id": requestId,
+          },
           body: JSON.stringify({
             message: trimmedText,
             conversationId: activeConversationId,
@@ -269,12 +305,30 @@ export function ChatShell({
             contextId: activeContextId,
             practiceLanguage,
             googleAiConsent,
+            requestId,
           }),
         });
 
         if (!res.ok) {
+          responseFailureHandled = true;
           const errBody = await res.text();
-          console.error("Chat API error:", res.status, errBody);
+          const errorDetails = parseChatErrorDetails(errBody);
+          const responseRequestId =
+            errorDetails.requestId ??
+            res.headers.get("x-thinkfy-request-id") ??
+            requestId;
+          console.error("Chat API error", {
+            status: res.status,
+            code: errorDetails.code ?? "UNKNOWN",
+            requestId: responseRequestId,
+          });
+          if (shouldCaptureChatHttpFailure(res.status)) {
+            reportClientFailure({
+              status: res.status,
+              code: errorDetails.code,
+              requestId: responseRequestId,
+            });
+          }
           throw new Error(`Chat request failed (${res.status})`);
         }
 
@@ -421,6 +475,11 @@ export function ChatShell({
               }
 
               if (data.error) {
+                const streamErrorDetails = sanitizeChatErrorDetails(data);
+                reportClientFailure({
+                  code: streamErrorDetails.code ?? "STREAM_ERROR",
+                  requestId: streamErrorDetails.requestId ?? requestId,
+                });
                 stopTypewriter();
                 setMessages((prev) => {
                   const updated = [...prev];
@@ -485,8 +544,9 @@ export function ChatShell({
         }
 
         await waitForStreamDrain();
-      } catch (err) {
-        console.error("Send error:", err);
+      } catch {
+        if (!responseFailureHandled) reportClientFailure({});
+        console.error("Send error", { requestId });
         // Update assistant message with error
         setMessages((prev) => {
           const updated = [...prev];

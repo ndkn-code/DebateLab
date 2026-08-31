@@ -50,7 +50,8 @@ def test_valid_webhook_publishes_bug_event(monkeypatch, grafana_payload: dict) -
     )
     assert response.status_code == 202
     assert response.json() == {"accepted": 1}
-    assert publisher.messages[0][2]["fingerprint"] == "deadbeef12345678"
+    assert publisher.messages[0][2]["fingerprint"].startswith("thinkfy-bug-v1:")
+    assert __import__("json").loads(publisher.messages[0][1])["sourceHash"] == "faro-error-1234"
 
 
 def test_invalid_signature_never_publishes(monkeypatch, grafana_payload: dict) -> None:

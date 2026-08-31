@@ -15,11 +15,14 @@ def test_webhook_transforms_to_allowlisted_sanitized_event(grafana_payload: dict
     event = transform_webhook(GrafanaWebhook.model_validate(grafana_payload), body)[0]
     assert event.schema_version == 1
     assert len(event.delivery_id) == 64
-    assert event.fingerprint == "deadbeef12345678"
+    assert event.fingerprint.startswith("thinkfy-bug-v1:")
+    assert event.source_hash == "faro-error-1234"
     assert event.severity == "p1"
     assert event.occurrence_count == 3
     assert event.affected_sessions == 2
     assert str(event.route) == "/practice"
+    assert event.release_sha == "5c555d0936178ed3208aa5c98521547784022838"
+    assert event.faro_session_id == "session-1234"
     assert "user@example.com" not in (event.sanitized_message or "")
     assert "Bearer-secret" not in (event.sanitized_message or "")
     assert "user@example.com" not in event.source_frames[0]
@@ -31,12 +34,15 @@ def test_delivery_id_is_stable_for_retries(grafana_payload: dict) -> None:
     assert transform_webhook(parsed, body)[0].delivery_id == transform_webhook(parsed, body)[0].delivery_id
 
 
-def test_invalid_fingerprint_is_replaced_with_stable_hash(grafana_payload: dict) -> None:
+def test_invalid_supplied_fingerprint_does_not_override_stable_source_hash(
+    grafana_payload: dict,
+) -> None:
     grafana_payload["alerts"][0]["fingerprint"] = "not valid pii@example.com"
     event = transform_webhook(
         GrafanaWebhook.model_validate(grafana_payload), json.dumps(grafana_payload).encode()
     )[0]
-    assert len(event.fingerprint) == 32
+    assert event.fingerprint.startswith("thinkfy-bug-v1:")
+    assert event.source_hash == "faro-error-1234"
     assert "@" not in event.fingerprint
 
 
@@ -201,6 +207,38 @@ def test_service_name_is_canonical_router_service_label(grafana_payload: dict) -
         GrafanaWebhook.model_validate(grafana_payload), json.dumps(grafana_payload).encode()
     )[0]
     assert event.service == "thinkfy-api"
+
+
+def test_live_faro_label_aliases_are_preserved_for_agent_triage(grafana_payload: dict) -> None:
+    labels = grafana_payload["alerts"][0]["labels"]
+    labels.pop("environment")
+    labels.pop("route")
+    labels.pop("release_sha", None)
+    labels.pop("faro_session_id", None)
+    labels.update(
+        {
+            "deployment_environment": "production",
+            "service_version": "5c555d0936178ed3208aa5c98521547784022838",
+            "page_id": "/chat?secret=redacted",
+            "session_id": "session-live-1",
+            "value_template": "Chat request failed",
+            "context_requestId": "123e4567-e89b-12d3-a456-426614174000",
+            "context_status": "500",
+            "context_featureArea": "ai-coach",
+        }
+    )
+
+    event = transform_webhook(
+        GrafanaWebhook.model_validate(grafana_payload), json.dumps(grafana_payload).encode()
+    )[0]
+
+    assert event.environment == "production"
+    assert event.error_title == "Chat request failed"
+    assert event.route == "/chat"
+    assert event.faro_session_id == "session-live-1"
+    assert event.request_id == "123e4567-e89b-12d3-a456-426614174000"
+    assert event.http_status == 500
+    assert event.feature_area == "ai-coach"
 
 
 def test_missing_generator_url_stays_unavailable(grafana_payload: dict) -> None:

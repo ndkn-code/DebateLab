@@ -125,15 +125,30 @@ class ClickUpClient:
     def _tags(event: BugEventV1) -> list[str]:
         return ["grafana", "production-bug", event.severity, f"gf-{event.fingerprint[:16].lower()}"]
 
+    @staticmethod
+    def missing_agent_evidence(event: BugEventV1) -> list[str]:
+        # The stable Faro source hash is the retrieval key used by bug-ops to
+        # load the complete source events from Loki. Release, route and session
+        # stay out of alert grouping labels to avoid one alert per user/page.
+        return [] if event.source_hash else ["source hash"]
+
+    @classmethod
+    def agent_ready(cls, event: BugEventV1) -> bool:
+        return not cls.missing_agent_evidence(event)
+
     def description(self, event: BugEventV1) -> str:
         safe_frames = [safe for frame in event.source_frames if (safe := sanitize_text(frame, 300))]
         frames = "\n".join(f"- `{frame}`" for frame in safe_frames) or "- Not available"
         safe_message = sanitize_text(event.sanitized_message or event.error_title, 2000) or "Redacted error"
+        missing_evidence = self.missing_agent_evidence(event)
         fields = [
             f"<!-- {self._marker(event)} -->",
             "## Automated Grafana incident",
             f"**Fingerprint:** `{event.fingerprint}`",
+            f"**Source query hash:** `{event.source_hash or 'unavailable'}`",
             f"**Severity:** {event.severity.upper()}",
+            f"**Agent evidence complete:** {'yes' if not missing_evidence else 'no'}",
+            f"**Missing evidence:** {', '.join(missing_evidence) if missing_evidence else 'none'}",
             f"**State:** {event.status}",
             f"**Occurrences:** {event.occurrence_count}",
             f"**Affected sessions:** {event.affected_sessions or 0}",
@@ -142,6 +157,9 @@ class ClickUpClient:
             f"**Environment / service:** {event.environment} / {event.service}",
             f"**Release:** `{event.release_sha or 'unknown'}`",
             f"**Route:** `{event.route or 'unknown'}`",
+            f"**Feature / failure stage:** `{event.feature_area or 'unknown'}` / `{event.failure_stage or 'unknown'}`",
+            f"**HTTP status:** `{event.http_status or 'unavailable'}`",
+            f"**Request ID:** `{event.request_id or 'unavailable'}`",
             f"**Trace ID:** `{event.trace_id or 'unavailable'}`",
             f"**Faro session ID:** `{event.faro_session_id or 'unavailable'}`",
             f"**Debug ID:** `{event.debug_id or 'unavailable'}`",
@@ -177,7 +195,11 @@ class ClickUpClient:
             json={
                 "name": f"[{event.severity.upper()}] {safe_title}"[:255],
                 "description": self.description(event),
-                "status": self.cfg.clickup_ready_status if event.severity in {"p0", "p1"} else self.cfg.clickup_new_status,
+                "status": (
+                    self.cfg.clickup_ready_status
+                    if event.severity in {"p0", "p1"} and self.agent_ready(event)
+                    else self.cfg.clickup_new_status
+                ),
                 "tags": self._tags(event),
             },
         )
@@ -196,9 +218,9 @@ class ClickUpClient:
             "name": f"[{event.severity.upper()}] {safe_title}"[:255],
             "description": self.description(event),
         }
-        if reopen:
+        if reopen and self.agent_ready(event):
             payload["status"] = self.cfg.clickup_ready_status
-        elif promote:
+        elif promote and self.agent_ready(event):
             current = self._request("GET", f"/task/{task_id}").json()
             if (current.get("status") or {}).get("status", "").casefold() == self.cfg.clickup_new_status.casefold():
                 payload["status"] = self.cfg.clickup_ready_status

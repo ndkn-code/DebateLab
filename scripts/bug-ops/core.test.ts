@@ -31,6 +31,35 @@ test("ClickUp list filters the configured list without leaking its token", async
   assert.equal(calledUrl.search.includes("secret-token"), false);
 });
 
+test("ClickUp get returns only an allow-listed evidence projection", async () => {
+  const client = new ClickUpClient(
+    { CLICKUP_API_TOKEN: "token", CLICKUP_BUG_LIST_ID: "list" },
+    async (input) => {
+      assert.match(String(input), /\/task\/task-1$/);
+      return response({
+        id: "task-1",
+        name: "[P1] Chat request failed",
+        status: { status: "Ready for Agent" },
+        description: [
+          "**Fingerprint:** `incident-hash-5678`",
+          "**Source query hash:** `source-hash-1234`",
+          "**Agent evidence complete:** yes",
+          "**Route:** `/api/chat`",
+          "Sensitive freeform text that must not be returned",
+        ].join("\n"),
+      });
+    },
+  );
+
+  const task = await client.getEvidence("task-1");
+
+  assert.equal(task.evidence.sourceHash, "source-hash-1234");
+  assert.equal(task.evidence.route, "/api/chat");
+  assert.equal(task.status, "Ready for Agent");
+  assert.doesNotMatch(JSON.stringify(task), /Sensitive freeform/);
+  assert.equal("description" in task, false);
+});
+
 test("ClickUp claim rejects a task that another worker already claimed", async () => {
   const fetchImpl: FetchLike = async () =>
     response({ id: "1", name: "Broken", status: { status: "Agent Working" } });
@@ -116,6 +145,28 @@ test("Grafana query uses a bearer header and POST body", async () => {
   assert.equal(captured.init?.method, "POST");
   assert.equal((captured.init?.headers as Record<string, string>).Authorization, "Bearer grafana-secret");
   assert.match(String(captured.init?.body), /service_name/);
+});
+
+test("Grafana incident queries the live Faro source hash labels", async () => {
+  let body = "";
+  const client = new GrafanaClient(
+    {
+      GRAFANA_URL: "https://example.grafana.net",
+      GRAFANA_SERVICE_ACCOUNT_TOKEN: "grafana-secret",
+      GRAFANA_LOKI_DATASOURCE_UID: "logs",
+    },
+    async (_input, init) => {
+      body = String(init?.body ?? "");
+      return response({ results: {} });
+    },
+  );
+
+  await client.incident("source-hash-1234", 1, 2);
+
+  assert.match(body, /deployment_environment/);
+  assert.match(body, /kind=\\\"exception\\\"/);
+  assert.match(body, /hash=\\\"source-hash-1234\\\"/);
+  assert.doesNotMatch(body, /error_fingerprint/);
 });
 
 test("Grafana rejects non-HTTPS remote URLs", () => {

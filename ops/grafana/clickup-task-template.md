@@ -6,6 +6,12 @@ trace IDs, sessions, routes, releases, commits, or source frames.
 
 **Fingerprint:** `{{error_fingerprint}}`
 
+**Source query hash:** `{{source_hash}}`
+
+**Agent evidence complete:** {{agent_evidence_complete}}
+
+**Missing evidence:** {{missing_evidence}}
+
 **Status:** {{status}}
 
 **Environment:** {{environment}}
@@ -20,6 +26,9 @@ trace IDs, sessions, routes, releases, commits, or source frames.
 
 - Grafana: {{grafana_url}}
 - Route: `{{normalized_route}}`
+- Feature / failure stage: `{{feature_area}}` / `{{failure_stage}}`
+- HTTP status: `{{http_status}}`
+- Request ID: `{{request_id}}`
 - Trace: `{{trace_id}}`
 - Faro session: `{{faro_session_id}}`
 - Debug ID: `{{debug_id}}`

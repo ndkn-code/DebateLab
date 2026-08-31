@@ -12,6 +12,12 @@ class BugEventV1(BaseModel):
     schema_version: Literal[1] = Field(alias="schemaVersion")
     delivery_id: str = Field(alias="deliveryId", pattern=r"^[a-f0-9]{64}$")
     fingerprint: str = Field(min_length=8, max_length=128, pattern=r"^[A-Za-z0-9_.:-]+$")
+    source_hash: str | None = Field(
+        default=None,
+        alias="sourceHash",
+        max_length=128,
+        pattern=r"^[A-Za-z0-9_.:-]+$",
+    )
     alert_rule: str = Field(alias="alertRule", min_length=1, max_length=180)
     severity: Literal["p0", "p1", "p2", "p3"]
     status: Literal["firing", "resolved"]
@@ -25,6 +31,10 @@ class BugEventV1(BaseModel):
     occurrence_count: int = Field(alias="occurrenceCount", ge=1, le=1_000_000_000)
     affected_sessions: int | None = Field(default=None, alias="affectedSessions", ge=0)
     route: str | None = Field(default=None, max_length=300)
+    feature_area: str | None = Field(default=None, alias="featureArea", max_length=80)
+    failure_stage: str | None = Field(default=None, alias="failureStage", max_length=80)
+    http_status: int | None = Field(default=None, alias="httpStatus", ge=100, le=599)
+    request_id: str | None = Field(default=None, alias="requestId", max_length=128)
     source_frames: list[str] = Field(default_factory=list, alias="sourceFrames", max_length=20)
     trace_id: str | None = Field(default=None, alias="traceId", max_length=64)
     faro_session_id: str | None = Field(default=None, alias="faroSessionId", max_length=128)

@@ -33,6 +33,17 @@ export interface ClickUpTask {
   priority?: { priority?: string } | null;
   url?: string;
   date_updated?: string;
+  description?: string;
+}
+
+export interface ClickUpEvidenceTask {
+  id: string;
+  name: string;
+  status?: string;
+  priority?: string;
+  url?: string;
+  dateUpdated?: string;
+  evidence: Record<string, string>;
 }
 
 export interface GrafanaQueryOptions {
@@ -193,6 +204,45 @@ export class ClickUpClient {
     return (await this.request(`/task/${encodeURIComponent(taskId)}`)) as unknown as ClickUpTask;
   }
 
+  async getEvidence(taskId: string): Promise<ClickUpEvidenceTask> {
+    const task = await this.get(taskId);
+    const description = task.description ?? "";
+    const field = (label: string, maximum = 240) => {
+      const escaped = label.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const match = description.match(
+        new RegExp(`\\*\\*${escaped}:\\*\\*\\s*(?:\\\`([^\\\`]*)\\\`|([^\\n]*))`, "i"),
+      );
+      const value = (match?.[1] ?? match?.[2] ?? "").trim();
+      return value ? value.replace(/[\u0000-\u001f\u007f]/g, "").slice(0, maximum) : undefined;
+    };
+    const evidence = Object.fromEntries(
+      [
+        ["fingerprint", field("Fingerprint", 128)],
+        ["sourceHash", field("Source query hash", 128)],
+        ["severity", field("Severity", 8)],
+        ["agentEvidenceComplete", field("Agent evidence complete", 3)],
+        ["missingEvidence", field("Missing evidence", 240)],
+        ["release", field("Release", 128)],
+        ["route", field("Route", 240)],
+        ["featureAndFailureStage", field("Feature / failure stage", 180)],
+        ["httpStatus", field("HTTP status", 16)],
+        ["requestId", field("Request ID", 128)],
+        ["traceId", field("Trace ID", 128)],
+        ["faroSessionId", field("Faro session ID", 128)],
+        ["debugId", field("Debug ID", 128)],
+      ].filter((entry): entry is [string, string] => Boolean(entry[1])),
+    );
+    return {
+      id: task.id,
+      name: task.name.slice(0, 255),
+      status: task.status?.status,
+      priority: task.priority?.priority,
+      url: task.url,
+      dateUpdated: task.date_updated,
+      evidence,
+    };
+  }
+
   async claim(taskId: string): Promise<ClickUpTask> {
     // This lock serializes claims made by local Codex runs on this host. It is
     // not a cross-host lease; the scheduler must also prevent overlapping runs.
@@ -284,10 +334,10 @@ export class GrafanaClient {
     });
   }
 
-  incident(fingerprint: string, fromMs: number, toMs: number): Promise<JsonValue> {
-    const escaped = fingerprint.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  incident(sourceHash: string, fromMs: number, toMs: number): Promise<JsonValue> {
+    const escaped = sourceHash.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     return this.query({
-      expression: `{environment="production"} | json | error_fingerprint="${escaped}"`,
+      expression: `{kind="exception",app_id="1295",deployment_environment="production",hash="${escaped}"}`,
       fromMs,
       toMs,
       limit: 500,

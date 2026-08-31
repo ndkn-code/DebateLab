@@ -4,25 +4,24 @@ These queries are starting templates for Grafana Cloud Logs. Replace
 `$LOKI_DATASOURCE_UID` in the Grafana UI with the actual Loki data source. Do
 not commit its credentials.
 
-The application and Cloud Run telemetry must emit `environment`,
-`error_fingerprint`, `service_name`, `feature_area`, and (when present)
-`faro_session_id` as indexed labels or JSON fields. `environment` and
-`service_name` are the canonical names used by the alert policy and router;
-do not substitute `deployment_environment` or `service` in new rules.
+Installed Faro streams use `deployment_environment`, `hash`, `service_version`,
+`page_id`, and `session_id` as indexed labels, with event fields parsed using
+`logfmt`. The Cloud Run router normalizes those names into the canonical
+ClickUp contract (`environment`, `source_hash`, `release_sha`, `route`, and
+`faro_session_id`). Alert queries must use the installed Faro names; do not use
+the canonical ClickUp names as Loki selectors.
 
-The stream selector below requires `environment` to be an indexed Loki label.
-If the installed Faro/Cloud Run pipeline stores it only as a JSON field, first
-adapt the selector to `{job="..."} | json | environment="production"` and
-verify the result in Explore before enabling the rule.
+Every query must be validated against live Explore results before enabling the
+rule. A query returning no series is a rollout failure, not proof of zero bugs.
 
 ## New production fingerprints (P2)
 
-Use this as query `A`, reduce by `error_fingerprint` and `service_name`, and
+Use this as query `A`, reduce by `hash` and `service_name`, and
 alert when the last value is at least one:
 
 ```logql
-sum by (error_fingerprint, service_name, environment) (
-  count_over_time({environment="production"} | json | level="error" [5m])
+sum by (hash, service_name) (
+  count_over_time({kind="exception",app_id="1295",deployment_environment="production"}[5m])
 )
 ```
 
@@ -35,8 +34,8 @@ notifications update the existing incident instead of creating another task.
 Occurrences query; alert at `>= 3` over 15 minutes:
 
 ```logql
-sum by (error_fingerprint, service_name, environment) (
-  count_over_time({environment="production"} | json | level="error" [15m])
+sum by (hash, service_name) (
+  count_over_time({kind="exception",app_id="1295",deployment_environment="production"}[15m])
 )
 ```
 
@@ -51,12 +50,11 @@ worker from the webhook annotations.
 Alert on the first occurrence within five minutes:
 
 ```logql
-sum by (error_fingerprint, service_name, environment, feature_area) (
+sum by (hash, service_name) (
   count_over_time(
-    {environment="production"}
-      | json
-      | level="error"
-      | feature_area=~"authentication|payments|data-loss|security"
+    {kind="exception",app_id="1295",deployment_environment="production"}
+      | logfmt
+      | context_featureArea=~"authentication|payments|data-loss|security|ai-coach"
     [5m]
   )
 )
@@ -67,8 +65,9 @@ sum by (error_fingerprint, service_name, environment, feature_area) (
 Every firing notification should include these labels when the source record
 contains them:
 
-- Labels: `error_fingerprint`, `service_name`, `environment`, `severity`,
-  `feature_area`, and `clickup_status`.
+- Labels: preserve only the stable Faro `hash` and `service_name` grouping
+  keys, then add `severity` and `clickup_status`. Do not group alerts by
+  session, route/page, or release.
 - Annotations: sanitized error title/message, first/last seen, occurrence and
   affected-session counts, release SHA, route, trace ID, Faro session ID,
   application debug ID, and a direct Grafana URL. Preserve absent values as

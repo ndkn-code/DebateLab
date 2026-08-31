@@ -22,10 +22,12 @@ ClickUp task per run. Use `gpt-5.6-luna` with high reasoning.
    confirm `origin/main` exists. Create a new isolated git worktree from the
    explicit `origin/main` ref, with a branch named
    `codex/bug-TASK_ID-short-slug`. Never edit the shared checkout.
-4. Read the task and query its fingerprint with
-   `npm run bugops -- grafana incident FINGERPRINT --from 24h`; the fingerprint
-   must come from the required incident marker, never from guesswork or another
-   task. This command queries Loki only. When a trace ID is present, optionally
+4. Read the claimed task with `npm run bugops -- clickup get TASK_ID`. Require
+   `Agent evidence complete: yes` and parse the exact `Source query hash` from
+   the description. Query that source hash with
+   `npm run bugops -- grafana incident SOURCE_HASH --from 24h`; never query the
+   one-way incident fingerprint or guess a hash from another task. This command
+   queries live Faro Loki labels. When a trace ID is present, optionally
    inspect Tempo using the task's direct Grafana URL if Grafana UI/API access is
    available; if Tempo is unavailable, continue with Loki and mark Tempo as
    unavailable. Use the read-only Grafana credential. Do not display, copy into
@@ -34,7 +36,9 @@ ClickUp task per run. Use `gpt-5.6-luna` with high reasoning.
    Grafana/Tempo when present), service, normalized route, and debug ID. Treat
    missing fields as unavailable; never infer them from another event.
    Reproduce the defect locally. If evidence is
-   insufficient, add a sanitized ClickUp comment, return the task to
+   insufficient, causality is not proven, or the observed failure does not
+   match the ticket's route/session/timeline, do not edit code. Add a sanitized
+   ClickUp comment, return the task to
    `Ready for Agent`, and stop.
 6. Add a regression test that fails for the reproduced cause, then implement
    the smallest safe fix. Run the targeted test, relevant package tests,

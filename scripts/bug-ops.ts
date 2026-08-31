@@ -38,9 +38,10 @@ function requireWord(words: string[], index: number, label: string): string {
 function usage(): never {
   console.error(`Usage:
   npm run bugops -- clickup list [--status "Ready for Agent"] [--limit 20]
+  npm run bugops -- clickup get TASK_ID
   npm run bugops -- clickup claim TASK_ID
   npm run bugops -- clickup update TASK_ID [--status STATUS] [--comment TEXT]
-  npm run bugops -- grafana incident FINGERPRINT [--from 24h]
+  npm run bugops -- grafana incident SOURCE_HASH [--from 24h]
   npm run bugops -- grafana query --expr LOGQL [--from 1h] [--datasource-uid UID] [--limit 200]
 
 Credentials are read only from environment variables. See docs/operations/grafana-bug-automation.md.`);
@@ -60,6 +61,8 @@ async function main(): Promise<void> {
         stringFlag(flags, "status") ?? "Ready for Agent",
         Number(stringFlag(flags, "limit") ?? "20"),
       );
+    } else if (action === "get") {
+      result = await client.getEvidence(requireWord(words, 2, "TASK_ID"));
     } else if (action === "claim") {
       result = await client.claim(requireWord(words, 2, "TASK_ID"));
     } else if (action === "update") {
@@ -73,7 +76,7 @@ async function main(): Promise<void> {
     const now = Date.now();
     const from = parseDuration(stringFlag(flags, "from") ?? "24h", now);
     if (action === "incident") {
-      result = await client.incident(requireWord(words, 2, "FINGERPRINT"), from, now);
+      result = await client.incident(requireWord(words, 2, "SOURCE_HASH"), from, now);
     } else if (action === "query") {
       const expression = stringFlag(flags, "expr");
       if (!expression) throw new Error("grafana query requires --expr");

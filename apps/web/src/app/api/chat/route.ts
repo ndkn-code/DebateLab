@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { z } from "zod";
+import { trace } from "@opentelemetry/api";
 import { generateStructured, generateText, streamText } from "@/lib/ai/core";
 import {
   getCoachChatCandidates,
@@ -41,6 +42,7 @@ import {
 import { getActiveSubject } from "@/lib/subject/server";
 import { IELTS_ENABLED } from "@/lib/features";
 import { tryCreateTypedAdminClient } from "@/lib/supabase/admin";
+import { recordServerException } from "@/lib/observability/server-otel";
 import {
   createDebateCorpusRetrievalMetadata,
   type DebateCorpusRetrievalResult,
@@ -174,6 +176,59 @@ const GEMINI_GENERAL_COACH_MODEL = getGeminiCoachModel();
 const GEMINI_DEEP_COACH_MODEL = "gemini-3.1-flash-lite";
 const CHAT_PROVIDER_SOURCE_ROUTE = "/api/chat";
 const CoachMetadataSchema = z.record(z.string(), z.unknown());
+
+type ChatFailureStage =
+  | "auth"
+  | "rate_limit"
+  | "request_validation"
+  | "conversation_load"
+  | "conversation_create"
+  | "message_create"
+  | "coach_stream"
+  | "request";
+
+function requestCorrelationId(value?: string | null) {
+  const candidate = value?.trim();
+  return candidate && isUuid(candidate) ? candidate : crypto.randomUUID();
+}
+
+function responseHeaders(requestId: string, extra: Record<string, string> = {}) {
+  return {
+    ...extra,
+    "x-thinkfy-request-id": requestId,
+  };
+}
+
+function reportChatFailure(params: {
+  requestId: string;
+  stage: ChatFailureStage;
+  error?: unknown;
+}) {
+  const error = params.error;
+  const errorCode =
+    error && typeof error === "object" && "code" in error &&
+    typeof error.code === "string"
+      ? error.code.slice(0, 80)
+      : undefined;
+  const errorType = error instanceof Error ? error.name : "UnknownError";
+  const span = trace.getActiveSpan();
+  span?.setAttributes({
+    "thinkfy.chat.request_id": params.requestId,
+    "thinkfy.chat.failure_stage": params.stage,
+    ...(errorCode ? { "thinkfy.chat.error_code": errorCode } : {}),
+  });
+  if (error) recordServerException(error, span);
+  console.error(JSON.stringify({
+    scope: "api/chat",
+    event: "chat_request_failed",
+    requestId: params.requestId,
+    route: CHAT_PROVIDER_SOURCE_ROUTE,
+    featureArea: "ai-coach",
+    stage: params.stage,
+    errorCode: errorCode ?? "UNKNOWN",
+    type: errorType,
+  }));
+}
 
 function parseChatRequest(body: JsonRecord): ChatRequest {
   const message = getString(body, "message", {
@@ -742,14 +797,22 @@ function buildCoachSystemPrompt(params: {
 }
 
 export async function POST(req: NextRequest) {
+  let requestId = requestCorrelationId(
+    req.headers.get("x-thinkfy-request-id"),
+  );
+  let failureStage: ChatFailureStage = "request";
   try {
+    failureStage = "auth";
     const auth = await requireRequestAuth(req, { allowDevBypass: false });
 
     if (!auth.ok) {
-      return unauthorizedTextResponse();
+      const response = unauthorizedTextResponse();
+      response.headers.set("x-thinkfy-request-id", requestId);
+      return response;
     }
 
     const { supabase, user } = auth;
+    failureStage = "rate_limit";
     const rateLimit = await consumeRateLimit(supabase, {
       scope: "chat",
       limit: 20,
@@ -760,17 +823,20 @@ export async function POST(req: NextRequest) {
         JSON.stringify({ error: "Too many requests. Please wait a moment." }),
         {
           status: 429,
-          headers: {
+          headers: responseHeaders(requestId, {
             "Content-Type": "application/json",
             "Retry-After": String(rateLimit.retryAfterSeconds),
-          },
+          }),
         },
       );
     }
 
+    failureStage = "request_validation";
     const body = parseChatRequest(
       await readJsonObject(req, { maxBytes: 12 * 1024 }),
     );
+    requestId = requestCorrelationId(body.requestId ?? requestId);
+    trace.getActiveSpan()?.setAttribute("thinkfy.chat.request_id", requestId);
     const normalizedContext = normalizeContextType(body.context);
     const practiceLanguage = coercePracticeLanguage(body.practiceLanguage);
     const { message, contextId } = body;
@@ -791,7 +857,12 @@ export async function POST(req: NextRequest) {
           error: "Coach context does not match the active product.",
           code: "COACH_CONTEXT_MISMATCH",
         }),
-        { status: 409, headers: { "Content-Type": "application/json" } },
+        {
+          status: 409,
+          headers: responseHeaders(requestId, {
+            "Content-Type": "application/json",
+          }),
+        },
       );
     }
     if (requestedProduct === "ielts") {
@@ -816,6 +887,14 @@ export async function POST(req: NextRequest) {
       }
       const trustedSupabase = tryCreateTypedAdminClient();
       if (!trustedSupabase) {
+        reportChatFailure({
+          requestId,
+          stage: "request",
+          error: Object.assign(
+            new Error("IELTS Coach infrastructure is unavailable"),
+            { code: "IELTS_COACH_INFRASTRUCTURE_UNAVAILABLE" },
+          ),
+        });
         return new Response(
           JSON.stringify({
             status: "terminal",
@@ -833,7 +912,12 @@ export async function POST(req: NextRequest) {
               availableAt: new Date().toISOString(),
             },
           }),
-          { status: 503, headers: { "Content-Type": "application/json" } },
+          {
+            status: 503,
+            headers: responseHeaders(requestId, {
+              "Content-Type": "application/json",
+            }),
+          },
         );
       }
       return handleIeltsCoachRequest({
@@ -981,6 +1065,7 @@ RULES FOR THIS CONTEXT:
 
     // Create or load conversation
     if (conversationId) {
+      failureStage = "conversation_load";
       const { data: existingConversation } = await supabase
         .from("chat_conversations")
         .select("id")
@@ -990,9 +1075,13 @@ RULES FOR THIS CONTEXT:
         .maybeSingle();
 
       if (!existingConversation) {
-        return new Response("Conversation not found", { status: 404 });
+        return new Response("Conversation not found", {
+          status: 404,
+          headers: responseHeaders(requestId),
+        });
       }
     } else {
+      failureStage = "conversation_create";
       const insertData: Record<string, string> = {
         user_id: user.id,
         product_context: "debate",
@@ -1009,23 +1098,28 @@ RULES FOR THIS CONTEXT:
         .single();
 
       if (error) {
-        if (process.env.NODE_ENV === "development")
-          console.error("Failed to create conversation:", error);
-        throw new Error("Failed to create conversation");
+        const wrappedError = new Error("Failed to create conversation");
+        if (typeof error.code === "string") {
+          Object.assign(wrappedError, { code: error.code });
+        }
+        throw wrappedError;
       }
       conversationId = conv.id;
     }
 
     // Save user message
+    failureStage = "message_create";
     const { error: msgError } = await supabase.from("chat_messages").insert({
       conversation_id: conversationId,
       role: "user",
       content: message.trim(),
     });
     if (msgError) {
-      if (process.env.NODE_ENV === "development")
-        console.error("Failed to save user message:", msgError);
-      throw new Error("Failed to save message");
+      const wrappedError = new Error("Failed to save message");
+      if (typeof msgError.code === "string") {
+        Object.assign(wrappedError, { code: msgError.code });
+      }
+      throw wrappedError;
     }
 
     // Load conversation history (last 20 messages)
@@ -1070,6 +1164,7 @@ RULES FOR THIS CONTEXT:
                 ? "coach_visual_prompt"
                 : "coach_chat",
             userId: user.id,
+            traceId: requestId,
             deadlineAt: Date.now() + 45_000,
             idempotencyKey: `coach-chat:${conversationId}:${history.length}`,
             metadata: {
@@ -1267,6 +1362,7 @@ RULES FOR THIS CONTEXT:
             sourceRoute: CHAT_PROVIDER_SOURCE_ROUTE,
             outputType: "coach_chat",
             userId: user.id,
+            requestId,
             latencyMs: Date.now() - streamStartTime,
             errorCode: "COACH_STREAM_FAILED",
             errorMessage: err instanceof Error ? err.message : String(err),
@@ -1277,11 +1373,16 @@ RULES FOR THIS CONTEXT:
               firstTokenLatencyMs,
             },
           });
+          reportChatFailure({
+            requestId,
+            stage: "coach_stream",
+            error: err,
+          });
           if (process.env.NODE_ENV === "development")
             console.error("Stream error:", err);
           controller.enqueue(
             encoder.encode(
-              `data: ${JSON.stringify({ error: "Stream interrupted" })}\n\n`,
+              `data: ${JSON.stringify({ error: "Stream interrupted", requestId, code: "COACH_STREAM_FAILED" })}\n\n`,
             ),
           );
           controller.close();
@@ -1291,6 +1392,7 @@ RULES FOR THIS CONTEXT:
 
     return new Response(stream, {
       headers: {
+        ...responseHeaders(requestId),
         "Content-Type": "text/event-stream",
         "Cache-Control": "no-cache",
         Connection: "keep-alive",
@@ -1300,14 +1402,24 @@ RULES FOR THIS CONTEXT:
     if (error instanceof RequestValidationError) {
       return new Response(JSON.stringify({ error: error.message }), {
         status: error.status,
-        headers: { "Content-Type": "application/json" },
+        headers: responseHeaders(requestId, {
+          "Content-Type": "application/json",
+        }),
       });
     }
-    if (process.env.NODE_ENV === "development")
-      console.error("Chat API error:", error);
+    reportChatFailure({ requestId, stage: failureStage, error });
     return new Response(
-      JSON.stringify({ error: "Something went wrong. Please try again." }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+      JSON.stringify({
+        error: "Something went wrong. Please try again.",
+        code: "COACH_REQUEST_FAILED",
+        requestId,
+      }),
+      {
+        status: 500,
+        headers: responseHeaders(requestId, {
+          "Content-Type": "application/json",
+        }),
+      },
     );
   }
 }
