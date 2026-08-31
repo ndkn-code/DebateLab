@@ -1,6 +1,5 @@
 {
   "regions": ["sin1"],
-  "functions": {},
   "crons": [
     {
       "path": "/api/cron/smart-popups",
