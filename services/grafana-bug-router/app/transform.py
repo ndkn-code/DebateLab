@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 
 from .models import BugEventV1, GrafanaAlert, GrafanaWebhook
@@ -9,6 +10,9 @@ from .security import safe_https_url, sanitize_route, sanitize_text
 
 
 ALLOWED_SEVERITIES = {"p0", "p1", "p2", "p3"}
+_IDENTITY_COMPONENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}\Z")
+_STABLE_FINGERPRINT_PREFIX = "thinkfy-bug-v1:"
+_CANONICAL_HASH_LABELS = ("error_fingerprint", "attribute_hash", "hash")
 
 
 def _int(value: str | None, default: int, maximum: int = 1_000_000_000) -> int:
@@ -18,15 +22,38 @@ def _int(value: str | None, default: int, maximum: int = 1_000_000_000) -> int:
         return default
 
 
+def _valid_identity_component(value: str, maximum: int) -> bool:
+    return len(value) <= maximum and _IDENTITY_COMPONENT.fullmatch(value) is not None
+
+
 def _fingerprint(alert: GrafanaAlert) -> str:
+    labels = alert.labels
+    error_hash = ""
+    for key in _CANONICAL_HASH_LABELS:
+        candidate = (labels.get(key) or "").strip()
+        if candidate:
+            error_hash = candidate
+            break
+
+    environment = (labels.get("environment") or "production").strip().lower()
+    service = (labels.get("service_name") or labels.get("service") or "thinkfy-web").strip().lower()
+    if (
+        _valid_identity_component(environment, 40)
+        and _valid_identity_component(service, 100)
+        and _valid_identity_component(error_hash, 128)
+    ):
+        identity = "\x1f".join((_STABLE_FINGERPRINT_PREFIX, environment, service, error_hash))
+        digest = hashlib.sha256(identity.encode("utf-8")).hexdigest()
+        return f"{_STABLE_FINGERPRINT_PREFIX}{digest}"
+
     supplied = (alert.fingerprint or alert.labels.get("fingerprint") or "").strip()
     if supplied and 8 <= len(supplied) <= 128 and all(c.isalnum() or c in "_.:-" for c in supplied):
         return supplied
     identity = "|".join(
         (
-            alert.labels.get("alertname", "unknown"),
-            alert.labels.get("service", "unknown"),
-            alert.labels.get("environment", "unknown"),
+            labels.get("alertname", "unknown"),
+            labels.get("service", "unknown"),
+            labels.get("environment", "unknown"),
             alert.annotations.get("source", ""),
         )
     )
@@ -72,7 +99,13 @@ def transform_webhook(payload: GrafanaWebhook, raw_body: bytes) -> list[BugEvent
             annotations.get("summary") or labels.get("alertname") or "Grafana alert",
             240,
         ) or "Grafana alert"
-        delivery_id = hashlib.sha256(f"{body_digest}:{fingerprint}".encode()).hexdigest()
+        alert_identity = (
+            (alert.fingerprint or labels.get("fingerprint") or labels.get("alertname") or payload.receiver)
+            .strip()
+        )
+        delivery_id = hashlib.sha256(
+            f"{body_digest}\x1f{fingerprint}\x1f{alert_identity}".encode("utf-8")
+        ).hexdigest()
         events.append(
             BugEventV1.model_validate(
                 {
