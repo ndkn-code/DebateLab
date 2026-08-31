@@ -130,7 +130,7 @@ function asArray(value: unknown) {
 }
 
 async function getDashboardPayloadFromRpc(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
 ): Promise<DashboardRpcPayload | null> {
   const { data, error } = await supabase.rpc("get_dashboard_payload");
   if (error || !isRecord(data)) return null;
@@ -150,11 +150,17 @@ function formatDateInZone(date: Date, timezone = DEFAULT_STREAK_TIMEZONE) {
   return getDateFormatter(timezone).format(date);
 }
 
-function getTodayDateString(now = new Date(), timezone = DEFAULT_STREAK_TIMEZONE) {
+function getTodayDateString(
+  now = new Date(),
+  timezone = DEFAULT_STREAK_TIMEZONE,
+) {
   return formatDateInZone(now, timezone);
 }
 
-function getCurrentWeekDates(now = new Date(), timezone = DEFAULT_STREAK_TIMEZONE) {
+function getCurrentWeekDates(
+  now = new Date(),
+  timezone = DEFAULT_STREAK_TIMEZONE,
+) {
   const dates: string[] = [];
   const weekday = new Intl.DateTimeFormat("en-US", {
     timeZone: normalizeStreakTimezone(timezone),
@@ -184,7 +190,7 @@ function getCurrentWeekDates(now = new Date(), timezone = DEFAULT_STREAK_TIMEZON
 function getTrailingDates(
   totalDays: number,
   now = new Date(),
-  timezone = DEFAULT_STREAK_TIMEZONE
+  timezone = DEFAULT_STREAK_TIMEZONE,
 ) {
   const dates: string[] = [];
 
@@ -216,7 +222,7 @@ function uniqueSessions(sessions: DashboardSessionActivitySource[]) {
 }
 
 export function buildStreakActivityEventsFromSessions(
-  sessions: DashboardSessionActivitySource[]
+  sessions: DashboardSessionActivitySource[],
 ): StreakActivityEvent[] {
   return uniqueSessions(sessions)
     .filter((session) => Boolean(session.created_at))
@@ -230,7 +236,7 @@ export function buildStreakActivityEventsFromSessions(
 export function buildSessionDerivedStats(
   sessions: DashboardSessionActivitySource[],
   dates: string[],
-  timezone = DEFAULT_STREAK_TIMEZONE
+  timezone = DEFAULT_STREAK_TIMEZONE,
 ) {
   const dateSet = new Set(dates);
   const stats = new Map<string, DailyStatEntry>();
@@ -258,7 +264,8 @@ export function buildSessionDerivedStats(
       date,
       sessions_completed: current.sessions_completed + 1,
       practice_minutes:
-        current.practice_minutes + Math.max(0, Math.round(durationSeconds / 60)),
+        current.practice_minutes +
+        Math.max(0, Math.round(durationSeconds / 60)),
       xp_earned: current.xp_earned,
     });
   }
@@ -268,7 +275,7 @@ export function buildSessionDerivedStats(
 
 function mergeSessionDerivedStats(
   statsByDate: Map<string, DailyStatEntry>,
-  derivedStats: Map<string, DailyStatEntry>
+  derivedStats: Map<string, DailyStatEntry>,
 ) {
   for (const [date, derived] of derivedStats) {
     const current =
@@ -284,11 +291,11 @@ function mergeSessionDerivedStats(
       date,
       sessions_completed: Math.max(
         current.sessions_completed,
-        derived.sessions_completed
+        derived.sessions_completed,
       ),
       practice_minutes: Math.max(
         current.practice_minutes,
-        derived.practice_minutes
+        derived.practice_minutes,
       ),
       xp_earned: Math.max(current.xp_earned, derived.xp_earned),
     });
@@ -312,7 +319,8 @@ function isStrongBand(band: string | null | undefined) {
 }
 
 function getDailyGoalMinutes(profile: Pick<Profile, "preferences"> | null) {
-  const preferences = (profile?.preferences as Record<string, unknown> | null) ?? {};
+  const preferences =
+    (profile?.preferences as Record<string, unknown> | null) ?? {};
   const explicitGoal = preferences.daily_goal_minutes;
   if (typeof explicitGoal === "number" && explicitGoal > 0) {
     return explicitGoal;
@@ -327,7 +335,8 @@ function getDailyGoalMinutes(profile: Pick<Profile, "preferences"> | null) {
 }
 
 function getWeeklyGoalMinutes(profile: Pick<Profile, "preferences"> | null) {
-  const preferences = (profile?.preferences as Record<string, unknown> | null) ?? {};
+  const preferences =
+    (profile?.preferences as Record<string, unknown> | null) ?? {};
   const explicitWeeklyGoal = preferences.weekly_goal_minutes;
   if (typeof explicitWeeklyGoal === "number" && explicitWeeklyGoal > 0) {
     return explicitWeeklyGoal;
@@ -354,7 +363,7 @@ function getStrongRate(sessions: SessionScoreRow[]) {
   const scored = sessions.filter((session) => session.total_score != null);
   if (scored.length === 0) return 0;
   const strongCount = scored.filter((session) =>
-    isStrongBand(session.overall_band)
+    isStrongBand(session.overall_band),
   ).length;
   return Math.round((strongCount / scored.length) * 100);
 }
@@ -370,7 +379,7 @@ function getAverageArgumentScore(sessions: SessionScoreRow[]) {
 
 function buildGoalSummary(
   practicedMinutes: number,
-  goalMinutes: number
+  goalMinutes: number,
 ): DashboardGoalSummary {
   const safeGoal = goalMinutes > 0 ? goalMinutes : 30;
 
@@ -378,24 +387,28 @@ function buildGoalSummary(
     goalMinutes: safeGoal,
     practicedMinutes,
     remainingMinutes: Math.max(safeGoal - practicedMinutes, 0),
-    progressPercent: Math.round(clamp((practicedMinutes / safeGoal) * 100, 0, 100)),
+    progressPercent: Math.round(
+      clamp((practicedMinutes / safeGoal) * 100, 0, 100),
+    ),
     metGoal: practicedMinutes >= safeGoal,
   };
 }
 
 export function buildWeeklyGoalSummary(
   profile: Pick<Profile, "preferences"> | null,
-  weeklyStats: DailyStatEntry[]
+  weeklyStats: DailyStatEntry[],
 ): DashboardGoalSummary {
   const practicedMinutes = weeklyStats.reduce(
     (sum, entry) => sum + entry.practice_minutes,
-    0
+    0,
   );
 
   return buildGoalSummary(practicedMinutes, getWeeklyGoalMinutes(profile));
 }
 
-function computeSkillSnapshot(scoredSessions: SessionScoreRow[]): DashboardSkillSnapshot {
+function computeSkillSnapshot(
+  scoredSessions: SessionScoreRow[],
+): DashboardSkillSnapshot {
   return computeSharedSkillSnapshot(scoredSessions) as DashboardSkillSnapshot;
 }
 
@@ -423,7 +436,7 @@ function getFeedbackSkillScores(feedback: DebateScore | null) {
       deliveryValues.length > 0
         ? roundToTenth(
             deliveryValues.reduce((sum, value) => sum + value, 0) /
-              deliveryValues.length
+              deliveryValues.length,
           )
         : null,
   } satisfies Partial<Record<DashboardSkillKey, number | null>>;
@@ -448,19 +461,21 @@ function getSessionLowestSkill(session: DashboardImprovementSession) {
 
   if (candidates.length === 0) return null;
 
-  return candidates.sort((left, right) => left.value - right.value)[0]?.key ?? null;
+  return (
+    candidates.sort((left, right) => left.value - right.value)[0]?.key ?? null
+  );
 }
 
 function getRecentFocusCounts(
   sessions: DashboardImprovementSession[],
-  now: number
+  now: number,
 ) {
   const counts = DASHBOARD_SKILL_ORDER.reduce(
     (summary, key) => {
       summary[key] = 0;
       return summary;
     },
-    {} as Record<DashboardSkillKey, number>
+    {} as Record<DashboardSkillKey, number>,
   );
 
   for (const session of sessions) {
@@ -477,7 +492,7 @@ function getRecentFocusCounts(
 function getDaysSinceTrackPractice(
   skill: DashboardSkillKey,
   sessions: DashboardImprovementSession[],
-  now: number
+  now: number,
 ) {
   const targetTrack = SKILL_TRACK[skill];
   let latestTimestamp: number | null = null;
@@ -489,7 +504,10 @@ function getDaysSinceTrackPractice(
     if (scores[skill] == null) continue;
 
     const timestamp = getSessionTimestamp(session);
-    if (timestamp != null && (latestTimestamp == null || timestamp > latestTimestamp)) {
+    if (
+      timestamp != null &&
+      (latestTimestamp == null || timestamp > latestTimestamp)
+    ) {
       latestTimestamp = timestamp;
     }
   }
@@ -504,7 +522,10 @@ function scoreImprovementPriority(params: {
   daysSinceTrackPractice: number | null;
   weeklyGoal: DashboardGoalSummary;
 }) {
-  const weaknessGap = Math.max(RECOMMENDED_SKILL_TARGET - params.metricValue, 0);
+  const weaknessGap = Math.max(
+    RECOMMENDED_SKILL_TARGET - params.metricValue,
+    0,
+  );
   const coverageConfidence =
     params.coverage >= MIN_RECOMMENDATION_COVERAGE
       ? 1
@@ -523,13 +544,15 @@ function scoreImprovementPriority(params: {
     ? 0
     : clamp((100 - params.weeklyGoal.progressPercent) / 12, 0, 8);
   const repeatPenalty =
-    params.recentFocusCount >= 2 ? Math.min(params.recentFocusCount * 4, 12) : 0;
+    params.recentFocusCount >= 2
+      ? Math.min(params.recentFocusCount * 4, 12)
+      : 0;
 
   return roundToTenth(
     weaknessGap * 1.5 * coverageConfidence +
       recencyBonus +
       weeklyGoalBoost -
-      repeatPenalty
+      repeatPenalty,
   );
 }
 
@@ -537,10 +560,10 @@ export function selectDashboardImprovementSkill(
   skillSnapshot: DashboardSkillSnapshot,
   scoredSessions: DashboardImprovementSession[],
   weeklyGoal: DashboardGoalSummary,
-  now = Date.now()
+  now = Date.now(),
 ): DashboardImprovementPriority | null {
   const supportedMetrics = skillSnapshot.metrics.filter(
-    (metric) => metric.coverage >= MIN_RECOMMENDATION_COVERAGE
+    (metric) => metric.coverage >= MIN_RECOMMENDATION_COVERAGE,
   );
   const candidateMetrics =
     supportedMetrics.length > 0
@@ -555,7 +578,7 @@ export function selectDashboardImprovementSkill(
       const daysSinceTrackPractice = getDaysSinceTrackPractice(
         metric.key,
         scoredSessions,
-        now
+        now,
       );
       const score = scoreImprovementPriority({
         metricValue: metric.value,
@@ -588,14 +611,15 @@ export function selectDashboardImprovementSkill(
       priority.key !== topPriority.key &&
       topPriority.recentFocusCount >= 2 &&
       topPriority.score - priority.score <= CLOSE_PRIORITY_WINDOW &&
-      priority.metricValue < RECOMMENDED_SKILL_TARGET
+      priority.metricValue < RECOMMENDED_SKILL_TARGET,
   );
 
   return closeAlternative ?? topPriority;
 }
 
 function computePeriodDelta(currentValue: number, previousValue: number) {
-  if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue)) return null;
+  if (!Number.isFinite(currentValue) || !Number.isFinite(previousValue))
+    return null;
   return roundToTenth(currentValue - previousValue);
 }
 
@@ -603,7 +627,7 @@ function buildProgressMetrics(
   profile: Profile | null,
   scoredSessions: SessionScoreRow[],
   recent14Dates: string[],
-  statsByDate: Map<string, DailyStatEntry>
+  statsByDate: Map<string, DailyStatEntry>,
 ): DashboardProgressMetric[] {
   const previousDates = recent14Dates.slice(0, 7);
   const currentDates = recent14Dates.slice(7);
@@ -611,30 +635,30 @@ function buildProgressMetrics(
   const previousDateSet = new Set(previousDates);
 
   const currentPeriodSessions = scoredSessions.filter((session) =>
-    currentDateSet.has(session.created_at.slice(0, 10))
+    currentDateSet.has(session.created_at.slice(0, 10)),
   );
   const previousPeriodSessions = scoredSessions.filter((session) =>
-    previousDateSet.has(session.created_at.slice(0, 10))
+    previousDateSet.has(session.created_at.slice(0, 10)),
   );
 
   const currentPracticeMinutes = currentDates.reduce(
     (sum, date) => sum + (statsByDate.get(date)?.practice_minutes ?? 0),
-    0
+    0,
   );
   const previousPracticeMinutes = previousDates.reduce(
     (sum, date) => sum + (statsByDate.get(date)?.practice_minutes ?? 0),
-    0
+    0,
   );
 
   const totalSessions = profile?.total_sessions_completed ?? 0;
   const currentSessionCount = currentPeriodSessions.length;
   const previousSessionCount = previousPeriodSessions.length;
   const currentStrongRate = getStrongRate(
-    currentPeriodSessions.length > 0 ? currentPeriodSessions : scoredSessions
+    currentPeriodSessions.length > 0 ? currentPeriodSessions : scoredSessions,
   );
   const previousStrongRate = getStrongRate(previousPeriodSessions);
   const currentAverageScore = getAverageArgumentScore(
-    currentPeriodSessions.length > 0 ? currentPeriodSessions : scoredSessions
+    currentPeriodSessions.length > 0 ? currentPeriodSessions : scoredSessions,
   );
   const previousAverageScore = getAverageArgumentScore(previousPeriodSessions);
 
@@ -661,13 +685,16 @@ function buildProgressMetrics(
       key: "practice-time",
       value: currentPracticeMinutes,
       displayValue: `${currentPracticeMinutes} min`,
-      delta: computePeriodDelta(currentPracticeMinutes, previousPracticeMinutes),
+      delta: computePeriodDelta(
+        currentPracticeMinutes,
+        previousPracticeMinutes,
+      ),
     },
   ];
 }
 
 function buildRecentActivity(
-  recentSessions: SessionScoreRow[]
+  recentSessions: SessionScoreRow[],
 ): DashboardRecentItem[] {
   return recentSessions.slice(0, 4).map((session) => {
     const practiceTrack = getPracticeTrack(session.feedback);
@@ -675,10 +702,12 @@ function buildRecentActivity(
       id: `session-${session.id}`,
       kind: practiceTrack,
       title: session.topic_title,
-      subtitle: practiceTrack === "speaking" ? "Speaking Practice" : "Debate Practice",
+      subtitle:
+        practiceTrack === "speaking" ? "Speaking Practice" : "Debate Practice",
       createdAt: session.created_at,
       href: `/history/${session.id}`,
-      scoreOutOf100: session.total_score != null ? Math.round(session.total_score) : null,
+      scoreOutOf100:
+        session.total_score != null ? Math.round(session.total_score) : null,
       statusLabel: session.overall_band,
       progressPercent: null,
     };
@@ -692,14 +721,16 @@ function getUnderusedTrack(recentSessions: SessionScoreRow[]): PracticeTrack {
       summary[practiceTrack] += 1;
       return summary;
     },
-    { speaking: 0, debate: 0 }
+    { speaking: 0, debate: 0 },
   );
 
-  return practiceCounts.speaking < practiceCounts.debate ? "speaking" : "debate";
+  return practiceCounts.speaking < practiceCounts.debate
+    ? "speaking"
+    : "debate";
 }
 
 function buildCoursePlanItem(
-  courseContinuation: DashboardCourseContinuation | null
+  courseContinuation: DashboardCourseContinuation | null,
 ): DashboardTodayPlanItem | null {
   if (!courseContinuation) return null;
 
@@ -718,12 +749,12 @@ function buildCoursePlanItem(
 function buildImprovementSkillPlanItem(
   skillSnapshot: DashboardSkillSnapshot,
   scoredSessions: DashboardImprovementSession[],
-  weeklyGoal: DashboardGoalSummary
+  weeklyGoal: DashboardGoalSummary,
 ): DashboardTodayPlanItem | null {
   const improvementSkill = selectDashboardImprovementSkill(
     skillSnapshot,
     scoredSessions,
-    weeklyGoal
+    weeklyGoal,
   );
   if (!improvementSkill) return null;
 
@@ -746,9 +777,11 @@ function buildImprovementSkillPlanItem(
 }
 
 function buildReviewPlanItem(
-  recentSessions: SessionScoreRow[]
+  recentSessions: SessionScoreRow[],
 ): DashboardTodayPlanItem | null {
-  const latestScored = recentSessions.find((session) => session.total_score != null);
+  const latestScored = recentSessions.find(
+    (session) => session.total_score != null,
+  );
   if (!latestScored) return null;
 
   return {
@@ -760,13 +793,15 @@ function buildReviewPlanItem(
     durationMinutes: 7,
     context: latestScored.topic_title,
     scoreOutOf100:
-      latestScored.total_score != null ? Math.round(latestScored.total_score) : null,
+      latestScored.total_score != null
+        ? Math.round(latestScored.total_score)
+        : null,
     track: getPracticeTrack(latestScored.feedback),
   };
 }
 
 function buildUnderusedPlanItem(
-  recentSessions: SessionScoreRow[]
+  recentSessions: SessionScoreRow[],
 ): DashboardTodayPlanItem {
   const track = getUnderusedTrack(recentSessions);
 
@@ -812,7 +847,7 @@ function buildDashboardPlan(
   recentSessions: SessionScoreRow[],
   courseContinuation: DashboardCourseContinuation | null,
   weeklyGoal: DashboardGoalSummary,
-  scoredSessions: DashboardImprovementSession[]
+  scoredSessions: DashboardImprovementSession[],
 ): {
   recommendedDrill: DashboardRecommendedDrill;
   todayPlanItems: DashboardTodayPlanItem[];
@@ -820,7 +855,7 @@ function buildDashboardPlan(
   const improvementSkillPlan = buildImprovementSkillPlanItem(
     skillSnapshot,
     scoredSessions,
-    weeklyGoal
+    weeklyGoal,
   );
   const coursePlan = buildCoursePlanItem(courseContinuation);
   const reviewPlan = buildReviewPlanItem(recentSessions);
@@ -858,7 +893,7 @@ function buildDashboardPlan(
 export async function getDashboardData(
   userId: string,
   authenticatedClient?: SupabaseClient,
-  options: DashboardDataOptions = {}
+  options: DashboardDataOptions = {},
 ): Promise<DashboardHomeData> {
   const supabase = authenticatedClient ?? (await createClient());
   const subject = coerceSubject(options.subject);
@@ -879,7 +914,7 @@ export async function getDashboardData(
         supabase
           .from("profiles")
           .select(
-            "id, display_name, avatar_url, handle, profile_status, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences, orb_balance, referral_code"
+            "id, display_name, avatar_url, handle, profile_status, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences, orb_balance, referral_code",
           )
           .eq("id", userId)
           .single(),
@@ -893,7 +928,7 @@ export async function getDashboardData(
         supabase
           .from("debate_sessions")
           .select(
-            "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
+            "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at",
           )
           .eq("user_id", userId)
           .order("created_at", { ascending: false })
@@ -902,7 +937,7 @@ export async function getDashboardData(
         supabase
           .from("debate_sessions")
           .select(
-            "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at"
+            "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at",
           )
           .eq("user_id", userId)
           .not("total_score", "is", null)
@@ -929,17 +964,28 @@ export async function getDashboardData(
   const isAdmin = profile?.role === "admin";
   const enrollmentRows = rpcPayload
     ? asArray(rpcPayload.enrollments)
-    : fallbackPayload?.[1].data ?? [];
-  const enrollments: EnrollmentRow[] = (enrollmentRows as Array<{
-    id: string;
-    course_id: string;
-    status: string;
-    progress_percent?: number;
-    progress_pct?: number;
-    courses?: { title?: string; category?: string; thumbnail_url?: string | null } | Array<{ title?: string; category?: string; thumbnail_url?: string | null }> | null;
-  }>)
+    : (fallbackPayload?.[1].data ?? []);
+  const enrollments: EnrollmentRow[] = (
+    enrollmentRows as Array<{
+      id: string;
+      course_id: string;
+      status: string;
+      progress_percent?: number;
+      progress_pct?: number;
+      courses?:
+        | { title?: string; category?: string; thumbnail_url?: string | null }
+        | Array<{
+            title?: string;
+            category?: string;
+            thumbnail_url?: string | null;
+          }>
+        | null;
+    }>
+  )
     .map((entry) => {
-      const course = Array.isArray(entry.courses) ? entry.courses[0] : entry.courses;
+      const course = Array.isArray(entry.courses)
+        ? entry.courses[0]
+        : entry.courses;
       const progressPercent =
         typeof entry.progress_percent === "number"
           ? entry.progress_percent
@@ -964,14 +1010,18 @@ export async function getDashboardData(
     .sort(
       (left, right) =>
         right.progress_pct - left.progress_pct ||
-        (left.courses?.title ?? "").localeCompare(right.courses?.title ?? "")
+        (left.courses?.title ?? "").localeCompare(right.courses?.title ?? ""),
     );
-  const recentSessions = (rpcPayload
-    ? asArray(rpcPayload.recent_sessions)
-    : fallbackPayload?.[2].data ?? []) as SessionScoreRow[];
-  const scoredSessions = (rpcPayload
-    ? asArray(rpcPayload.scored_sessions)
-    : fallbackPayload?.[3].data ?? []) as SessionScoreRow[];
+  const recentSessions = (
+    rpcPayload
+      ? asArray(rpcPayload.recent_sessions)
+      : (fallbackPayload?.[2].data ?? [])
+  ) as SessionScoreRow[];
+  const scoredSessions = (
+    rpcPayload
+      ? asArray(rpcPayload.scored_sessions)
+      : (fallbackPayload?.[3].data ?? [])
+  ) as SessionScoreRow[];
   const sessionActivityEvents = buildStreakActivityEventsFromSessions([
     ...recentSessions,
     ...scoredSessions,
@@ -1002,7 +1052,7 @@ export async function getDashboardData(
 
   const statRows = rpcPayload
     ? asArray(rpcPayload.stats)
-    : fallbackPayload?.[4].data ?? [];
+    : (fallbackPayload?.[4].data ?? []);
   for (const stat of statRows as Array<{
     date: string;
     sessions_completed: number;
@@ -1021,8 +1071,8 @@ export async function getDashboardData(
     buildSessionDerivedStats(
       [...recentSessions, ...scoredSessions],
       trailing14Dates,
-      timezone
-    )
+      timezone,
+    ),
   );
 
   const weeklyStats = weekDates.map((date) => {
@@ -1041,7 +1091,12 @@ export async function getDashboardData(
   const todayGoal = buildGoalSummary(todayMinutes, dailyGoalMinutes);
   const weeklyGoal = buildWeeklyGoalSummary(profile, weeklyStats);
   const skillSnapshot = computeSkillSnapshot(scoredSessions);
-  const progress = buildProgressMetrics(profile, scoredSessions, trailing14Dates, statsByDate);
+  const progress = buildProgressMetrics(
+    profile,
+    scoredSessions,
+    trailing14Dates,
+    statsByDate,
+  );
 
   // Scope the "continue learning" card to the active subject. Debate keeps the
   // engine gated off (null, unchanged); IELTS has no content yet, so this stays
@@ -1050,20 +1105,19 @@ export async function getDashboardData(
     ? (enrollments.find(
         (enrollment) =>
           coerceSubject(
-            (enrollment.courses as { subject?: string | null } | null)?.subject
-          ) === subject
+            (enrollment.courses as { subject?: string | null } | null)?.subject,
+          ) === subject,
       ) ?? null)
     : null;
-  const courseContinuation =
-    featuredEnrollment
-      ? {
-          courseId: featuredEnrollment.course_id,
-          title: featuredEnrollment.courses?.title ?? "Continue course",
-          category: featuredEnrollment.courses?.category ?? "debate",
-          progressPercent: featuredEnrollment.progress_pct,
-          href: "/courses",
-        }
-      : null;
+  const courseContinuation = featuredEnrollment
+    ? {
+        courseId: featuredEnrollment.course_id,
+        title: featuredEnrollment.courses?.title ?? "Continue course",
+        category: featuredEnrollment.courses?.category ?? "debate",
+        progressPercent: featuredEnrollment.progress_pct,
+        href: "/courses",
+      }
+    : null;
 
   const nav: DashboardNavItem[] = [
     { key: "dashboard", href: "/dashboard", status: "live" },
@@ -1130,7 +1184,7 @@ export async function getDashboardData(
     recentSessions,
     courseContinuation,
     weeklyGoal,
-    scoredSessions
+    scoredSessions,
   );
 
   return {
@@ -1145,6 +1199,7 @@ export async function getDashboardData(
       pendingNotifications: 0,
     },
     hero: {
+      todayDate: today,
       weeklyStats,
       todayGoal,
       weeklyGoal,

@@ -17,6 +17,8 @@ Private Hugging Face/Oracle-compatible embedding service for Thinkfy debate corp
 - `POST /embed` accepts `text` or `texts` and returns 1024-dimensional embeddings.
 
 Set `THINKFY_EMBEDDING_API_KEY` to require `X-Thinkfy-Embedding-Key` for `/warmup` and `/embed`.
+The service starts a non-blocking background warmup by default so the health
+endpoint remains responsive while the embedding model loads.
 
 ## Environment
 
@@ -28,4 +30,9 @@ THINKFY_EMBEDDING_API_KEY=...
 MAX_BATCH_SIZE=16
 MAX_TEXT_CHARS=12000
 NORMALIZE_EMBEDDINGS=true
+EMBEDDING_BACKGROUND_WARMUP=true
 ```
+
+Disable background warmup only when the hosting platform provides a separate
+authenticated warmup job. Persistent model-cache storage and non-free-tier CPU
+remain the most reliable ways to reduce cold-start latency.

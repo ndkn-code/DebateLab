@@ -41,12 +41,13 @@ function RailCard({
   );
 }
 
-function findToday(weeklyStats: DailyStatEntry[]): DailyStatEntry | null {
+function findToday(
+  weeklyStats: DailyStatEntry[],
+  todayDate: string,
+): DailyStatEntry | null {
   if (!weeklyStats.length) return null;
-  const now = new Date();
-  const localKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   return (
-    weeklyStats.find((entry) => entry.date === localKey) ??
+    weeklyStats.find((entry) => entry.date === todayDate) ??
     weeklyStats[weeklyStats.length - 1]
   );
 }
@@ -343,14 +344,16 @@ function QuestRow({ quest, index }: { quest: Quest; index: number }) {
 }
 
 function DailyQuestsCard({
+  todayDate,
   todayGoal,
   weeklyStats,
 }: {
+  todayDate: string;
   todayGoal: DashboardGoalSummary;
   weeklyStats: DailyStatEntry[];
 }) {
   const t = useTranslations("dashboard.home");
-  const today = findToday(weeklyStats);
+  const today = findToday(weeklyStats, todayDate);
 
   const quests: Quest[] = [
     {
@@ -402,6 +405,7 @@ export function QuestRail({ data }: { data: DashboardHomeData }) {
         weeklyStats={data.hero.weeklyStats}
       />
       <DailyQuestsCard
+        todayDate={data.hero.todayDate}
         todayGoal={data.hero.todayGoal}
         weeklyStats={data.hero.weeklyStats}
       />

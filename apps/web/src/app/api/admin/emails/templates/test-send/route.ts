@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { EmailAdminAuthError, requireEmailAdminContext } from "@/lib/email/admin-template-auth";
+import {
+  EmailAdminAuthError,
+  requireEmailAdminContext,
+  type EmailAdminRequestContext,
+} from "@/lib/email/admin-template-auth";
 import {
   getOverrideForTemplate,
   loadDevEmailTemplateOverrides,
@@ -15,10 +19,14 @@ export const dynamic = "force-dynamic";
 
 function jsonError(error: unknown) {
   if (error instanceof EmailAdminAuthError) {
-    return NextResponse.json({ error: error.message }, { status: error.status });
+    return NextResponse.json(
+      { error: error.message },
+      { status: error.status },
+    );
   }
 
-  const message = error instanceof Error ? error.message : "Unable to send test email";
+  const message =
+    error instanceof Error ? error.message : "Unable to send test email";
   return NextResponse.json({ error: message }, { status: 400 });
 }
 
@@ -35,21 +43,50 @@ function resolveRecipient(value: unknown) {
   return recipient;
 }
 
+async function assertRecipientIsNotGloballySuppressed(
+  context: EmailAdminRequestContext,
+  email: string,
+) {
+  if (!context.supabase) return;
+
+  const { data, error } = await context.supabase
+    .from("email_suppressions")
+    .select("id")
+    .eq("active", true)
+    .ilike("email", email.trim().toLowerCase())
+    .is("category", null)
+    .limit(1);
+
+  if (error) throw new Error(error.message);
+  if (data?.length) {
+    throw new EmailAdminAuthError(
+      "This recipient is globally suppressed from email.",
+      409,
+    );
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
     const context = await requireEmailAdminContext();
     const body = (await request.json()) as Record<string, unknown>;
     const templateKey = resolveEmailTemplateKey(body.templateKey);
     const locale = resolveEmailLocale(body.locale);
-    const scenarioKey = typeof body.scenarioKey === "string" ? body.scenarioKey : "default";
+    const scenarioKey =
+      typeof body.scenarioKey === "string" ? body.scenarioKey : "default";
     const to = resolveRecipient(body.to);
+    await assertRecipientIsNotGloballySuppressed(context, to);
     const draftFields = body.fields
       ? normalizeEmailTemplateCopy(body.fields, { requireRequiredFields: true })
       : null;
     const overrides = context.supabase
       ? await loadActiveEmailTemplateOverrides(context.supabase)
       : loadDevEmailTemplateOverrides();
-    const activeOverride = getOverrideForTemplate(overrides, locale, templateKey);
+    const activeOverride = getOverrideForTemplate(
+      overrides,
+      locale,
+      templateKey,
+    );
     const rendered = await renderTemplatePreview({
       templateKey,
       locale,
@@ -57,9 +94,18 @@ export async function POST(request: NextRequest) {
       activeOverride: activeOverride?.fields ?? null,
       draftFields,
     });
-    const data = await sendAdminTemplateTestEmail({ to, templateKey, locale, rendered });
+    const data = await sendAdminTemplateTestEmail({
+      to,
+      templateKey,
+      locale,
+      rendered,
+    });
 
-    return NextResponse.json({ id: data?.id ?? null, to, subject: `[Thinkfy QA] ${rendered.subject}` });
+    return NextResponse.json({
+      id: data?.id ?? null,
+      to,
+      subject: `[Thinkfy QA] ${rendered.subject}`,
+    });
   } catch (error) {
     return jsonError(error);
   }

@@ -1,6 +1,6 @@
 import os
 import time
-from threading import Lock
+from threading import Lock, Thread
 from typing import Literal
 
 import numpy as np
@@ -15,12 +15,20 @@ MAX_SEQ_LENGTH = int(os.getenv("EMBEDDING_MAX_SEQ_LENGTH", "2048"))
 MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", "16"))
 MAX_TEXT_CHARS = int(os.getenv("MAX_TEXT_CHARS", "12000"))
 NORMALIZE_EMBEDDINGS = os.getenv("NORMALIZE_EMBEDDINGS", "true").lower() == "true"
+BACKGROUND_WARMUP_ENABLED = os.getenv(
+    "EMBEDDING_BACKGROUND_WARMUP", "true"
+).lower() in {"1", "true", "yes", "on"}
+WARMUP_TEXT = "kiểm tra truy xuất ngữ nghĩa tranh biện"
 API_KEY = os.getenv("THINKFY_EMBEDDING_API_KEY", "")
 
 app = FastAPI(title="Thinkfy Embedding API", version="0.1.0")
 _model: SentenceTransformer | None = None
 _model_lock = Lock()
+_encode_lock = Lock()
 _loaded_at: float | None = None
+_warmup_started_at: float | None = None
+_warmup_completed_at: float | None = None
+_warmup_failed_at: float | None = None
 
 
 class EmbedRequest(BaseModel):
@@ -94,6 +102,47 @@ def load_model() -> SentenceTransformer:
     return _model
 
 
+def encode_texts(texts: list[str]) -> np.ndarray:
+    model = load_model()
+    with _encode_lock:
+        return model.encode(
+            texts,
+            normalize_embeddings=NORMALIZE_EMBEDDINGS,
+            convert_to_numpy=True,
+        )
+
+
+def run_model_warmup() -> np.ndarray:
+    return encode_texts([WARMUP_TEXT])
+
+
+def background_warmup() -> None:
+    global _warmup_started_at, _warmup_completed_at, _warmup_failed_at
+    _warmup_started_at = time.time()
+    _warmup_completed_at = None
+    _warmup_failed_at = None
+    started = time.perf_counter()
+    try:
+        run_model_warmup()
+        _warmup_completed_at = time.time()
+        print(
+            f"Background warmup completed in {time.perf_counter() - started:.2f}s",
+            flush=True,
+        )
+    except Exception as exc:
+        _warmup_failed_at = time.time()
+        print(
+            f"Background warmup failed ({type(exc).__name__})",
+            flush=True,
+        )
+
+
+@app.on_event("startup")
+def start_background_warmup() -> None:
+    if BACKGROUND_WARMUP_ENABLED:
+        Thread(target=background_warmup, daemon=True).start()
+
+
 @app.get("/healthz")
 def healthz() -> dict:
     return {
@@ -102,6 +151,10 @@ def healthz() -> dict:
         "dimensions": EXPECTED_DIMENSIONS,
         "loaded": _model is not None,
         "loaded_at": _loaded_at,
+        "background_warmup_enabled": BACKGROUND_WARMUP_ENABLED,
+        "warmup_started_at": _warmup_started_at,
+        "warmup_completed_at": _warmup_completed_at,
+        "warmup_failed_at": _warmup_failed_at,
     }
 
 
@@ -109,12 +162,7 @@ def healthz() -> dict:
 def warmup(x_thinkfy_embedding_key: str | None = Header(default=None)) -> dict:
     require_api_key(x_thinkfy_embedding_key)
     started = time.perf_counter()
-    model = load_model()
-    embedding = model.encode(
-        ["kiểm tra truy xuất ngữ nghĩa tranh biện"],
-        normalize_embeddings=NORMALIZE_EMBEDDINGS,
-        convert_to_numpy=True,
-    )
+    embedding = run_model_warmup()
     return {
         "ok": True,
         "model": MODEL_ID,
@@ -132,12 +180,7 @@ async def embed(
     require_api_key(x_thinkfy_embedding_key)
     texts = payload.normalized_texts()
     started = time.perf_counter()
-    model = load_model()
-    vectors = model.encode(
-        texts,
-        normalize_embeddings=NORMALIZE_EMBEDDINGS,
-        convert_to_numpy=True,
-    )
+    vectors = encode_texts(texts)
     if not isinstance(vectors, np.ndarray) or vectors.ndim != 2:
         raise HTTPException(status_code=500, detail="Model returned invalid embeddings")
     if vectors.shape[1] != EXPECTED_DIMENSIONS:

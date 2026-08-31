@@ -265,6 +265,7 @@ function makeDashboardData(state: DashboardQaState): DashboardHomeData {
       pendingNotifications: 0,
     },
     hero: {
+      todayDate: "2026-05-18",
       weeklyStats: Array.from({ length: 7 }, (_, index) => ({
         date: `2026-05-${String(12 + index).padStart(2, "0")}`,
         sessions_completed: hasActivity && index > 1 ? 1 : 0,

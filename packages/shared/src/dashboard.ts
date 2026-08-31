@@ -220,6 +220,7 @@ export interface DashboardHomeData {
     pendingNotifications: number;
   };
   hero: {
+    todayDate: string;
     weeklyStats: DailyStatEntry[];
     todayGoal: DashboardGoalSummary;
     weeklyGoal: DashboardGoalSummary;
