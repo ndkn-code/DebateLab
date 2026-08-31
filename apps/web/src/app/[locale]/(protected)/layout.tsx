@@ -3,7 +3,6 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { ProtectedShell } from "./protected-shell";
 import { getActiveSubject } from "@/lib/subject/server";
-import { LocalizedAppProviders } from "../localized-app-providers";
 import {
   DEV_ADMIN_PROFILE,
   isDevAdminBypassEnabled,
@@ -84,18 +83,16 @@ export default async function ProtectedLayout({
         activeSubject,
       );
       return (
-        <LocalizedAppProviders>
-          <ProtectedShell
-            profile={DEV_ADMIN_PROFILE}
-            userEmail={devAuthBypassUser?.email ?? DEV_ADMIN_PROFILE.email}
-            userId={devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id}
-            activeSubject={activeSubject}
-            isEnrolledIeltsStudent={isEnrolledIeltsStudent}
-            seasonReplayEnabled={false}
-          >
-            {children}
-          </ProtectedShell>
-        </LocalizedAppProviders>
+        <ProtectedShell
+          profile={DEV_ADMIN_PROFILE}
+          userEmail={devAuthBypassUser?.email ?? DEV_ADMIN_PROFILE.email}
+          userId={devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id}
+          activeSubject={activeSubject}
+          isEnrolledIeltsStudent={isEnrolledIeltsStudent}
+          seasonReplayEnabled={false}
+        >
+          {children}
+        </ProtectedShell>
       );
     }
 
@@ -126,19 +123,17 @@ export default async function ProtectedLayout({
         activeSubject,
       );
       return (
-        <LocalizedAppProviders>
-          <ProtectedShell
-            profile={DEV_ADMIN_PROFILE}
-            userEmail={user.email ?? DEV_ADMIN_PROFILE.email}
-            userId={user.id}
-            activeSubject={activeSubject}
-            isEnrolledIeltsStudent={isEnrolledIeltsStudent}
-            seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
-            seasonReplayOutcome={seasonReplayOutcome}
-          >
-            {children}
-          </ProtectedShell>
-        </LocalizedAppProviders>
+        <ProtectedShell
+          profile={DEV_ADMIN_PROFILE}
+          userEmail={user.email ?? DEV_ADMIN_PROFILE.email}
+          userId={user.id}
+          activeSubject={activeSubject}
+          isEnrolledIeltsStudent={isEnrolledIeltsStudent}
+          seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
+          seasonReplayOutcome={seasonReplayOutcome}
+        >
+          {children}
+        </ProtectedShell>
       );
     }
 
@@ -156,18 +151,16 @@ export default async function ProtectedLayout({
   );
 
   return (
-    <LocalizedAppProviders>
-      <ProtectedShell
-        profile={profile as Profile | null}
-        userEmail={user.email ?? null}
-        userId={user.id}
-        activeSubject={activeSubject}
-        isEnrolledIeltsStudent={isEnrolledIeltsStudent}
-        seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
-        seasonReplayOutcome={seasonReplayOutcome}
-      >
-        {children}
-      </ProtectedShell>
-    </LocalizedAppProviders>
+    <ProtectedShell
+      profile={profile as Profile | null}
+      userEmail={user.email ?? null}
+      userId={user.id}
+      activeSubject={activeSubject}
+      isEnrolledIeltsStudent={isEnrolledIeltsStudent}
+      seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
+      seasonReplayOutcome={seasonReplayOutcome}
+    >
+      {children}
+    </ProtectedShell>
   );
 }

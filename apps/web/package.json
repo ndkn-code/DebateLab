@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "postbuild": "node src/scripts/upload-faro-source-maps.mjs",
-    "test:faro": "tsx src/lib/analytics-consent.test.ts && tsx src/lib/observability/faro-sanitize.test.ts",
+    "test:faro": "tsx src/lib/analytics-consent.test.ts && tsx src/lib/observability/faro-sanitize.test.ts && tsx src/app/locale-layout-providers.test.ts",
     "test:otel": "tsx --test src/instrumentation.test.ts src/lib/observability/server-otel.test.ts",
     "start": "next start",
     "lint": "eslint",

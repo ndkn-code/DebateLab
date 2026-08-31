@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { MaintenanceSplash } from "@/components/maintenance/MaintenanceSplash";
 import { getMaintenanceState } from "@/lib/api/maintenance";
-import { LocalizedAppProviders } from "../localized-app-providers";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Scheduled maintenance" };
@@ -20,9 +19,5 @@ export default async function MaintenancePage({
     redirect(`/${locale}`);
   }
   if (maintenance.mode !== "full") redirect(`/${locale}`);
-  return (
-    <LocalizedAppProviders>
-      <MaintenanceSplash initialState={maintenance} locale={locale} />
-    </LocalizedAppProviders>
-  );
+  return <MaintenanceSplash initialState={maintenance} locale={locale} />;
 }
