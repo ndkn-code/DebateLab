@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
+import {
+  ANALYTICS_CONSENT_CHANGED_EVENT,
+  hasBrowserAnalyticsConsent,
+  syncAnalyticsConsent,
+} from "@/lib/analytics-consent";
 import {
   initializeThinkfyFaro,
   pauseThinkfyFaro,
@@ -11,21 +16,35 @@ import { stripUrlQuery } from "@/lib/observability/faro-sanitize";
 
 export function FaroProvider({
   children,
-  enabled,
 }: {
   children: React.ReactNode;
-  enabled: boolean;
 }) {
   const pathname = usePathname();
+  const [enabled, setEnabled] = useState(() => hasBrowserAnalyticsConsent());
 
   useEffect(() => {
-    if (!enabled) {
-      pauseThinkfyFaro();
-      return;
-    }
+    const syncConsent = () => {
+      setEnabled(hasBrowserAnalyticsConsent());
+    };
 
-    initializeThinkfyFaro();
-    return pauseThinkfyFaro;
+    syncConsent();
+    window.addEventListener(ANALYTICS_CONSENT_CHANGED_EVENT, syncConsent);
+    window.addEventListener("focus", syncConsent);
+
+    return () => {
+      window.removeEventListener(ANALYTICS_CONSENT_CHANGED_EVENT, syncConsent);
+      window.removeEventListener("focus", syncConsent);
+    };
+  }, []);
+
+  useEffect(() => {
+    syncAnalyticsConsent(
+      enabled,
+      () => initializeThinkfyFaro(),
+      () => pauseThinkfyFaro()
+    );
+
+    return enabled ? pauseThinkfyFaro : undefined;
   }, [enabled]);
 
   useEffect(() => {

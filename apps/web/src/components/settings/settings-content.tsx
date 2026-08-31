@@ -53,6 +53,7 @@ import {
   buildSavedSettingsDraft,
   buildSettingsDraft,
 } from "@/lib/settings";
+import { notifyAnalyticsConsentChanged } from "@/lib/analytics-consent";
 import {
   normalizeSettingsHandleDraft,
   normalizeSettingsStatusDraft,
@@ -874,6 +875,7 @@ export function SettingsContent({
         const result = await saveSettings(draft);
         setLocalSavedDraft(result.saved);
         setDraft(result.saved);
+        notifyAnalyticsConsentChanged();
         router.refresh();
         showToast(t("toast.saved"), "success");
       } catch (error) {

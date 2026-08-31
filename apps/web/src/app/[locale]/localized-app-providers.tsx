@@ -78,16 +78,18 @@ export async function LocalizedAppProviders({
   const analyticsEnabled = isAnalyticsEnabled(
     cookieStore.get(ANALYTICS_COOKIE_NAME)?.value
   );
-
-  const content = analyticsEnabled ? (
-    <FaroProvider enabled>
-      <PostHogProvider enabled>
-        <PostHogPageview enabled />
-        {children}
-      </PostHogProvider>
-    </FaroProvider>
+  const analyticsContent = analyticsEnabled ? (
+    <PostHogProvider enabled>
+      <PostHogPageview enabled />
+      {children}
+    </PostHogProvider>
   ) : (
     children
+  );
+  const content = (
+    <FaroProvider>
+      {analyticsContent}
+    </FaroProvider>
   );
 
   return (
