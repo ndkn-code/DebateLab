@@ -65,6 +65,14 @@ const upload = spawnSync(
     outputPath,
     "--recursive",
     "--gzip-contents",
+    // Keep each request comfortably below the Faro API/Vercel upload limit.
+    // The CLI still measures source-map bytes before gzip, so bound both the
+    // byte size and the number of files in a batch.
+    "--max-upload-size",
+    "8388608",
+    "--batch-size",
+    "10",
+    "--gzip-payload",
   ],
   { stdio: "inherit" }
 );
