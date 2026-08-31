@@ -6,6 +6,13 @@ const EMBEDDED_SENSITIVE_VALUE =
   /\b(?:prompt|transcript|essay|audio|user[_ -]?content|request[_ -]?body|response[_ -]?body)\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^,;\n}]*)/gi;
 const MAX_STRING_LENGTH = 2_000;
 const MAX_DEPTH = 8;
+const FARO_TRANSPORT_ITEM_TYPES = [
+  "exception",
+  "event",
+  "log",
+  "measurement",
+  "trace",
+] as const;
 
 export function stripUrlQuery(value: string) {
   try {
@@ -57,19 +64,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
+function isFaroTransportItem(value: unknown): value is Record<string, unknown> {
+  return (
+    isRecord(value) &&
+    typeof value.type === "string" &&
+    FARO_TRANSPORT_ITEM_TYPES.includes(
+      value.type as (typeof FARO_TRANSPORT_ITEM_TYPES)[number]
+    ) &&
+    isRecord(value.payload) &&
+    isRecord(value.meta)
+  );
+}
+
 function sanitizeValue(
   value: unknown,
   key: string,
-  depth: number,
-  preserveTransportPayload = false
+  depth: number
 ): unknown {
-  // Faro TransportItems use a top-level object-valued `payload` envelope.
-  // Preserve that schema while still sanitizing every field inside it.
-  const isTransportPayload =
-    key === "payload" && preserveTransportPayload && isRecord(value);
-  if (isSensitiveKey(key) && !isTransportPayload) {
-    return "[redacted]";
-  }
+  if (isSensitiveKey(key)) return "[redacted]";
   if (depth > MAX_DEPTH) return "[truncated]";
 
   if (typeof value === "string") {
@@ -89,8 +101,7 @@ function sanitizeValue(
         sanitizeValue(
           childValue,
           childKey,
-          depth + 1,
-          depth === 0 && childKey === "payload"
+          depth + 1
         ),
       ])
     );
@@ -100,5 +111,16 @@ function sanitizeValue(
 }
 
 export function sanitizeTelemetryItem<T>(item: T): T {
+  if (isFaroTransportItem(item)) {
+    return Object.fromEntries(
+      Object.entries(item).map(([key, value]) => [
+        key,
+        key === "payload"
+          ? sanitizeValue(value, "__faro_transport_envelope__", 1)
+          : sanitizeValue(value, key, 1),
+      ])
+    ) as T;
+  }
+
   return sanitizeValue(item, "root", 0) as T;
 }

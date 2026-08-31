@@ -35,7 +35,7 @@ const sanitized = sanitizeTelemetryItem({
 });
 
 assert.deepEqual(sanitized, {
-  payload: { essay: "[redacted]" },
+  payload: "[redacted]",
   requestBody: "[redacted]",
   context: {
     route: "/en/practice",
@@ -47,6 +47,7 @@ assert.deepEqual(sanitized, {
 
 const eventTransportItem = sanitizeTelemetryItem({
   type: "event",
+  meta: { session: { id: "session-id" } },
   payload: {
     name: "practice_started",
     attributes: {
@@ -60,6 +61,7 @@ const eventTransportItem = sanitizeTelemetryItem({
 assert.equal(typeof eventTransportItem.payload, "object");
 assert.deepEqual(eventTransportItem, {
   type: "event",
+  meta: { session: { id: "session-id" } },
   payload: {
     name: "practice_started",
     attributes: {
@@ -69,5 +71,56 @@ assert.deepEqual(eventTransportItem, {
     },
   },
 });
+
+const genericPayload = sanitizeTelemetryItem({
+  payload: { freeform: "private details" },
+});
+assert.deepEqual(genericPayload, { payload: "[redacted]" });
+
+const eventWithNestedPayload = sanitizeTelemetryItem({
+  type: "event",
+  meta: { session: { id: "session-id" } },
+  payload: {
+    name: "practice_failed",
+    attributes: {
+      nested: { payload: "private nested details" },
+    },
+  },
+});
+assert.deepEqual(eventWithNestedPayload.payload, {
+  name: "practice_failed",
+  attributes: {
+    nested: { payload: "[redacted]" },
+  },
+});
+
+const traceTransportItem = sanitizeTelemetryItem({
+  type: "trace",
+  meta: { session: { id: "session-id" } },
+  payload: {
+    resourceSpans: [
+      {
+        resource: {
+          attributes: [],
+        },
+        scopeSpans: [
+          {
+            spans: [
+              {
+                name: "GET /en/practice",
+              },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+});
+
+assert.equal(typeof traceTransportItem.payload, "object");
+assert.equal(
+  traceTransportItem.payload.resourceSpans[0].scopeSpans[0].spans[0].name,
+  "GET /en/practice"
+);
 
 console.log("Faro telemetry sanitizer tests passed");
