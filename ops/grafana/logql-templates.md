@@ -62,27 +62,40 @@ sum by (hash, service_name) (
 
 ## AI Chat Coach failures (P1)
 
-This rule must not depend only on Faro because browser analytics consent is
-optional. The consent-independent signal is the server Tempo span attribute;
-the Faro Loki query is optional browser context. Both paths use the same
-bounded `chat-request-failed:<code>` value when correlating a failure.
+Alert creation must use the consent-independent server Faro exception stream in
+Loki. The browser Faro stream is optional enrichment because analytics consent
+may be absent. Tempo is retained for agent trace evidence and correlation; it
+does not directly power this alert. All paths use the same bounded
+`chat-request-failed:<code>` value.
 
-Configure the required backend alert against the Tempo datasource in metrics
-mode. This is the actual alerting query and must end in `| count_over_time()`:
+Configure the required backend alert against the Loki datasource:
 
-```traceql
-{
-  resource.service.name = "thinkfy-web" &&
-  span.thinkfy.chat.incident_fingerprint =~
-    "chat-request-failed:(COACH_REQUEST_FAILED|COACH_STREAM_FAILED|IELTS_COACH_INFRASTRUCTURE_UNAVAILABLE)"
-} | count_over_time()
+```logql
+sum by (context_incidentFingerprint) (
+  count_over_time(
+    {kind="exception",app_id="1295",deployment_environment="production"}
+      | logfmt
+      | sdk_name="thinkfy-server"
+      | type="chat_request"
+      | context_incidentFingerprint=~"chat-request-failed:(COACH_REQUEST_FAILED|COACH_STREAM_FAILED|IELTS_COACH_INFRASTRUCTURE_UNAVAILABLE)"
+    [5m]
+  )
+)
 ```
 
-The three stable incident rules are:
+The three exact stable incident rules are:
 
 - `chat-request-failed:COACH_REQUEST_FAILED` — request/authentication or persistence failure.
 - `chat-request-failed:COACH_STREAM_FAILED` — provider/stream failure after the request starts.
 - `chat-request-failed:IELTS_COACH_INFRASTRUCTURE_UNAVAILABLE` — unavailable trusted IELTS infrastructure.
+
+For agent evidence, query Tempo separately without converting the query into an
+alert metric:
+
+```traceql
+{ resource.service.name = "thinkfy-web" &&
+  span.thinkfy.chat.incident_fingerprint = "chat-request-failed:COACH_REQUEST_FAILED" }
+```
 
 For optional consented browser context, query Loki separately:
 
@@ -91,15 +104,16 @@ sum by (hash) (
   count_over_time(
     {kind="exception",app_id="1295",deployment_environment="production"}
       | logfmt
+      | sdk_name!="thinkfy-server"
       | context_incidentFingerprint="chat-request-failed:COACH_REQUEST_FAILED"
     [5m]
   )
 )
 ```
 
-Alert on the first Tempo match with severity `p1`. The Loki query adds
-session/browser context only when the user has granted analytics consent and
-must not be required for incident creation.
+Alert on the first server Faro/Loki match with severity `p1`. Browser context
+and Tempo traces can enrich the incident after creation, but neither is
+required for alerting.
 
 ## Required notification labels and annotations
 

@@ -370,22 +370,30 @@ export class GrafanaClient {
   async incident(sourceHash: string, fromMs: number, toMs: number): Promise<JsonValue> {
     const escaped = sourceHash.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     if (sourceHash.startsWith("chat-request-failed:")) {
-      const [tempo, browser] = await Promise.allSettled([
+      const [server, tempo, browser] = await Promise.allSettled([
+        this.query({
+          expression: `{kind="exception",app_id="1295",deployment_environment="production"} | logfmt | sdk_name="thinkfy-server" | context_incidentFingerprint="${escaped}"`,
+          fromMs,
+          toMs,
+          limit: 500,
+        }),
         this.queryTempo(
           `{ resource.service.name = "thinkfy-web" && span.thinkfy.chat.incident_fingerprint = "${escaped}" }`,
           fromMs,
           toMs,
         ),
         this.query({
-          expression: `{kind="exception",app_id="1295",deployment_environment="production"} | logfmt | context_incidentFingerprint="${escaped}"`,
+          expression: `{kind="exception",app_id="1295",deployment_environment="production"} | logfmt | sdk_name!="thinkfy-server" | context_incidentFingerprint="${escaped}"`,
           fromMs,
           toMs,
           limit: 500,
         }),
       ]);
+      if (server.status === "rejected") throw server.reason;
       if (tempo.status === "rejected") throw tempo.reason;
       return {
         sourceHash,
+        server: server.value,
         tempo: tempo.value,
         browser: browser.status === "fulfilled" ? browser.value : null,
       };

@@ -44,6 +44,7 @@ import { getActiveSubject } from "@/lib/subject/server";
 import { IELTS_ENABLED } from "@/lib/features";
 import { tryCreateTypedAdminClient } from "@/lib/supabase/admin";
 import { recordServerException } from "@/lib/observability/server-otel";
+import { emitServerFaroException } from "@/lib/observability/server-faro";
 import {
   createDebateCorpusRetrievalMetadata,
   type DebateCorpusRetrievalResult,
@@ -200,7 +201,7 @@ function responseHeaders(requestId: string, extra: Record<string, string> = {}) 
   };
 }
 
-function reportChatFailure(params: {
+async function reportChatFailure(params: {
   requestId: string;
   stage: ChatFailureStage;
   incidentCode: string;
@@ -234,6 +235,13 @@ function reportChatFailure(params: {
     errorCode: errorCode ?? "UNKNOWN",
     type: errorType,
   }));
+  await emitServerFaroException({
+    requestId: params.requestId,
+    stage: params.stage,
+    featureArea: "ai-coach",
+    route: CHAT_PROVIDER_SOURCE_ROUTE,
+    sourceHash,
+  });
 }
 
 function parseChatRequest(body: JsonRecord): ChatRequest {
@@ -893,7 +901,7 @@ export async function POST(req: NextRequest) {
       }
       const trustedSupabase = tryCreateTypedAdminClient();
       if (!trustedSupabase) {
-        reportChatFailure({
+        await reportChatFailure({
           requestId,
           stage: "request",
           incidentCode: "IELTS_COACH_INFRASTRUCTURE_UNAVAILABLE",
@@ -1380,7 +1388,7 @@ RULES FOR THIS CONTEXT:
               firstTokenLatencyMs,
             },
           });
-          reportChatFailure({
+          await reportChatFailure({
             requestId,
             stage: "coach_stream",
             incidentCode: "COACH_STREAM_FAILED",
@@ -1415,7 +1423,7 @@ RULES FOR THIS CONTEXT:
         }),
       });
     }
-    reportChatFailure({
+    await reportChatFailure({
       requestId,
       stage: failureStage,
       incidentCode: "COACH_REQUEST_FAILED",

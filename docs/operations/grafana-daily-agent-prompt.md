@@ -27,11 +27,14 @@ ClickUp task per run. Use `gpt-5.6-luna` with high reasoning.
    the allow-listed evidence projection. Query that source hash with
    `npm run bugops -- grafana incident SOURCE_HASH --from 24h`; never query the
    one-way incident fingerprint or guess a hash from another task. This command
-   queries live Tempo plus optional Faro Loki evidence. For
-   `chat-request-failed:*` hashes, inspect the required consent-independent
-   Tempo evidence and the optional consented browser telemetry. If the Tempo
-   query fails, stop and report the blocker; browser evidence cannot replace
-   it. When a trace ID is present, optionally
+   queries the consent-independent server Faro/Loki alert evidence, optional
+   browser Faro/Loki context, and live Tempo trace evidence. For
+   `chat-request-failed:*` hashes, require the server Faro/Loki evidence for
+   alert provenance (`sdk_name="thinkfy-server"`), then inspect Tempo for the
+   causal trace and optional browser Faro/Loki telemetry (`sdk_name!=
+   "thinkfy-server"`) for user-visible context. If the server Faro/Loki or
+   Tempo query fails, stop and report the blocker; browser evidence cannot
+   replace either required source. When a trace ID is present, optionally
    inspect Tempo using the task's direct Grafana URL if Grafana UI/API access is
    available. Use the read-only Grafana credential. Do not display, copy into
    source, or commit any credential or sensitive user content.

@@ -10,6 +10,7 @@
     "test:faro": "tsx src/lib/analytics-consent.test.ts && tsx src/lib/observability/faro-sanitize.test.ts && tsx src/app/locale-layout-providers.test.ts",
     "test:seo-structured-data": "tsx src/components/seo/structured-data.test.tsx",
     "test:chat-error": "tsx --test src/lib/api/chat-error.test.ts",
+    "test:server-faro": "NODE_OPTIONS='--conditions=react-server' tsx --test src/lib/observability/server-faro.test.ts",
     "test:otel": "tsx --test src/instrumentation.test.ts src/lib/observability/server-otel.test.ts",
     "start": "next start",
     "lint": "eslint",

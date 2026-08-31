@@ -185,7 +185,7 @@ test("Grafana Chat incident retrieves both consented browser and backend evidenc
 
   const result = await client.incident("chat-request-failed:COACH_REQUEST_FAILED", 1, 2);
 
-  assert.equal(bodies.length, 2);
+  assert.equal(bodies.length, 3);
   const queries = bodies.map((body) => JSON.parse(body));
   assert.equal(
     queries.find((body) => body.queries[0].datasource.type === "tempo")
@@ -194,7 +194,10 @@ test("Grafana Chat incident retrieves both consented browser and backend evidenc
   );
   assert.match(JSON.stringify(queries), /resource\.service\.name = \\\"thinkfy-web\\\"/);
   assert.match(JSON.stringify(queries), /span\.thinkfy\.chat\.incident_fingerprint/);
+  assert.match(JSON.stringify(queries), /sdk_name=\\\"thinkfy-server\\\"/);
+  assert.match(JSON.stringify(queries), /sdk_name!=\\\"thinkfy-server\\\"/);
   assert.match(JSON.stringify(queries), /context_incidentFingerprint/);
+  assert.match(JSON.stringify(result), /server/);
   assert.match(JSON.stringify(result), /browser/);
   assert.match(JSON.stringify(result), /tempo/);
 });
@@ -214,15 +217,49 @@ test("Grafana Chat incident keeps Tempo evidence when optional Faro query fails"
       if (JSON.parse(body).queries[0].datasource.type === "tempo") {
         return response({ results: { traces: [{ traceId: "trace-1" }] } });
       }
+      if (
+        (JSON.parse(body).queries[0].expr as string).includes(
+          'sdk_name="thinkfy-server"',
+        )
+      ) {
+        return response({ results: { streams: [{ values: [["1", "server"]] }] } });
+      }
       return response({ error: "Loki is unavailable" }, 503);
     },
   );
 
   const result = await client.incident("chat-request-failed:COACH_REQUEST_FAILED", 1, 2);
 
-  assert.equal(bodies.length, 2);
+  assert.equal(bodies.length, 3);
   assert.match(JSON.stringify(result), /trace-1/);
+  assert.ok((result as { server: unknown }).server);
   assert.equal((result as { browser: unknown }).browser, null);
+});
+
+test("Grafana Chat incident requires server Faro evidence", async () => {
+  const client = new GrafanaClient(
+    {
+      GRAFANA_URL: "https://example.grafana.net",
+      GRAFANA_SERVICE_ACCOUNT_TOKEN: "grafana-secret",
+      GRAFANA_LOKI_DATASOURCE_UID: "logs",
+    },
+    async (_input, init) => {
+      const body = JSON.parse(String(init?.body ?? ""));
+      if (body.queries[0].datasource.type === "tempo") {
+        return response({ results: { traces: [] } });
+      }
+      const expression = body.queries[0].expr as string;
+      if (expression.includes('sdk_name="thinkfy-server"')) {
+        return response({ error: "server Faro unavailable" }, 503);
+      }
+      return response({ results: {} });
+    },
+  );
+
+  await assert.rejects(
+    client.incident("chat-request-failed:COACH_REQUEST_FAILED", 1, 2),
+    /Request failed \(503\)/,
+  );
 });
 
 test("Grafana rejects non-HTTPS remote URLs", () => {

@@ -9,9 +9,11 @@ cron, queue consumer, Workflow trigger, webhook route, or Server Action.
 1. Create the Grafana Cloud Free stack and note its stack URL. Create a
    read-only service account restricted to Logs/Traces query access. Save its
    token locally as `GRAFANA_SERVICE_ACCOUNT_TOKEN`; never add it to the repo.
-   The repository CLI queries the Tempo datasource for Chat Coach failures and
-   optional Faro Loki context; use the Grafana URL in each task to inspect
-   additional Tempo details when a trace ID is present.
+   The repository CLI queries the server Faro/Loki datasource for Chat Coach
+   alert evidence (`sdk_name="thinkfy-server"`), with optional browser
+   Faro/Loki context (`sdk_name!="thinkfy-server"`) and Tempo trace evidence.
+   Use the Grafana URL in each task to inspect additional Tempo details when a
+   trace ID is present; Tempo is not the alert source.
 2. Configure Loki/Tempo ingestion and verify production events carry the
    labels documented in `ops/grafana/logql-templates.md`.
 3. Create a `Production Bugs` ClickUp list with these statuses:
@@ -40,8 +42,8 @@ export GRAFANA_SERVICE_ACCOUNT_TOKEN='...'
 export GRAFANA_LOKI_DATASOURCE_UID='...'
 # Optional override; defaults to grafanacloud-traces.
 export GRAFANA_TEMPO_DATASOURCE_UID='...'
-# Chat Coach bugops retrieval queries Tempo first and adds optional Faro Loki
-# context when the Loki datasource is configured.
+# Chat Coach bugops retrieval queries consent-independent server Faro/Loki
+# evidence, optional browser Faro/Loki context, and Tempo trace evidence.
 ```
 
 The commands never accept credentials as command-line arguments and never log
@@ -71,8 +73,9 @@ Before enabling automatic `Ready for Agent` routing:
 1. Inject one sanitized staging browser error and one Cloud Run error.
 2. Confirm source-mapped frames, release SHA, trace ID, and fingerprint are
    queryable while prohibited personal/user content is absent. `bugops`
-   retrieves Chat Coach traces from Tempo and optional browser context from
-   Loki; inspect Tempo in Grafana for trace details.
+   retrieves Chat Coach server Faro/Loki alert evidence, optional browser
+   context from Loki, and Tempo traces for correlation; inspect Tempo in
+   Grafana for trace details.
 3. Fire the same fingerprint ten times; confirm one ClickUp task is created and
    its counters update.
 4. Confirm a P2 first occurrence lands as `New`; three occurrences in 15
