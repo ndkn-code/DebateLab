@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { mkdtempSync, readdirSync, rmSync } from "node:fs";
 import test from "node:test";
+import os from "node:os";
+import path from "node:path";
 
 import { ClickUpClient, GrafanaClient, parseDuration, type FetchLike } from "./core";
 
@@ -36,6 +39,41 @@ test("ClickUp claim rejects a task that another worker already claimed", async (
     fetchImpl,
   );
   await assert.rejects(client.claim("1"), /not claimable/);
+});
+
+test("ClickUp claims serialize local clients and only one wins", async () => {
+  const lockDir = mkdtempSync(path.join(os.tmpdir(), "thinkfy-bugops-claim-test-"));
+  let status = "Ready for Agent";
+  let updateCount = 0;
+  const fetchImpl: FetchLike = async (input, init) => {
+    if (init?.method === "PUT") {
+      updateCount += 1;
+      status = "Agent Working";
+      // Keep the first transaction open while the second client waits on the
+      // same OS-level lock, exercising process-like concurrency in one test.
+      await new Promise((resolve) => setTimeout(resolve, 30));
+    }
+    return response({ id: "1", name: "Broken", status: { status } });
+  };
+  const env = {
+    CLICKUP_API_TOKEN: "token",
+    CLICKUP_BUG_LIST_ID: "list",
+    BUGOPS_CLAIM_LOCK_DIR: lockDir,
+  };
+  const first = new ClickUpClient(env, fetchImpl);
+  const second = new ClickUpClient(env, fetchImpl);
+
+  try {
+    const results = await Promise.allSettled([first.claim("1"), second.claim("1")]);
+    assert.equal(results.filter((result) => result.status === "fulfilled").length, 1);
+    assert.equal(results.filter((result) => result.status === "rejected").length, 1);
+    const rejection = results.find((result) => result.status === "rejected");
+    assert.match(String(rejection?.status === "rejected" ? rejection.reason : ""), /not claimable/);
+    assert.equal(updateCount, 1);
+    assert.deepEqual(readdirSync(lockDir), []);
+  } finally {
+    rmSync(lockDir, { recursive: true, force: true });
+  }
 });
 
 test("Grafana query uses a bearer header and POST body", async () => {

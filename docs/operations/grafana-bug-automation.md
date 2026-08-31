@@ -49,8 +49,13 @@ npm run bugops -- clickup update TASK_ID --status "Needs Review" --comment "PR: 
 ```
 
 The claim command refuses tasks outside `Ready for Agent` and verifies the
-post-update status. The daily automation must be configured with non-overlap so
-only one run can claim work at a time.
+post-update status. It also takes a per-list/task exclusive lock under the
+operating system temporary directory (override with the absolute
+`BUGOPS_CLAIM_LOCK_DIR` path when multiple local processes need to share a
+different lock directory). This is a one-host guard around the full
+GET/update/verification transaction; it is not a cross-host lease. Configure
+the daily automation with non-overlap as a second safeguard so only one run can
+claim work at a time, even when runs are scheduled on different hosts.
 
 ## Smoke tests and rollout
 

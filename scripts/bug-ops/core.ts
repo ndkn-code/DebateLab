@@ -1,3 +1,8 @@
+import { createHash } from "node:crypto";
+import { mkdir, open, unlink, type FileHandle } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+
 export type JsonValue =
   | null
   | boolean
@@ -14,6 +19,8 @@ export type FetchLike = (
 export interface BugOpsEnvironment {
   CLICKUP_API_TOKEN?: string;
   CLICKUP_BUG_LIST_ID?: string;
+  /** Absolute directory for one-host claim locks; defaults to the OS temp dir. */
+  BUGOPS_CLAIM_LOCK_DIR?: string;
   GRAFANA_URL?: string;
   GRAFANA_SERVICE_ACCOUNT_TOKEN?: string;
   GRAFANA_LOKI_DATASOURCE_UID?: string;
@@ -37,6 +44,66 @@ export interface GrafanaQueryOptions {
 }
 
 const REQUEST_TIMEOUT_MS = 15_000;
+const CLAIM_LOCK_WAIT_MS = 15_000;
+const CLAIM_LOCK_RETRY_MS = 50;
+const DEFAULT_CLAIM_LOCK_DIR = path.join(os.tmpdir(), "thinkfy-bugops-claim-locks");
+
+interface ClaimLock {
+  file: FileHandle;
+  path: string;
+}
+
+function claimLockDirectory(value?: string): string {
+  const configured = value?.trim();
+  if (!configured) return DEFAULT_CLAIM_LOCK_DIR;
+  if (!path.isAbsolute(configured)) {
+    throw new Error("BUGOPS_CLAIM_LOCK_DIR must be an absolute path");
+  }
+  return configured;
+}
+
+function claimLockPath(lockDirectory: string, listId: string, taskId: string): string {
+  // Hash identifiers so lock filenames cannot expose configured ClickUp IDs.
+  const key = createHash("sha256").update(`${listId}\0${taskId}`).digest("hex");
+  return path.join(lockDirectory, `${key}.lock`);
+}
+
+function sleep(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+async function acquireClaimLock(lockPath: string): Promise<ClaimLock> {
+  await mkdir(path.dirname(lockPath), { recursive: true, mode: 0o700 });
+  const deadline = Date.now() + CLAIM_LOCK_WAIT_MS;
+
+  while (true) {
+    try {
+      return { file: await open(lockPath, "wx", 0o600), path: lockPath };
+    } catch (error) {
+      const code = (error as NodeJS.ErrnoException).code;
+      if (code !== "EEXIST") {
+        throw new Error(`Unable to acquire local claim lock: ${code ?? "unknown error"}`);
+      }
+      const remaining = deadline - Date.now();
+      if (remaining <= 0) {
+        throw new Error("Unable to claim task: another local bug-ops run holds its claim lock");
+      }
+      await sleep(Math.min(CLAIM_LOCK_RETRY_MS, remaining));
+    }
+  }
+}
+
+async function releaseClaimLock(lock: ClaimLock): Promise<void> {
+  try {
+    await lock.file.close();
+  } finally {
+    try {
+      await unlink(lock.path);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    }
+  }
+}
 
 function required(value: string | undefined, name: string): string {
   if (!value?.trim()) throw new Error(`Missing required environment variable: ${name}`);
@@ -82,6 +149,7 @@ async function requestJson(
 export class ClickUpClient {
   private readonly token: string;
   private readonly listId: string;
+  private readonly claimLockDir: string;
 
   constructor(
     env: BugOpsEnvironment,
@@ -89,6 +157,7 @@ export class ClickUpClient {
   ) {
     this.token = required(env.CLICKUP_API_TOKEN, "CLICKUP_API_TOKEN");
     this.listId = required(env.CLICKUP_BUG_LIST_ID, "CLICKUP_BUG_LIST_ID");
+    this.claimLockDir = claimLockDirectory(env.BUGOPS_CLAIM_LOCK_DIR);
   }
 
   private request(path: string, init: RequestInit = {}): Promise<JsonValue> {
@@ -121,20 +190,27 @@ export class ClickUpClient {
   }
 
   async claim(taskId: string): Promise<ClickUpTask> {
-    const before = await this.get(taskId);
-    const status = before.status?.status;
-    if (status !== "Ready for Agent") {
-      throw new Error(`Task ${taskId} is not claimable; current status is ${status ?? "unknown"}`);
+    // This lock serializes claims made by local Codex runs on this host. It is
+    // not a cross-host lease; the scheduler must also prevent overlapping runs.
+    const lock = await acquireClaimLock(claimLockPath(this.claimLockDir, this.listId, taskId));
+    try {
+      const before = await this.get(taskId);
+      const status = before.status?.status;
+      if (status !== "Ready for Agent") {
+        throw new Error(`Task ${taskId} is not claimable; current status is ${status ?? "unknown"}`);
+      }
+      await this.request(`/task/${encodeURIComponent(taskId)}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: "Agent Working" }),
+      });
+      const claimed = await this.get(taskId);
+      if (claimed.status?.status !== "Agent Working") {
+        throw new Error(`Task ${taskId} claim could not be verified`);
+      }
+      return claimed;
+    } finally {
+      await releaseClaimLock(lock);
     }
-    await this.request(`/task/${encodeURIComponent(taskId)}`, {
-      method: "PUT",
-      body: JSON.stringify({ status: "Agent Working" }),
-    });
-    const claimed = await this.get(taskId);
-    if (claimed.status?.status !== "Agent Working") {
-      throw new Error(`Task ${taskId} claim could not be verified`);
-    }
-    return claimed;
   }
 
   async update(
