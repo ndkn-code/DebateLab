@@ -24,13 +24,16 @@ ClickUp task per run. Use `gpt-5.6-luna` with high reasoning.
    `codex/bug-TASK_ID-short-slug`. Never edit the shared checkout.
 4. Read the claimed task with `npm run bugops -- clickup get TASK_ID`. Require
    `Agent evidence complete: yes` and parse the exact `Source query hash` from
-   the description. Query that source hash with
+   the allow-listed evidence projection. Query that source hash with
    `npm run bugops -- grafana incident SOURCE_HASH --from 24h`; never query the
    one-way incident fingerprint or guess a hash from another task. This command
-   queries live Faro Loki labels. When a trace ID is present, optionally
+   queries live Tempo plus optional Faro Loki evidence. For
+   `chat-request-failed:*` hashes, inspect the required consent-independent
+   Tempo evidence and the optional consented browser telemetry. If the Tempo
+   query fails, stop and report the blocker; browser evidence cannot replace
+   it. When a trace ID is present, optionally
    inspect Tempo using the task's direct Grafana URL if Grafana UI/API access is
-   available; if Tempo is unavailable, continue with Loki and mark Tempo as
-   unavailable. Use the read-only Grafana credential. Do not display, copy into
+   available. Use the read-only Grafana credential. Do not display, copy into
    source, or commit any credential or sensitive user content.
 5. Correlate the actual source-mapped frames, release SHA, trace ID (from
    Grafana/Tempo when present), service, normalized route, and debug ID. Treat

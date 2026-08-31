@@ -24,6 +24,7 @@ export interface BugOpsEnvironment {
   GRAFANA_URL?: string;
   GRAFANA_SERVICE_ACCOUNT_TOKEN?: string;
   GRAFANA_LOKI_DATASOURCE_UID?: string;
+  GRAFANA_TEMPO_DATASOURCE_UID?: string;
 }
 
 export interface ClickUpTask {
@@ -294,6 +295,7 @@ export class GrafanaClient {
   private readonly baseUrl: string;
   private readonly token: string;
   private readonly defaultDatasourceUid?: string;
+  private readonly tempoDatasourceUid: string;
 
   constructor(
     env: BugOpsEnvironment,
@@ -305,6 +307,8 @@ export class GrafanaClient {
       "GRAFANA_SERVICE_ACCOUNT_TOKEN",
     );
     this.defaultDatasourceUid = env.GRAFANA_LOKI_DATASOURCE_UID?.trim();
+    this.tempoDatasourceUid =
+      env.GRAFANA_TEMPO_DATASOURCE_UID?.trim() || "grafanacloud-traces";
   }
 
   async query(options: GrafanaQueryOptions): Promise<JsonValue> {
@@ -334,8 +338,58 @@ export class GrafanaClient {
     });
   }
 
-  incident(sourceHash: string, fromMs: number, toMs: number): Promise<JsonValue> {
+  private queryTempo(
+    traceql: string,
+    fromMs: number,
+    toMs: number,
+    limit = 500,
+  ): Promise<JsonValue> {
+    return requestJson(this.fetchImpl, `${this.baseUrl}/api/ds/query`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${this.token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: String(fromMs),
+        to: String(toMs),
+        queries: [
+          {
+            refId: "A",
+            datasource: { type: "tempo", uid: this.tempoDatasourceUid },
+            queryType: "traceql",
+            query: traceql,
+            limit: Math.max(1, Math.min(limit, 1_000)),
+            tableType: "traces",
+          },
+        ],
+      }),
+    });
+  }
+
+  async incident(sourceHash: string, fromMs: number, toMs: number): Promise<JsonValue> {
     const escaped = sourceHash.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+    if (sourceHash.startsWith("chat-request-failed:")) {
+      const [tempo, browser] = await Promise.allSettled([
+        this.queryTempo(
+          `{ resource.service.name = "thinkfy-web" && span.thinkfy.chat.incident_fingerprint = "${escaped}" }`,
+          fromMs,
+          toMs,
+        ),
+        this.query({
+          expression: `{kind="exception",app_id="1295",deployment_environment="production"} | logfmt | context_incidentFingerprint="${escaped}"`,
+          fromMs,
+          toMs,
+          limit: 500,
+        }),
+      ]);
+      if (tempo.status === "rejected") throw tempo.reason;
+      return {
+        sourceHash,
+        tempo: tempo.value,
+        browser: browser.status === "fulfilled" ? browser.value : null,
+      };
+    }
     return this.query({
       expression: `{kind="exception",app_id="1295",deployment_environment="production",hash="${escaped}"}`,
       fromMs,

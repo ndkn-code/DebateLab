@@ -9,8 +9,9 @@ cron, queue consumer, Workflow trigger, webhook route, or Server Action.
 1. Create the Grafana Cloud Free stack and note its stack URL. Create a
    read-only service account restricted to Logs/Traces query access. Save its
    token locally as `GRAFANA_SERVICE_ACCOUNT_TOKEN`; never add it to the repo.
-   The repository CLI queries Loki only; use the Grafana URL in each task to
-   inspect Tempo when a trace ID is present.
+   The repository CLI queries the Tempo datasource for Chat Coach failures and
+   optional Faro Loki context; use the Grafana URL in each task to inspect
+   additional Tempo details when a trace ID is present.
 2. Configure Loki/Tempo ingestion and verify production events carry the
    labels documented in `ops/grafana/logql-templates.md`.
 3. Create a `Production Bugs` ClickUp list with these statuses:
@@ -37,8 +38,10 @@ export CLICKUP_BUG_LIST_ID='...'
 export GRAFANA_URL='https://YOUR-STACK.grafana.net'
 export GRAFANA_SERVICE_ACCOUNT_TOKEN='...'
 export GRAFANA_LOKI_DATASOURCE_UID='...'
-# The bugops CLI queries Loki. Tempo correlation is inspected from the
-# Grafana URL in the task; no Tempo UID is currently consumed by bugops.
+# Optional override; defaults to grafanacloud-traces.
+export GRAFANA_TEMPO_DATASOURCE_UID='...'
+# Chat Coach bugops retrieval queries Tempo first and adds optional Faro Loki
+# context when the Loki datasource is configured.
 ```
 
 The commands never accept credentials as command-line arguments and never log
@@ -47,7 +50,7 @@ authorization headers:
 ```bash
 npm run bugops -- clickup list --status "Ready for Agent" --limit 10
 npm run bugops -- clickup claim TASK_ID
-npm run bugops -- grafana incident FINGERPRINT --from 24h
+npm run bugops -- grafana incident SOURCE_HASH --from 24h
 npm run bugops -- grafana query --expr '{service_name="thinkfy-web"} | json | level="error"' --from 1h
 npm run bugops -- clickup update TASK_ID --status "Needs Review" --comment "PR: ..."
 ```
@@ -68,7 +71,8 @@ Before enabling automatic `Ready for Agent` routing:
 1. Inject one sanitized staging browser error and one Cloud Run error.
 2. Confirm source-mapped frames, release SHA, trace ID, and fingerprint are
    queryable while prohibited personal/user content is absent. `bugops`
-   retrieves matching Loki records; inspect Tempo in Grafana for trace details.
+   retrieves Chat Coach traces from Tempo and optional browser context from
+   Loki; inspect Tempo in Grafana for trace details.
 3. Fire the same fingerprint ten times; confirm one ClickUp task is created and
    its counters update.
 4. Confirm a P2 first occurrence lands as `New`; three occurrences in 15

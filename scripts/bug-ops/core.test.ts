@@ -169,6 +169,62 @@ test("Grafana incident queries the live Faro source hash labels", async () => {
   assert.doesNotMatch(body, /error_fingerprint/);
 });
 
+test("Grafana Chat incident retrieves both consented browser and backend evidence", async () => {
+  const bodies: string[] = [];
+  const client = new GrafanaClient(
+    {
+      GRAFANA_URL: "https://example.grafana.net",
+      GRAFANA_SERVICE_ACCOUNT_TOKEN: "grafana-secret",
+      GRAFANA_LOKI_DATASOURCE_UID: "logs",
+    },
+    async (_input, init) => {
+      bodies.push(String(init?.body ?? ""));
+      return response({ results: {} });
+    },
+  );
+
+  const result = await client.incident("chat-request-failed:COACH_REQUEST_FAILED", 1, 2);
+
+  assert.equal(bodies.length, 2);
+  const queries = bodies.map((body) => JSON.parse(body));
+  assert.equal(
+    queries.find((body) => body.queries[0].datasource.type === "tempo")
+      .queries[0].datasource.uid,
+    "grafanacloud-traces",
+  );
+  assert.match(JSON.stringify(queries), /resource\.service\.name = \\\"thinkfy-web\\\"/);
+  assert.match(JSON.stringify(queries), /span\.thinkfy\.chat\.incident_fingerprint/);
+  assert.match(JSON.stringify(queries), /context_incidentFingerprint/);
+  assert.match(JSON.stringify(result), /browser/);
+  assert.match(JSON.stringify(result), /tempo/);
+});
+
+test("Grafana Chat incident keeps Tempo evidence when optional Faro query fails", async () => {
+  const bodies: string[] = [];
+  const client = new GrafanaClient(
+    {
+      GRAFANA_URL: "https://example.grafana.net",
+      GRAFANA_SERVICE_ACCOUNT_TOKEN: "grafana-secret",
+      GRAFANA_LOKI_DATASOURCE_UID: "logs",
+      GRAFANA_TEMPO_DATASOURCE_UID: "traces",
+    },
+    async (_input, init) => {
+      const body = String(init?.body ?? "");
+      bodies.push(body);
+      if (JSON.parse(body).queries[0].datasource.type === "tempo") {
+        return response({ results: { traces: [{ traceId: "trace-1" }] } });
+      }
+      return response({ error: "Loki is unavailable" }, 503);
+    },
+  );
+
+  const result = await client.incident("chat-request-failed:COACH_REQUEST_FAILED", 1, 2);
+
+  assert.equal(bodies.length, 2);
+  assert.match(JSON.stringify(result), /trace-1/);
+  assert.equal((result as { browser: unknown }).browser, null);
+});
+
 test("Grafana rejects non-HTTPS remote URLs", () => {
   assert.throws(
     () =>

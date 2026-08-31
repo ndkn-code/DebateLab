@@ -275,6 +275,7 @@ export function ChatShell({
       }) => {
         if (clientFailureReported) return;
         clientFailureReported = true;
+        const incidentFingerprint = chatFailureFingerprint(details);
         captureHandledError(
           new Error("Chat request failed"),
           {
@@ -283,9 +284,10 @@ export function ChatShell({
             code: details.code ?? "UNKNOWN",
             featureArea: "ai-coach",
             route: "/api/chat",
+            incidentFingerprint,
           },
           {
-            fingerprint: chatFailureFingerprint(details),
+            fingerprint: incidentFingerprint,
             type: "chat_request",
           },
         );

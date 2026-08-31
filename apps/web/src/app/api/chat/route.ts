@@ -30,6 +30,7 @@ import {
   RequestValidationError,
   type JsonRecord,
 } from "@/lib/api/request-validation";
+import { chatFailureFingerprint } from "@/lib/api/chat-error";
 import {
   decideCoachIntent,
   type CoachIntentDecision,
@@ -202,6 +203,7 @@ function responseHeaders(requestId: string, extra: Record<string, string> = {}) 
 function reportChatFailure(params: {
   requestId: string;
   stage: ChatFailureStage;
+  incidentCode: string;
   error?: unknown;
 }) {
   const error = params.error;
@@ -211,10 +213,12 @@ function reportChatFailure(params: {
       ? error.code.slice(0, 80)
       : undefined;
   const errorType = error instanceof Error ? error.name : "UnknownError";
+  const sourceHash = chatFailureFingerprint({ code: params.incidentCode });
   const span = trace.getActiveSpan();
   span?.setAttributes({
     "thinkfy.chat.request_id": params.requestId,
     "thinkfy.chat.failure_stage": params.stage,
+    "thinkfy.chat.incident_fingerprint": sourceHash,
     ...(errorCode ? { "thinkfy.chat.error_code": errorCode } : {}),
   });
   if (error) recordServerException(error, span);
@@ -224,6 +228,8 @@ function reportChatFailure(params: {
     requestId: params.requestId,
     route: CHAT_PROVIDER_SOURCE_ROUTE,
     featureArea: "ai-coach",
+    sourceHash,
+    incidentCode: params.incidentCode,
     stage: params.stage,
     errorCode: errorCode ?? "UNKNOWN",
     type: errorType,
@@ -890,6 +896,7 @@ export async function POST(req: NextRequest) {
         reportChatFailure({
           requestId,
           stage: "request",
+          incidentCode: "IELTS_COACH_INFRASTRUCTURE_UNAVAILABLE",
           error: Object.assign(
             new Error("IELTS Coach infrastructure is unavailable"),
             { code: "IELTS_COACH_INFRASTRUCTURE_UNAVAILABLE" },
@@ -1376,6 +1383,7 @@ RULES FOR THIS CONTEXT:
           reportChatFailure({
             requestId,
             stage: "coach_stream",
+            incidentCode: "COACH_STREAM_FAILED",
             error: err,
           });
           if (process.env.NODE_ENV === "development")
@@ -1407,7 +1415,12 @@ RULES FOR THIS CONTEXT:
         }),
       });
     }
-    reportChatFailure({ requestId, stage: failureStage, error });
+    reportChatFailure({
+      requestId,
+      stage: failureStage,
+      incidentCode: "COACH_REQUEST_FAILED",
+      error,
+    });
     return new Response(
       JSON.stringify({
         error: "Something went wrong. Please try again.",
