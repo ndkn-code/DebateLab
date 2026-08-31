@@ -32,10 +32,15 @@ const knowledgeVectorGuardFix = readFileSync(
   "utf8",
 );
 const mockKnowledgeImporter = readFileSync(
-  resolve(
-    process.cwd(),
-    "src/scripts/ai-knowledge-prepare-ielts-mocks.ts",
-  ),
+  resolve(process.cwd(), "src/scripts/ai-knowledge-prepare-ielts-mocks.ts"),
+  "utf8",
+);
+const releaseKnowledgeImporter = readFileSync(
+  resolve(process.cwd(), "src/scripts/ai-knowledge-prepare-ielts-release.ts"),
+  "utf8",
+);
+const releaseCorpus = readFileSync(
+  resolve(process.cwd(), "src/lib/ai/knowledge/ielts-release-corpus.ts"),
   "utf8",
 );
 const teacherWorkspaceRollout = readFileSync(
@@ -72,7 +77,10 @@ test("AI telemetry constraint preserves every runtime output type", () => {
 });
 
 test("release SQL keeps retry, simulation, identity, and retention at DB boundary", () => {
-  assert.match(migration, /create or replace function public\.retry_ielts_scoring_workflow/);
+  assert.match(
+    migration,
+    /create or replace function public\.retry_ielts_scoring_workflow/,
+  );
   assert.match(migration, /private\.is_assigned_class_teacher/);
   assert.match(migration, /workflow_attempt_count < 3/);
   assert.match(migration, /manual_retry_count >= 1/);
@@ -81,8 +89,14 @@ test("release SQL keeps retry, simulation, identity, and retention at DB boundar
   assert.match(migration, /Listening \(1\), Reading \(2\), Writing \(3\)/);
   assert.match(migration, /validate_ielts_criterion_evidence_identity/);
   assert.match(migration, /IELTS_EVIDENCE_IDENTITY_MISMATCH/);
-  assert.match(migration, /references public\.ielts_attempts\(id\) on delete restrict/);
-  assert.match(migration, /references public\.writing_responses\(id\) on delete restrict/);
+  assert.match(
+    migration,
+    /references public\.ielts_attempts\(id\) on delete restrict/,
+  );
+  assert.match(
+    migration,
+    /references public\.writing_responses\(id\) on delete restrict/,
+  );
 });
 
 test("coach runtime SQL admits telemetry and completes against canonical conversation columns", () => {
@@ -137,6 +151,42 @@ test("IELTS mock importer is coaching-only, review-gated, and cannot publish", (
   assert.doesNotMatch(
     mockKnowledgeImporter,
     /\.select\([\s\S]*?(?:answer|explanation|response)/,
+  );
+});
+
+test("IELTS release corpus keeps mocks separate from review-gated official calibration", () => {
+  assert.match(releaseCorpus, /usableFor: \["coaching"\]/);
+  assert.match(releaseCorpus, /notOfficialIelts: true/);
+  assert.match(releaseCorpus, /authorityTier: "official"/);
+  assert.match(releaseCorpus, /rightsStatus: "requires_review"/);
+  assert.match(releaseCorpus, /reviewStatus: "needs_review"/);
+  assert.match(releaseCorpus, /usableFor: \["grading", "coaching"\]/);
+  assert.match(releaseCorpus, /adjacentBandDistinction/);
+  assert.match(releaseCorpus, /fullResponseStored: false/);
+  assert.match(releaseCorpus, /derivedOnly: true/);
+  assert.match(releaseCorpus, /rubricVersion/);
+  assert.doesNotMatch(releaseCorpus, /Candidate Response 1|Sample Script A/);
+});
+
+test("IELTS release importer cannot read protected answers or publish a draft", () => {
+  assert.match(
+    releaseKnowledgeImporter,
+    /collectionVersion: z\.number\(\)\.int\(\)\.min\(3\)/,
+  );
+  assert.match(releaseKnowledgeImporter, /coach_recommendable: true/);
+  assert.match(releaseKnowledgeImporter, /submittedBy: null/);
+  assert.match(releaseKnowledgeImporter, /embeddingBatchSize: 20/);
+  assert.match(releaseKnowledgeImporter, /embeddingBatchDelayMs: 31_000/);
+  assert.match(releaseKnowledgeImporter, /embeddingBatchRetryAttempts: 2/);
+  assert.match(releaseKnowledgeImporter, /embeddingBatchRetryDelayMs: 65_000/);
+  assert.match(
+    releaseKnowledgeImporter,
+    /draft_needs_independent_review_and_rights_clearance/,
+  );
+  assert.doesNotMatch(releaseKnowledgeImporter, /publishAiKnowledgeVersion/);
+  assert.doesNotMatch(
+    releaseKnowledgeImporter,
+    /\.select\([\s\S]*?(?:answer_key|explanation|learner_response|teacher_feedback|protected_label)/,
   );
 });
 

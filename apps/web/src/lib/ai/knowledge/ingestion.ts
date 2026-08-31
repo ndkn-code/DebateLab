@@ -341,6 +341,14 @@ export async function ingestKnowledgePlan(params: {
   supabase: SupabaseClient;
   plan: KnowledgeIngestionPlan;
   embed?: boolean;
+  /** Limits provider request size for low-quota or large batch imports. */
+  embeddingBatchSize?: number;
+  /** Optional spacing between embedding batches to respect provider RPM. */
+  embeddingBatchDelayMs?: number;
+  /** Bounded retries for transient embedding-provider rate limits. */
+  embeddingBatchRetryAttempts?: number;
+  /** Delay before retrying a rate-limited embedding batch. */
+  embeddingBatchRetryDelayMs?: number;
   /** Audit identity of the person/import process that created the draft. */
   submittedBy?: string | null;
   /** Optional independent reviewer for an already-reviewed manifest. */
@@ -457,13 +465,48 @@ export async function ingestKnowledgePlan(params: {
   let embeddings: number[][] = [];
   if (params.embed && params.plan.items.length > 0) {
     const collection = params.plan.items[0]!.collection;
-    embeddings = (
-      await createKnowledgeEmbeddings({
-        collection,
-        texts: params.plan.items.map((item) => item.embeddingText),
-        inputType: "document",
-      })
-    ).embeddings;
+    const texts = params.plan.items.map((item) => item.embeddingText);
+    const requestedBatchSize = params.embeddingBatchSize ?? texts.length;
+    if (!Number.isInteger(requestedBatchSize) || requestedBatchSize < 1) {
+      throw new Error("knowledge_embedding_batch_size_invalid");
+    }
+    const batchSize = Math.min(requestedBatchSize, texts.length);
+    const batchDelayMs = Math.max(params.embeddingBatchDelayMs ?? 0, 0);
+    const retryAttempts = Math.max(
+      Math.min(params.embeddingBatchRetryAttempts ?? 0, 3),
+      0,
+    );
+    const retryDelayMs = Math.max(
+      params.embeddingBatchRetryDelayMs ?? 60_000,
+      0,
+    );
+    for (let index = 0; index < texts.length; index += batchSize) {
+      let retry = 0;
+      let result: Awaited<ReturnType<typeof createKnowledgeEmbeddings>>;
+      while (true) {
+        try {
+          result = await createKnowledgeEmbeddings({
+            collection,
+            texts: texts.slice(index, index + batchSize),
+            inputType: "document",
+          });
+          break;
+        } catch (error) {
+          const message =
+            error instanceof Error ? error.message : String(error);
+          const rateLimited = /\b429\b|rate.?limit|too many requests/i.test(
+            message,
+          );
+          if (!rateLimited || retry >= retryAttempts) throw error;
+          retry += 1;
+          await new Promise((resolve) => setTimeout(resolve, retryDelayMs));
+        }
+      }
+      embeddings.push(...result.embeddings);
+      if (index + batchSize < texts.length && batchDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, batchDelayMs));
+      }
+    }
   }
   if (params.plan.items.some((item) => !item.sourceId))
     throw new Error("knowledge_item_missing_source");
