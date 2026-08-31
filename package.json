@@ -4,7 +4,8 @@
   "private": true,
   "workspaces": [
     "apps/*",
-    "packages/*"
+    "packages/*",
+    "services/*"
   ],
   "scripts": {
     "dev": "npm run dev:web",
