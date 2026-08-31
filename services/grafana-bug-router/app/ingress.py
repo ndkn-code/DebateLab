@@ -5,15 +5,18 @@ from functools import lru_cache
 
 from fastapi import FastAPI, HTTPException, Request, Response
 from google.cloud import pubsub_v1
+from opentelemetry.trace import SpanKind
 from pydantic import ValidationError
 
 from .config import IngressConfig
 from .models import GrafanaWebhook
 from .security import SignatureError, verify_grafana_signature
+from .telemetry import configure_telemetry, telemetry_span
 from .transform import transform_webhook
 
 
 app = FastAPI(title="Thinkfy Grafana Bug Webhook", docs_url=None, redoc_url=None)
+configure_telemetry()
 
 
 @lru_cache
@@ -62,17 +65,22 @@ async def grafana_webhook(request: Request) -> Response:
 
     topic = publisher().topic_path(cfg.pubsub_project_id, cfg.pubsub_topic)
     try:
-        futures = [
-            publisher().publish(
-                topic,
-                event.model_dump_json(by_alias=True).encode(),
-                schema_version="1",
-                fingerprint=event.fingerprint,
-            )
-            for event in events
-        ]
-        for future in futures:
-            future.result(timeout=10)
+        with telemetry_span(
+            "grafana.pubsub.publish",
+            {"messaging.system": "gcp_pubsub", "messaging.destination.name": cfg.pubsub_topic, "bug.event_count": len(events)},
+            kind=SpanKind.PRODUCER,
+        ):
+            futures = [
+                publisher().publish(
+                    topic,
+                    event.model_dump_json(by_alias=True).encode(),
+                    schema_version="1",
+                    fingerprint=event.fingerprint,
+                )
+                for event in events
+            ]
+            for future in futures:
+                future.result(timeout=10)
     except Exception as exc:
         raise HTTPException(status_code=503, detail="Alert queue unavailable") from exc
     return Response(

@@ -15,7 +15,7 @@ WORKER_SA="grafana-clickup-worker"
 PUSH_SA="grafana-pubsub-push"
 IMAGE="${REGION}-docker.pkg.dev/${PROJECT_ID}/${AR_REPOSITORY}/grafana-bug-router"
 
-required_secrets=(grafana-webhook-secret supabase-url supabase-service-role-key clickup-api-token clickup-list-id)
+required_secrets=(grafana-webhook-secret grafana-otlp-auth-header supabase-url supabase-service-role-key clickup-api-token clickup-list-id)
 for secret_name in "${required_secrets[@]}"; do
   gcloud secrets describe "${secret_name}" --project "${PROJECT_ID}" >/dev/null || {
     echo "Missing Secret Manager secret: ${secret_name}" >&2
@@ -54,6 +54,8 @@ gcloud pubsub topics add-iam-policy-binding "${TOPIC}" \
 
 for binding in \
   "grafana-webhook-secret:${WEBHOOK_SA}" \
+  "grafana-otlp-auth-header:${WEBHOOK_SA}" \
+  "grafana-otlp-auth-header:${WORKER_SA}" \
   "supabase-url:${WORKER_SA}" \
   "supabase-service-role-key:${WORKER_SA}" \
   "clickup-api-token:${WORKER_SA}" \
@@ -80,8 +82,8 @@ gcloud run deploy "${WEBHOOK_SERVICE}" \
   --cpu 1 \
   --concurrency 20 \
   --timeout 30s \
-  --set-env-vars "APP_MODULE=app.ingress:app,PUBSUB_PROJECT_ID=${PROJECT_ID},PUBSUB_TOPIC=${TOPIC},WEBHOOK_MAX_CLOCK_SKEW_SECONDS=300" \
-  --set-secrets "GRAFANA_WEBHOOK_SECRET=grafana-webhook-secret:latest"
+  --set-env-vars "APP_MODULE=app.ingress:app,PUBSUB_PROJECT_ID=${PROJECT_ID},PUBSUB_TOPIC=${TOPIC},WEBHOOK_MAX_CLOCK_SKEW_SECONDS=300,GRAFANA_OTLP_TRACES_ENDPOINT=${GRAFANA_OTLP_TRACES_ENDPOINT:-}" \
+  --set-secrets "GRAFANA_WEBHOOK_SECRET=grafana-webhook-secret:latest,GRAFANA_OTLP_AUTH_HEADER=grafana-otlp-auth-header:latest"
 
 gcloud run deploy "${WORKER_SERVICE}" \
   --project "${PROJECT_ID}" \
@@ -95,8 +97,8 @@ gcloud run deploy "${WORKER_SERVICE}" \
   --cpu 1 \
   --concurrency 10 \
   --timeout 60s \
-  --set-env-vars "APP_MODULE=app.worker:app,CLICKUP_NEW_STATUS=New,CLICKUP_READY_STATUS=Ready for Agent" \
-  --set-secrets "SUPABASE_URL=supabase-url:latest,SUPABASE_SERVICE_ROLE_KEY=supabase-service-role-key:latest,CLICKUP_API_TOKEN=clickup-api-token:latest,CLICKUP_LIST_ID=clickup-list-id:latest"
+  --set-env-vars "APP_MODULE=app.worker:app,CLICKUP_NEW_STATUS=New,CLICKUP_READY_STATUS=Ready for Agent,GRAFANA_OTLP_TRACES_ENDPOINT=${GRAFANA_OTLP_TRACES_ENDPOINT:-}" \
+  --set-secrets "SUPABASE_URL=supabase-url:latest,SUPABASE_SERVICE_ROLE_KEY=supabase-service-role-key:latest,CLICKUP_API_TOKEN=clickup-api-token:latest,CLICKUP_LIST_ID=clickup-list-id:latest,GRAFANA_OTLP_AUTH_HEADER=grafana-otlp-auth-header:latest"
 
 gcloud run services add-iam-policy-binding "${WORKER_SERVICE}" \
   --project "${PROJECT_ID}" \
