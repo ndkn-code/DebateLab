@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { LocalizedAppProviders } from "../localized-app-providers";
 import { AgeAssuranceGate } from "@/components/legal/age-assurance-gate";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { asPublicLocale } from "@/lib/public-site";
@@ -53,13 +52,9 @@ export default async function OnboardingLayout({
   const mayContinue =
     status === "adult_attested" || status === "guardian_granted";
 
-  return (
-    <LocalizedAppProviders>
-      {mayContinue ? (
-        <div className="min-h-[100dvh] bg-background">{children}</div>
-      ) : (
-        <AgeAssuranceGate locale={locale} initialStatus={status} />
-      )}
-    </LocalizedAppProviders>
+  return mayContinue ? (
+    <div className="min-h-[100dvh] bg-background">{children}</div>
+  ) : (
+    <AgeAssuranceGate locale={locale} initialStatus={status} />
   );
 }

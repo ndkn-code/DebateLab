@@ -4,6 +4,7 @@ import { routing } from "@/i18n/routing";
 import { CookieConsentManager } from "@/components/legal/cookie-consent-manager";
 import { DocumentLanguage } from "@/components/shared/document-language";
 import { asPublicLocale } from "@/lib/public-site";
+import { LocalizedAppProviders } from "./localized-app-providers";
 
 type Props = {
   children: React.ReactNode;
@@ -26,7 +27,7 @@ export default async function LocaleLayout({ children, params }: Props) {
   return (
     <>
       <DocumentLanguage locale={locale} />
-      {children}
+      <LocalizedAppProviders>{children}</LocalizedAppProviders>
       <CookieConsentManager locale={asPublicLocale(locale)} />
     </>
   );

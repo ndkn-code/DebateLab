@@ -23,6 +23,8 @@ import {
   getConfiguredTallyBugReportFormUrl,
 } from "@/lib/support/tally-url";
 import { cn } from "@/lib/utils";
+import { getFaroCorrelationContext } from "@/lib/observability/faro-client";
+import { stripUrlQuery } from "@/lib/observability/faro-sanitize";
 import type { Profile } from "@/types/database";
 
 interface SupportIssueDialogProps {
@@ -53,6 +55,10 @@ export function SupportIssueDialog({
     viewport: "",
     timestamp: "",
     route: pathname,
+    faroSessionId: "",
+    traceId: "",
+    releaseSha: "",
+    debugId: "",
   });
   const [iframeLoaded, setIframeLoaded] = useState(false);
 
@@ -67,20 +73,25 @@ export function SupportIssueDialog({
         userAgent: browserContext.userAgent,
         viewport: browserContext.viewport,
         timestamp: browserContext.timestamp,
+        faroSessionId: browserContext.faroSessionId,
+        traceId: browserContext.traceId,
+        releaseSha: browserContext.releaseSha,
+        debugId: browserContext.debugId,
       }),
     [browserContext, locale, profile?.email, profile?.id, userEmail]
   );
 
   const refreshContext = () => {
+    const correlation = getFaroCorrelationContext();
     setIframeLoaded(false);
     setBrowserContext({
       userAgent: typeof navigator === "undefined" ? "" : navigator.userAgent,
       viewport: getViewport(),
       timestamp: new Date().toISOString(),
-      route:
-        typeof window === "undefined"
-          ? pathname
-          : `${window.location.pathname}${window.location.search}`,
+      route: stripUrlQuery(
+        typeof window === "undefined" ? pathname : window.location.pathname
+      ),
+      ...correlation,
     });
   };
 

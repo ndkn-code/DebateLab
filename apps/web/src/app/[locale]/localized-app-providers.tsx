@@ -4,6 +4,7 @@ import { getMessages } from "next-intl/server";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { PostHogPageview, PostHogProvider } from "@/app/posthog-provider";
+import { FaroProvider } from "@/app/faro-provider";
 import { Toaster } from "@/components/ui/sonner";
 import { ToastProvider } from "@/components/shared/toast-provider";
 import { WebVitalsReporter } from "@/components/shared/web-vitals-reporter";
@@ -77,14 +78,18 @@ export async function LocalizedAppProviders({
   const analyticsEnabled = isAnalyticsEnabled(
     cookieStore.get(ANALYTICS_COOKIE_NAME)?.value
   );
-
-  const content = analyticsEnabled ? (
+  const analyticsContent = analyticsEnabled ? (
     <PostHogProvider enabled>
       <PostHogPageview enabled />
       {children}
     </PostHogProvider>
   ) : (
     children
+  );
+  const content = (
+    <FaroProvider>
+      {analyticsContent}
+    </FaroProvider>
   );
 
   return (
