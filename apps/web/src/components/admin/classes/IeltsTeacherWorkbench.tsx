@@ -20,6 +20,7 @@ import {
 } from "@/app/actions/class-lms";
 import {
   publishTeacherReview,
+  retryIeltsScoringWorkflow,
   returnTeacherReview,
   saveTeacherReview,
 } from "@/app/actions/ielts/teacher-review";
@@ -64,7 +65,7 @@ export interface IeltsTeacherWorkbenchData {
   contentError: string | null;
 }
 
-type WorkbenchTab =
+export type WorkbenchTab =
   | "overview"
   | "gradebook"
   | "reviews"
@@ -155,6 +156,18 @@ const copy = {
     returnNote: "Instructions for the learner",
     returnConfirm: "I confirm this learner should receive one resubmission.",
     reviewReturned: "Review returned with one resubmission.",
+    scoringStatus: "AI scoring",
+    scoringStatusLabels: {
+      pending: "Waiting",
+      scoring: "Scoring",
+      scored: "Scored",
+      failed: "Needs attention",
+      overridden: "Teacher confirmed",
+    },
+    scoringFailed:
+      "Automated scoring stopped after its safe retry limit. You can request one bounded retry.",
+    retryScoring: "Retry AI scoring",
+    scoringRetryQueued: "Scoring retry queued.",
     awaitingResubmission: "Returned. Waiting for the learner’s new revision.",
     selectBand: "Not set",
     statusLabels: {
@@ -256,6 +269,18 @@ const copy = {
     returnNote: "Hướng dẫn cho học viên",
     returnConfirm: "Tôi xác nhận học viên này được nộp lại một lần.",
     reviewReturned: "Đã trả bài và cấp một lần nộp lại.",
+    scoringStatus: "Chấm điểm AI",
+    scoringStatusLabels: {
+      pending: "Đang chờ",
+      scoring: "Đang chấm",
+      scored: "Đã chấm",
+      failed: "Cần xử lý",
+      overridden: "Giáo viên xác nhận",
+    },
+    scoringFailed:
+      "Chấm điểm tự động đã dừng sau giới hạn thử lại an toàn. Bạn có thể yêu cầu thử lại một lần.",
+    retryScoring: "Thử chấm điểm lại",
+    scoringRetryQueued: "Đã xếp hàng chấm điểm lại.",
     awaitingResubmission: "Đã trả bài. Đang chờ phiên bản mới từ học viên.",
     selectBand: "Chưa đặt",
     statusLabels: {
@@ -450,15 +475,19 @@ export function IeltsTeacherWorkbench({
   classId,
   data,
   onTakeAttendance,
+  initialTab = "overview",
+  initialResponseId = null,
 }: {
   classId: string;
   data: IeltsTeacherWorkbenchData;
   onTakeAttendance: () => void;
+  initialTab?: WorkbenchTab;
+  initialResponseId?: string | null;
 }) {
   const locale = useLocale();
   const t = locale === "vi" ? copy.vi : copy.en;
   const router = useRouter();
-  const [tab, setTab] = useState<WorkbenchTab>("overview");
+  const [tab, setTab] = useState<WorkbenchTab>(initialTab);
   const [selectedReviewKey, setSelectedReviewKey] = useState<string | null>(
     null,
   );
@@ -471,6 +500,7 @@ export function IeltsTeacherWorkbench({
   >({});
   const [isPending, startTransition] = useTransition();
   const detailRef = useRef<HTMLDivElement>(null);
+  const retryIdempotencyKeys = useRef(new Map<string, string>());
 
   const assignments = useMemo(() => {
     const values = data.gradebook?.rows.flatMap((row) => row.assignments) ?? [];
@@ -495,6 +525,16 @@ export function IeltsTeacherWorkbench({
       ),
     [data.gradebook],
   );
+
+  useEffect(() => {
+    if (!initialResponseId || selectedReviewKey) return;
+    const initialReview = reviewQueue.find(
+      (item) => item.target.responseId === initialResponseId,
+    );
+    if (!initialReview) return;
+    setTab("reviews");
+    setSelectedReviewKey(initialReview.key);
+  }, [initialResponseId, reviewQueue, selectedReviewKey]);
   const selectedReview =
     reviewQueue.find((item) => item.key === selectedReviewKey) ??
     reviewQueue[0] ??
@@ -685,6 +725,26 @@ export function IeltsTeacherWorkbench({
         },
       }));
     }, t.reviewReturned);
+  }
+
+  function handleRetryScoring() {
+    if (!selectedReview || !data.clubId) return;
+    const target = selectedReview.target;
+    const retryKey = `${target.responseId}:${target.revision}`;
+    const idempotencyKey =
+      retryIdempotencyKeys.current.get(retryKey) ?? crypto.randomUUID();
+    retryIdempotencyKeys.current.set(retryKey, idempotencyKey);
+    runReviewAction(async () => {
+      await retryIeltsScoringWorkflow({
+        clubId: data.clubId,
+        classId,
+        attemptId: target.attemptId,
+        responseId: target.responseId,
+        responseKind: target.responseKind,
+        expectedRevision: target.revision,
+        idempotencyKey,
+      });
+    }, t.scoringRetryQueued);
   }
 
   function handleAnnouncement(event: FormEvent<HTMLFormElement>) {
@@ -1177,6 +1237,41 @@ export function IeltsTeacherWorkbench({
                       </div>
                     </div>
                     <ScoreCell score={selectedReview.assignment.score} t={t} />
+                  </div>
+                  <div
+                    className={cn(
+                      "mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[10px] border px-3 py-2.5",
+                      selectedReview.target.scoringStatus === "failed"
+                        ? "border-error/25 bg-error-container/35"
+                        : "border-outline-variant bg-surface-container-low",
+                    )}
+                  >
+                    <div>
+                      <p className="type-label font-medium text-on-surface">
+                        {t.scoringStatus}:{" "}
+                        {
+                          t.scoringStatusLabels[
+                            selectedReview.target.scoringStatus
+                          ]
+                        }
+                      </p>
+                      {selectedReview.target.scoringStatus === "failed" ? (
+                        <p className="mt-0.5 type-caption text-on-surface-variant">
+                          {t.scoringFailed}
+                        </p>
+                      ) : null}
+                    </div>
+                    {selectedReview.target.manualRetryAvailable ? (
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={handleRetryScoring}
+                        className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 type-label font-medium text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <RotateCcw className="h-4 w-4" />
+                        {isPending ? t.saving : t.retryScoring}
+                      </button>
+                    ) : null}
                   </div>
                   <form
                     key={`${selectedReview.key}:${selectedReviewId ?? "new"}:${selectedReviewStatus}`}

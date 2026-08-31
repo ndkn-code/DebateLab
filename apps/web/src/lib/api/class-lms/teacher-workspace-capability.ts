@@ -4,12 +4,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
 import type { OrganizationRole } from "@/lib/organizations/contracts";
 import { createTypedServerClient } from "@/lib/supabase/server";
+import { LMS_PILOT_FEATURE_KEY } from "./model";
 
 /** The database migration intentionally lands before generated Supabase types. */
 type TeacherWorkspaceDb = SupabaseClient;
 type Row = Record<string, unknown>;
 
 export const TEACHER_WORKSPACE_FEATURE_KEY = "teacher_workspace_v2" as const;
+export const TEACHER_WORKSPACE_COMPATIBLE_FEATURE_KEYS = [TEACHER_WORKSPACE_FEATURE_KEY, LMS_PILOT_FEATURE_KEY] as const;
 export const TEACHER_WORKSPACE_PROGRAMS = ["ielts", "debate", "public_speaking"] as const;
 export type TeacherWorkspaceProgram = (typeof TEACHER_WORKSPACE_PROGRAMS)[number];
 
@@ -62,12 +64,28 @@ function firstFlag(
   flags: Row[],
   organizationId: string,
   classId: string | null,
+  featureKey: string,
 ) {
   return flags.find((flag) =>
     text(flag, "club_id") === organizationId
-      && text(flag, "feature_key") === TEACHER_WORKSPACE_FEATURE_KEY
+      && text(flag, "feature_key") === featureKey
       && text(flag, "class_id") === classId,
   );
+}
+
+function resolvedFlag(flags: Row[], organizationId: string, classId: string, featureKey: string): boolean | undefined {
+  const specific = firstFlag(flags, organizationId, classId, featureKey);
+  if (specific) return specific.enabled === true;
+  const organization = firstFlag(flags, organizationId, null, featureKey);
+  return organization ? organization.enabled === true : undefined;
+}
+
+export function resolveTeacherWorkspaceClassFeature(input: { flags: Row[]; organizationId: string; classId: string; programType: TeacherWorkspaceProgram }): boolean {
+  const workspaceFlag = resolvedFlag(input.flags, input.organizationId, input.classId, TEACHER_WORKSPACE_FEATURE_KEY);
+  const legacyIeltsFlag = input.programType === "ielts"
+    ? resolvedFlag(input.flags, input.organizationId, input.classId, LMS_PILOT_FEATURE_KEY)
+    : undefined;
+  return workspaceFlag ?? legacyIeltsFlag ?? false;
 }
 
 /**
@@ -104,7 +122,7 @@ export async function loadTeacherWorkspaceCapability(): Promise<TeacherWorkspace
   const flagsQuery = db
     .from("lms_pilot_flags")
     .select("club_id, class_id, feature_key, enabled")
-    .eq("feature_key", TEACHER_WORKSPACE_FEATURE_KEY);
+    .in("feature_key", [...TEACHER_WORKSPACE_COMPATIBLE_FEATURE_KEYS]);
   if (!isPlatformAdmin && organizationIds.length) flagsQuery.in("club_id", organizationIds);
   const [{ data: classes, error: classError }, { data: teacherMemberships, error: teacherError }, { data: flags, error: flagError }] = await Promise.all([
     organizationIds.length || isPlatformAdmin
@@ -128,9 +146,7 @@ export async function loadTeacherWorkspaceCapability(): Promise<TeacherWorkspace
     const programType = program(row.program_type);
     if (!id || !organizationId || !programType) continue;
     if (!isPlatformAdmin && !organizationIds.includes(organizationId)) continue;
-    const specific = firstFlag(flagRows, organizationId, id);
-    const organization = firstFlag(flagRows, organizationId, null);
-    const featureEnabled = Boolean(specific ? specific.enabled : organization?.enabled);
+    const featureEnabled = resolveTeacherWorkspaceClassFeature({ flags: flagRows, organizationId, classId: id, programType });
     const isAssigned = assignedClassIds.has(id);
     const isManager = isPlatformAdmin || managerOrganizationIds.has(organizationId);
     if (featureEnabled && (isManager || isAssigned)) {
@@ -151,7 +167,7 @@ export async function loadTeacherWorkspaceCapability(): Promise<TeacherWorkspace
     ? [...new Set([...organizationIds, ...workspaceClasses.map((item) => item.organizationId)])]
     : organizationIds;
   const organizations = outputOrganizationIds.map((id) => {
-    const organizationFlag = firstFlag(flagRows, id, null);
+    const organizationFlag = firstFlag(flagRows, id, null, TEACHER_WORKSPACE_FEATURE_KEY);
     const organizationClasses = workspaceClasses.filter((item) => item.organizationId === id);
     return {
       id,

@@ -95,6 +95,8 @@ export interface TeacherEventDetailPresentation {
 export interface TeacherReviewPresentation {
   key: string;
   kind: "homework" | "writing" | "speaking";
+  /** Present only for IELTS response reviews; never an answer-key identifier. */
+  responseId: string | null;
   classId: string;
   classTitle: string;
   studentName: string;
@@ -502,6 +504,7 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
     {
       key: "writing-linh",
       kind: "writing",
+      responseId: "demo-writing-response",
       classId: "class-ielts-7b",
       classTitle: "IELTS Academic 7B",
       studentName: "Linh Pham",
@@ -516,6 +519,7 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
     {
       key: "speaking-minh",
       kind: "speaking",
+      responseId: "demo-speaking-response",
       classId: "class-ielts-7b",
       classTitle: "IELTS Academic 7B",
       studentName: "Minh Anh",
@@ -530,6 +534,7 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
     {
       key: "homework-noah",
       kind: "homework",
+      responseId: null,
       classId: "class-debate-foundations",
       classTitle: "Debate Foundations",
       studentName: "Noah Williams",
@@ -544,6 +549,7 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
     {
       key: "homework-sofia",
       kind: "homework",
+      responseId: null,
       classId: "class-speaking-studio",
       classTitle: "Public Speaking Studio",
       studentName: "Sofia Tran",

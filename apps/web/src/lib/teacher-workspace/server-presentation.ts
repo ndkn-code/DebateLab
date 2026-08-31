@@ -204,6 +204,7 @@ export async function loadTeacherWorkspacePresentation(input: {
       reviews: reviewQueue.items.map((item) => ({
         key: item.key,
         kind: item.kind,
+        responseId: item.responseId,
         classId: item.classId,
         classTitle: item.classTitle,
         studentName: item.studentName,

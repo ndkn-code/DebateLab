@@ -2,7 +2,7 @@
 
 import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { useSearchParams } from "next/navigation";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import {
   BookOpenText,
   CalendarDays,
@@ -327,6 +327,7 @@ function ClassesSurface({ data }: { data: TeacherWorkspacePresentation }) {
 function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const vi = data.locale === "vi";
   const isDemo = data.source === "explicit_demo";
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("needs_review");
   const [reviews, setReviews] = useState(data.reviews);
@@ -411,6 +412,16 @@ function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
                     variant="outline"
                     size="sm"
                     onClick={() => {
+                      if (
+                        !isDemo &&
+                        item.responseId &&
+                        (item.kind === "writing" || item.kind === "speaking")
+                      ) {
+                        router.push(
+                          `/dashboard/teacher/classes/${item.classId}?workbenchTab=reviews&responseId=${encodeURIComponent(item.responseId)}`,
+                        );
+                        return;
+                      }
                       setFeedback("");
                       setSelected(item);
                     }}

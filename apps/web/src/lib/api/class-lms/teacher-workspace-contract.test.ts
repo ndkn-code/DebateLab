@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import {
+  resolveTeacherWorkspaceClassFeature,
   TEACHER_WORKSPACE_FEATURE_KEY,
   loadTeacherWorkspaceCapability,
   type TeacherWorkspaceCapability,
@@ -7,6 +8,11 @@ import {
 import { buildTeacherSidebarSummary } from "./teacher-workspace-sidebar";
 
 assert.equal(TEACHER_WORKSPACE_FEATURE_KEY, "teacher_workspace_v2");
+
+const legacyIeltsFlag = { club_id: "org-a", class_id: "class-1", feature_key: "ielts_lms_pilot_v1", enabled: true };
+assert.equal(resolveTeacherWorkspaceClassFeature({ flags: [legacyIeltsFlag], organizationId: "org-a", classId: "class-1", programType: "ielts" }), true);
+assert.equal(resolveTeacherWorkspaceClassFeature({ flags: [legacyIeltsFlag], organizationId: "org-a", classId: "class-1", programType: "debate" }), false);
+assert.equal(resolveTeacherWorkspaceClassFeature({ flags: [legacyIeltsFlag, { ...legacyIeltsFlag, feature_key: "teacher_workspace_v2", enabled: false }], organizationId: "org-a", classId: "class-1", programType: "ielts" }), false);
 
 const capability: TeacherWorkspaceCapability = {
   userId: "teacher-1",

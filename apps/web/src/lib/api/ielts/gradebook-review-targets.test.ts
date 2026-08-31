@@ -18,6 +18,8 @@ const target: IeltsGradebookReviewTarget = {
     status: "draft",
     note: "Focus on task development.",
   },
+  scoringStatus: "failed",
+  manualRetryAvailable: true,
   media: null,
   criteria: [
     {
@@ -36,6 +38,7 @@ const target: IeltsGradebookReviewTarget = {
 assert.equal(target.responseKind, "writing");
 assert.equal(target.criteria[0]?.labelEn, "Task Response");
 assert.equal(target.currentReview?.id, target.currentReviewId);
+assert.equal(target.manualRetryAvailable, true);
 assert.equal(isCurrentResponseRevision(target.revision, 1), true);
 assert.equal(isCurrentResponseRevision(target.revision, 0), false);
 assert.equal(target.assignmentId.length, 36);

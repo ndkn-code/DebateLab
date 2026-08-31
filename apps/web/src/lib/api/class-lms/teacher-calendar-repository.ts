@@ -4,6 +4,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import { requireClassManagerDashboard } from "@/lib/api/class-manager-access";
 import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
+import { LMS_PILOT_FEATURE_KEY } from "./model";
+import { resolveTeacherWorkspaceClassFeature, TEACHER_WORKSPACE_FEATURE_KEY } from "./teacher-workspace-capability";
 import { normalizeClassProgram, type ClassRecurrenceRule } from "../admin-class-schedules-model";
 import {
   TEACHER_CALENDAR_DEFAULT_TIMEZONE,
@@ -271,7 +273,7 @@ async function loadManagedClasses(db: Db, actorId: string) {
     db.from("club_memberships").select("club_id, role").eq("user_id", actorId).eq("status", "active").in("role", ["owner", "admin", "teacher", "coach"]),
     db.from("class_memberships").select("class_id").eq("user_id", actorId).eq("member_role", "teacher").eq("status", "active"),
     db.from("classes").select("id, club_id, title, program_type, status").eq("status", "active").order("title", { ascending: true }),
-    db.from("lms_pilot_flags").select("club_id, class_id, enabled").eq("feature_key", "teacher_workspace_v2"),
+    db.from("lms_pilot_flags").select("club_id, class_id, feature_key, enabled").in("feature_key", [TEACHER_WORKSPACE_FEATURE_KEY, LMS_PILOT_FEATURE_KEY]),
   ]);
   const failed = [profileResult, clubsResult, teacherResult, classesResult, flagsResult].find((result) => result.error);
   if (failed?.error) throw new Error(`loadTeacherCalendar authorization: ${failed.error.message}`);
@@ -279,11 +281,7 @@ async function loadManagedClasses(db: Db, actorId: string) {
   const ownerClubs = new Set(((clubsResult.data ?? []) as Row[]).filter((row) => { const role = normalizeOrganizationRole(row.role); return role === "owner" || role === "admin"; }).map((row) => String(row.club_id)));
   const teacherClasses = new Set(((teacherResult.data ?? []) as Row[]).map((row) => String(row.class_id)));
   const flags = (flagsResult.data ?? []) as Row[];
-  const enabled = (row: Row) => {
-    const classFlag = flags.find((flag) => String(flag.class_id ?? "") === String(row.id));
-    if (classFlag) return classFlag.enabled === true;
-    return flags.some((flag) => flag.class_id == null && String(flag.club_id) === String(row.club_id) && flag.enabled === true);
-  };
+  const enabled = (row: Row) => resolveTeacherWorkspaceClassFeature({ flags, organizationId: String(row.club_id), classId: String(row.id), programType: normalizeClassProgram(row.program_type) });
   const classes = ((classesResult.data ?? []) as Row[]).filter((row) => enabled(row) && (isPlatformAdmin || ownerClubs.has(String(row.club_id)) || teacherClasses.has(String(row.id)))).map((row) => ({ id: String(row.id), title: String(row.title), programType: normalizeClassProgram(row.program_type) }));
   const roleByClass = new Map(classes.map((row) => [row.id, isPlatformAdmin || ownerClubs.has(String(((classesResult.data ?? []) as Row[]).find((candidate) => String(candidate.id) === row.id)?.club_id)) ? "admin" as const : "teacher" as const]));
   return { classes, roleByClass };

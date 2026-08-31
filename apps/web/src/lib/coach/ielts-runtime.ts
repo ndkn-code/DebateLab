@@ -27,6 +27,10 @@ import {
   type LearnerEvidence,
   type ScoreAuthority,
 } from "./ielts-contract";
+import {
+  findIeltsQuestionRecommendation,
+  type IeltsQuestionRecommendation,
+} from "./ielts-question-recommendation";
 
 const SOURCE_ROUTE = "/api/chat";
 const RUBRIC_VERSION = "public-ielts-rubric-v1";
@@ -290,6 +294,7 @@ function knowledgePrompt(items: KnowledgeEvidence[]) {
 function actionResources(
   context: IeltsCoachLearnerContext,
   skill: IeltsSkill,
+  recommendation: IeltsQuestionRecommendation | null,
 ): Array<{
   id: string;
   kind: IeltsCoachOutput["action"]["kind"];
@@ -323,13 +328,21 @@ function actionResources(
           },
         ]
       : []),
-    {
-      id: `ielts-practice:${skill}:${criterion}`,
-      kind: "start_practice" as const,
-      skill,
-      criterion,
-      title: `${skill} ${criterion} practice`,
-    },
+    recommendation
+      ? {
+          id: recommendation.resourceId,
+          kind: "start_practice" as const,
+          skill,
+          criterion,
+          title: `${recommendation.title}: ${recommendation.prompt}`,
+        }
+      : {
+          id: `ielts-practice:${skill}:${criterion}`,
+          kind: "start_practice" as const,
+          skill,
+          criterion,
+          title: `${skill} ${criterion} practice`,
+        },
     {
       id: "ielts-study-plan",
       kind: "open_study_plan" as const,
@@ -598,7 +611,13 @@ export async function runIeltsCoachTurn(params: {
       knowledgeEvidence: knowledge,
     };
   }
-  const actions = actionResources(context, skill);
+  const recommendation = await findIeltsQuestionRecommendation({
+    supabase: params.supabase,
+    skill,
+    criterion: criterionName(weakness?.criterion ?? skill),
+    message: initialBoundary.normalizedText,
+  });
+  const actions = actionResources(context, skill, recommendation);
   const rubricIds = new Set(
     rubricResult?.evidence.map((item) => item.sourceId),
   );

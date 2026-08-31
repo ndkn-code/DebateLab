@@ -63,6 +63,7 @@ import {
 import {
   IeltsTeacherWorkbench,
   type IeltsTeacherWorkbenchData,
+  type WorkbenchTab,
 } from "@/components/admin/classes/IeltsTeacherWorkbench";
 import { getProgramLabel } from "@/lib/api/admin-class-schedules-model";
 import { cn } from "@/lib/utils";
@@ -79,15 +80,12 @@ import type {
 interface Props {
   data: AdminClassDetailData;
   ieltsWorkbench?: IeltsTeacherWorkbenchData;
+  ieltsInitialTab?: WorkbenchTab;
+  ieltsInitialResponseId?: string | null;
 }
 
 type Tab =
-  | "workbench"
-  | "overview"
-  | "students"
-  | "courses"
-  | "schedule"
-  | "attendance";
+  "workbench" | "overview" | "students" | "courses" | "schedule" | "attendance";
 
 function initials(name: string) {
   return (
@@ -518,7 +516,12 @@ function AttendanceSheet({
   );
 }
 
-export function ClassDetailDashboard({ data, ieltsWorkbench }: Props) {
+export function ClassDetailDashboard({
+  data,
+  ieltsWorkbench,
+  ieltsInitialTab,
+  ieltsInitialResponseId,
+}: Props) {
   const t = useTranslations("admin.classes.detail");
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(
@@ -791,6 +794,8 @@ export function ClassDetailDashboard({ data, ieltsWorkbench }: Props) {
             classId={data.classInfo.id}
             data={ieltsWorkbench}
             onTakeAttendance={() => setAttendanceOpen(true)}
+            initialTab={ieltsInitialTab}
+            initialResponseId={ieltsInitialResponseId}
           />
         </div>
       )}

@@ -60,6 +60,9 @@ export interface IeltsGradebookReviewTarget {
     status: "draft" | "published" | "returned";
     note: string | null;
   } | null;
+  /** Learner-safe scorer lifecycle. Provider/model/error details stay server-side. */
+  scoringStatus: "pending" | "scoring" | "scored" | "failed" | "overridden";
+  manualRetryAvailable: boolean;
   criteria: IeltsGradebookCriterion[];
   media: {
     signedUrl: string;
@@ -432,6 +435,8 @@ function makeReviewTarget(
   const review = currentReview(response, reviews);
   const status = review?.status ?? "none";
   const note = review?.reviewer_note ?? review?.returned_note ?? null;
+  const scoringStatus = String(response.status ?? "pending") as
+    "pending" | "scoring" | "scored" | "failed" | "overridden";
   return {
     responseKind: kind,
     responseId: String(response.id),
@@ -446,6 +451,8 @@ function makeReviewTarget(
     currentReview: review
       ? { id: review.id, status: review.status, note }
       : null,
+    scoringStatus,
+    manualRetryAvailable: scoringStatus === "failed",
     criteria: makeCriteria(
       kind,
       kind === "writing" ? n(response.task_number) : null,
@@ -660,7 +667,7 @@ async function loadScoring(
       db
         .from("writing_responses")
         .select(
-          "id, attempt_id, task_number, revision, updated_at, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, task_band, paragraph_feedback",
+          "id, attempt_id, task_number, revision, status, updated_at, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, task_band, paragraph_feedback",
         )
         .in("attempt_id", attemptIds),
     ),
@@ -669,7 +676,7 @@ async function loadScoring(
       db
         .from("speaking_responses")
         .select(
-          "id, attempt_id, part_number, revision, updated_at, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, audio_storage_path, audio_mime_type, audio_size_bytes, audio_sha256, audio_verified_at",
+          "id, attempt_id, part_number, revision, status, updated_at, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, audio_storage_path, audio_mime_type, audio_size_bytes, audio_sha256, audio_verified_at",
         )
         .in("attempt_id", attemptIds),
     ),

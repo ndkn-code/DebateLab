@@ -67,6 +67,22 @@ test("authorized coach actions resolve only to deterministic IELTS destinations"
   });
   assert.equal(speaking?.href, "/en/ielts/speaking-rehearsal");
 
+  const indexedWriting = resolveIeltsCoachActionDestination({
+    locale: "en",
+    action: {
+      kind: "start_practice",
+      resourceId:
+        "ielts-practice:writing:task_response:coach-writing-task-2-v1:aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      skill: "writing",
+      criterion: "task_response",
+      label: "Start recommended drill",
+    },
+  });
+  assert.equal(
+    indexedWriting?.href,
+    "/en/ielts/mock/coach-writing-task-2-v1?source=ielts-coach&focusQuestion=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+  );
+
   const plan = resolveIeltsCoachActionDestination({
     locale: "en",
     action: {
