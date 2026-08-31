@@ -553,6 +553,18 @@ create trigger lms_material_unlock_audit after insert or update or delete on pub
 drop trigger if exists lms_material_rights_audit on public.lms_material_rights_approvals;
 create trigger lms_material_rights_audit after insert or update or delete on public.lms_material_rights_approvals for each row execute function private.audit_lms_material_change();
 
+-- Enable RLS before the legacy backfill. The version table has a deferred
+-- constraint trigger, so altering it after backfill rows are queued fails with
+-- PostgreSQL 55006 (pending trigger events) in a single migration transaction.
+alter table public.lms_materials enable row level security;
+alter table public.lms_material_versions enable row level security;
+alter table public.lms_material_renditions enable row level security;
+alter table public.lms_material_placements enable row level security;
+alter table public.lms_material_audiences enable row level security;
+alter table public.lms_material_unlock_rules enable row level security;
+alter table public.lms_material_rights_approvals enable row level security;
+alter table public.lms_material_audit_events enable row level security;
+
 -- Legacy resource compatibility: explicit legacy assignments become exact
 -- placements. Unscoped legacy resources are imported but not made visible to
 -- learners until a manager creates a placement in the new model.
@@ -591,15 +603,6 @@ join public.lms_materials m on m.source_resource_id = ra.resource_id
 join public.lms_material_versions v on v.material_id = m.id and v.version_number = 1
 where ra.course_id is not null
 on conflict do nothing;
-
-alter table public.lms_materials enable row level security;
-alter table public.lms_material_versions enable row level security;
-alter table public.lms_material_renditions enable row level security;
-alter table public.lms_material_placements enable row level security;
-alter table public.lms_material_audiences enable row level security;
-alter table public.lms_material_unlock_rules enable row level security;
-alter table public.lms_material_rights_approvals enable row level security;
-alter table public.lms_material_audit_events enable row level security;
 
 create policy "LMS material scoped reads" on public.lms_materials for select to authenticated using (private.can_read_lms_material(id, auth.uid()));
 create policy "LMS material manager writes" on public.lms_materials for all to authenticated using (private.can_manage_lms_material(id, auth.uid())) with check (private.can_manage_lms_material(id, auth.uid()) or private.can_manage_lms_material_club(club_id, auth.uid()));

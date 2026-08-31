@@ -46,6 +46,8 @@ grant all on public.observability_bug_deliveries to service_role;
 
 -- Explicit policies make the browser-role denial machine-verifiable. The Cloud Run
 -- worker uses service_role, which bypasses RLS and is additionally restricted by grants.
+drop policy if exists observability_bug_incidents_deny_browser_roles
+  on public.observability_bug_incidents;
 create policy observability_bug_incidents_deny_browser_roles
   on public.observability_bug_incidents
   as restrictive
@@ -54,6 +56,8 @@ create policy observability_bug_incidents_deny_browser_roles
   using (false)
   with check (false);
 
+drop policy if exists observability_bug_deliveries_deny_browser_roles
+  on public.observability_bug_deliveries;
 create policy observability_bug_deliveries_deny_browser_roles
   on public.observability_bug_deliveries
   as restrictive
