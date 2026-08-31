@@ -322,7 +322,9 @@ export function DashboardSidebarRail({
                   <Link
                     href="/dashboard/admin"
                     aria-current={
-                      pathname.startsWith("/dashboard/admin") ? "page" : undefined
+                      pathname.startsWith("/dashboard/admin")
+                        ? "page"
+                        : undefined
                     }
                     className={cn(
                       "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
@@ -364,7 +366,7 @@ export function DashboardSidebarRail({
             />
             <ThemeToggle />
             <Link
-              href="/settings"
+              href={activeSubject === "ielts" ? "/ielts/settings" : "/settings"}
               className={cn(
                 "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-medium transition-colors",
                 "sidebar-nav-action",

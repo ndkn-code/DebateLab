@@ -21,6 +21,7 @@ import {
   assessmentModePolicy,
   type AssessmentMode,
 } from "@/lib/ielts/assessment-mode";
+import { prepareMockAttemptStart } from "@/lib/ielts/mock-start";
 import { useMockAnnotationsStore } from "@/lib/stores/mockAnnotationsStore";
 import { showToast } from "@/components/shared/toast";
 import {
@@ -249,26 +250,25 @@ export function MockTestPlayer({
 
   const handleStart = () =>
     run(async () => {
-      const started = assignmentId
-        ? await startAssignedMockAttempt({ assignmentId })
-        : await startMockAttempt({ testId: activeStructure.test.id });
-      hydrate(started);
+      const { startedAttempt, readyAttempt } = await prepareMockAttemptStart({
+        retainedAttempt: phase === "intro" ? state : null,
+        createAttempt: () =>
+          assignmentId
+            ? startAssignedMockAttempt({ assignmentId })
+            : startMockAttempt({ testId: activeStructure.test.id }),
+        // Keep the created attempt while the intro remains visible. If entry
+        // fails, Retry reuses it instead of creating a duplicate sitting.
+        retainAttempt: hydrate,
+        enterFirstSection: enterSection,
+      });
+      hydrate(readyAttempt);
       setActiveIndex(0);
       setPhase("running");
       // Keep the immutable attempt addressable so a refresh resumes against
       // its snapshot instead of reconstructing from the live test.
       router.replace(
-        `/${params.locale}/ielts/mock/${activeStructure.test.slug}?attempt=${started.attempt.id}`,
+        `/${params.locale}/ielts/mock/${activeStructure.test.slug}?attempt=${startedAttempt.attempt.id}`,
       );
-      const first = started.sections[0];
-      if (first) {
-        setState(
-          await enterSection({
-            attemptId: started.attempt.id,
-            sectionId: first.id,
-          }),
-        );
-      }
     }, "start");
 
   const handleSwitch = (index: number) =>

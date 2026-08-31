@@ -305,7 +305,9 @@
       "ielts_library": "Thư viện đề",
       "ielts_speaking": "Luyện nói mô phỏng",
       "ielts_assigned": "Đề được giao",
-      "ielts_classes": "Lớp học của tôi"
+      "ielts_classes": "Lớp học của tôi",
+      "ielts_coach": "HLV IELTS",
+      "ielts_profile": "Hiệu suất"
     },
     "ielts": {
       "eyebrow": "IELTS",

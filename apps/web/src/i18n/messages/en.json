@@ -305,7 +305,9 @@
       "ielts_library": "Test Library",
       "ielts_speaking": "Speaking Rehearsal",
       "ielts_assigned": "Assigned",
-      "ielts_classes": "My classes"
+      "ielts_classes": "My classes",
+      "ielts_coach": "IELTS Coach",
+      "ielts_profile": "Performance"
     },
     "ielts": {
       "eyebrow": "IELTS",
