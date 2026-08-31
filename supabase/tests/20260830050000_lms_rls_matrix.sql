@@ -5,7 +5,7 @@
 -- rolled back at the end; it never resets or mutates the shared database.
 begin;
 
-select plan(43);
+select plan(44);
 
 -- Stable identities make the matrix readable and keep auth.uid() assertions
 -- independent of any existing local seed data.
@@ -144,6 +144,18 @@ values
   ('00000000-0000-0000-0000-000000000704', '00000000-0000-0000-0000-000000000602', '00000000-0000-0000-0000-000000000001'),
   ('00000000-0000-0000-0000-000000000705', '00000000-0000-0000-0000-000000000603', '00000000-0000-0000-0000-000000000001');
 
+-- Deliberately invalid links prove occurrence reads do not trust a valid FK
+-- alone. They are seeded as postgres to simulate legacy or service-role data.
+alter table public.lms_occurrence_assignments
+  disable trigger validate_lms_occurrence_assignment_scope;
+insert into public.lms_occurrence_assignments (occurrence_id, assignment_id, added_by)
+values
+  ('00000000-0000-0000-0000-000000000701', '00000000-0000-0000-0000-000000000602', '00000000-0000-0000-0000-000000000001'),
+  ('00000000-0000-0000-0000-000000000701', '00000000-0000-0000-0000-000000000603', '00000000-0000-0000-0000-000000000001')
+on conflict do nothing;
+alter table public.lms_occurrence_assignments
+  enable trigger validate_lms_occurrence_assignment_scope;
+
 insert into public.class_attendance_sessions (
   id, class_id, course_id, occurrence_id, session_date, title, taken_by
 )
@@ -219,6 +231,17 @@ select is((select count(*)::integer from public.lms_occurrence_roster_snapshots)
 select is((select count(*)::integer from public.class_attendance_sessions), 4, 'Org A owner sees Org A attendance sessions only');
 select is((select count(*)::integer from public.class_attendance_records), 6, 'Org A owner sees Org A attendance rows only');
 select is((select count(*)::integer from public.ielts_teacher_reviews where status = 'published'), 1, 'Org A owner sees Class A published feedback');
+select throws_ok(
+  $$insert into public.lms_occurrence_assignments (occurrence_id, assignment_id, added_by)
+    values (
+      '00000000-0000-0000-0000-000000000704',
+      '00000000-0000-0000-0000-000000000601',
+      '00000000-0000-0000-0000-000000000002'
+    )$$,
+  'P0001',
+  null,
+  'organization owner cannot link an occurrence to another class assignment'
+);
 
 set local request.jwt.claim.sub = '00000000-0000-0000-0000-000000000003';
 select is((select count(*)::integer from public.lms_lesson_occurrences), 3, 'Assigned Class A teacher sees Class A occurrence states');
