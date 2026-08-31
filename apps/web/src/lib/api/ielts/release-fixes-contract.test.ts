@@ -17,6 +17,27 @@ const coachRuntimeFix = readFileSync(
   ),
   "utf8",
 );
+const knowledgeDraftClaimFix = readFileSync(
+  resolve(
+    process.cwd(),
+    "../../supabase/migrations/20260831130000_fix_ai_knowledge_draft_claim.sql",
+  ),
+  "utf8",
+);
+const knowledgeVectorGuardFix = readFileSync(
+  resolve(
+    process.cwd(),
+    "../../supabase/migrations/20260831140000_fix_ai_knowledge_vector_guard.sql",
+  ),
+  "utf8",
+);
+const mockKnowledgeImporter = readFileSync(
+  resolve(
+    process.cwd(),
+    "src/scripts/ai-knowledge-prepare-ielts-mocks.ts",
+  ),
+  "utf8",
+);
 
 test("AI telemetry constraint preserves every runtime output type", () => {
   for (const outputType of [
@@ -66,4 +87,48 @@ test("coach runtime SQL admits telemetry and completes against canonical convers
   assert.match(coachRuntimeFix, /set updated_at = now\(\)/);
   assert.doesNotMatch(coachRuntimeFix, /set message_count|last_message_at/);
   assert.match(coachRuntimeFix, /to service_role/);
+});
+
+test("knowledge draft claim avoids output-column shadowing and remains private", () => {
+  assert.match(
+    knowledgeDraftClaimFix,
+    /on conflict on constraint ai_knowledge_collection_versions_pkey/,
+  );
+  assert.doesNotMatch(
+    knowledgeDraftClaimFix,
+    /on conflict \(collection_id, version\)/,
+  );
+  assert.match(knowledgeDraftClaimFix, /set search_path = ''/);
+  assert.match(knowledgeDraftClaimFix, /from public, anon, authenticated/);
+  assert.match(knowledgeDraftClaimFix, /to service_role/);
+});
+
+test("knowledge vector guard accesses only fields belonging to each trigger table", () => {
+  assert.match(
+    knowledgeVectorGuardFix,
+    /if tg_table_name = 'ai_knowledge_items' then/,
+  );
+  assert.match(
+    knowledgeVectorGuardFix,
+    /elsif tg_table_name = 'ai_knowledge_collections' then/,
+  );
+  assert.doesNotMatch(
+    knowledgeVectorGuardFix,
+    /tg_table_name = 'ai_knowledge_items'\s+and/,
+  );
+  assert.match(knowledgeVectorGuardFix, /set search_path = ''/);
+  assert.match(knowledgeVectorGuardFix, /from public, anon, authenticated/);
+});
+
+test("IELTS mock importer is coaching-only, review-gated, and cannot publish", () => {
+  assert.match(mockKnowledgeImporter, /coach_recommendable: true/);
+  assert.match(mockKnowledgeImporter, /usableFor: \["coaching"\]/);
+  assert.match(mockKnowledgeImporter, /reviewStatus: "needs_review"/);
+  assert.match(mockKnowledgeImporter, /submittedBy: null/);
+  assert.match(mockKnowledgeImporter, /notOfficialIelts: true/);
+  assert.doesNotMatch(mockKnowledgeImporter, /publishAiKnowledgeVersion/);
+  assert.doesNotMatch(
+    mockKnowledgeImporter,
+    /\.select\([^)]*(?:answer|explanation|response)/s,
+  );
 });
