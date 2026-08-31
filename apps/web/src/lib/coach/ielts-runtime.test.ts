@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import type { IeltsCoachLearnerContext } from "./ielts-context";
-import { buildIeltsCoachLearnerEvidence } from "./ielts-runtime";
+import {
+  buildDeterministicIeltsCoachRecovery,
+  buildIeltsCoachLearnerEvidence,
+} from "./ielts-runtime";
+import type { IeltsCoachServerAuthorization } from "./ielts-contract";
 
 const CONTEXT: IeltsCoachLearnerContext = {
   version: "ielts-coach-context-v1",
@@ -130,4 +134,111 @@ test("AI provisional evidence keeps its learner-safe grading and rubric versions
   }
   assert.equal(attempt.score.gradingVersion, "ielts-grading-v3");
   assert.equal(attempt.score.rubricVersion, "ielts-writing-rubric-v1");
+});
+
+test("schema recovery returns an authorized actionable contract", () => {
+  const evidence = buildIeltsCoachLearnerEvidence({
+    context: CONTEXT,
+    skill: "writing",
+  });
+  const learnerSources = new Map(
+    evidence.map((item) => [
+      item.evidenceId,
+      {
+        evidenceId: item.evidenceId,
+        sourceType:
+          item.evidenceId.startsWith("teacher-review:")
+            ? ("teacher_published" as const)
+            : ("learner_record" as const),
+        sourceLocator: `learner-record/${item.evidenceId}`,
+        version: item.observedAt ?? CONTEXT.version,
+      },
+    ]),
+  );
+  const action = {
+    id: "ielts-practice:writing:task_response",
+    kind: "start_practice" as const,
+    skill: "writing" as const,
+    criterion: "task_response" as const,
+    title: "Writing task response practice",
+  };
+  const authorization: IeltsCoachServerAuthorization = {
+    learnerEvidence: new Map(
+      evidence.map((item) => [item.evidenceId, item]),
+    ),
+    learnerSources,
+    approvedKnowledgeSources: new Map(),
+    actions: new Map([
+      [
+        action.id,
+        {
+          kind: action.kind,
+          skill: action.skill,
+          criterion: action.criterion,
+        },
+      ],
+    ]),
+  };
+
+  const output = buildDeterministicIeltsCoachRecovery({
+    locale: "en",
+    skill: "writing",
+    evidence,
+    weakness: CONTEXT.weaknesses[0],
+    actions: [action],
+    learnerSources,
+    approvedKnowledgeSources: new Map(),
+    recommendation: null,
+    authorization,
+  });
+
+  assert.equal(output.outcome, "recommendation");
+  assert.equal(output.bandCriterionGap.current?.band, 5.5);
+  assert.equal(output.bandCriterionGap.targetBand, 7);
+  assert.equal(output.bandCriterionGap.gapBands, 1.5);
+  assert.equal(output.action.resourceId, action.id);
+  assert.equal(output.recommendedTask.taskId, action.id);
+});
+
+test("schema recovery gives a new learner a drill without inventing a band", () => {
+  const action = {
+    id: "ielts-practice:writing:task_response",
+    kind: "start_practice" as const,
+    skill: "writing" as const,
+    criterion: "task_response" as const,
+    title: "Writing task response practice",
+  };
+  const authorization: IeltsCoachServerAuthorization = {
+    learnerEvidence: new Map(),
+    learnerSources: new Map(),
+    approvedKnowledgeSources: new Map(),
+    actions: new Map([
+      [
+        action.id,
+        {
+          kind: action.kind,
+          skill: action.skill,
+          criterion: action.criterion,
+        },
+      ],
+    ]),
+  };
+
+  const output = buildDeterministicIeltsCoachRecovery({
+    locale: "en",
+    skill: "writing",
+    evidence: [],
+    weakness: undefined,
+    actions: [action],
+    learnerSources: new Map(),
+    approvedKnowledgeSources: new Map(),
+    recommendation: null,
+    authorization,
+  });
+
+  assert.equal(output.outcome, "needs_evidence");
+  assert.equal(output.bandCriterionGap.current, null);
+  assert.equal(output.bandCriterionGap.targetBand, null);
+  assert.equal(output.scoreAuthority.effective, null);
+  assert.equal(output.action.resourceId, action.id);
 });

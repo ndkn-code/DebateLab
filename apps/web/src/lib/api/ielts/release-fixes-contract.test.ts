@@ -10,6 +10,13 @@ const migration = readFileSync(
   ),
   "utf8",
 );
+const coachRuntimeFix = readFileSync(
+  resolve(
+    process.cwd(),
+    "../../supabase/migrations/20260831120000_ai_provider_ielts_coach_output_type.sql",
+  ),
+  "utf8",
+);
 
 test("AI telemetry constraint preserves every runtime output type", () => {
   for (const outputType of [
@@ -48,4 +55,15 @@ test("release SQL keeps retry, simulation, identity, and retention at DB boundar
   assert.match(migration, /IELTS_EVIDENCE_IDENTITY_MISMATCH/);
   assert.match(migration, /references public\.ielts_attempts\(id\) on delete restrict/);
   assert.match(migration, /references public\.writing_responses\(id\) on delete restrict/);
+});
+
+test("coach runtime SQL admits telemetry and completes against canonical conversation columns", () => {
+  assert.match(coachRuntimeFix, /'ielts_coach_contract'/);
+  assert.match(
+    coachRuntimeFix,
+    /create or replace function public\.complete_ai_coach_turn/,
+  );
+  assert.match(coachRuntimeFix, /set updated_at = now\(\)/);
+  assert.doesNotMatch(coachRuntimeFix, /set message_count|last_message_at/);
+  assert.match(coachRuntimeFix, /to service_role/);
 });

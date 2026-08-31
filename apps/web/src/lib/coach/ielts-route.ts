@@ -392,6 +392,10 @@ export async function handleIeltsCoachRequest(params: {
       metadata,
     });
   } catch (error) {
+    console.error("IELTS Coach request failed", {
+      name: error instanceof Error ? error.name : "UnknownError",
+      message: error instanceof Error ? error.message : "Unknown failure",
+    });
     const runtimeError =
       error instanceof IeltsCoachRuntimeError ? error : null;
     if (turnId && claimToken) {

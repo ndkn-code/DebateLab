@@ -48,6 +48,14 @@ type IeltsCriterion =
   | "fluency_and_coherence"
   | "pronunciation";
 
+type IeltsCoachActionResource = {
+  id: string;
+  kind: IeltsCoachOutput["action"]["kind"];
+  skill: IeltsSkill;
+  criterion?: IeltsCriterion;
+  title: string;
+};
+
 export class IeltsCoachRuntimeError extends Error {
   constructor(
     readonly code:
@@ -295,13 +303,7 @@ function actionResources(
   context: IeltsCoachLearnerContext,
   skill: IeltsSkill,
   recommendation: IeltsQuestionRecommendation | null,
-): Array<{
-  id: string;
-  kind: IeltsCoachOutput["action"]["kind"];
-  skill: IeltsSkill;
-  criterion?: IeltsCriterion;
-  title: string;
-}> {
+): IeltsCoachActionResource[] {
   const weakness = context.weaknesses.find((item) => item.skill === skill);
   const criterion = criterionName(weakness?.criterion ?? skill);
   const publishedFeedback = context.teacherPublishedFeedback.find(
@@ -358,6 +360,161 @@ function actionResources(
       title: "Trusted adult or local support",
     },
   ];
+}
+
+function coachContractShapeInstructions() {
+  return [
+    "Return only one JSON object with every key below; do not add markdown.",
+    "contractVersion='ielts-coach.v1'; product='ielts'; locale must match the request.",
+    "outcome is recommendation, needs_evidence, or safety_escalation.",
+    "diagnosis={summary,skill,criteria}; criteria must belong to diagnosis.skill.",
+    "learnerEvidenceUsed is an array of exact, unchanged objects copied from authorized_learner_evidence.",
+    "bandCriterionGap={criterion,current,targetBand,gapBands,explanation}. When no authorized current score or target exists, use outcome='needs_evidence' and set current,targetBand,gapBands to null.",
+    "recommendedTask={taskId,title,instructions,whyItHelps,expectedSignal}; taskId must equal action.resourceId.",
+    "confidence={level,value,limitations}; level is low, medium, or high and value is 0..1.",
+    "sources is an array of exact, unchanged objects copied from authorized_sources.",
+    "scoreAuthority={effective,learnerLabel,isOfficialTestResult}; isOfficialTestResult is always false. When current is null, effective and learnerLabel must be null.",
+    "action={kind,resourceId,skill,criterion?,label}; copy kind, resourceId, skill, and criterion exactly from one authorized action, and write only its learner-facing label.",
+  ].join("\n");
+}
+
+/**
+ * A safe last-resort contract for schema-invalid provider responses. It uses
+ * only server-authorized records and actions, so a model formatting failure
+ * cannot turn a useful coach request into a stranded learner experience.
+ */
+export function buildDeterministicIeltsCoachRecovery(params: {
+  locale: IeltsCoachLocale;
+  skill: IeltsSkill;
+  evidence: LearnerEvidence[];
+  weakness: IeltsCoachLearnerContext["weaknesses"][number] | undefined;
+  actions: IeltsCoachActionResource[];
+  learnerSources: ReadonlyMap<string, IeltsCoachOutput["sources"][number]>;
+  approvedKnowledgeSources: ReadonlyMap<
+    string,
+    IeltsCoachOutput["sources"][number]
+  >;
+  recommendation: IeltsQuestionRecommendation | null;
+  authorization: IeltsCoachServerAuthorization;
+}) {
+  const vi = params.locale === "vi";
+  const selectedAction =
+    params.actions.find((item) => item.kind === "start_assignment") ??
+    params.actions.find((item) => item.kind === "start_practice") ??
+    params.actions.find((item) => item.kind === "open_study_plan") ??
+    params.actions[0];
+  if (!selectedAction) {
+    throw new Error("IELTS_COACH_NO_AUTHORIZED_ACTION");
+  }
+
+  const scoredEvidence =
+    params.evidence.find(
+      (item) =>
+        item.evidenceId === params.weakness?.evidenceId && Boolean(item.score),
+    ) ?? params.evidence.find((item) => Boolean(item.score));
+  const current = scoredEvidence?.score ?? null;
+  const targetBand = current ? (params.weakness?.targetBand ?? null) : null;
+  const hasScoredGap = current !== null && targetBand !== null;
+  const gapBands = hasScoredGap
+    ? Math.max(0, targetBand - current.band)
+    : null;
+  const criterion = criterionName(
+    params.weakness?.criterion ?? selectedAction.criterion ?? params.skill,
+  );
+  const learnerEvidenceUsed = hasScoredGap
+    ? params.evidence
+    : params.evidence.filter((item) => !item.score);
+  const sources = [
+    ...learnerEvidenceUsed.flatMap((item) => {
+      const source = params.learnerSources.get(item.evidenceId);
+      return source ? [source] : [];
+    }),
+    ...params.approvedKnowledgeSources.values(),
+  ].slice(0, 12);
+  const matchedRecommendation =
+    params.recommendation?.resourceId === selectedAction.id
+      ? params.recommendation
+      : null;
+
+  const output: IeltsCoachOutput = {
+    contractVersion: "ielts-coach.v1",
+    product: "ielts",
+    outcome: hasScoredGap ? "recommendation" : "needs_evidence",
+    locale: params.locale,
+    diagnosis: {
+      summary: hasScoredGap
+        ? vi
+          ? `Bằng chứng hiện có cho thấy ${criterion} là tiêu chí nên ưu tiên tiếp theo.`
+          : `Your authorized results indicate that ${criterion} is the next criterion to prioritize.`
+        : vi
+          ? `Chưa có đủ điểm số đã được phép để xác định khoảng cách band cho ${criterion}.`
+          : `There is not enough authorized score evidence to state a band gap for ${criterion}.`,
+      skill: params.skill,
+      criteria: [criterion],
+    },
+    learnerEvidenceUsed,
+    bandCriterionGap: {
+      criterion,
+      current: hasScoredGap ? current : null,
+      targetBand: hasScoredGap ? targetBand : null,
+      gapBands,
+      explanation: hasScoredGap
+        ? vi
+          ? `Khoảng cách được tính trực tiếp từ điểm hiện tại và mục tiêu đã lưu: ${gapBands} band.`
+          : `The gap is calculated directly from the stored current and target scores: ${gapBands} bands.`
+        : vi
+          ? "Hãy hoàn thành một bài luyện để Coach có bằng chứng hợp lệ cho lần đánh giá tiếp theo."
+          : "Complete one practice task so the Coach has valid evidence for the next review.",
+    },
+    recommendedTask: {
+      taskId: selectedAction.id,
+      title: (matchedRecommendation?.title ?? selectedAction.title).slice(
+        0,
+        180,
+      ),
+      instructions: matchedRecommendation?.prompt
+        ? matchedRecommendation.prompt.slice(0, 1_200)
+        : vi
+          ? "Mở bài luyện được đề xuất và hoàn thành một lần làm bài đầy đủ."
+          : "Open the recommended practice and complete one full attempt.",
+      whyItHelps: vi
+        ? `Bài này tạo thêm bằng chứng cụ thể cho tiêu chí ${criterion} mà không đoán điểm của bạn.`
+        : `This creates concrete evidence for ${criterion} without guessing your score.`,
+      expectedSignal: `completed:${selectedAction.id}`.slice(0, 500),
+    },
+    confidence: {
+      level: hasScoredGap ? "medium" : "low",
+      value: hasScoredGap ? 0.6 : 0.25,
+      limitations: [
+        vi
+          ? "Đây là phương án dự phòng an toàn vì phản hồi AI không đạt hợp đồng dữ liệu bắt buộc."
+          : "This is a safe fallback because the AI response did not satisfy the required data contract.",
+      ],
+    },
+    sources,
+    scoreAuthority: hasScoredGap
+      ? {
+          effective: current.kind,
+          learnerLabel: current.label,
+          isOfficialTestResult: false,
+        }
+      : {
+          effective: null,
+          learnerLabel: null,
+          isOfficialTestResult: false,
+        },
+    action: {
+      kind: selectedAction.kind,
+      resourceId: selectedAction.id,
+      skill: selectedAction.skill,
+      ...(selectedAction.criterion
+        ? { criterion: selectedAction.criterion }
+        : {}),
+      label: vi ? "Bắt đầu bài luyện" : "Start practice",
+    },
+  };
+
+  return validateAuthorizedIeltsCoachOutput(output, params.authorization);
 }
 
 function deterministicBoundaryOutput(params: {
@@ -683,6 +840,7 @@ export async function runIeltsCoachTurn(params: {
       learnerMessage: params.message,
       authorizedEvidence: evidence,
     }),
+    coachContractShapeInstructions(),
     knowledgePrompt(knowledge),
     '<authorized_sources instruction="copy source records exactly; never invent fields">',
     JSON.stringify([
@@ -766,6 +924,35 @@ export async function runIeltsCoachTurn(params: {
       usage: generation.usage,
     };
   } catch (error) {
+    try {
+      const output = buildDeterministicIeltsCoachRecovery({
+        locale: params.locale,
+        skill,
+        evidence,
+        weakness,
+        actions,
+        learnerSources,
+        approvedKnowledgeSources,
+        recommendation,
+        authorization,
+      });
+      return {
+        output,
+        text: outputText(output),
+        provider: "policy",
+        model: "deterministic-schema-recovery",
+        traceId: params.requestId,
+        fallbackUsed: true,
+        latencyMs: 0,
+        promptVersion: IELTS_COACH_PROMPT_VERSION,
+        rubricVersion: knowledge[0]?.version ?? RUBRIC_VERSION,
+        knowledgeEvidence: knowledge,
+      };
+    } catch (recoveryError) {
+      // If the server-owned recovery contract itself cannot be validated,
+      // retain the bounded/manual-retry terminal path below.
+      console.error("IELTS Coach deterministic recovery failed", recoveryError);
+    }
     const code =
       error instanceof AiExecutionError && error.kind === "deadline_exceeded"
         ? "IELTS_COACH_TIMEOUT"
