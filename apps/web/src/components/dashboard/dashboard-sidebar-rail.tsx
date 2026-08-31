@@ -108,6 +108,7 @@ export function DashboardSidebarRail({
   const [referralOpen, setReferralOpen] = useState(false);
   const pathname = usePathname();
   const reducedMotion = useReducedMotion();
+  const canUseTeacherWorkspace = isAdmin || profile?.role === "teacher";
 
   const isActiveItem = (item: DashboardSidebarNavItem) => {
     if (!item.href || item.status === "coming-soon") {
@@ -315,23 +316,25 @@ export function DashboardSidebarRail({
               </span>
               <ChevronRight className="h-4 w-4" />
             </button>
-            {isAdmin ? (
+            {canUseTeacherWorkspace ? (
               <div className="space-y-1" aria-label={tNav("workspaceModes")}>
-                <Link
-                  href="/dashboard/admin"
-                  aria-current={
-                    pathname.startsWith("/dashboard/admin") ? "page" : undefined
-                  }
-                  className={cn(
-                    "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-                    pathname.startsWith("/dashboard/admin")
-                      ? "sidebar-nav-selected hover:bg-[var(--sidebar-selected-bg)]"
-                      : "sidebar-nav-action",
-                  )}
-                >
-                  <Shield className="h-5 w-5 shrink-0" aria-hidden="true" />
-                  <span>{tNav("adminShort")}</span>
-                </Link>
+                {isAdmin ? (
+                  <Link
+                    href="/dashboard/admin"
+                    aria-current={
+                      pathname.startsWith("/dashboard/admin") ? "page" : undefined
+                    }
+                    className={cn(
+                      "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                      pathname.startsWith("/dashboard/admin")
+                        ? "sidebar-nav-selected hover:bg-[var(--sidebar-selected-bg)]"
+                        : "sidebar-nav-action",
+                    )}
+                  >
+                    <Shield className="h-5 w-5 shrink-0" aria-hidden="true" />
+                    <span>{tNav("adminShort")}</span>
+                  </Link>
+                ) : null}
                 <Link
                   href="/dashboard/teacher"
                   aria-current={

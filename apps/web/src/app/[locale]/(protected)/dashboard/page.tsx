@@ -42,6 +42,13 @@ async function DashboardPayload() {
   // Get preferences for welcome banner check
   const profile = data.profile ?? (devAuthBypassUser ? DEV_ADMIN_PROFILE : null);
 
+  // Teachers enter the shared instructional workspace by default. Their
+  // organization and class memberships remain the authorization boundary in
+  // the teacher loader; this redirect only selects the correct product shell.
+  if (profile?.role === "teacher") {
+    redirect("/dashboard/teacher");
+  }
+
   const displayName =
     profile?.display_name ||
     user?.user_metadata?.display_name ||

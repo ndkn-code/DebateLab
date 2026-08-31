@@ -240,6 +240,7 @@ function NavContent({
   const tc = useTranslations("common");
   const ts = useTranslations("dashboard.home");
   const isAdmin = profile?.role === "admin";
+  const canUseTeacherWorkspace = isAdmin || profile?.role === "teacher";
   const canDuel = DUEL_ENABLED || isAdmin;
   const displayName =
     profile?.display_name || userEmail?.split("@")[0] || "User";
@@ -305,28 +306,30 @@ function NavContent({
 
       {/* Nav Links */}
       <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3 md:overflow-hidden md:overscroll-none">
-        {isAdmin ? (
+        {canUseTeacherWorkspace ? (
           <div className="space-y-1" aria-label={t("workspaceModes")}>
-            <Link
-              href="/dashboard/admin/overview"
-              onClick={onNavClick}
-              aria-current={
-                pathname.startsWith("/dashboard/admin") ? "page" : undefined
-              }
-              className={cn(
-                "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-all",
-                collapsed && "justify-center px-0",
-                pathname.startsWith("/dashboard/admin")
-                  ? "sidebar-nav-selected"
-                  : "sidebar-nav-idle",
-              )}
-              title={collapsed ? t("switchToAdmin") : undefined}
-            >
-              <Shield className="h-5 w-5 shrink-0" />
-              {!collapsed ? (
-                <span className="truncate">{t("switchToAdmin")}</span>
-              ) : null}
-            </Link>
+            {isAdmin ? (
+              <Link
+                href="/dashboard/admin/overview"
+                onClick={onNavClick}
+                aria-current={
+                  pathname.startsWith("/dashboard/admin") ? "page" : undefined
+                }
+                className={cn(
+                  "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-all",
+                  collapsed && "justify-center px-0",
+                  pathname.startsWith("/dashboard/admin")
+                    ? "sidebar-nav-selected"
+                    : "sidebar-nav-idle",
+                )}
+                title={collapsed ? t("switchToAdmin") : undefined}
+              >
+                <Shield className="h-5 w-5 shrink-0" />
+                {!collapsed ? (
+                  <span className="truncate">{t("switchToAdmin")}</span>
+                ) : null}
+              </Link>
+            ) : null}
             <Link
               href="/dashboard/teacher"
               onClick={onNavClick}
@@ -482,7 +485,7 @@ function NavContent({
               <Settings className="h-4 w-4" />
               {t("settings")}
             </DropdownMenuItem>
-            {profile?.role === "admin" && (
+            {(profile?.role === "admin" || profile?.role === "teacher") && (
               <DropdownMenuItem
                 onClick={() => {
                   onNavClick?.();
