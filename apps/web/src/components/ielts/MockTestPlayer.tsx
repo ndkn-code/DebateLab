@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import posthog from "posthog-js";
 import type {
   MockStructure,
   AttemptState,
@@ -93,6 +94,9 @@ function initialResponses(initialState?: AttemptState): IeltsResponseMap {
   );
 }
 
+// The player intentionally coordinates the existing attempt state machine in
+// one component; keep its branches visible until behavior is split safely.
+// eslint-disable-next-line complexity
 export function MockTestPlayer({
   structure,
   initialState,

@@ -43,7 +43,12 @@ import type {
 } from "@/components/notifications/contracts";
 
 export type DashboardSidebarNavItem = Omit<DashboardNavItem, "key"> & {
-  key: DashboardNavItem["key"] | "ielts_speaking" | "ielts_classes";
+  key:
+    | DashboardNavItem["key"]
+    | "ielts_speaking"
+    | "ielts_classes"
+    | "ielts_coach"
+    | "ielts_profile";
 };
 
 function SpeakingRehearsalIcon({ className }: { className?: string }) {
@@ -65,6 +70,8 @@ const NAV_ICONS = {
   ielts_library: BookOpen,
   ielts_assigned: ClipboardList,
   ielts_classes: CalendarDays,
+  ielts_coach: Sparkles,
+  ielts_profile: UserRound,
   resources: BookOpenText,
 } as const;
 
