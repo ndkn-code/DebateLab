@@ -279,6 +279,91 @@ export type Database = {
           },
         ]
       }
+      ai_coach_turns: {
+        Row: {
+          assistant_message_id: string | null
+          attempt_count: number
+          claim_token: string | null
+          client_request_id: string
+          completed_at: string | null
+          conversation_id: string
+          created_at: string
+          error_code: string | null
+          id: string
+          lease_expires_at: string | null
+          product_context: string
+          request_hash: string
+          response_metadata: Json
+          response_text: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          user_message_id: string | null
+        }
+        Insert: {
+          assistant_message_id?: string | null
+          attempt_count?: number
+          claim_token?: string | null
+          client_request_id: string
+          completed_at?: string | null
+          conversation_id: string
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          lease_expires_at?: string | null
+          product_context: string
+          request_hash: string
+          response_metadata?: Json
+          response_text?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          user_message_id?: string | null
+        }
+        Update: {
+          assistant_message_id?: string | null
+          attempt_count?: number
+          claim_token?: string | null
+          client_request_id?: string
+          completed_at?: string | null
+          conversation_id?: string
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          lease_expires_at?: string | null
+          product_context?: string
+          request_hash?: string
+          response_metadata?: Json
+          response_text?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          user_message_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_coach_turns_assistant_message_id_fkey"
+            columns: ["assistant_message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_coach_turns_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "chat_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_coach_turns_user_message_id_fkey"
+            columns: ["user_message_id"]
+            isOneToOne: false
+            referencedRelation: "chat_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_grading_benchmarks: {
         Row: {
           accent_group: string | null
@@ -341,6 +426,59 @@ export type Database = {
             columns: ["source_id"]
             isOneToOne: false
             referencedRelation: "ai_knowledge_sources"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_grading_checkpoints: {
+        Row: {
+          created_at: string
+          output_hash: string | null
+          output_payload: Json | null
+          output_version: number | null
+          prepared_hash: string | null
+          prepared_payload: Json | null
+          provider_claim_token: string | null
+          provider_completed_at: string | null
+          provider_retry_ordinal: number
+          provider_started_at: string | null
+          updated_at: string
+          workflow_run_id: string
+        }
+        Insert: {
+          created_at?: string
+          output_hash?: string | null
+          output_payload?: Json | null
+          output_version?: number | null
+          prepared_hash?: string | null
+          prepared_payload?: Json | null
+          provider_claim_token?: string | null
+          provider_completed_at?: string | null
+          provider_retry_ordinal?: number
+          provider_started_at?: string | null
+          updated_at?: string
+          workflow_run_id: string
+        }
+        Update: {
+          created_at?: string
+          output_hash?: string | null
+          output_payload?: Json | null
+          output_version?: number | null
+          prepared_hash?: string | null
+          prepared_payload?: Json | null
+          provider_claim_token?: string | null
+          provider_completed_at?: string | null
+          provider_retry_ordinal?: number
+          provider_started_at?: string | null
+          updated_at?: string
+          workflow_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_grading_checkpoints_workflow_run_id_fkey"
+            columns: ["workflow_run_id"]
+            isOneToOne: true
+            referencedRelation: "ai_workflow_runs"
             referencedColumns: ["id"]
           },
         ]
@@ -1298,12 +1436,16 @@ export type Database = {
       ai_workflow_runs: {
         Row: {
           analysis_job_id: string | null
+          backend: string
+          backend_message_id: string | null
           completed_at: string | null
           core_completed_at: string | null
           created_at: string
           failed_at: string | null
           id: string
           idempotency_key: string
+          last_delivery_attempt: number | null
+          last_delivery_id: string | null
           last_error_code: string | null
           last_error_message: string | null
           launch_token: string | null
@@ -1312,11 +1454,13 @@ export type Database = {
           phase: string
           progress: Json
           provider_attempt_count: number
+          published_at: string | null
           speaking_response_id: string | null
           started_at: string | null
           status: string
           updated_at: string
           user_id: string
+          worker_claim_token: string | null
           workflow_attempt_count: number
           workflow_kind: string
           workflow_run_id: string | null
@@ -1324,12 +1468,16 @@ export type Database = {
         }
         Insert: {
           analysis_job_id?: string | null
+          backend?: string
+          backend_message_id?: string | null
           completed_at?: string | null
           core_completed_at?: string | null
           created_at?: string
           failed_at?: string | null
           id?: string
           idempotency_key: string
+          last_delivery_attempt?: number | null
+          last_delivery_id?: string | null
           last_error_code?: string | null
           last_error_message?: string | null
           launch_token?: string | null
@@ -1338,11 +1486,13 @@ export type Database = {
           phase?: string
           progress?: Json
           provider_attempt_count?: number
+          published_at?: string | null
           speaking_response_id?: string | null
           started_at?: string | null
           status?: string
           updated_at?: string
           user_id: string
+          worker_claim_token?: string | null
           workflow_attempt_count?: number
           workflow_kind: string
           workflow_run_id?: string | null
@@ -1350,12 +1500,16 @@ export type Database = {
         }
         Update: {
           analysis_job_id?: string | null
+          backend?: string
+          backend_message_id?: string | null
           completed_at?: string | null
           core_completed_at?: string | null
           created_at?: string
           failed_at?: string | null
           id?: string
           idempotency_key?: string
+          last_delivery_attempt?: number | null
+          last_delivery_id?: string | null
           last_error_code?: string | null
           last_error_message?: string | null
           launch_token?: string | null
@@ -1364,11 +1518,13 @@ export type Database = {
           phase?: string
           progress?: Json
           provider_attempt_count?: number
+          published_at?: string | null
           speaking_response_id?: string | null
           started_at?: string | null
           status?: string
           updated_at?: string
           user_id?: string
+          worker_claim_token?: string | null
           workflow_attempt_count?: number
           workflow_kind?: string
           workflow_run_id?: string | null
@@ -3359,8 +3515,12 @@ export type Database = {
           logo_url: string | null
           metadata: Json
           name: string
+          onboarding_completed_at: string | null
+          organization_type: string
           owner_user_id: string | null
           settings: Json
+          setup_completed_at: string | null
+          setup_version: number
           status: string
           threads_url: string | null
           timezone: string
@@ -3379,8 +3539,12 @@ export type Database = {
           logo_url?: string | null
           metadata?: Json
           name: string
+          onboarding_completed_at?: string | null
+          organization_type?: string
           owner_user_id?: string | null
           settings?: Json
+          setup_completed_at?: string | null
+          setup_version?: number
           status?: string
           threads_url?: string | null
           timezone?: string
@@ -3399,8 +3563,12 @@ export type Database = {
           logo_url?: string | null
           metadata?: Json
           name?: string
+          onboarding_completed_at?: string | null
+          organization_type?: string
           owner_user_id?: string | null
           settings?: Json
+          setup_completed_at?: string | null
+          setup_version?: number
           status?: string
           threads_url?: string | null
           timezone?: string
@@ -4922,13 +5090,94 @@ export type Database = {
           },
         ]
       }
+      email_campaign_recipients: {
+        Row: {
+          attempts: number
+          available_at: string
+          campaign_id: string
+          created_at: string
+          display_name: string | null
+          email: string
+          email_message_id: string | null
+          id: string
+          last_error: string | null
+          locale: string
+          max_attempts: number
+          send_key: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          attempts?: number
+          available_at?: string
+          campaign_id: string
+          created_at?: string
+          display_name?: string | null
+          email: string
+          email_message_id?: string | null
+          id?: string
+          last_error?: string | null
+          locale: string
+          max_attempts?: number
+          send_key: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          attempts?: number
+          available_at?: string
+          campaign_id?: string
+          created_at?: string
+          display_name?: string | null
+          email?: string
+          email_message_id?: string | null
+          id?: string
+          last_error?: string | null
+          locale?: string
+          max_attempts?: number
+          send_key?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "email_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaign_recipients_email_message_id_fkey"
+            columns: ["email_message_id"]
+            isOneToOne: false
+            referencedRelation: "email_messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_campaign_recipients_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_campaigns: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           audience: Json
+          audience_snapshot_count: number
           body: Json
+          completed_at: string | null
           created_at: string
           created_by: string | null
           id: string
+          last_error: string | null
           locale: string
           name: string
           scheduled_for: string | null
@@ -4940,11 +5189,16 @@ export type Database = {
           variables: Json
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           audience: Json
+          audience_snapshot_count?: number
           body?: Json
+          completed_at?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
+          last_error?: string | null
           locale?: string
           name: string
           scheduled_for?: string | null
@@ -4956,11 +5210,16 @@ export type Database = {
           variables?: Json
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           audience?: Json
+          audience_snapshot_count?: number
           body?: Json
+          completed_at?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
+          last_error?: string | null
           locale?: string
           name?: string
           scheduled_for?: string | null
@@ -4972,6 +5231,13 @@ export type Database = {
           variables?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "email_campaigns_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "email_campaigns_created_by_fkey"
             columns: ["created_by"]
@@ -5036,19 +5302,24 @@ export type Database = {
           clicked_at: string | null
           complained_at: string | null
           created_at: string
+          delayed_at: string | null
           delivered_at: string | null
           error_message: string | null
           failed_at: string | null
           from_email: string
           id: string
           last_provider_event: string | null
+          last_provider_event_at: string | null
           locale: string
+          message_class: string | null
           metadata: Json
+          notification_event_id: string | null
           opened_at: string | null
           reply_to: string[]
           resend_email_id: string | null
           scheduled_for: string | null
           send_key: string
+          sender_stream: string | null
           sent_at: string | null
           skip_reason: string | null
           status: string
@@ -5067,19 +5338,24 @@ export type Database = {
           clicked_at?: string | null
           complained_at?: string | null
           created_at?: string
+          delayed_at?: string | null
           delivered_at?: string | null
           error_message?: string | null
           failed_at?: string | null
           from_email: string
           id?: string
           last_provider_event?: string | null
+          last_provider_event_at?: string | null
           locale?: string
+          message_class?: string | null
           metadata?: Json
+          notification_event_id?: string | null
           opened_at?: string | null
           reply_to?: string[]
           resend_email_id?: string | null
           scheduled_for?: string | null
           send_key: string
+          sender_stream?: string | null
           sent_at?: string | null
           skip_reason?: string | null
           status?: string
@@ -5098,19 +5374,24 @@ export type Database = {
           clicked_at?: string | null
           complained_at?: string | null
           created_at?: string
+          delayed_at?: string | null
           delivered_at?: string | null
           error_message?: string | null
           failed_at?: string | null
           from_email?: string
           id?: string
           last_provider_event?: string | null
+          last_provider_event_at?: string | null
           locale?: string
+          message_class?: string | null
           metadata?: Json
+          notification_event_id?: string | null
           opened_at?: string | null
           reply_to?: string[]
           resend_email_id?: string | null
           scheduled_for?: string | null
           send_key?: string
+          sender_stream?: string | null
           sent_at?: string | null
           skip_reason?: string | null
           status?: string
@@ -5124,6 +5405,13 @@ export type Database = {
           variables?: Json
         }
         Relationships: [
+          {
+            foreignKeyName: "email_messages_notification_event_id_fkey"
+            columns: ["notification_event_id"]
+            isOneToOne: false
+            referencedRelation: "notification_events"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "email_messages_user_id_fkey"
             columns: ["user_id"]
@@ -8707,6 +8995,7 @@ export type Database = {
       lms_material_placements: {
         Row: {
           assignment_id: string | null
+          audience_mode: string
           class_id: string | null
           club_id: string
           course_id: string | null
@@ -8719,6 +9008,7 @@ export type Database = {
           order_index: number
           release_at: string | null
           required: boolean
+          source_assignment_id: string | null
           status: string
           target_type: string
           updated_at: string
@@ -8726,6 +9016,7 @@ export type Database = {
         }
         Insert: {
           assignment_id?: string | null
+          audience_mode?: string
           class_id?: string | null
           club_id: string
           course_id?: string | null
@@ -8738,6 +9029,7 @@ export type Database = {
           order_index?: number
           release_at?: string | null
           required?: boolean
+          source_assignment_id?: string | null
           status?: string
           target_type: string
           updated_at?: string
@@ -8745,6 +9037,7 @@ export type Database = {
         }
         Update: {
           assignment_id?: string | null
+          audience_mode?: string
           class_id?: string | null
           club_id?: string
           course_id?: string | null
@@ -8757,6 +9050,7 @@ export type Database = {
           order_index?: number
           release_at?: string | null
           required?: boolean
+          source_assignment_id?: string | null
           status?: string
           target_type?: string
           updated_at?: string
@@ -8845,6 +9139,20 @@ export type Database = {
             columns: ["occurrence_id"]
             isOneToOne: false
             referencedRelation: "lms_lesson_occurrences"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_material_placements_source_assignment_id_fkey"
+            columns: ["source_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_assignment_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_material_placements_source_assignment_id_fkey"
+            columns: ["source_assignment_id"]
+            isOneToOne: false
+            referencedRelation: "club_assignments"
             referencedColumns: ["id"]
           },
           {
@@ -9072,6 +9380,10 @@ export type Database = {
       }
       lms_material_versions: {
         Row: {
+          content_review_note: string | null
+          content_review_status: string
+          content_reviewed_at: string | null
+          content_reviewer_id: string | null
           created_at: string
           created_by: string
           detected_mime_type: string | null
@@ -9097,6 +9409,10 @@ export type Database = {
           version_number: number
         }
         Insert: {
+          content_review_note?: string | null
+          content_review_status?: string
+          content_reviewed_at?: string | null
+          content_reviewer_id?: string | null
           created_at?: string
           created_by: string
           detected_mime_type?: string | null
@@ -9122,6 +9438,10 @@ export type Database = {
           version_number: number
         }
         Update: {
+          content_review_note?: string | null
+          content_review_status?: string
+          content_reviewed_at?: string | null
+          content_reviewer_id?: string | null
           created_at?: string
           created_by?: string
           detected_mime_type?: string | null
@@ -9147,6 +9467,13 @@ export type Database = {
           version_number?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "lms_material_versions_content_reviewer_id_fkey"
+            columns: ["content_reviewer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "lms_material_versions_created_by_fkey"
             columns: ["created_by"]
@@ -10095,6 +10422,419 @@ export type Database = {
           },
         ]
       }
+      notification_delivery_jobs: {
+        Row: {
+          attempts: number
+          available_at: string
+          channel: string
+          completed_at: string | null
+          created_at: string
+          event_id: string
+          id: string
+          idempotency_key: string
+          inbox_item_id: string
+          last_error: string | null
+          lease_expires_at: string | null
+          lease_token: string | null
+          locked_at: string | null
+          max_attempts: number
+          payload: Json
+          provider_message_id: string | null
+          recipient_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          available_at?: string
+          channel: string
+          completed_at?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          idempotency_key: string
+          inbox_item_id: string
+          last_error?: string | null
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          locked_at?: string | null
+          max_attempts?: number
+          payload?: Json
+          provider_message_id?: string | null
+          recipient_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          available_at?: string
+          channel?: string
+          completed_at?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          idempotency_key?: string
+          inbox_item_id?: string
+          last_error?: string | null
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          locked_at?: string | null
+          max_attempts?: number
+          payload?: Json
+          provider_message_id?: string | null
+          recipient_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_delivery_jobs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "notification_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_delivery_jobs_inbox_item_id_fkey"
+            columns: ["inbox_item_id"]
+            isOneToOne: false
+            referencedRelation: "notification_inbox_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_delivery_jobs_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_events: {
+        Row: {
+          actor_id: string | null
+          body: string
+          created_at: string
+          event_key: string
+          event_type: string
+          id: string
+          importance: string
+          message_class: string
+          payload: Json
+          source: string
+          subject_id: string | null
+          subject_type: string | null
+          title: string
+          topic: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          body: string
+          created_at?: string
+          event_key: string
+          event_type: string
+          id?: string
+          importance?: string
+          message_class?: string
+          payload?: Json
+          source?: string
+          subject_id?: string | null
+          subject_type?: string | null
+          title: string
+          topic?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          body?: string
+          created_at?: string
+          event_key?: string
+          event_type?: string
+          id?: string
+          importance?: string
+          message_class?: string
+          payload?: Json
+          source?: string
+          subject_id?: string | null
+          subject_type?: string | null
+          title?: string
+          topic?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_inbox_items: {
+        Row: {
+          archived_at: string | null
+          created_at: string
+          event_id: string
+          id: string
+          read_at: string | null
+          recipient_id: string
+          state: string
+        }
+        Insert: {
+          archived_at?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          read_at?: string | null
+          recipient_id: string
+          state?: string
+        }
+        Update: {
+          archived_at?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          read_at?: string | null
+          recipient_id?: string
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_inbox_items_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "notification_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "notification_inbox_items_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_mutes: {
+        Row: {
+          channel: string
+          created_at: string
+          id: string
+          muted_until: string | null
+          subject_id: string
+          subject_type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel?: string
+          created_at?: string
+          id?: string
+          muted_until?: string | null
+          subject_id: string
+          subject_type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          created_at?: string
+          id?: string
+          muted_until?: string | null
+          subject_id?: string
+          subject_type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_mutes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_preferences: {
+        Row: {
+          channel: string
+          enabled: boolean
+          event_type: string
+          frequency: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          enabled?: boolean
+          event_type: string
+          frequency?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          enabled?: boolean
+          event_type?: string
+          frequency?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notification_user_settings: {
+        Row: {
+          digest_frequency: string
+          email_enabled: boolean
+          in_app_enabled: boolean
+          push_enabled: boolean
+          quiet_hours_end: string | null
+          quiet_hours_start: string | null
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          digest_frequency?: string
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          push_enabled?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          digest_frequency?: string
+          email_enabled?: boolean
+          in_app_enabled?: boolean
+          push_enabled?: boolean
+          quiet_hours_end?: string | null
+          quiet_hours_start?: string | null
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notification_user_settings_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      observability_bug_deliveries: {
+        Row: {
+          applied: boolean
+          completed_at: string | null
+          created_at: string
+          delivery_id: string
+          environment: string
+          fingerprint: string
+          lease_expires_at: string | null
+          lease_token: string | null
+          previous_alert_status: string | null
+          service: string
+        }
+        Insert: {
+          applied?: boolean
+          completed_at?: string | null
+          created_at?: string
+          delivery_id: string
+          environment: string
+          fingerprint: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          previous_alert_status?: string | null
+          service: string
+        }
+        Update: {
+          applied?: boolean
+          completed_at?: string | null
+          created_at?: string
+          delivery_id?: string
+          environment?: string
+          fingerprint?: string
+          lease_expires_at?: string | null
+          lease_token?: string | null
+          previous_alert_status?: string | null
+          service?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "observability_bug_deliveries_fingerprint_service_environme_fkey"
+            columns: ["fingerprint", "service", "environment"]
+            isOneToOne: false
+            referencedRelation: "observability_bug_incidents"
+            referencedColumns: ["fingerprint", "service", "environment"]
+          },
+        ]
+      }
+      observability_bug_incidents: {
+        Row: {
+          affected_sessions: number
+          alert_status: string
+          clickup_task_id: string | null
+          created_at: string
+          creation_lease_expires_at: string | null
+          creation_lease_token: string | null
+          environment: string
+          fingerprint: string
+          first_seen_at: string
+          last_seen_at: string
+          occurrence_count: number
+          service: string
+          severity: string
+          updated_at: string
+        }
+        Insert: {
+          affected_sessions?: number
+          alert_status: string
+          clickup_task_id?: string | null
+          created_at?: string
+          creation_lease_expires_at?: string | null
+          creation_lease_token?: string | null
+          environment: string
+          fingerprint: string
+          first_seen_at: string
+          last_seen_at: string
+          occurrence_count?: number
+          service: string
+          severity: string
+          updated_at?: string
+        }
+        Update: {
+          affected_sessions?: number
+          alert_status?: string
+          clickup_task_id?: string | null
+          created_at?: string
+          creation_lease_expires_at?: string | null
+          creation_lease_token?: string | null
+          environment?: string
+          fingerprint?: string
+          first_seen_at?: string
+          last_seen_at?: string
+          occurrence_count?: number
+          service?: string
+          severity?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       orb_transactions: {
         Row: {
           amount: number
@@ -10127,6 +10867,105 @@ export type Database = {
           {
             foreignKeyName: "orb_transactions_user_id_fkey"
             columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_audit_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          idempotency_key: string | null
+          organization_id: string
+          payload: Json
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          idempotency_key?: string | null
+          organization_id: string
+          payload?: Json
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          idempotency_key?: string | null
+          organization_id?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_audit_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_audit_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_audit_events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_operation_idempotency: {
+        Row: {
+          actor_id: string
+          completed_at: string | null
+          created_at: string
+          id: string
+          idempotency_key: string
+          operation: string
+          request_hash: string
+          response_payload: Json | null
+        }
+        Insert: {
+          actor_id: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          operation: string
+          request_hash: string
+          response_payload?: Json | null
+        }
+        Update: {
+          actor_id?: string
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          operation?: string
+          request_hash?: string
+          response_payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_operation_idempotency_actor_id_fkey"
+            columns: ["actor_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
@@ -12297,6 +13136,96 @@ export type Database = {
           },
         ]
       }
+      teacher_workspace_class_preferences: {
+        Row: {
+          class_id: string
+          color_token: string
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          color_token?: string
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          color_token?: string
+          created_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_workspace_class_preferences_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "admin_class_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_workspace_class_preferences_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teacher_workspace_class_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_workspace_preferences: {
+        Row: {
+          created_at: string
+          default_calendar_view: string
+          timezone: string | null
+          timezone_mode: string
+          updated_at: string
+          user_id: string
+          week_start: number
+          working_hour_end: string
+          working_hour_start: string
+        }
+        Insert: {
+          created_at?: string
+          default_calendar_view?: string
+          timezone?: string | null
+          timezone_mode?: string
+          updated_at?: string
+          user_id: string
+          week_start?: number
+          working_hour_end?: string
+          working_hour_start?: string
+        }
+        Update: {
+          created_at?: string
+          default_calendar_view?: string
+          timezone?: string | null
+          timezone_mode?: string
+          updated_at?: string
+          user_id?: string
+          week_start?: number
+          working_hour_end?: string
+          working_hour_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_workspace_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_achievements: {
         Row: {
           achievement_id: string
@@ -12328,6 +13257,53 @@ export type Database = {
             foreignKeyName: "user_achievements_user_id_fkey"
             columns: ["user_id"]
             isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_age_assurance: {
+        Row: {
+          age_band: string
+          consent_status: string
+          consent_version: string
+          created_at: string
+          guardian_acted_at: string | null
+          guardian_email: string | null
+          updated_at: string
+          user_id: string
+          verification_expires_at: string | null
+          verification_token_hash: string | null
+        }
+        Insert: {
+          age_band: string
+          consent_status: string
+          consent_version?: string
+          created_at?: string
+          guardian_acted_at?: string | null
+          guardian_email?: string | null
+          updated_at?: string
+          user_id: string
+          verification_expires_at?: string | null
+          verification_token_hash?: string | null
+        }
+        Update: {
+          age_band?: string
+          consent_status?: string
+          consent_version?: string
+          created_at?: string
+          guardian_acted_at?: string | null
+          guardian_email?: string | null
+          updated_at?: string
+          user_id?: string
+          verification_expires_at?: string | null
+          verification_token_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_age_assurance_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
@@ -13472,6 +14448,14 @@ export type Database = {
       }
     }
     Functions: {
+      activate_organization_transaction: {
+        Args: {
+          p_actor_id: string
+          p_idempotency_key: string
+          p_organization_id: string
+        }
+        Returns: Json
+      }
       adjust_orb_balance: {
         Args: {
           p_amount: number
@@ -13602,6 +14586,38 @@ export type Database = {
         Args: { p_class_id: string }
         Returns: string
       }
+      assign_organization_course_transaction: {
+        Args: {
+          p_action: string
+          p_actor_id: string
+          p_class_id: string
+          p_course_id: string
+          p_idempotency_key: string
+          p_organization_id: string
+        }
+        Returns: Json
+      }
+      assign_organization_material_transaction: {
+        Args: {
+          p_actor_id: string
+          p_class_id: string
+          p_idempotency_key: string
+          p_material_id: string
+          p_organization_id: string
+        }
+        Returns: Json
+      }
+      assign_organization_teacher_transaction: {
+        Args: {
+          p_action: string
+          p_actor_id: string
+          p_class_id: string
+          p_idempotency_key: string
+          p_organization_id: string
+          p_teacher_id: string
+        }
+        Returns: Json
+      }
       award_xp_event: {
         Args: {
           p_activity_type?: string
@@ -13657,6 +14673,56 @@ export type Database = {
         Args: { p_target_user_id: string }
         Returns: Json
       }
+      checkpoint_ai_grading_output: {
+        Args: {
+          p_claim_token: string
+          p_hash: string
+          p_payload: Json
+          p_run_id: string
+          p_version?: number
+        }
+        Returns: boolean
+      }
+      checkpoint_ai_grading_prepared: {
+        Args: {
+          p_claim_token: string
+          p_hash: string
+          p_payload: Json
+          p_run_id: string
+        }
+        Returns: boolean
+      }
+      claim_ai_coach_turn: {
+        Args: {
+          p_client_request_id: string
+          p_conversation_id: string
+          p_lease_seconds?: number
+          p_product_context: string
+          p_request_hash: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      claim_ai_grading_delivery: {
+        Args: {
+          p_delivery_attempt: number
+          p_delivery_id: string
+          p_kind: string
+          p_lease_seconds?: number
+          p_run_id: string
+          p_source_id: string
+        }
+        Returns: {
+          attempt_count: number
+          claim_token: string
+          manual_retry_count: number
+          outcome: string
+          output_hash: string
+          output_payload: Json
+          prepared_payload: Json
+          provider_started_at: string
+        }[]
+      }
       claim_ai_workflow_run: {
         Args: {
           p_launch_token?: string
@@ -13666,12 +14732,16 @@ export type Database = {
         }
         Returns: {
           analysis_job_id: string | null
+          backend: string
+          backend_message_id: string | null
           completed_at: string | null
           core_completed_at: string | null
           created_at: string
           failed_at: string | null
           id: string
           idempotency_key: string
+          last_delivery_attempt: number | null
+          last_delivery_id: string | null
           last_error_code: string | null
           last_error_message: string | null
           launch_token: string | null
@@ -13680,11 +14750,13 @@ export type Database = {
           phase: string
           progress: Json
           provider_attempt_count: number
+          published_at: string | null
           speaking_response_id: string | null
           started_at: string | null
           status: string
           updated_at: string
           user_id: string
+          worker_claim_token: string | null
           workflow_attempt_count: number
           workflow_kind: string
           workflow_run_id: string | null
@@ -13732,6 +14804,87 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      claim_notification_delivery_job: {
+        Args: { p_job_id: string; p_lease_seconds?: number }
+        Returns: {
+          attempts: number
+          available_at: string
+          channel: string
+          completed_at: string | null
+          created_at: string
+          event_id: string
+          id: string
+          idempotency_key: string
+          inbox_item_id: string
+          last_error: string | null
+          lease_expires_at: string | null
+          lease_token: string | null
+          locked_at: string | null
+          max_attempts: number
+          payload: Json
+          provider_message_id: string | null
+          recipient_id: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_delivery_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      claim_notification_delivery_jobs: {
+        Args: { p_lease_seconds?: number; p_limit?: number }
+        Returns: {
+          attempts: number
+          available_at: string
+          channel: string
+          completed_at: string | null
+          created_at: string
+          event_id: string
+          id: string
+          idempotency_key: string
+          inbox_item_id: string
+          last_error: string | null
+          lease_expires_at: string | null
+          lease_token: string | null
+          locked_at: string | null
+          max_attempts: number
+          payload: Json
+          provider_message_id: string | null
+          recipient_id: string
+          status: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "notification_delivery_jobs"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      claim_observability_bug_incident: {
+        Args: {
+          p_affected_sessions: number
+          p_alert_status: string
+          p_delivery_id: string
+          p_environment: string
+          p_fingerprint: string
+          p_first_seen_at: string
+          p_last_seen_at: string
+          p_occurrence_count: number
+          p_service: string
+          p_severity: string
+        }
+        Returns: {
+          action: string
+          clickup_task_id: string
+          effective_severity: string
+          lease_token: string
+          previous_alert_status: string
+        }[]
+      }
       claim_payment_transaction: {
         Args: {
           p_amount: number
@@ -13761,6 +14914,22 @@ export type Database = {
           resolved_count: number
         }[]
       }
+      complete_ai_coach_turn: {
+        Args: {
+          p_assistant_message: string
+          p_attempt_count: number
+          p_claim_token: string
+          p_response_metadata?: Json
+          p_turn_id: string
+          p_user_id: string
+          p_user_message: string
+        }
+        Returns: Json
+      }
+      complete_ai_grading_delivery: {
+        Args: { p_claim_token: string; p_phase?: string; p_run_id: string }
+        Returns: boolean
+      }
       complete_lms_outbox_event: {
         Args: { p_error?: string; p_event_id: string; p_success: boolean }
         Returns: {
@@ -13786,6 +14955,50 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      complete_notification_delivery_job: {
+        Args: {
+          p_error?: string
+          p_job_id: string
+          p_lease_token: string
+          p_provider_message_id?: string
+          p_success: boolean
+        }
+        Returns: {
+          attempts: number
+          available_at: string
+          channel: string
+          completed_at: string | null
+          created_at: string
+          event_id: string
+          id: string
+          idempotency_key: string
+          inbox_item_id: string
+          last_error: string | null
+          lease_expires_at: string | null
+          lease_token: string | null
+          locked_at: string | null
+          max_attempts: number
+          payload: Json
+          provider_message_id: string | null
+          recipient_id: string
+          status: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "notification_delivery_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      complete_observability_bug_delivery: {
+        Args: { p_delivery_id: string; p_lease_token: string }
+        Returns: undefined
+      }
+      consume_organization_invitation: {
+        Args: { p_token_hash: string }
+        Returns: Json
       }
       consume_rate_limit: {
         Args: { p_limit: number; p_scope: string; p_window_seconds: number }
@@ -13874,6 +15087,39 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_organization_class_transaction: {
+        Args: {
+          p_actor_id: string
+          p_club_id: string
+          p_code: string
+          p_description: string
+          p_end_date: string
+          p_grade_level: string
+          p_idempotency_key: string
+          p_max_students: number
+          p_meeting_schedule: string
+          p_organization_id: string
+          p_program_type: string
+          p_room: string
+          p_start_date: string
+          p_status: string
+          p_title: string
+        }
+        Returns: Json
+      }
+      create_organization_draft_transaction: {
+        Args: {
+          p_actor_id: string
+          p_city: string
+          p_code: string
+          p_country: string
+          p_idempotency_key: string
+          p_name: string
+          p_organization_type: string
+          p_timezone: string
+        }
+        Returns: Json
+      }
       credit_referral: { Args: { p_referral_id: string }; Returns: undefined }
       delete_class_attendance_transaction: {
         Args: { p_class_id: string; p_session_id: string }
@@ -13893,6 +15139,25 @@ export type Database = {
         Args: { p_horizon?: string }
         Returns: number
       }
+      enqueue_notification_event: {
+        Args: {
+          p_actor_id?: string
+          p_body: string
+          p_enqueue_delivery_jobs?: boolean
+          p_event_key: string
+          p_event_type: string
+          p_importance?: string
+          p_message_class?: string
+          p_payload?: Json
+          p_recipient_ids: string[]
+          p_source?: string
+          p_subject_id?: string
+          p_subject_type?: string
+          p_title: string
+          p_topic?: string
+        }
+        Returns: string
+      }
       ensure_duel_mmr_profile: {
         Args: {
           p_seed_rating: number
@@ -13901,6 +15166,15 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      ensure_ielts_coach_conversation: {
+        Args: {
+          p_client_request_id: string
+          p_context_id?: string
+          p_context_type: string
+          p_title?: string
+        }
+        Returns: string
       }
       enter_debate_duel_matchmaking: {
         Args: {
@@ -13915,6 +15189,26 @@ export type Database = {
           p_topic_description: string
           p_topic_difficulty: string
           p_topic_title: string
+        }
+        Returns: string
+      }
+      fail_ai_coach_turn: {
+        Args: {
+          p_attempt_count: number
+          p_claim_token: string
+          p_error_code: string
+          p_turn_id: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      fail_ai_grading_delivery: {
+        Args: {
+          p_claim_token: string
+          p_error_code: string
+          p_error_message: string
+          p_retryable: boolean
+          p_run_id: string
         }
         Returns: string
       }
@@ -14130,12 +15424,16 @@ export type Database = {
         Args: { p_run_id: string }
         Returns: {
           analysis_job_id: string | null
+          backend: string
+          backend_message_id: string | null
           completed_at: string | null
           core_completed_at: string | null
           created_at: string
           failed_at: string | null
           id: string
           idempotency_key: string
+          last_delivery_attempt: number | null
+          last_delivery_id: string | null
           last_error_code: string | null
           last_error_message: string | null
           launch_token: string | null
@@ -14144,11 +15442,13 @@ export type Database = {
           phase: string
           progress: Json
           provider_attempt_count: number
+          published_at: string | null
           speaking_response_id: string | null
           started_at: string | null
           status: string
           updated_at: string
           user_id: string
+          worker_claim_token: string | null
           workflow_attempt_count: number
           workflow_kind: string
           workflow_run_id: string | null
@@ -14180,9 +15480,27 @@ export type Database = {
         Args: { amount: number; user_id: string }
         Returns: undefined
       }
+      invite_organization_member_transaction: {
+        Args: {
+          p_actor_id: string
+          p_email: string
+          p_idempotency_key: string
+          p_organization_id: string
+          p_role: string
+        }
+        Returns: Json
+      }
       join_debate_duel: {
         Args: { p_actor_user_id: string; p_share_code: string }
         Returns: string
+      }
+      list_ai_grading_reconciliation_candidates: {
+        Args: { p_limit?: number }
+        Returns: {
+          source_id: string
+          workflow_kind: string
+          workflow_run_id: string
+        }[]
       }
       lms_list_materials_manager: {
         Args: {
@@ -14193,11 +15511,14 @@ export type Database = {
           p_status?: string
         }
         Returns: {
+          content_review_status: string
           created_at: string
           description: string
           id: string
+          native_document: Json
           placements: Json
           processing_status: string
+          rights_approved: boolean
           title: string
           updated_at: string
           version_id: string
@@ -14207,6 +15528,15 @@ export type Database = {
       lms_place_material: { Args: { p_input: Json }; Returns: Json }
       lms_publish_material: {
         Args: { p_material_id: string; p_placement_id: string }
+        Returns: boolean
+      }
+      lms_review_material_content: {
+        Args: {
+          p_material_id: string
+          p_note?: string
+          p_status: string
+          p_version_id: string
+        }
         Returns: boolean
       }
       lms_set_material_audience: {
@@ -14401,6 +15731,10 @@ export type Database = {
         Args: { p_referee_id: string; p_transcript_word_count: number }
         Returns: undefined
       }
+      reclaim_notification_delivery_jobs: {
+        Args: { p_limit?: number; p_max_attempts?: number }
+        Returns: number
+      }
       record_homework_cleanup_result: {
         Args: { p_error?: string; p_submission_id: string; p_success: boolean }
         Returns: string
@@ -14492,6 +15826,17 @@ export type Database = {
           assigned_count: number
         }[]
       }
+      register_observability_bug_clickup_task: {
+        Args: {
+          p_clickup_task_id: string
+          p_delivery_id: string
+          p_environment: string
+          p_fingerprint: string
+          p_lease_token: string
+          p_service: string
+        }
+        Returns: undefined
+      }
       release_payment_transaction: {
         Args: { p_idempotency_key: string; p_provider: string }
         Returns: undefined
@@ -14507,6 +15852,10 @@ export type Database = {
       request_profile_connection: {
         Args: { p_target_user_id: string }
         Returns: Json
+      }
+      reserve_ai_grading_provider_call: {
+        Args: { p_claim_token: string; p_run_id: string }
+        Returns: string
       }
       reserve_homework_submission: {
         Args: {
@@ -14919,6 +16268,24 @@ export type Database = {
           p_display_mode: string
           p_participate_in_leaderboards: boolean
           p_show_organization: boolean
+        }
+        Returns: Json
+      }
+      update_organization_transaction: {
+        Args: {
+          p_actor_id: string
+          p_city: string
+          p_country: string
+          p_facebook_url: string
+          p_idempotency_key: string
+          p_instagram_url: string
+          p_logo_url: string
+          p_name: string
+          p_organization_id: string
+          p_organization_type: string
+          p_setup_version: number
+          p_threads_url: string
+          p_timezone: string
         }
         Returns: Json
       }

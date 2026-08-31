@@ -29,12 +29,26 @@ export interface StudentWeeklyAssignment {
   scoreMax: number | null;
   feedback: string | null;
   gradedAt: string | null;
+  scoreSource: "none" | "auto_marked" | "ai_provisional" | "teacher_published" | "mixed";
+  teacherPublished: boolean;
+  ieltsResult: {
+    attemptId: string;
+    listeningBand: number | null;
+    readingBand: number | null;
+    writingBand: number | null;
+    speakingBand: number | null;
+    officialOverallBand: number | null;
+    provisionalBand: number | null;
+    isProvisional: boolean;
+  } | null;
 }
 
 export interface StudentWeeklyOccurrence {
   id: string;
   classId: string;
   classTitle: string;
+  /** Subject/program label keeps the weekly projection usable beyond IELTS. */
+  programType: string;
   courseId: string;
   courseTitle: string;
   lessonId: string | null;
@@ -116,7 +130,7 @@ export async function loadMyStudentLmsWeek(params: {
   const [links, assignmentLinks, classes, courses, lessons, activities, sessions, activeMemberships, notifications] = await Promise.all([
     occurrenceIds.length ? db.from("lms_occurrence_resources").select("occurrence_id, resource_id, order_index, required").in("occurrence_id", occurrenceIds).order("order_index") : Promise.resolve({ data: [], error: null }),
     occurrenceIds.length ? db.from("lms_occurrence_assignments").select("occurrence_id, assignment_id, relation_type").in("occurrence_id", occurrenceIds) : Promise.resolve({ data: [], error: null }),
-    classIds.length ? db.from("classes").select("id, title").in("id", classIds) : Promise.resolve({ data: [], error: null }),
+    classIds.length ? db.from("classes").select("id, title, program_type").in("id", classIds) : Promise.resolve({ data: [], error: null }),
     courseIds.length ? db.from("courses").select("id, title").in("id", courseIds) : Promise.resolve({ data: [], error: null }),
     lessonIds.length ? db.from("lessons").select("id, title").in("id", lessonIds).eq("is_published", true) : Promise.resolve({ data: [], error: null }),
     activityIds.length ? db.from("activities").select("id, title").in("id", activityIds).eq("is_archived", false) : Promise.resolve({ data: [], error: null }),
@@ -131,19 +145,40 @@ export async function loadMyStudentLmsWeek(params: {
   const resourceIds = ids((links.data ?? []) as Row[], "resource_id");
   const assignmentIds = ids((assignmentLinks.data ?? []) as Row[], "assignment_id");
   const sessionIds = ids((sessions.data ?? []) as Row[], "id");
-  const [resourcesResult, assignmentsResult, submissionsResult, attendanceResult] = await Promise.all([
+  const [resourcesResult, assignmentsResult, submissionsResult, attendanceResult, attemptsResult] = await Promise.all([
     resourceIds.length ? db.from("lms_resources").select("id, title, kind, url, storage_path").in("id", resourceIds).eq("status", "published") : Promise.resolve({ data: [], error: null }),
     assignmentIds.length ? db.from("club_assignments").select("id, title, due_at, status").in("id", assignmentIds).eq("status", "active") : Promise.resolve({ data: [], error: null }),
     assignmentIds.length ? db.from("club_assignment_submissions").select("assignment_id, submission_state, grade_status, score, score_max, feedback, graded_at, created_at").eq("user_id", userId).in("assignment_id", assignmentIds).order("created_at", { ascending: false }) : Promise.resolve({ data: [], error: null }),
     sessionIds.length ? db.from("class_attendance_records").select("session_id, status").eq("user_id", userId).in("session_id", sessionIds) : Promise.resolve({ data: [], error: null }),
+    assignmentIds.length ? db.from("ielts_attempts").select("id, assignment_id, submitted_at, created_at").eq("user_id", userId).in("assignment_id", assignmentIds).not("submitted_at", "is", null).order("submitted_at", { ascending: false }).order("id", { ascending: false }) : Promise.resolve({ data: [], error: null }),
   ]);
-  const childFailed = [resourcesResult, assignmentsResult, submissionsResult, attendanceResult].find((result) => result.error);
+  const childFailed = [resourcesResult, assignmentsResult, submissionsResult, attendanceResult, attemptsResult].find((result) => result.error);
   if (childFailed?.error) throw new Error(`loadMyStudentLmsWeek(children): ${childFailed.error.message}`);
+
+  const latestAttemptByAssignment = new Map<string, Row>();
+  for (const row of (attemptsResult.data ?? []) as Row[]) {
+    if (!latestAttemptByAssignment.has(String(row.assignment_id))) latestAttemptByAssignment.set(String(row.assignment_id), row);
+  }
+  const attemptIds = ids([...latestAttemptByAssignment.values()], "id");
+  const [effectiveScoresResult, publishedReviewsResult] = await Promise.all([
+    attemptIds.length ? db.from("ielts_effective_attempt_scores").select("attempt_id, listening_band, reading_band, writing_band, speaking_band, overall_band, provisional_band, overall_is_provisional, score_source").in("attempt_id", attemptIds) : Promise.resolve({ data: [], error: null }),
+    attemptIds.length ? db.from("ielts_teacher_reviews").select("id, attempt_id, reviewer_note, criterion_feedback, published_at").in("attempt_id", attemptIds).eq("status", "published").order("published_at", { ascending: false }).order("id", { ascending: false }) : Promise.resolve({ data: [], error: null }),
+  ]);
+  const resultFailure = [effectiveScoresResult, publishedReviewsResult].find((result) => result.error);
+  if (resultFailure?.error) throw new Error(`loadMyStudentLmsWeek(results): ${resultFailure.error.message}`);
 
   const resourceRows = (resourcesResult.data ?? []) as Row[];
   const signedUrls = new Map(await Promise.all(resourceRows.map(async (row) => [String(row.id), await signedResourceUrl(db, row)] as const)));
   const resourceMap = byId(resourceRows);
   const assignmentMap = byId((assignmentsResult.data ?? []) as Row[]);
+  const effectiveScoreMap = new Map(((effectiveScoresResult.data ?? []) as Row[]).map((row) => [String(row.attempt_id), row]));
+  const publishedFeedback = new Map<string, string>();
+  for (const review of (publishedReviewsResult.data ?? []) as Row[]) {
+    const attemptId = String(review.attempt_id);
+    if (!publishedFeedback.has(attemptId) && typeof review.reviewer_note === "string" && review.reviewer_note.trim()) {
+      publishedFeedback.set(attemptId, review.reviewer_note.trim());
+    }
+  }
   const latestSubmission = new Map<string, Row>();
   for (const row of (submissionsResult.data ?? []) as Row[]) if (!latestSubmission.has(String(row.assignment_id))) latestSubmission.set(String(row.assignment_id), row);
   const sessionByOccurrence = new Map(((sessions.data ?? []) as Row[]).map((row) => [String(row.occurrence_id), String(row.id)]));
@@ -162,6 +197,7 @@ export async function loadMyStudentLmsWeek(params: {
       id: occurrenceId,
       classId: String(row.class_id),
       classTitle: String(classMap.get(String(row.class_id))?.title ?? ""),
+      programType: String(classMap.get(String(row.class_id))?.program_type ?? "debate"),
       courseId: String(row.course_id),
       courseTitle: String(courseMap.get(String(row.course_id))?.title ?? ""),
       lessonId: typeof row.lesson_id === "string" ? row.lesson_id : null,
@@ -180,7 +216,21 @@ export async function loadMyStudentLmsWeek(params: {
         const assignment = assignmentMap.get(String(link.assignment_id));
         if (!assignment) return [];
         const submission = latestSubmission.get(String(assignment.id));
-        return [{ id: String(assignment.id), clubId: String(row.club_id), title: String(assignment.title), relationType: link.relation_type as StudentWeeklyAssignment["relationType"], dueAt: typeof assignment.due_at === "string" ? assignment.due_at : null, status: String(assignment.status), submissionState: submission ? String(submission.submission_state) : null, gradeStatus: submission ? String(submission.grade_status) : null, score: typeof submission?.score === "number" ? submission.score : null, scoreMax: typeof submission?.score_max === "number" ? submission.score_max : null, feedback: typeof submission?.feedback === "string" ? submission.feedback : null, gradedAt: typeof submission?.graded_at === "string" ? submission.graded_at : null }];
+        const gradeStatus = submission ? String(submission.grade_status) : null;
+        const teacherPublished = gradeStatus === "graded" || gradeStatus === "returned" || gradeStatus === "resubmit_requested";
+        const attempt = latestAttemptByAssignment.get(String(assignment.id));
+        const effective = attempt ? effectiveScoreMap.get(String(attempt.id)) : undefined;
+        const source = effective?.score_source === "teacher" ? "teacher_published" : effective?.score_source === "mixed" ? "mixed" : effective ? (effective.overall_is_provisional ? "ai_provisional" : "auto_marked") : teacherPublished ? "teacher_published" : "none";
+        const ieltsTeacherPublished = source === "teacher_published" || source === "mixed";
+        const feedback = teacherPublished && typeof submission?.feedback === "string"
+          ? submission.feedback
+          : attempt ? publishedFeedback.get(String(attempt.id)) ?? null : null;
+        return [{
+          id: String(assignment.id), clubId: String(row.club_id), title: String(assignment.title), relationType: link.relation_type as StudentWeeklyAssignment["relationType"], dueAt: typeof assignment.due_at === "string" ? assignment.due_at : null, status: String(assignment.status), submissionState: submission ? String(submission.submission_state) : attempt ? "submitted" : null, gradeStatus, score: teacherPublished && typeof submission?.score === "number" ? submission.score : null, scoreMax: teacherPublished && typeof submission?.score_max === "number" ? submission.score_max : null, feedback, gradedAt: teacherPublished && typeof submission?.graded_at === "string" ? submission.graded_at : null, scoreSource: source, teacherPublished: teacherPublished || ieltsTeacherPublished,
+          ieltsResult: attempt && effective ? {
+            attemptId: String(attempt.id), listeningBand: numberOrNull(effective.listening_band), readingBand: numberOrNull(effective.reading_band), writingBand: numberOrNull(effective.writing_band), speakingBand: numberOrNull(effective.speaking_band), officialOverallBand: effective.overall_is_provisional ? null : numberOrNull(effective.overall_band), provisionalBand: numberOrNull(effective.provisional_band), isProvisional: Boolean(effective.overall_is_provisional),
+          } : null,
+        }];
       }),
     };
   });
@@ -198,4 +248,9 @@ export async function loadMyStudentLmsWeek(params: {
     notifications: notificationRows.map((row) => ({ id: String(row.id), eventType: String(row.event_type), title: String(row.title), body: String(row.body), readAt: typeof row.read_at === "string" ? row.read_at : null, createdAt: String(row.created_at) })),
     unreadNotifications: notificationRows.filter((row) => !row.read_at).length,
   };
+}
+
+function numberOrNull(value: unknown) {
+  const parsed = typeof value === "number" ? value : typeof value === "string" ? Number(value) : Number.NaN;
+  return Number.isFinite(parsed) ? parsed : null;
 }
