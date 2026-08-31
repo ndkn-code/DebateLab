@@ -19,11 +19,21 @@ Do not deploy until all are complete:
 2. In ClickUp, create a `Production Bugs` list with statuses `New`, `Ready for Agent`, `Agent Working`, `Needs Review`, `Done`, and `Ignored`. Create a personal API token and note the list ID.
 3. In GCP Secret Manager, create secret values without putting them on a command line or in git:
    - `grafana-webhook-secret`: a newly generated high-entropy shared secret.
+   - `grafana-otlp-auth-header`: the complete `Authorization: Basic ...` value
+     from Grafana Cloud's OTLP details (store only the value, e.g. `Basic ...`).
    - `supabase-url`
    - `supabase-service-role-key`
    - `clickup-api-token`
    - `clickup-list-id`
 4. Sign in to Grafana Cloud. After deployment, create a webhook contact point using the printed URL, HMAC secret, default signature header, and timestamp header `X-Grafana-Alerting-Signature-Timestamp`. Send a test alert before attaching alert rules.
+
+For optional backend traces, export `GRAFANA_OTLP_TRACES_ENDPOINT` before
+running the deploy script. It must be the HTTPS Grafana Cloud endpoint ending
+in `/v1/traces` (for example, the OTLP gateway URL from the Grafana stack
+details). The script injects the endpoint as a normal environment variable and
+the authorization value from Secret Manager; neither service logs credentials.
+Without the endpoint, the router still accepts alerts and uses OpenTelemetry's
+no-op provider locally.
 
 The deployer needs permission to enable APIs, run Cloud Build, deploy Cloud Run, create Pub/Sub resources/service accounts, and bind narrowly scoped IAM roles in `thinkfy-debatelab-prod`.
 
