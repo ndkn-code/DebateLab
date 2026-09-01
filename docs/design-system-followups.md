@@ -1,7 +1,8 @@
 # Design system — open decisions
 
-Opened 2026-09-01 during the design.md rewrite. Both items change values in shipped UI, so
-they are batched here for one reviewed, browser-verified pass rather than applied piecemeal.
+**Items 1–3 landed 2026-09-01** on `codex/design-system-docs` (commits 227b7d32, f0cca891).
+Drift is 0 in both themes; re-check any time with `npx tsx scripts/design-token-drift.ts`.
+Kept here as the record of what changed and why. Remaining open items are at the bottom.
 
 ## 1. Fifty-two token roles drift between tokens.ts and globals.css
 
@@ -118,3 +119,18 @@ as arbitrary values in each primitive:
 Verify a `rounded-control` utility actually generates before relying on it — `@theme inline`
 changes whether the variable is emitted, and this should be confirmed in a render rather than
 assumed.
+
+---
+
+## Still open
+
+- **Two roles were decided by the ramp change rather than argued.** `--color-sidebar-muted`
+  and `--color-input` were flagged undecided; both now derive from the new cool ramp
+  (`#6B7280`, `#D1D5DB`). Revisit if either reads wrong in use.
+- **`rounded-[7px]`** survives in a couple of places and is off the ramp — sweep it into
+  `rounded-sm` or `rounded-control` when convenient.
+- **The `min(var(--radius-md), 10px|12px)` clamps** in the button size variants still resolve
+  to `--radius-md` (8px) in every case, since md is smaller than both bounds. Either the
+  clamp is vestigial or `--radius-md` was meant to be larger. Not urgent; it renders fine.
+- **Mobile palette untouched.** `@thinkfy/mobile` still runs the aqua palette. Web and mobile
+  now diverge more than before. Worth a deliberate decision rather than drift.

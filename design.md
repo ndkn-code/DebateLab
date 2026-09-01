@@ -69,12 +69,6 @@ Color is tokenized. App code names a **role**; it never names a value. The sourc
 `packages/shared/src/design-system/tokens.ts` (`ThinkfyColorRole`), mirrored into Tailwind
 utilities by the `@theme inline` block in `apps/web/src/app/globals.css`.
 
-> **Values are mid-migration.** The style is settled (§Posture) but the palette has not
-> landed yet: cool neutrals, deeper ink, and a saturated blue accent replacing both the
-> near-black CTA and the current flat blue. Target values and the migration plan are in
-> `docs/design-system-followups.md`. Until it lands, the roles below are correct and the
-> values behind them are not.
-
 ### The token API
 Use these role names. If the role you need does not exist, add it to the token source first —
 never inline a value, and never alias an existing role under a new name.
@@ -247,19 +241,18 @@ system, not as per-component choices.
 
 | | Height | Radius |
 |---|---|---|
-| Button (default) | 32px | 10px |
+| Button (default) | 32px | 12px (`rounded-control`) |
 | Button `xs` / `sm` / `lg` | 24 / 28 / 36px | 8px |
 | Badge | 20px | 6px |
 | Data row | 40px | — |
 | List / store row | 44px | — |
 
-Radius scale: `sm` 6px · `md` 8px · `lg` 16px · `xl` 24px, plus a 10px control radius.
-Do not invent a radius per component. (The control radius moves 10px → 12px with the palette
-migration, closing the ramp to 6/8/12/16/24 — see `docs/design-system-followups.md`.) Letter-spacing is `0` by default; mild negative
+Radius scale: `sm` 6px · `md` 8px · `control` 12px · `lg` 16px · `xl` 24px. Controls use
+`rounded-control`; never a literal. Do not invent a radius per component. Letter-spacing is `0` by default; mild negative
 tracking is reserved for large headings.
 
 ### Buttons
-- Geometry is fixed: `32px` height, `10px` radius (`h-8 rounded-[10px]`). Sizes `xs`/`sm`/`lg` step to `24`/`28`/`36px`; icon-only buttons stay square.
+- Geometry is fixed: `32px` height, `12px` radius (`h-8 rounded-control`). Sizes `xs`/`sm`/`lg` step to `24`/`28`/`36px`; icon-only buttons stay square.
 - Primary button: `primary` fill, `on-primary` text. Secondary: `surface` with an `outline-variant` border.
 - Text and link buttons carry color only — no fill.
 - One dominant CTA per surface. `primary` for it (`default` is a legacy alias), `outline` for
