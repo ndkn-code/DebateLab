@@ -120,7 +120,7 @@ export function ThinkfyMaterialViewer({
           <p className="type-caption font-semibold uppercase tracking-widest text-primary">
             Thinkfy · {copy.materials}
           </p>
-          <DialogTitle className="mt-1 truncate type-heading-sm font-semibold text-on-surface">
+          <DialogTitle className="mt-1 truncate type-title font-semibold text-on-surface">
             {material.title}
           </DialogTitle>
           <DialogDescription
@@ -201,7 +201,7 @@ export function ThinkfyMaterialViewer({
             />
           ) : material.mediaKind === "audio" && descriptorUrl ? (
             <figure className="mx-auto max-w-xl rounded-control border border-outline-variant bg-surface p-5">
-              <figcaption className="mb-3 type-heading-sm font-semibold">
+              <figcaption className="mb-3 type-title font-semibold">
                 {material.title} · {copy.audio}
               </figcaption>
               <audio

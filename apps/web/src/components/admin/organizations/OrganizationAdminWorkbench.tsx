@@ -95,7 +95,7 @@ export function OrganizationAdminWorkbench({
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="type-eyebrow text-primary">{t.eyebrow}</p>
-          <h1 className="mt-1 type-page-title text-on-surface">{t.title}</h1>
+          <h1 className="mt-1 type-heading-xl text-on-surface">{t.title}</h1>
           <p className="mt-2 type-body text-on-surface-variant">
             {t.description}
           </p>

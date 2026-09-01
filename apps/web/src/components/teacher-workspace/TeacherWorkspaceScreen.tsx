@@ -252,7 +252,7 @@ function ClassesSurface({ data }: { data: TeacherWorkspacePresentation }) {
                 <span className="type-caption font-semibold uppercase tracking-wide text-primary">
                   {item.programType.replaceAll("_", " ")}
                 </span>
-                <h2 className="mt-1 type-title-sm font-semibold text-on-surface">
+                <h2 className="mt-1 type-body font-semibold text-on-surface">
                   {item.title}
                 </h2>
                 <p className="mt-1 type-caption text-on-surface-variant">
@@ -270,7 +270,7 @@ function ClassesSurface({ data }: { data: TeacherWorkspacePresentation }) {
                 <dt className="type-caption text-on-surface-variant">
                   {vi ? "Tiến độ" : "Progress"}
                 </dt>
-                <dd className="type-title-sm font-semibold tabular-nums text-on-surface">
+                <dd className="type-body font-semibold tabular-nums text-on-surface">
                   {item.completion || "—"}
                   {item.completion ? "%" : ""}
                 </dd>
@@ -279,7 +279,7 @@ function ClassesSurface({ data }: { data: TeacherWorkspacePresentation }) {
                 <dt className="type-caption text-on-surface-variant">
                   {vi ? "Có mặt" : "Attendance"}
                 </dt>
-                <dd className="type-title-sm font-semibold tabular-nums text-on-surface">
+                <dd className="type-body font-semibold tabular-nums text-on-surface">
                   {item.attendanceRate || "—"}
                   {item.attendanceRate ? "%" : ""}
                 </dd>
@@ -288,7 +288,7 @@ function ClassesSurface({ data }: { data: TeacherWorkspacePresentation }) {
                 <dt className="type-caption text-on-surface-variant">
                   {vi ? "Cần chấm" : "To review"}
                 </dt>
-                <dd className="type-title-sm font-semibold tabular-nums text-on-surface">
+                <dd className="type-body font-semibold tabular-nums text-on-surface">
                   {item.pendingReviews}
                 </dd>
               </div>
@@ -461,7 +461,7 @@ function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
                 <X className="size-4" aria-hidden="true" />
               </button>
               <SheetHeader className="border-b border-outline-variant p-5 pr-14">
-                <SheetTitle className="type-heading-sm font-semibold text-on-surface">
+                <SheetTitle className="type-title font-semibold text-on-surface">
                   {selected.assignmentTitle}
                 </SheetTitle>
                 <SheetDescription>
@@ -762,7 +762,7 @@ function GradebookSurface({ data }: { data: TeacherWorkspacePresentation }) {
           className="mt-3 rounded-control border border-outline-variant bg-surface px-5 py-10 text-center"
           role="status"
         >
-          <h2 className="type-title-sm font-semibold text-on-surface">
+          <h2 className="type-body font-semibold text-on-surface">
             {vi ? "Chưa có dữ liệu sổ điểm" : "No gradebook data yet"}
           </h2>
           <p className="mt-1 type-body-sm text-on-surface-variant">
@@ -928,7 +928,7 @@ function AttendanceSurface({ data }: { data: TeacherWorkspacePresentation }) {
           className="mt-3 rounded-control border border-outline-variant bg-surface px-5 py-10 text-center"
           role="status"
         >
-          <h2 className="type-title-sm font-semibold text-on-surface">
+          <h2 className="type-body font-semibold text-on-surface">
             {vi ? "Chưa có danh sách điểm danh" : "No attendance roster yet"}
           </h2>
           <p className="mt-1 type-body-sm text-on-surface-variant">
@@ -1316,7 +1316,7 @@ function AnnouncementsSurface({
                 <p className="type-caption font-semibold text-primary">
                   {item.classTitle}
                 </p>
-                <h2 className="mt-1 type-title-sm font-semibold text-on-surface">
+                <h2 className="mt-1 type-body font-semibold text-on-surface">
                   {item.title}
                 </h2>
               </div>
@@ -1500,7 +1500,7 @@ function ClassDetailSurface({
               <p className="mt-3 type-caption text-on-surface-variant">
                 {vi ? "Tiến độ khóa học" : "Course progress"}
               </p>
-              <p className="type-heading-sm font-semibold text-on-surface">
+              <p className="type-title font-semibold text-on-surface">
                 {classItem.completion || "—"}
                 {classItem.completion ? "%" : ""}
               </p>
@@ -1510,7 +1510,7 @@ function ClassDetailSurface({
               <p className="mt-3 type-caption text-on-surface-variant">
                 {vi ? "Tỷ lệ có mặt" : "Attendance rate"}
               </p>
-              <p className="type-heading-sm font-semibold text-on-surface">
+              <p className="type-title font-semibold text-on-surface">
                 {classItem.attendanceRate || "—"}
                 {classItem.attendanceRate ? "%" : ""}
               </p>
@@ -1520,7 +1520,7 @@ function ClassDetailSurface({
               <p className="mt-3 type-caption text-on-surface-variant">
                 {vi ? "Cần chấm" : "Needs review"}
               </p>
-              <p className="type-heading-sm font-semibold text-on-surface">
+              <p className="type-title font-semibold text-on-surface">
                 {classItem.pendingReviews}
               </p>
             </article>
@@ -1542,7 +1542,7 @@ function ClassDetailSurface({
         ) : null}
         {tab === "roster" ? (
           <div className="rounded-control border border-outline-variant bg-surface p-4">
-            <h2 className="type-title-sm font-semibold text-on-surface">
+            <h2 className="type-body font-semibold text-on-surface">
               {vi ? "Danh sách lớp" : "Roster"}
             </h2>
             <p className="mt-2 type-body-sm text-on-surface-variant">
@@ -1554,7 +1554,7 @@ function ClassDetailSurface({
         ) : null}
         {tab === "lessons" ? (
           <div className="rounded-control border border-outline-variant bg-surface p-4">
-            <h2 className="type-title-sm font-semibold text-on-surface">
+            <h2 className="type-body font-semibold text-on-surface">
               {vi ? "Bài học sắp tới" : "Upcoming lessons"}
             </h2>
             <p className="mt-2 type-body-sm text-on-surface-variant">

@@ -192,7 +192,7 @@ export function SpeakingRehearsalLibrary({
           <div className="mb-4 flex flex-wrap items-baseline justify-between gap-2">
             <h2
               id="speaking-rehearsal-list-title"
-              className="type-heading-sm font-semibold"
+              className="type-title font-semibold"
             >
               {t("available_title")}
             </h2>

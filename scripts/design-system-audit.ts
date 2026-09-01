@@ -211,10 +211,7 @@ for (const file of allScannedFiles) {
   });
 }
 
-// Report-only: 53 pre-existing usages of 6 names that were never defined. Each
-// one needs a deliberate mapping to a real step, not a mechanical rename — see
-// docs/design-system-followups.md. Flip to a hard fail once they are mapped.
-const UNDEFINED_TYPE_HARD_FAIL = false;
+const UNDEFINED_TYPE_HARD_FAIL = true;
 if (undefinedTypeViolations.length > 0) {
   console.warn(
     `\n[type-utility · ${UNDEFINED_TYPE_HARD_FAIL ? "error" : "report-only"}] ${undefinedTypeViolations.length} uses of \`type-*\` classes that globals.css does not define (they render as nothing).`,

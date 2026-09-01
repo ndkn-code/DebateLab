@@ -162,7 +162,7 @@ export function IeltsStudyPlanView({
 
               {view.status === "needs_diagnostic" ? (
                 <section className="rounded-lg border border-warning bg-warning-container p-4">
-                  <h2 className="type-heading-sm font-bold text-on-warning-container">
+                  <h2 className="type-title font-bold text-on-warning-container">
                     {t("needs_diagnostic_title")}
                   </h2>
                   <p className="mt-1 max-w-prose type-body-sm text-on-warning-container">

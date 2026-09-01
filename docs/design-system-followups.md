@@ -137,7 +137,7 @@ assumed.
 
 ---
 
-## 4. Fifty-three uses of `type-*` classes that do not exist
+## 4. Fifty-three uses of `type-*` classes that do not exist — FIXED
 
 Found 2026-09-01. `globals.css` defines 16 `type-*` utilities. App code uses six more that were
 never defined, so those elements render with **no** typography rule at all and silently inherit
@@ -169,3 +169,25 @@ guesses change how 20 files look:
 
 These elements currently inherit, so mapping them will visibly change type in those places —
 mostly for the better, but it is a design decision, not a find-and-replace.
+
+### Resolution
+
+All 53 mapped 2026-09-01 across 21 files. Each undefined name went to the step its own name
+implies within the documented scale; sites carrying `font-semibold` keep it, so weight is
+unchanged:
+
+| Was | Now | Reasoning |
+|---|---|---|
+| `type-title-sm` | `type-body` (14) | one step below `type-title` (16) |
+| `type-heading-sm` | `type-title` (16) | the heading scale stops at `heading-md` (20); below it is title |
+| `type-page-title` | `type-heading-xl` (30) | documented as "page title (h1)" |
+| `type-display` | `type-display-md` | |
+| `type-headline` | `type-heading-lg` (24) | |
+| `type-label-sm` | `type-caption` (12) | one step below `type-label` (13) |
+
+`UNDEFINED_TYPE_HARD_FAIL` is now `true`, so this cannot recur.
+
+Also simplified 4 vestigial `rounded-[min(var(--radius-md),10px|12px)]` clamps in the button
+size variants to `rounded-md` — `--radius-md` is 8px, smaller than both bounds, so the `min()`
+always resolved to it. The remaining `rounded-[7px]` values are deliberate inner-radius math
+for nested elements (outer 8px minus a 1px border) and were left alone.

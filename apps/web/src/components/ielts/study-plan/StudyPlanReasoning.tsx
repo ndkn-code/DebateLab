@@ -56,7 +56,7 @@ export function StudyPlanReasoning({ view }: { view: IeltsStudyPlanPageView }) {
             <span className="type-caption font-semibold uppercase">
               {t("predicted_overall")}
             </span>
-            <span className="type-display font-bold tabular-nums">
+            <span className="type-display-md font-bold tabular-nums">
               {hasBand ? formatBand(prediction.overallBand) : "—"}
             </span>
             {hasBand &&

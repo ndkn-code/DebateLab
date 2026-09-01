@@ -53,7 +53,7 @@ export function QuestionBankBrowser({ facets, result, filters, detail }: { facet
     <AdminV2Frame>
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 md:p-8">
       <header className="flex flex-wrap items-end justify-between gap-3">
-        <div><h1 className="type-headline text-on-surface">Question Bank</h1></div>
+        <div><h1 className="type-heading-lg text-on-surface">Question Bank</h1></div>
         <Badge variant="secondary" className="font-mono">{result.count.toLocaleString()} questions</Badge>
       </header>
 

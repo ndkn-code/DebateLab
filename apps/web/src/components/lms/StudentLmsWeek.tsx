@@ -301,7 +301,7 @@ function OccurrenceCard({
               </span>
             ) : null}
           </div>
-          <h3 className="mt-1.5 type-title-sm font-semibold text-on-surface">
+          <h3 className="mt-1.5 type-body font-semibold text-on-surface">
             {occurrence.title}
           </h3>
           <p className="mt-0.5 type-body-sm text-on-surface-variant">
@@ -509,7 +509,7 @@ export function StudentLmsWeek({
               <p className="type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
                 {vi ? "Việc tiếp theo" : "Next action"}
               </p>
-              <h2 className="mt-0.5 truncate type-title-sm font-semibold text-on-surface">
+              <h2 className="mt-0.5 truncate type-body font-semibold text-on-surface">
                 {nextAssignment?.assignment.title ??
                   nextOccurrence?.title ??
                   (vi ? "Xem bài được giao" : "Review assigned work")}
@@ -558,7 +558,7 @@ export function StudentLmsWeek({
             <div>
               <h2
                 id="student-week-heading"
-                className="type-title-sm font-semibold text-on-surface"
+                className="type-body font-semibold text-on-surface"
               >
                 {vi ? "Tuần học" : "Learning week"}
               </h2>
@@ -623,7 +623,7 @@ export function StudentLmsWeek({
                     <p className="type-label font-semibold uppercase text-on-surface-variant">
                       {formatDate(date, locale, { weekday: "long" })}
                     </p>
-                    <p className="mt-0.5 type-title-sm font-semibold text-on-surface">
+                    <p className="mt-0.5 type-body font-semibold text-on-surface">
                       {formatDate(date, locale, {
                         month: "short",
                         day: "numeric",
@@ -658,7 +658,7 @@ export function StudentLmsWeek({
               <div className="flex items-center justify-between gap-3">
                 <h2
                   id="student-announcements-heading"
-                  className="flex items-center gap-2 type-heading-sm font-semibold text-on-surface"
+                  className="flex items-center gap-2 type-title font-semibold text-on-surface"
                 >
                   <MessageSquareText
                     className="size-4 text-primary"
@@ -706,7 +706,7 @@ export function StudentLmsWeek({
               <div className="flex items-center justify-between gap-3">
                 <h2
                   id="student-notifications-heading"
-                  className="flex items-center gap-2 type-heading-sm font-semibold text-on-surface"
+                  className="flex items-center gap-2 type-title font-semibold text-on-surface"
                 >
                   <BellRing
                     className="size-4 text-primary"

@@ -251,7 +251,7 @@ export function TeacherMaterialLibrary({
                   aria-hidden="true"
                 />
                 <div>
-                  <p className="type-title-sm font-semibold tabular-nums text-on-surface">
+                  <p className="type-body font-semibold tabular-nums text-on-surface">
                     {String(value)}
                   </p>
                   <p className="type-caption text-on-surface-variant">
@@ -387,7 +387,7 @@ export function TeacherMaterialLibrary({
                   <p className="type-caption font-semibold uppercase tracking-widest text-primary">
                     {copy.processingStatus}
                   </p>
-                  <h2 className="mt-1 type-heading-sm font-semibold text-on-surface">
+                  <h2 className="mt-1 type-title font-semibold text-on-surface">
                     {selected.title}
                   </h2>
                   <p className="mt-1 type-caption text-on-surface-variant">

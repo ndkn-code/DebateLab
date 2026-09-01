@@ -89,14 +89,17 @@ Items 1–6 landed 2026-09-01 (commit 1b7494de on `codex/design-system-docs`).
 
 ### Found while fixing, not fixed
 
-- **`TeacherCalendar.tsx` — `isCompactCalendar` never updates on the client.** The
-  `useSyncExternalStore` over `matchMedia("(max-width: 900px)")` returns `false` at 390px and
-  stays `false` across a boundary crossing. The compact agenda fallback works only because of
-  the CSS media query in the module; the effect that rewrites `view=agenda` never fires.
-  Pre-existing. It also masked a mismatch where the desktop switcher was gated on Tailwind
-  `md:` (768px) while the grid switches at 900px, so the 768–900px band offered Month/Week
-  when only day/agenda are honored. Switcher and grid now share the 900px boundary, but the
-  underlying media-query subscription is still broken.
+- **`isCompactCalendar` — investigated, NOT a bug.** Reported as "never updates on the
+  client". Reproduced the symptom, then instrumented it: a hand-attached `change` listener on
+  the same media query fired **0 times** across a viewport change, and so did a plain `resize`
+  listener, while `innerWidth` and `matches` both updated. The browser harness changes viewport
+  metrics via CDP without dispatching either event. The app's `useSyncExternalStore`
+  subscription is correct and works in a real browser. No change made.
+
+  The switcher/grid breakpoint mismatch found alongside it *was* real and is fixed — both now
+  use 900px, where the desktop switcher was previously gated on Tailwind `md:` (768px) and
+  offered Month/Week in a band where only day/agenda are honored.
+
 - **Enter/Space activation on date-picker cells is unverified** — the browser harness's
   synthetic key events do not activate buttons (the pre-existing "Today" button behaves the
   same), so this is a harness limit rather than a code defect. Mouse selection and all

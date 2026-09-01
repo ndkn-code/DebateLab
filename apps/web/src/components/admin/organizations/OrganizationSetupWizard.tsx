@@ -366,7 +366,7 @@ export function OrganizationSetupWizard({
     <main className="mx-auto w-full max-w-4xl p-4 sm:p-6 lg:p-8">
       <header className="max-w-2xl">
         <p className="type-eyebrow text-primary">{t.eyebrow}</p>
-        <h1 className="mt-1 type-page-title text-on-surface">{t.title}</h1>
+        <h1 className="mt-1 type-heading-xl text-on-surface">{t.title}</h1>
         <p className="mt-2 type-body text-on-surface-variant">
           {t.description}
         </p>

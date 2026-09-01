@@ -150,7 +150,7 @@ export function StudyPlanCalendar({ view }: { view: IeltsStudyPlanPageView }) {
                 <span className="type-caption font-semibold uppercase text-on-surface-variant">
                   {t(`days.${day.isoWeekday}`)}
                 </span>
-                <span className="type-heading-sm font-bold tabular-nums text-on-surface">
+                <span className="type-title font-bold tabular-nums text-on-surface">
                   {dayOfMonth(day.date)}
                 </span>
               </div>

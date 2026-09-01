@@ -315,7 +315,7 @@ export function QuestionVisual({
           className,
         )}
       >
-        <p className="type-label-sm font-semibold text-on-surface">Figure description</p>
+        <p className="type-caption font-semibold text-on-surface">Figure description</p>
         <p className="mt-3 whitespace-pre-wrap type-body-sm leading-relaxed text-on-surface">
           {visual.description}
         </p>

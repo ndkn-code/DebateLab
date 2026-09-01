@@ -161,7 +161,7 @@ export function BandGauge({
                       : "Provisional"
                     : label}
                 </p>
-                <p className="mt-1 type-display font-bold text-on-surface">
+                <p className="mt-1 type-display-md font-bold text-on-surface">
                   {numericBand === null ? (
                     <span className="tabular-nums">—</span>
                   ) : (

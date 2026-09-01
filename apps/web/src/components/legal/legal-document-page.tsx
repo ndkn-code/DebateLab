@@ -90,7 +90,7 @@ export function LegalDocumentPage({
             >
               <h2
                 id={`section-${slug(section.title)}`}
-                className="type-heading-sm font-semibold"
+                className="type-title font-semibold"
               >
                 {section.title}
               </h2>

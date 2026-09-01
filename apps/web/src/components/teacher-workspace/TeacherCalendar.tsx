@@ -707,7 +707,7 @@ function EmptyCalendar({ vi }: { vi: boolean }) {
           className="mx-auto size-9 text-on-surface-variant"
           aria-hidden="true"
         />
-        <h3 className="mt-3 type-title-sm font-semibold text-on-surface">
+        <h3 className="mt-3 type-body font-semibold text-on-surface">
           {vi ? "Không có buổi học phù hợp" : "No matching lessons"}
         </h3>
         <p className="mt-1 max-w-md type-body-sm text-on-surface-variant">
@@ -751,7 +751,7 @@ function AgendaView({
             >
               {formatDate(date, locale, { weekday: "long" })}
             </p>
-            <p className="type-title-sm font-semibold text-on-surface">
+            <p className="type-body font-semibold text-on-surface">
               {formatDate(date, locale, { month: "short", day: "numeric" })}
             </p>
           </div>
@@ -1211,7 +1211,7 @@ function EventDrawer({
               <SheetTitle
                 ref={drawerTitleRef}
                 tabIndex={-1}
-                className="mt-2 type-heading-sm font-semibold text-on-surface focus:outline-none"
+                className="mt-2 type-title font-semibold text-on-surface focus:outline-none"
               >
                 {event.title}
               </SheetTitle>
@@ -1324,7 +1324,7 @@ function EventDrawer({
                 <div className="flex items-center justify-between gap-3">
                   <h3
                     id="drawer-roster"
-                    className="flex items-center gap-2 type-title-sm font-semibold text-on-surface"
+                    className="flex items-center gap-2 type-body font-semibold text-on-surface"
                   >
                     <Users className="size-4 text-primary" aria-hidden="true" />
                     {vi ? "Danh sách lớp" : "Roster"}
@@ -1364,7 +1364,7 @@ function EventDrawer({
               >
                 <h3
                   id="drawer-attendance"
-                  className="type-title-sm font-semibold text-on-surface"
+                  className="type-body font-semibold text-on-surface"
                 >
                   {vi ? "Tóm tắt điểm danh" : "Attendance summary"}
                 </h3>
@@ -1375,7 +1375,7 @@ function EventDrawer({
                         key={key}
                         className="rounded-lg bg-surface-container-low p-2 text-center"
                       >
-                        <p className="type-title-sm font-semibold tabular-nums text-on-surface">
+                        <p className="type-body font-semibold tabular-nums text-on-surface">
                           {detail?.attendance[key] ?? 0}
                         </p>
                         <p className="type-caption capitalize text-on-surface-variant">
@@ -1393,7 +1393,7 @@ function EventDrawer({
               >
                 <h3
                   id="drawer-materials"
-                  className="type-title-sm font-semibold text-on-surface"
+                  className="type-body font-semibold text-on-surface"
                 >
                   {vi ? "Tài liệu" : "Materials"}
                 </h3>
@@ -1435,7 +1435,7 @@ function EventDrawer({
                   />
                   <h3
                     id="drawer-homework"
-                    className="type-title-sm font-semibold text-on-surface"
+                    className="type-body font-semibold text-on-surface"
                   >
                     {vi ? "Bài tập và chấm bài" : "Homework and review"}
                   </h3>
@@ -1475,7 +1475,7 @@ function EventDrawer({
                   />
                   <h3
                     id="drawer-announcements"
-                    className="type-title-sm font-semibold text-on-surface"
+                    className="type-body font-semibold text-on-surface"
                   >
                     {vi ? "Thông báo" : "Announcements"}
                   </h3>

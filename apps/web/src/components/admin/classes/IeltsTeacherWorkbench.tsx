@@ -460,7 +460,7 @@ function MetricCard({
         {label}
       </div>
       <div className="mt-2 flex items-end justify-between gap-2">
-        <strong className="type-heading-sm font-medium text-on-surface">
+        <strong className="type-title font-medium text-on-surface">
           {value}
         </strong>
         {detail ? (
@@ -830,7 +830,7 @@ export function IeltsTeacherWorkbench({
         <div className="flex h-9 w-9 items-center justify-center rounded-control bg-surface-container">
           <GraduationCap className="h-5 w-5 text-on-surface-variant" />
         </div>
-        <h2 className="mt-4 type-title-sm font-medium text-on-surface">
+        <h2 className="mt-4 type-body font-medium text-on-surface">
           {t.gated}
         </h2>
         <p className="mt-1 max-w-xl type-body-sm text-on-surface-variant">
@@ -859,7 +859,7 @@ export function IeltsTeacherWorkbench({
         <div>
           <h2
             id="ielts-workbench-title"
-            className="type-title-sm font-medium text-on-surface"
+            className="type-body font-medium text-on-surface"
           >
             {t.title}
           </h2>
@@ -992,7 +992,7 @@ export function IeltsTeacherWorkbench({
                       <p className="type-caption text-on-surface-variant">
                         {t[skill]}
                       </p>
-                      <p className="mt-1 type-title-sm font-medium text-on-surface">
+                      <p className="mt-1 type-body font-medium text-on-surface">
                         {formatBand(summary?.skillAverages[skill] ?? null)}
                       </p>
                     </div>
@@ -1208,7 +1208,7 @@ export function IeltsTeacherWorkbench({
                       <p className="type-caption font-medium uppercase tracking-wide text-on-surface-variant">
                         {t.reviewDetail}
                       </p>
-                      <h3 className="mt-1 type-title-sm font-medium text-on-surface">
+                      <h3 className="mt-1 type-body font-medium text-on-surface">
                         {selectedReview.assignment.title}
                       </h3>
                       <p className="type-body-sm text-on-surface-variant">

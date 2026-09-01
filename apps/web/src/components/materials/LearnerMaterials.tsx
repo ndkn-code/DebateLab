@@ -52,7 +52,7 @@ export function LearnerMaterials({
       <div className="flex items-center justify-between gap-3">
         <h2
           id={headingId}
-          className="type-heading-sm font-semibold text-on-surface"
+          className="type-title font-semibold text-on-surface"
         >
           {title ?? copy.materials}
         </h2>

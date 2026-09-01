@@ -44,7 +44,7 @@ export function PublicGuidePage({
         <div className="mt-10 space-y-10">
           {guide.sections.map((section) => (
             <section key={section.title}>
-              <h2 className="type-heading-sm font-semibold">{section.title}</h2>
+              <h2 className="type-title font-semibold">{section.title}</h2>
               {section.paragraphs.map((paragraph) => (
                 <p
                   key={paragraph}

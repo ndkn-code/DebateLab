@@ -70,7 +70,7 @@ export function MaterialDocumentRenderer({
                 return (
                   <Heading
                     key={block.id}
-                    className="type-heading-sm font-semibold"
+                    className="type-title font-semibold"
                   >
                     {block.text}
                   </Heading>

@@ -302,7 +302,7 @@ export function TeacherWeekCalendar({
               <div>
                 <h2
                   id="teacher-class-list-heading"
-                  className="type-heading-sm font-semibold text-on-surface"
+                  className="type-title font-semibold text-on-surface"
                 >
                   {vi ? "Lớp đang phụ trách" : "Managed classes"}
                 </h2>
@@ -333,7 +333,7 @@ export function TeacherWeekCalendar({
                               ? "Tranh biện"
                               : "Debate"}
                       </p>
-                      <h3 className="mt-1 type-title-sm font-semibold text-on-surface">
+                      <h3 className="mt-1 type-body font-semibold text-on-surface">
                         {item.title}
                       </h3>
                     </div>

@@ -173,7 +173,7 @@ export function OrganizationOverview({
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="type-eyebrow text-primary">{t.title}</p>
-          <h1 className="mt-1 type-page-title text-on-surface">
+          <h1 className="mt-1 type-heading-xl text-on-surface">
             {organization.name}
           </h1>
           <p className="mt-2 type-body-sm text-on-surface-variant">
