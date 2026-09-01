@@ -8,7 +8,10 @@ import {
 import { loadIeltsClassGradebook } from "@/app/actions/ielts/teacher-review";
 import type { IeltsTeacherWorkbenchData } from "@/components/admin/classes/IeltsTeacherWorkbench";
 import { requireClassManager } from "@/lib/api/class-manager-access";
-import { LMS_PILOT_FEATURE_KEY } from "@/lib/api/class-lms/model";
+import {
+  resolveTeacherWorkspaceClassFeature,
+  TEACHER_WORKSPACE_COMPATIBLE_FEATURE_KEYS,
+} from "@/lib/api/class-lms/teacher-workspace-capability";
 import { createTypedServerClient } from "@/lib/supabase/server";
 
 function errorMessage(result: PromiseRejectedResult) {
@@ -39,13 +42,16 @@ export async function loadAuthorizedIeltsWorkbench(
   const clubId = manager.clubId;
   const { data: flags, error: flagError } = await db
     .from("lms_pilot_flags")
-    .select("class_id, enabled")
+    .select("club_id, class_id, feature_key, enabled")
     .eq("club_id", clubId)
-    .eq("feature_key", LMS_PILOT_FEATURE_KEY);
+    .in("feature_key", [...TEACHER_WORKSPACE_COMPATIBLE_FEATURE_KEYS]);
   if (flagError) return { ...empty, clubId, contentError: flagError.message };
-  const specific = (flags ?? []).find((flag) => flag.class_id === classId);
-  const organisation = (flags ?? []).find((flag) => flag.class_id === null);
-  const enabled = Boolean((specific ?? organisation)?.enabled);
+  const enabled = resolveTeacherWorkspaceClassFeature({
+    flags: flags ?? [],
+    organizationId: clubId,
+    classId,
+    programType: "ielts",
+  });
   if (!enabled) return { ...empty, clubId };
 
   const [gradebook, announcements, resources, vocabulary] =
