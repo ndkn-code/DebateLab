@@ -206,23 +206,62 @@ Build order:
 
 Anything outside this list gets a line in this document before it enters the repo.
 
-### Copy exactly. Do not reinterpret.
+### Take the code. Never rebuild it from memory.
 
-This is the rule that matters, because the failure mode is consistent: the source gets
-opened, the idea gets understood, and a weaker version gets written from memory. That is
-more work for a worse component. Vendoring is not a starting point for your own version.
+The consistent failure is this: the source gets opened, the idea gets understood, and a weaker
+version gets written from memory. That is more work for a worse component. Whichever mode
+below applies, start from the actual source file — never from your recollection of how it
+looked.
 
-- Copy the upstream file **verbatim** into `components/<source>/`. Do not retype it, do not
-  simplify it, do not "take inspiration from" it, do not rebuild it out of our primitives.
-- Record the upstream URL and commit SHA in a header comment so the copy can be diffed
-  against its source later.
-- Adapt only through the component's **documented props**. Never edit its internals to fit a
-  surface — wrap it instead.
-- Map its colors to semantic tokens through the props it exposes. Where it exposes none,
-  leave the upstream values intact and add the vendored path to the allowlist in
-  `scripts/design-system-audit.ts` with a comment saying the source is deliberately untouched.
-- Upstream typography inside a vendored component stays upstream. Our `type-*` utilities
-  apply to the wrapper, not to the component's internals.
+There are two legitimate modes, and every folder must say which one it is. Mixing them, or
+leaving it unstated, is how geometry drifts silently.
+
+### Mode 1 — Adapt (the default)
+
+Take the code, then convert every **surface** value to our system. Structure, layout,
+interaction, states and accessibility stay as written; the skin becomes ours. From that point
+the file is our code and follows our system, including future token changes and sweeps.
+
+Convert, without exception:
+
+| Upstream | Becomes |
+|---|---|
+| any color literal or utility | a semantic role (§Color System) |
+| any font size / weight / tracking | a `type-*` step |
+| any radius | our ramp — `rounded-control`, `sm`, `md`, `lg`, `xl` |
+| any icon import | `@/components/ui/icons` |
+| any spacing literal | the Tailwind spacing scale |
+
+> **The trap that makes literal copy-paste dangerous here.** Our scale **redefines Tailwind's
+> class names with different values**. `rounded-lg` is `16px` in this codebase and `8px` in
+> stock Tailwind; `rounded-xl` is `24px` here and `12px` there. So pasted markup keeps its
+> class names, compiles without error, passes every audit — and renders at roughly double the
+> radius the source intended. Re-check every `rounded-*` and spacing class against our scale
+> when adapting. This has already shipped once: ~15 elements in the AI chat sit at double
+> their intended radius.
+
+Record the source in a `README.md` beside the components: the upstream URL, its licence, and
+what was deliberately changed. `components/beautifului/` does this well.
+
+### Mode 2 — Vendor (the exception)
+
+Use only when you want to diff against upstream later or pull its updates — a library you are
+tracking, not a component you are absorbing.
+
+- Copy the file **verbatim**. Do not retype, simplify, or restyle it.
+- Record the upstream URL **and commit SHA** in a header comment, so the copy can be diffed.
+- Adapt only through documented props; wrap it rather than editing internals.
+- Add the path to the allowlist in `scripts/design-system-audit.ts` with a comment saying the
+  source is deliberately untouched, and **exclude it from mechanical sweeps**.
+- Upstream typography and geometry stay upstream. Our utilities apply to the wrapper only.
+
+### Which mode each folder is
+
+| Folder | Mode |
+|---|---|
+| `components/charts/` | vendored (bklit/Visx) — verbatim, excluded from sweeps |
+| `components/magicui/` | vendored — verbatim, excluded from sweeps |
+| `components/beautifului/` | adapted — our tokens, follows our system, included in sweeps |
 
 ### Adoption QA
 Before calling a vendored component done, capture the upstream demo and our integration at

@@ -84,6 +84,11 @@ Every extracted value becomes one of three things. Write which:
 A raw value that is none of these is a bug the audit will catch. Extraction never licenses
 literals.
 
+**Check class names, not just values.** Our scale reuses Tailwind's names with different
+numbers — `rounded-lg` is 16px here versus 8px upstream, `rounded-xl` is 24px versus 12px. Any
+class copied from a reference implementation renders differently here while looking identical
+in the source. Resolve every `rounded-*` and spacing class explicitly.
+
 If the reference's palette conflicts with ours, ours wins — see Phase 0. Structure is the
 thing being copied.
 

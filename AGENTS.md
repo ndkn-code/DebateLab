@@ -106,6 +106,22 @@ all of them are review-blocking.
 11. **Use `PageContainer`** (`components/shared/product-layout.tsx`) for product pages —
     `focused` / `standard` / `wide` / `data`. No ad-hoc `max-w-[1400px]`.
 
+## Browser work
+
+Use **Ego Lite** (the `ego-browser` skill) for every browser task — rendering the app, design
+QA, screenshots, reading a reference site, extracting computed styles. It is an agent-native
+Chromium: agents drive their own isolated space and reuse the user's login state instead of
+competing for the same window. Do not reach for other browser automation or fetch tools.
+
+Two traps that cost real debugging time, worth re-checking rather than assuming:
+
+- A dev-server preview may resolve its launch config from the **main checkout**, not the
+  worktree you are in — so it silently serves the wrong build. Verify which tree you are
+  looking at before trusting any QA.
+- Viewport emulation can change `innerWidth` and `matchMedia().matches` **without firing
+  `resize` or `change`**, which makes correct media-query code look broken. And reading
+  computed styles right after a theme toggle returns mid-transition values — let them settle.
+
 ## Gates
 
 Run before claiming any UI work is done. Do not report success on red.
@@ -125,6 +141,12 @@ Each of these cost real debugging time. They are not theoretical.
 critical CSS by `ThinkfyThemeVariables`, wins for `var()`) and the `@theme inline` block in
 `globals.css` (used for Tailwind's literal fallbacks). Change a value in one and the two
 diverge silently. Edit both.
+
+**Our scale redefines Tailwind's class names.** `rounded-lg` is 16px here and 8px in stock
+Tailwind; `rounded-xl` is 24px here and 12px there. Code pasted from any outside source keeps
+its class names, compiles clean, passes every audit, and renders at roughly double the radius
+its author intended. Re-check every `rounded-*` and spacing class when adopting code — see
+design.md §Component Sourcing.
 
 **Migrations run in one transaction.** Enable RLS and finish DDL *before* any backfill DML in
 the same file — a deferred constraint trigger makes a later `ALTER TABLE` fail with

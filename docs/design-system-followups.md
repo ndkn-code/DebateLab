@@ -191,3 +191,26 @@ Also simplified 4 vestigial `rounded-[min(var(--radius-md),10px|12px)]` clamps i
 size variants to `rounded-md` — `--radius-md` is 8px, smaller than both bounds, so the `min()`
 always resolved to it. The remaining `rounded-[7px]` values are deliberate inner-radius math
 for nested elements (outer 8px minus a 1px border) and were left alone.
+
+---
+
+## 5. ~15 elements in the AI chat are at double their intended radius
+
+Found 2026-09-01. `components/beautifului/` and the chat/coach surfaces were adopted from
+[Beautiful UI](https://www.beautifului.dev/) by pasting the source in literally — a deliberate
+instruction, after the agent kept producing weak imitations instead of using the real code.
+
+The paste kept its Tailwind class names, and our scale redefines them: `rounded-lg` is 16px
+here against 8px upstream, `rounded-xl` is 24px against 12px. Beautiful UI's own site measures
+**8px ×384 and 6px ×173** as its dominant radii, so the intent was small corners.
+
+Affected: `chat-bubble.tsx` (12 × `rounded-xl`, 3 × `rounded-lg`), plus `rounded-xl` in
+`chat-area.tsx`, `IeltsCoachMessage.tsx`, `IeltsCoachShell.tsx`, `prompt-bar.tsx`,
+`recommendation-card.tsx`, and `context-cards.tsx`.
+
+**Not yet judged.** Chat bubbles are often deliberately round, so this may read as intentional
+rather than wrong. Render our chat beside Beautiful UI's at the same viewport and decide by
+eye before changing anything — the arithmetic says "doubled", not "worse".
+
+Unrelated to the `rounded-[10px]` → `rounded-control` sweep, which correctly moved elements
+that were already tracking our control radius.
