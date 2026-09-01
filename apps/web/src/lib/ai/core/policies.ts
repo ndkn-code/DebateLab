@@ -10,7 +10,7 @@ export const getGroqCoachFallbackModel = () =>
 const getIeltsCoachPrimaryModel = () =>
   process.env.GROQ_IELTS_COACH_MODEL || getGroqCoachFallbackModel();
 const getIeltsCoachFallbackModel = () =>
-  process.env.GROQ_IELTS_COACH_FALLBACK_MODEL || groqModel();
+  process.env.GROQ_IELTS_COACH_FALLBACK_MODEL || "qwen/qwen3.8-27b";
 const deepSeekModel = () => process.env.DEEPSEEK_MODEL || "deepseek-v4-flash";
 
 /** Gemini is only added after the product surface has collected consent. */
@@ -130,7 +130,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
     case "ielts_coach_chat":
       return {
         candidates: getIeltsCoachCandidates(),
-        attemptTimeoutMs: 8_000,
+        attemptTimeoutMs: 15_000,
         schemaRepairAttempts: 1,
         maxOutputTokens: 1_400,
         temperature: 0.25,
@@ -139,7 +139,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
     case "ielts_coach_metadata":
       return {
         candidates: getIeltsCoachCandidates(),
-        attemptTimeoutMs: 6_000,
+        attemptTimeoutMs: 10_000,
         schemaRepairAttempts: 1,
         maxOutputTokens: 1_200,
         temperature: 0.1,

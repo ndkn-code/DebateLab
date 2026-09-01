@@ -9,7 +9,11 @@ interface GroqResponse {
 }
 
 function supportsStrictJsonSchema(model: string) {
-  return model === "openai/gpt-oss-20b" || model === "openai/gpt-oss-120b";
+  return (
+    model === "openai/gpt-oss-20b" ||
+    model === "openai/gpt-oss-120b" ||
+    model === "qwen/qwen3.8-27b"
+  );
 }
 
 export async function generateGroq(request: AdapterRequest): Promise<AdapterResponse> {

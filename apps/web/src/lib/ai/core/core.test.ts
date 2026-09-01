@@ -359,7 +359,7 @@ async function run() {
       outputType: "test",
     },
     policy: {
-      candidates: [{ provider: "groq", model: "openai/gpt-oss-20b" }],
+      candidates: [{ provider: "groq", model: "qwen/qwen3.8-27b" }],
     },
   });
   assert.equal(strictStructured.output.value, "strict");

@@ -52,6 +52,10 @@ async function run() {
     getIeltsCoachCandidates(true)[0]?.model,
     "gemini-3.5-flash-lite",
   );
+  assert.equal(
+    getIeltsCoachCandidates(false)[1]?.model,
+    "qwen/qwen3.8-27b",
+  );
 
   process.env.GEMINI_API_KEY = "gemini-test-key";
   process.env.GROQ_API_KEY = "groq-test-key";
