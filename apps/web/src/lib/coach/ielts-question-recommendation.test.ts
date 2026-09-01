@@ -7,6 +7,7 @@ function fakeClient(rows: unknown[]) {
   const query = {
     select: () => query,
     eq: () => query,
+    contains: () => query,
     order: () => query,
     limit: async () => ({ data: rows, error: null }),
   };
@@ -15,12 +16,21 @@ function fakeClient(rows: unknown[]) {
 
 test("ranks a published criterion-matched question without reading answer keys", async () => {
   const calls: string[] = [];
+  const equalityFilters: Array<[string, unknown]> = [];
+  const containmentFilters: Array<[string, unknown]> = [];
   const query = {
     select: (columns: string) => {
       calls.push(columns);
       return query;
     },
-    eq: () => query,
+    eq: (column: string, value: unknown) => {
+      equalityFilters.push([column, value]);
+      return query;
+    },
+    contains: (column: string, value: unknown) => {
+      containmentFilters.push([column, value]);
+      return query;
+    },
     order: () => query,
     limit: async () => ({
       error: null,
@@ -56,6 +66,16 @@ test("ranks a published criterion-matched question without reading answer keys",
   assert.equal(
     calls.some((columns) => columns.includes("model_answer")),
     false,
+  );
+  assert.deepEqual(containmentFilters, [
+    ["metadata", { coach_recommendable: true }],
+  ]);
+  assert.equal(
+    equalityFilters.some(
+      ([column, value]) =>
+        column === "ielts_tests.assessment_mode" && value === "practice",
+    ),
+    true,
   );
 });
 

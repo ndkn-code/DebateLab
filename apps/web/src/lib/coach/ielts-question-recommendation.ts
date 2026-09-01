@@ -109,10 +109,12 @@ export async function findIeltsQuestionRecommendation(params: {
     const result = await params.supabase
       .from("ielts_questions")
       .select(
-        "id, test_id, skill, question_type, prompt, metadata, ielts_tests!inner(id, slug, title, status)",
+        "id, test_id, skill, question_type, prompt, metadata, ielts_tests!inner(id, slug, title, status, assessment_mode)",
       )
       .eq("skill", params.skill)
+      .contains("metadata", { coach_recommendable: true })
       .eq("ielts_tests.status", "published")
+      .eq("ielts_tests.assessment_mode", "practice")
       .order("order_index", { ascending: true })
       .limit(80);
     if (result.error) return null;
