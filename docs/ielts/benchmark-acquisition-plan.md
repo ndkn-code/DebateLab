@@ -188,6 +188,55 @@ variants from silently creating a new statistical slice.
    leakage, consent errors, rater disagreement, and coverage deficits before the
    service-role import is requested.
 
+### Offline study-lead attestation
+
+The study lead keeps the Ed25519 private key in an explicit local file. The CLI
+rejects private keys and protected manifests unless their mode is `0600`; it
+writes signed or refreshed manifests atomically with the same mode and never
+prints protected responses, labels, receipts, or examiner records. The public
+configuration contains only SPKI DER base64, its SHA-256 fingerprint, and a key
+ID deterministically derived from that fingerprint. A trust-set JSON may retain
+the previous and replacement public configs during a controlled key rotation.
+
+Run from `apps/web` with absolute paths:
+
+```bash
+npm run ai:grading-study-attestation -- keygen --private-key=/protected/study-lead.pem --public-config=/review/study-lead-public.json
+npm run ai:grading-study-attestation -- sign --input=/protected/unsigned.json --identity-receipts=/protected/identity-receipts.json --private-key=/protected/study-lead.pem --output=/protected/signed.json --verified-at=2026-09-01T10:30:00.000Z --expires-at=2026-09-02T09:59:00.000Z
+npm run ai:grading-study-attestation -- verify --input=/protected/signed.json --trust-set=/review/study-lead-trust-set.json --now=2026-09-01T12:00:00.000Z
+npm run ai:grading-study-attestation -- refresh --input=/protected/signed.json --withdrawal-snapshots=/protected/fresh-withdrawal-snapshots.json --trust-set=/review/study-lead-trust-set.json --private-key=/protected/replacement-study-lead.pem --output=/protected/detached-refresh.json --verified-at=2026-09-02T09:00:00.000Z --expires-at=2026-09-02T09:30:00.000Z
+```
+
+The signing receipt file has `receiptFileVersion: 1` and one entry per exact
+`benchmarkKey`, containing the four grouping receipt hashes and the capture
+identity receipt hash. It must match the manifest exactly. Artifact, consent,
+withdrawal, grouping, and examiner-credential identities are always rebuilt
+from the protected manifest; the signer does not accept caller-supplied copies
+of those fields. Refresh verifies every previous signature, requires one exact
+fresh withdrawal-registry snapshot per benchmark, and emits a detached signed
+attestation file. It never rewrites the protected manifest or its immutable
+consent snapshot.
+
+After the original manifest has been imported, apply a detached refresh from
+`apps/web`. The trust set must include the replacement public key during key
+rotation. The command verifies the detached signature before opening a
+privileged database connection, rebinds it to the stored immutable artifact,
+consent, grouping, and examiner credential identities, and upserts only
+`ai_grading_benchmark_release_attestations`. The database locks the complete
+batch, rejects older withdrawal timestamps, and permits only withdrawal and
+validity fields to change; out-of-order refresh files cannot roll evidence
+backward:
+
+```bash
+AI_GRADING_BENCHMARK_ATTESTATION_REFRESH_FILE=/protected/detached-refresh.json \
+AI_GRADING_BENCHMARK_TRUST_SET_FILE=/review/study-lead-trust-set.json \
+npm run ai:grading-attestation-refresh
+```
+
+Remove the previous public key from the trust set only after every active
+attestation has been refreshed with the replacement key and the overlap has
+been audited. A revoked or absent key fails closed at refresh and release.
+
 ### Withdrawal and immutability
 
 Migration `20260901190000_ielts_benchmark_study_integrity.sql` makes protected

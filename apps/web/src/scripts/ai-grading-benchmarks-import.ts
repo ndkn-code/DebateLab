@@ -2,6 +2,7 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
+import { isAbsolute } from "node:path";
 
 import {
   AI_GRADING_BENCHMARK_PRIVATE_BUCKET,
@@ -11,6 +12,7 @@ import {
   buildIeltsBenchmarkRequest,
   ieltsBenchmarkModelInputSha256,
 } from "@/lib/ai/benchmarks/request";
+import { verifyStudyLeadManifest } from "@/lib/ai/benchmarks/study-attestation";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type JsonRecord = Record<string, unknown>;
@@ -36,6 +38,12 @@ function canonicalJson(value: unknown): string {
 
 function equalJson(left: unknown, right: unknown) {
   return canonicalJson(left) === canonicalJson(right);
+}
+
+function immutableBenchmarkMetadata(value: unknown) {
+  const metadata = { ...record(value) };
+  delete metadata.manifestCreatedAt;
+  return metadata;
 }
 
 function sha256(value: string | ArrayBuffer | Uint8Array): string {
@@ -247,14 +255,19 @@ async function verifyBenchmarkArtifacts(
 
 async function main() {
   const filePath = process.env.AI_GRADING_BENCHMARKS_FILE;
-  if (!filePath) {
+  const trustSetPath = process.env.AI_GRADING_BENCHMARK_TRUST_SET_FILE;
+  if (!filePath || !trustSetPath || !isAbsolute(filePath) || !isAbsolute(trustSetPath)) {
     throw new Error(
-      "AI_GRADING_BENCHMARKS_FILE is required (along with the Supabase admin environment)",
+      "Absolute AI_GRADING_BENCHMARKS_FILE and AI_GRADING_BENCHMARK_TRUST_SET_FILE paths are required (along with the Supabase admin environment)",
     );
   }
-  const parsedManifest = parseGradingBenchmarkImport(
-    JSON.parse(await readFile(filePath, "utf8")),
-  );
+  const manifestJson = JSON.parse(await readFile(filePath, "utf8"));
+  const parsedManifest = parseGradingBenchmarkImport(manifestJson);
+  verifyStudyLeadManifest({
+    manifest: parsedManifest,
+    trustSet: JSON.parse(await readFile(trustSetPath, "utf8")),
+    now: new Date(),
+  });
   const client = createAdminClient();
   const audioReports = await verifyBenchmarkArtifacts(client, parsedManifest);
   // Never trust manifest-supplied request, config, or report digests. The
@@ -416,7 +429,10 @@ async function main() {
       (existing.accent_group ?? null) === row.accent_group &&
       existing.split === row.split &&
       equalJson(existing.protected_label, row.protected_label) &&
-      equalJson(existing.metadata, row.metadata);
+      equalJson(
+        immutableBenchmarkMetadata(existing.metadata),
+        immutableBenchmarkMetadata(row.metadata),
+      );
     if (!immutableMatch) {
       throw new Error(
         `Existing benchmark is immutable and differs from manifest: ${benchmark.benchmarkKey}`,

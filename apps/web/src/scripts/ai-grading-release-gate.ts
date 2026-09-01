@@ -6,7 +6,6 @@ import {
   parseOperationalSafetyEvidence,
   countInvalidStoredBenchmarkRows,
   protectedBenchmarkInputSchema,
-  verifyBenchmarkReleaseAttestation,
 } from "@/lib/ai/benchmarks/contracts";
 import { assertIeltsBenchmarkModelInputHash } from "@/lib/ai/benchmarks/request";
 import {
@@ -19,6 +18,7 @@ import {
   type BenchmarkObservation,
   type ReleaseGateResult,
 } from "@/lib/ai/benchmarks/evaluate";
+import { verifyStudyLeadBenchmarkAttestation } from "@/lib/ai/benchmarks/study-attestation";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type JsonRecord = Record<string, unknown>;
@@ -68,29 +68,17 @@ function storedReleaseBenchmark(row: JsonRecord) {
   };
 }
 
-function ed25519PublicKeyPem(base64Der: string): string {
-  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(base64Der)) {
-    throw new Error("AI_GRADING_BENCHMARK_ATTESTATION_PUBLIC_KEY_BASE64 is invalid");
-  }
-  const body = base64Der.match(/.{1,64}/g)?.join("\n") ?? base64Der;
-  return `-----BEGIN PUBLIC KEY-----\n${body}\n-----END PUBLIC KEY-----\n`;
-}
-
 function verifyStudyLeadReleaseAttestations(params: {
   rows: JsonRecord[];
-  keyId: string;
-  publicKeyPem: string;
+  trustSet: unknown;
   now: Date;
 }) {
   for (const row of params.rows) {
-    const stored = storedReleaseBenchmark(row);
-    if (stored.releaseAttestation.keyId !== params.keyId) {
-      throw new Error("benchmark release attestation key ID is not trusted");
-    }
-    verifyBenchmarkReleaseAttestation({
-      attestation: stored.releaseAttestation,
-      publicKeyPem: params.publicKeyPem,
+    verifyStudyLeadBenchmarkAttestation({
+      benchmark: storedReleaseBenchmark(row),
+      trustSet: params.trustSet,
       now: params.now,
+      allowUpdatedWithdrawal: true,
     });
   }
 }
@@ -540,10 +528,8 @@ async function main() {
   const environment = process.env.AI_GRADING_GATE_ENVIRONMENT;
   const deploymentId = process.env.AI_GRADING_GATE_DEPLOYMENT_ID;
   const imageDigest = process.env.AI_GRADING_GATE_IMAGE_DIGEST;
-  const studyLeadKeyId =
-    process.env.AI_GRADING_BENCHMARK_ATTESTATION_KEY_ID;
-  const studyLeadPublicKeyBase64 =
-    process.env.AI_GRADING_BENCHMARK_ATTESTATION_PUBLIC_KEY_BASE64;
+  const studyLeadTrustSetJson =
+    process.env.AI_GRADING_BENCHMARK_TRUST_SET_JSON;
   if (
     !graderVersion ||
     !Number.isInteger(corpusVersion) ||
@@ -551,12 +537,11 @@ async function main() {
     (environment !== "preview" && environment !== "staging") ||
     !deploymentId ||
     !imageDigest ||
-    !studyLeadKeyId ||
-    !studyLeadPublicKeyBase64 ||
+    !studyLeadTrustSetJson ||
     !/^sha256:[a-f0-9]{64}$/.test(imageDigest)
   ) {
     throw new Error(
-      "AI_GRADING_GATE_VERSION, a positive AI_GRADING_GATE_CORPUS_VERSION, AI_GRADING_GATE_ENVIRONMENT=preview|staging, AI_GRADING_GATE_DEPLOYMENT_ID, AI_GRADING_GATE_IMAGE_DIGEST=sha256:<digest>, AI_GRADING_BENCHMARK_ATTESTATION_KEY_ID, and AI_GRADING_BENCHMARK_ATTESTATION_PUBLIC_KEY_BASE64 are required",
+      "AI_GRADING_GATE_VERSION, a positive AI_GRADING_GATE_CORPUS_VERSION, AI_GRADING_GATE_ENVIRONMENT=preview|staging, AI_GRADING_GATE_DEPLOYMENT_ID, AI_GRADING_GATE_IMAGE_DIGEST=sha256:<digest>, and AI_GRADING_BENCHMARK_TRUST_SET_JSON are required",
     );
   }
   const client = createAdminClient();
@@ -574,8 +559,7 @@ async function main() {
   const benchmarkRows = (data ?? []).map(record);
   verifyStudyLeadReleaseAttestations({
     rows: benchmarkRows,
-    keyId: studyLeadKeyId,
-    publicKeyPem: ed25519PublicKeyPem(studyLeadPublicKeyBase64),
+    trustSet: JSON.parse(studyLeadTrustSetJson),
     now: new Date(),
   });
   const audioReports = await verifyStoredArtifactBytes({

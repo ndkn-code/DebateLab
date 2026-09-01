@@ -13,6 +13,7 @@ const summary = validateBenchmarkStudyManifest(template, { mode: "draft" });
 assert.equal(summary.valid, true);
 assert.equal(summary.benchmarkCount, 1);
 assert.equal(summary.sourceCount, 1);
+assert.equal(summary.signatureVerified, false);
 assert.deepEqual(summary.skillCounts, {
   ielts_speaking: 0,
   ielts_writing: 1,
@@ -41,6 +42,7 @@ assert.doesNotMatch(cli, /createAdminClient|generateStructured|fetch\(/);
 assert.doesNotMatch(cli, /responseText|examinerRationale|raterKey/);
 assert.match(cli, /validateBenchmarkStudyManifest/);
 assert.match(cli, /--draft/);
+assert.match(cli, /--trust-set=/);
 assert.match(cli, /mode: draft \? "draft" : "release"/);
 assert.match(cli, /JSON\.stringify\(summary/);
 

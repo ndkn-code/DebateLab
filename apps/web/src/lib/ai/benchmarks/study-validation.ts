@@ -3,6 +3,7 @@ import {
   type GradingBenchmarkImportFile,
 } from "./contracts";
 import { IELTS_BENCHMARK_STUDY_DESIGN_V1 } from "./study-design";
+import { verifyStudyLeadManifest } from "./study-attestation";
 
 export interface BenchmarkStudyDeficit {
   skill: "ielts_speaking" | "ielts_writing";
@@ -22,6 +23,7 @@ export interface BenchmarkStudyValidationSummary {
   skillCounts: Record<"ielts_speaking" | "ielts_writing", number>;
   deficitCount: number;
   deficits: BenchmarkStudyDeficit[];
+  signatureVerified: boolean;
 }
 
 export type BenchmarkStudyValidationMode = "draft" | "release";
@@ -38,7 +40,11 @@ function cellKey(params: Omit<BenchmarkStudyDeficit, "observed" | "required">) {
 
 export function validateBenchmarkStudyManifest(
   value: unknown,
-  options: { mode?: BenchmarkStudyValidationMode } = {},
+  options: {
+    mode?: BenchmarkStudyValidationMode;
+    trustSet?: unknown;
+    now?: Date;
+  } = {},
 ): BenchmarkStudyValidationSummary {
   const manifest: GradingBenchmarkImportFile =
     parseGradingBenchmarkImport(value);
@@ -118,11 +124,24 @@ export function validateBenchmarkStudyManifest(
     skillCounts,
     deficitCount: deficits.length,
     deficits,
+    signatureVerified: false,
   };
-  if ((options.mode ?? "release") === "release" && deficits.length > 0) {
+  const mode = options.mode ?? "release";
+  if (mode === "release" && deficits.length > 0) {
     throw new Error(
       `Benchmark release coverage is incomplete: ${deficits.length} required strata have deficits`,
     );
+  }
+  if (mode === "release") {
+    if (!options.trustSet) {
+      throw new Error("Benchmark release validation requires a trusted study-lead key set");
+    }
+    verifyStudyLeadManifest({
+      manifest,
+      trustSet: options.trustSet,
+      now: options.now ?? new Date(),
+    });
+    summary.signatureVerified = true;
   }
   return summary;
 }

@@ -1084,6 +1084,8 @@ const benchmarkCaseSchema = z
         benchmark.protectedLabel.input.artifactSha256.toLowerCase() ||
       attestation.consentReceiptSha256.toLowerCase() !==
         benchmark.protectedLabel.consent.receiptSha256.toLowerCase() ||
+      attestation.withdrawalRegistryReceiptSha256.toLowerCase() !==
+        benchmark.protectedLabel.consent.withdrawal.registryReceiptSha256.toLowerCase() ||
       attestation.consentRetentionUntil !==
         benchmark.protectedLabel.consent.retentionUntil ||
       attestation.grouping.candidateKey !== benchmark.metadata.candidateKey ||

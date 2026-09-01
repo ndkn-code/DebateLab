@@ -128,11 +128,13 @@ second, independent trust boundary. The study lead holds an offline Ed25519
 private key; import and release processes receive only its public key. A signed
 release envelope binds the artifact, consent/retention, a withdrawal-registry
 snapshot, examiner credential proof hashes, and the four grouping receipts. It
-expires within 24 hours of the withdrawal check. Configure
-`AI_GRADING_BENCHMARK_ATTESTATION_KEY_ID` and
-`AI_GRADING_BENCHMARK_ATTESTATION_PUBLIC_KEY_BASE64` (SPKI DER, base64) for the
-release gate. Never give the study-lead private key to the importer, worker, or
-service-role environment.
+expires within 24 hours of the withdrawal check. Configure the public
+`AI_GRADING_BENCHMARK_TRUST_SET_JSON` for the release gate and mount that same
+public trust set as `AI_GRADING_BENCHMARK_TRUST_SET_FILE` for the importer and
+detached attestation refresh command. The trust set supports an overlap window
+during key rotation. Refresh updates only the release-attestation table and
+never rewrites protected benchmark labels. Never give the
+study-lead private key to the importer, worker, or service-role environment.
 
 Run acoustic preparation as a separate private Cloud Run Job using the same
 reviewed worker image. It is deliberately two-stage:

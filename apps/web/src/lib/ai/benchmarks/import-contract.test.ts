@@ -623,6 +623,18 @@ assert.throws(
   /Minor participant retention cannot exceed one year/,
 );
 
+const mismatchedWithdrawalReceipt = structuredClone(writingBenchmark);
+mismatchedWithdrawalReceipt.releaseAttestation.envelope.withdrawalRegistryReceiptSha256 =
+  "f".repeat(64);
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [mismatchedWithdrawalReceipt],
+    }),
+  /does not bind the benchmark artifact, consent, credentials, and grouping identity/,
+);
+
 const secondSource = {
   ...source,
   canonicalUrl: "https://example.org/independent-study-source-2",
@@ -1087,7 +1099,8 @@ const importer = readFileSync(
 );
 assert.match(importer, /submitted_by,reviewed_by/);
 assert.match(importer, /existing\.submitted_by !== existing\.reviewed_by/);
-assert.match(importer, /equalJson\(existing\.metadata, row\.metadata\)/);
+assert.match(importer, /immutableBenchmarkMetadata\(existing\.metadata\)/);
+assert.match(importer, /immutableBenchmarkMetadata\(row\.metadata\)/);
 assert.match(importer, /sha256\(input\.responseText\)/);
 assert.match(importer, /artifactStorageVersion/);
 assert.match(importer, /\.download\(objectName\)/);
@@ -1101,6 +1114,15 @@ assert.match(importer, /.from\("buckets"\)/);
 assert.match(importer, /data\.public !== false/);
 assert.match(importer, /AI_GRADING_BENCHMARK_PRIVATE_BUCKET/);
 assert.match(importer, /ai_grading_benchmark_release_attestations/);
+assert.match(importer, /immutableBenchmarkMetadata/);
+assert.match(importer, /delete metadata\.manifestCreatedAt/);
+assert.match(importer, /AI_GRADING_BENCHMARK_TRUST_SET_FILE/);
+assert.match(importer, /verifyStudyLeadManifest/);
+assert.ok(
+  importer.indexOf("verifyStudyLeadManifest({") <
+    importer.indexOf("const client = createAdminClient()"),
+  "study-lead signatures must be verified before any database access",
+);
 assert.match(
   importer,
   /verify_ai_grading_benchmark_acoustic_attestation/,
@@ -1159,7 +1181,9 @@ assert.match(releaseGate, /\.from\("buckets"\)/);
 assert.match(releaseGate, /data\.public !== false/);
 assert.match(releaseGate, /AI_GRADING_BENCHMARK_PRIVATE_BUCKET/);
 assert.match(releaseGate, /verifyStudyLeadReleaseAttestations/);
-assert.match(releaseGate, /AI_GRADING_BENCHMARK_ATTESTATION_PUBLIC_KEY_BASE64/);
+assert.match(releaseGate, /AI_GRADING_BENCHMARK_TRUST_SET_JSON/);
+assert.match(releaseGate, /verifyStudyLeadBenchmarkAttestation/);
+assert.match(releaseGate, /allowUpdatedWithdrawal: true/);
 assert.match(
   releaseGate,
   /verify_ai_grading_benchmark_acoustic_attestation/,

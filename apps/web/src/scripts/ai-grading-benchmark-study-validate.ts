@@ -11,8 +11,21 @@ async function main() {
   }
   const draft = process.argv.includes("--draft");
   const raw = JSON.parse(await readFile(resolve(path), "utf8"));
+  const trustSetArgument = process.argv.find((value) =>
+    value.startsWith("--trust-set="),
+  );
+  const trustSetPath = trustSetArgument?.slice("--trust-set=".length);
+  if (!draft && !trustSetPath) {
+    throw new Error(
+      "Release validation requires --trust-set=/absolute/path/to/public-trust-set.json",
+    );
+  }
+  const trustSet = trustSetPath
+    ? JSON.parse(await readFile(resolve(trustSetPath), "utf8"))
+    : undefined;
   const summary = validateBenchmarkStudyManifest(raw, {
     mode: draft ? "draft" : "release",
+    trustSet,
   });
   // Never print responses, examiner rationales, rater identities, or labels.
   process.stdout.write(`${JSON.stringify(summary, null, 2)}\n`);
