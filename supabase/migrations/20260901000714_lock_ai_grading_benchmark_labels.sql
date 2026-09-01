@@ -30,4 +30,3 @@ drop trigger if exists prevent_ai_grading_benchmark_label_mutation
 create trigger prevent_ai_grading_benchmark_label_mutation
   before update on public.ai_grading_benchmarks
   for each row execute function private.prevent_ai_grading_benchmark_label_mutation();
-
