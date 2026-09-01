@@ -112,6 +112,17 @@ service-role importer emits counts only; learner/admin APIs never receive gold
 labels. Retrieval-source/benchmark-source separation is also enforced in the
 database.
 
+Each benchmark input must provide exactly one protected response modality:
+inline text, a private response-object path (for example, a scanned PDF), or a
+private audio-object path. Object-backed responses must include their SHA-256
+digest and content type so an offline runner can reject a missing, replaced, or
+wrong-media artifact before making a paid grading call. A public dataset DOI or
+archive checksum does not substitute for the per-response criterion labels.
+
+Record every candidate source and rejection reason in
+`docs/ielts/benchmark-source-review.md`; a source description that claims labels
+which are absent from the downloaded archive is not eligible.
+
 Pin the exact grader and corpus versions, then run:
 
 ```bash

@@ -106,4 +106,69 @@ assert.throws(
   /Duplicate benchmarkKey/,
 );
 
+const scannedWritingBenchmark = {
+  ...writingBenchmark,
+  benchmarkKey: "qualified-writing-scan-holdout-001",
+  protectedLabel: {
+    ...writingBenchmark.protectedLabel,
+    input: {
+      prompt: "Protected benchmark prompt",
+      responseObjectPath: "benchmarks/writing/scan-001.pdf",
+      artifactSha256: "b".repeat(64),
+      artifactContentType: "application/pdf",
+      responseLocator: "PDF page 1",
+    },
+  },
+};
+
+assert.equal(
+  parseGradingBenchmarkImport({
+    ...validManifest,
+    benchmarks: [scannedWritingBenchmark],
+  }).benchmarks[0]?.protectedLabel.input.responseObjectPath,
+  "benchmarks/writing/scan-001.pdf",
+);
+
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [
+        {
+          ...scannedWritingBenchmark,
+          protectedLabel: {
+            ...scannedWritingBenchmark.protectedLabel,
+            input: {
+              ...scannedWritingBenchmark.protectedLabel.input,
+              artifactSha256: undefined,
+            },
+          },
+        },
+      ],
+    }),
+  /require a SHA-256 checksum/,
+);
+
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [
+        {
+          ...writingBenchmark,
+          protectedLabel: {
+            ...writingBenchmark.protectedLabel,
+            input: {
+              ...writingBenchmark.protectedLabel.input,
+              responseObjectPath: "benchmarks/writing/duplicate.pdf",
+              artifactSha256: "c".repeat(64),
+              artifactContentType: "application/pdf",
+            },
+          },
+        },
+      ],
+    }),
+  /exactly one of responseText, responseObjectPath, or audioObjectPath/,
+);
+
 console.log("AI grading benchmark import contract tests passed");

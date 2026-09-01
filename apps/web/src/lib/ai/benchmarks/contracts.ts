@@ -132,20 +132,67 @@ const protectedCriterionLabelSchema = z.object({
   examinerRationale: z.string().min(1).max(8_000).optional(),
 });
 
+const protectedBenchmarkInputSchema = z
+  .object({
+    prompt: z.string().min(1).max(20_000),
+    responseText: z.string().min(1).max(100_000).optional(),
+    /** Private object-storage path for a scanned or otherwise non-text response. */
+    responseObjectPath: z.string().min(1).max(1_000).optional(),
+    audioObjectPath: z.string().min(1).max(1_000).optional(),
+    artifactSha256: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/i, "Artifact checksum must be a SHA-256 hex digest")
+      .optional(),
+    artifactContentType: z.string().min(1).max(200).optional(),
+    responseLocator: z.string().min(1).max(500),
+  })
+  .superRefine((input, context) => {
+    const modalities = [
+      Boolean(input.responseText),
+      Boolean(input.responseObjectPath),
+      Boolean(input.audioObjectPath),
+    ].filter(Boolean).length;
+    if (modalities !== 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "A benchmark input needs exactly one of responseText, responseObjectPath, or audioObjectPath",
+      });
+    }
+    const hasObjectArtifact = Boolean(
+      input.responseObjectPath || input.audioObjectPath,
+    );
+    if (hasObjectArtifact && !input.artifactSha256) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["artifactSha256"],
+        message: "Protected benchmark artifacts require a SHA-256 checksum",
+      });
+    }
+    if (hasObjectArtifact && !input.artifactContentType) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["artifactContentType"],
+        message: "Protected benchmark artifacts require a content type",
+      });
+    }
+    if (
+      input.audioObjectPath &&
+      input.artifactContentType &&
+      !input.artifactContentType.startsWith("audio/")
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["artifactContentType"],
+        message: "An audio benchmark artifact must use an audio content type",
+      });
+    }
+  });
+
 const protectedBenchmarkLabelSchema = z.object({
   criteria: z.record(z.string(), protectedCriterionLabelSchema),
   /** Protected input is service-role only and never returned to learners/admin UI. */
-  input: z
-    .object({
-      prompt: z.string().min(1).max(20_000),
-      responseText: z.string().min(1).max(100_000).optional(),
-      audioObjectPath: z.string().min(1).max(1_000).optional(),
-      responseLocator: z.string().min(1).max(500),
-    })
-    .refine(
-      (input) => Boolean(input.responseText || input.audioObjectPath),
-      "A benchmark input needs responseText or audioObjectPath",
-    ),
+  input: protectedBenchmarkInputSchema,
   rubricVersion: z.string().min(1).max(200),
   labelAuthority: z.enum(["official_examiner", "qualified_examiner"]),
 });
