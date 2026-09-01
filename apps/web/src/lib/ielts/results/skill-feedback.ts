@@ -128,7 +128,9 @@ const SpeakingFeedbackSchema = z
   })
   .catch({});
 
-const TeacherCriterionFeedbackSchema = z.record(z.string(), z.string()).catch({});
+const TeacherCriterionFeedbackSchema = z
+  .record(z.string(), z.string())
+  .catch({});
 
 function criterionRationale(
   criteria: Record<string, { rationale?: string }> | undefined,
@@ -227,6 +229,7 @@ function toWritingTaskResult(task: ResultsWritingTask): WritingTaskResult {
     modelAnswer: task.modelAnswer,
     feedbackLanguage: task.feedbackLanguage,
     gradingMetadata: task.gradingMetadata,
+    teacherFeedback: task.teacherFeedback,
     teacherCriterionFeedback: task.teacherCriterionFeedback,
   };
 }
@@ -244,7 +247,10 @@ export function buildWritingResult(
   const task2Band =
     results.find((task) => task.taskNumber === 2)?.taskBand ?? null;
   return {
-    band: writingOverallBand({ task1Band, task2Band }),
+    band:
+      results.length === 1
+        ? (results[0]?.taskBand ?? null)
+        : writingOverallBand({ task1Band, task2Band }),
     isComplete: results.every((task) => isTerminalWritingStatus(task.status)),
     anyPending: results.some((task) => !isTerminalWritingStatus(task.status)),
     tasks: results,
@@ -305,6 +311,7 @@ function toSpeakingPartResult(part: ResultsSpeakingPart): SpeakingPartResult {
     modelAnswer: part.modelAnswer,
     pronunciationHeatmap: toPronunciationHeatmap(part.phonemeReport),
     gradingMetadata: part.gradingMetadata,
+    teacherFeedback: part.teacherFeedback,
     teacherCriterionFeedback: part.teacherCriterionFeedback,
   };
 }

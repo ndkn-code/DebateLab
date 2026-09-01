@@ -248,6 +248,8 @@ export interface WritingTaskResult {
   modelAnswer: string | null;
   feedbackLanguage: string;
   gradingMetadata?: unknown;
+  /** Published teacher rationale, kept separate from the AI summary. */
+  teacherFeedback?: string | null;
   teacherCriterionFeedback?: unknown;
 }
 
@@ -270,6 +272,8 @@ export interface SpeakingPartResult {
   modelAnswer: string | null;
   pronunciationHeatmap: SpeakingPronunciationHeatmap | null;
   gradingMetadata?: unknown;
+  /** Published teacher rationale, kept separate from the AI summary. */
+  teacherFeedback?: string | null;
   teacherCriterionFeedback?: unknown;
 }
 

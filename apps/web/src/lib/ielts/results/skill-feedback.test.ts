@@ -39,12 +39,27 @@ const writing = buildWritingResult([
     criteriaFeedback: {
       summary: "Solid overview.",
       vietnameseSummary: "Tổng quan tốt.",
-      criteria: { taskResponse: { band: 6, rationale: "Covers key features." } },
+      criteria: {
+        taskResponse: { band: 6, rationale: "Covers key features." },
+      },
     },
     inlineCorrections: [
-      { original: "is", suggestion: "are", errorType: "grammar", explanation: "agreement", paragraph: 1 },
+      {
+        original: "is",
+        suggestion: "are",
+        errorType: "grammar",
+        explanation: "agreement",
+        paragraph: 1,
+      },
     ],
-    paragraphFeedback: [{ paragraph: 0, comment: "Clear intro", strengths: ["clear"], improvements: ["hook"] }],
+    paragraphFeedback: [
+      {
+        paragraph: 0,
+        comment: "Clear intro",
+        strengths: ["clear"],
+        improvements: ["hook"],
+      },
+    ],
     modelAnswer: "Band 9 rewrite.",
   }),
 ]);
@@ -54,7 +69,10 @@ assert.equal(writing.band, 6.5);
 assert.equal(writing.isComplete, true);
 assert.equal(writing.anyPending, false);
 // Sorted Task 1 then Task 2.
-assert.deepEqual(writing.tasks.map((t) => t.taskNumber), [1, 2]);
+assert.deepEqual(
+  writing.tasks.map((t) => t.taskNumber),
+  [1, 2],
+);
 const task1 = writing.tasks[0];
 assert.equal(task1.criteria[0].key, "taskResponse");
 assert.equal(task1.criteria[0].label, "Task Response / Achievement");
@@ -73,6 +91,8 @@ assert.equal(task1.modelAnswer, "Band 9 rewrite.");
 // Published teacher criterion comments take precedence over AI rationale.
 const teacherProjected = buildWritingResult([
   writingTask({
+    taskBand: 7.5,
+    teacherFeedback: "Teacher published note.",
     teacherCriterionFeedback: {
       taskResponse: "Teacher: address the second part more directly.",
     },
@@ -81,6 +101,11 @@ const teacherProjected = buildWritingResult([
     },
   }),
 ]);
+assert.equal(teacherProjected?.band, 7.5);
+assert.equal(
+  teacherProjected?.tasks[0].teacherFeedback,
+  "Teacher published note.",
+);
 assert.equal(
   teacherProjected?.tasks[0].criteria[0].rationale,
   "Teacher: address the second part more directly.",
@@ -168,18 +193,30 @@ const speaking = buildSpeakingResult([
 assert.ok(speaking);
 assert.equal(speaking.band, 6.5); // mean (7+6)/2
 assert.equal(speaking.parts.length, 2);
-assert.deepEqual(speaking.parts.map((part) => part.partNumber), [1, 2]);
+assert.deepEqual(
+  speaking.parts.map((part) => part.partNumber),
+  [1, 2],
+);
 assert.equal(speaking.parts[0].criteria[3].key, "pronunciation");
 assert.equal(speaking.parts[0].summary, "Fluent.");
 assert.equal(speaking.parts[0].modelAnswer, "Band 9 spoken sample.");
 assert.equal(speaking.parts[0].pronunciationHeatmap?.words[0].level, "focus");
-assert.equal(speaking.parts[0].pronunciationHeatmap?.words[0].phonemes[0].level, "strong");
+assert.equal(
+  speaking.parts[0].pronunciationHeatmap?.words[0].phonemes[0].level,
+  "strong",
+);
 assert.equal(speaking.parts[1].pronunciationHeatmap, null);
 assert.equal(buildSpeakingResult([]), null);
 
 // ---- feedbackSkillStatus ---------------------------------------------------
 assert.equal(feedbackSkillStatus(null), "not_attempted");
-assert.equal(feedbackSkillStatus({ isComplete: true, anyPending: false }), "scored");
-assert.equal(feedbackSkillStatus({ isComplete: false, anyPending: true }), "in_progress");
+assert.equal(
+  feedbackSkillStatus({ isComplete: true, anyPending: false }),
+  "scored",
+);
+assert.equal(
+  feedbackSkillStatus({ isComplete: false, anyPending: true }),
+  "in_progress",
+);
 
 console.log("ielts/results/skill-feedback tests passed");

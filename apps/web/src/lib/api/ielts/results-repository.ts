@@ -141,7 +141,36 @@ type PublishedReview = {
   revision: number;
   reviewer_note: string | null;
   criterion_feedback: unknown;
+  task_response_band: number | null;
+  coherence_cohesion_band: number | null;
+  lexical_resource_band: number | null;
+  grammar_band: number | null;
+  fluency_coherence_band: number | null;
+  pronunciation_band: number | null;
+  task_band: number | null;
+  skill_band: number | null;
 };
+
+type PublishedBandKey =
+  | "task_response_band"
+  | "coherence_cohesion_band"
+  | "lexical_resource_band"
+  | "grammar_band"
+  | "fluency_coherence_band"
+  | "pronunciation_band"
+  | "task_band"
+  | "skill_band";
+
+function effectivePublishedBand(
+  review: PublishedReview | undefined,
+  key: PublishedBandKey,
+  aiBand: number | null,
+): number | null {
+  const teacherBand = review?.[key];
+  return teacherBand === null || teacherBand === undefined
+    ? aiBand
+    : teacherBand;
+}
 
 /** The per-test conversion key (test.metadata.band_conversion_key) → 'default'. */
 function resolveConversionKey(
@@ -290,11 +319,27 @@ function mapWritingTask(
     status: row.status,
     essay: row.essay,
     wordCount: row.word_count,
-    taskResponseBand: row.task_response_band,
-    coherenceCohesionBand: row.coherence_cohesion_band,
-    lexicalResourceBand: row.lexical_resource_band,
-    grammarBand: row.grammar_band,
-    taskBand: row.task_band,
+    taskResponseBand: effectivePublishedBand(
+      review,
+      "task_response_band",
+      row.task_response_band,
+    ),
+    coherenceCohesionBand: effectivePublishedBand(
+      review,
+      "coherence_cohesion_band",
+      row.coherence_cohesion_band,
+    ),
+    lexicalResourceBand: effectivePublishedBand(
+      review,
+      "lexical_resource_band",
+      row.lexical_resource_band,
+    ),
+    grammarBand: effectivePublishedBand(
+      review,
+      "grammar_band",
+      row.grammar_band,
+    ),
+    taskBand: effectivePublishedBand(review, "task_band", row.task_band),
     criteriaFeedback: row.criteria_feedback,
     inlineCorrections: row.inline_corrections,
     paragraphFeedback: row.paragraph_feedback,
@@ -318,11 +363,31 @@ function mapSpeakingPart(
     partNumber: row.part_number,
     status: row.status,
     transcript: row.transcript,
-    fluencyCoherenceBand: row.fluency_coherence_band,
-    lexicalResourceBand: row.lexical_resource_band,
-    grammarBand: row.grammar_band,
-    pronunciationBand: row.pronunciation_band,
-    speakingBand: row.speaking_band,
+    fluencyCoherenceBand: effectivePublishedBand(
+      review,
+      "fluency_coherence_band",
+      row.fluency_coherence_band,
+    ),
+    lexicalResourceBand: effectivePublishedBand(
+      review,
+      "lexical_resource_band",
+      row.lexical_resource_band,
+    ),
+    grammarBand: effectivePublishedBand(
+      review,
+      "grammar_band",
+      row.grammar_band,
+    ),
+    pronunciationBand: effectivePublishedBand(
+      review,
+      "pronunciation_band",
+      row.pronunciation_band,
+    ),
+    speakingBand: effectivePublishedBand(
+      review,
+      "skill_band",
+      row.speaking_band,
+    ),
     feedback: row.feedback,
     feedbackLanguage: row.feedback_language,
     modelAnswer: key?.model_answer ?? null,
@@ -465,12 +530,16 @@ async function runAttemptReads(
       .eq("attempt_id", attemptId),
     (supabase as unknown as import("@supabase/supabase-js").SupabaseClient)
       .from("ielts_effective_attempt_scores")
-      .select("listening_band, reading_band, writing_band, speaking_band, overall_band, provisional_band, overall_is_provisional, score_source")
+      .select(
+        "listening_band, reading_band, writing_band, speaking_band, overall_band, provisional_band, overall_is_provisional, score_source",
+      )
       .eq("attempt_id", attemptId)
       .maybeSingle(),
     (supabase as unknown as import("@supabase/supabase-js").SupabaseClient)
       .from("ielts_teacher_reviews")
-      .select("writing_response_id, speaking_response_id, revision, reviewer_note, criterion_feedback")
+      .select(
+        "writing_response_id, speaking_response_id, revision, reviewer_note, criterion_feedback, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, fluency_coherence_band, pronunciation_band, task_band, skill_band",
+      )
       .eq("attempt_id", attemptId)
       .eq("status", "published")
       .order("published_at", { ascending: false }),
@@ -492,10 +561,10 @@ async function runAttemptReads(
       throw new Error(`loadAttemptResults: ${result.error.message}`);
   }
 
-  const questionRows = (questions.data ?? []) as Array<QuestionRow | FrozenQuestionRow>;
-  const frozenQuestions = frozen
-    ? (questionRows as FrozenQuestionRow[])
-    : [];
+  const questionRows = (questions.data ?? []) as Array<
+    QuestionRow | FrozenQuestionRow
+  >;
+  const frozenQuestions = frozen ? (questionRows as FrozenQuestionRow[]) : [];
   const mappedQuestions: QuestionRow[] = frozen
     ? frozenQuestions.map((row) => ({
         id: row.question_id,
@@ -537,11 +606,14 @@ async function runAttemptReads(
     responses: responses.data ?? [],
     questions: mappedQuestions,
     conversions: (conversions.data ?? []) as BandConversionRow[],
-    passages: frozen ? [...frozenPassages.values()] : passages.data ?? [],
-    listeningSections: frozen ? [...frozenListening.values()] : listeningSections.data ?? [],
+    passages: frozen ? [...frozenPassages.values()] : (passages.data ?? []),
+    listeningSections: frozen
+      ? [...frozenListening.values()]
+      : (listeningSections.data ?? []),
     writing: writing.data ?? [],
     speaking: speaking.data ?? [],
-    effectiveScore: (effectiveScore.data as Record<string, unknown> | null) ?? null,
+    effectiveScore:
+      (effectiveScore.data as Record<string, unknown> | null) ?? null,
     publishedReviews: (publishedReviews.data ?? []) as PublishedReview[],
   };
 }
@@ -570,7 +642,9 @@ export async function loadAttemptResults(
 
   const { data: attempt, error } = await supabase
     .from("ielts_attempts")
-    .select("id, user_id, test_id, module, status, submitted_at, blueprint_frozen_at")
+    .select(
+      "id, user_id, test_id, module, status, submitted_at, blueprint_frozen_at",
+    )
     .eq("id", attemptId)
     .maybeSingle();
   if (error) throw new Error(`loadAttemptResults(attempt): ${error.message}`);
@@ -597,11 +671,11 @@ export async function loadAttemptResults(
   const keys =
     attempt.status === "in_progress" || attempt.submitted_at === null
       ? []
-    : await loadQuestionKeys({
-        questionIds: reads.questions.map((question) => question.id),
-        attemptId,
-        frozen: Boolean(attempt.blueprint_frozen_at),
-      });
+      : await loadQuestionKeys({
+          questionIds: reads.questions.map((question) => question.id),
+          attemptId,
+          frozen: Boolean(attempt.blueprint_frozen_at),
+        });
   const keyByQuestion = new Map(keys.map((key) => [key.question_id, key]));
   const effective = projectEffectiveBands(
     reads.effectiveScore,
@@ -609,8 +683,12 @@ export async function loadAttemptResults(
   );
   const publishedReviewByResponse = new Map<string, PublishedReview>();
   for (const review of reads.publishedReviews) {
-    const responseId = review.writing_response_id ?? review.speaking_response_id;
-    if (responseId && !publishedReviewByResponse.has(`${responseId}:${review.revision}`)) {
+    const responseId =
+      review.writing_response_id ?? review.speaking_response_id;
+    if (
+      responseId &&
+      !publishedReviewByResponse.has(`${responseId}:${review.revision}`)
+    ) {
       publishedReviewByResponse.set(`${responseId}:${review.revision}`, review);
     }
   }

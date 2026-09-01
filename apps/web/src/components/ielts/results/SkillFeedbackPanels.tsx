@@ -68,6 +68,27 @@ function PendingNote({ skill }: { skill: string }) {
   );
 }
 
+function TeacherPublishedNote({
+  note,
+  locale,
+}: {
+  note: string | null | undefined;
+  locale: string;
+}) {
+  if (!note) return null;
+  const vietnamese = locale.toLowerCase().startsWith("vi");
+  return (
+    <div className="rounded-xl border border-primary/30 bg-primary-container/35 px-3 py-2">
+      <p className="type-caption font-semibold uppercase text-on-primary-container">
+        {vietnamese
+          ? "Phản hồi giáo viên đã công bố"
+          : "Published teacher feedback"}
+      </p>
+      <p className="mt-1 type-body-sm text-on-primary-container">{note}</p>
+    </div>
+  );
+}
+
 function Corrections({ items }: { items: ResultsInlineCorrection[] }) {
   const copy = useResultCopy();
   if (items.length === 0) return null;
@@ -231,6 +252,7 @@ function WritingTaskCard({ task }: { task: WritingTaskResult }) {
       ) : null}
       {isScored(task.status) ? (
         <div className="mt-3 flex flex-col gap-3">
+          <TeacherPublishedNote note={task.teacherFeedback} locale={locale} />
           {grading ? null : <CriteriaList criteria={task.criteria} />}
           {task.summary ? (
             <p className="type-body-sm text-on-surface">{task.summary}</p>
@@ -323,6 +345,7 @@ function SpeakingPartCard({ part }: { part: SpeakingPartResult }) {
       ) : null}
       {isScored(part.status) ? (
         <div className="mt-3 flex flex-col gap-3">
+          <TeacherPublishedNote note={part.teacherFeedback} locale={locale} />
           {grading ? null : <CriteriaList criteria={part.criteria} />}
           {part.summary ? (
             <p className="type-body-sm text-on-surface">{part.summary}</p>
