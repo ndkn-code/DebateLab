@@ -31,7 +31,12 @@ const full = extractPronunciationSignal({
   },
   words: [
     { word: "hello", accuracy: 95, errorType: "None", phonemes: [] },
-    { word: "th-thing", accuracy: 40, errorType: "Mispronunciation", phonemes: [] },
+    {
+      word: "th-thing",
+      accuracy: 40,
+      errorType: "Mispronunciation",
+      phonemes: [],
+    },
     { word: "quiet", accuracy: 55, errorType: "None", phonemes: [] }, // low accuracy -> flagged
     { word: "the", accuracy: 90, errorType: "Omission", phonemes: [] }, // error type -> flagged
     { word: "  ", accuracy: 10, errorType: "Mispronunciation", phonemes: [] }, // blank -> skipped
@@ -41,14 +46,34 @@ assert.ok(full);
 assert.equal(full?.pronunciationScore, 78);
 assert.equal(full?.accuracyScore, 82);
 assert.equal(full?.fluencyScore, 75);
-assert.equal(full?.completenessScore, 100);
+assert.equal(full?.completenessScore, null);
+
+const scripted = extractPronunciationSignal({
+  status: "scored",
+  referenceText: "Read this sentence aloud.",
+  overall: {
+    pronunciation: 78,
+    accuracy: 82,
+    fluency: 75,
+    completeness: 100,
+    prosody: 68,
+  },
+  words: [],
+});
+assert.equal(scripted?.completenessScore, 100);
 assert.equal(full?.prosodyScore, 68);
 assert.deepEqual(full?.mispronouncedWords, ["th-thing", "quiet", "the"]);
 
 // --- prosody may be null ----------------------------------------------------
 const noProsody = extractPronunciationSignal({
   status: "scored",
-  overall: { pronunciation: 60, accuracy: 60, fluency: 60, completeness: 60, prosody: null },
+  overall: {
+    pronunciation: 60,
+    accuracy: 60,
+    fluency: 60,
+    completeness: 60,
+    prosody: null,
+  },
   words: [],
 });
 assert.ok(noProsody);
@@ -58,7 +83,13 @@ assert.deepEqual(noProsody?.mispronouncedWords, []);
 // --- flagged-word cap (25) --------------------------------------------------
 const many = extractPronunciationSignal({
   status: "scored",
-  overall: { pronunciation: 50, accuracy: 50, fluency: 50, completeness: 50, prosody: null },
+  overall: {
+    pronunciation: 50,
+    accuracy: 50,
+    fluency: 50,
+    completeness: 50,
+    prosody: null,
+  },
   words: Array.from({ length: 40 }, (_, i) => ({
     word: `w${i}`,
     accuracy: 10,
@@ -71,7 +102,13 @@ assert.equal(many?.mispronouncedWords.length, 25);
 // --- an already-parsed PhonemeReport passes through (idempotent) ------------
 const parsed = parsePhonemeReport({
   status: "scored",
-  overall: { pronunciation: 70, accuracy: 70, fluency: 70, completeness: 70, prosody: 70 },
+  overall: {
+    pronunciation: 70,
+    accuracy: 70,
+    fluency: 70,
+    completeness: 70,
+    prosody: 70,
+  },
   words: [],
 });
 assert.equal(extractPronunciationSignal(parsed)?.pronunciationScore, 70);

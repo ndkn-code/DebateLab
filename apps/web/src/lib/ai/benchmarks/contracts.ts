@@ -132,6 +132,32 @@ const protectedCriterionLabelSchema = z.object({
   examinerRationale: z.string().min(1).max(8_000).optional(),
 });
 
+const benchmarkLabelProvenanceSchema = z
+  .object({
+    /** Release labels require two independently produced examiner marks. */
+    raterCount: z.number().int().min(2).max(20),
+    independentlyMarked: z.literal(true),
+    raterAuthorities: z
+      .array(z.enum(["official_examiner", "qualified_examiner"]))
+      .min(2)
+      .max(20),
+    adjudicationMethod: z.enum([
+      "third_examiner",
+      "documented_consensus",
+      "official_published_adjudication",
+    ]),
+    adjudicationLocator: z.string().min(1).max(500),
+  })
+  .superRefine((value, context) => {
+    if (value.raterAuthorities.length !== value.raterCount) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["raterAuthorities"],
+        message: "Rater authority count must equal raterCount",
+      });
+    }
+  });
+
 const protectedBenchmarkInputSchema = z
   .object({
     prompt: z.string().min(1).max(20_000),
@@ -141,7 +167,10 @@ const protectedBenchmarkInputSchema = z
     audioObjectPath: z.string().min(1).max(1_000).optional(),
     artifactSha256: z
       .string()
-      .regex(/^[a-f0-9]{64}$/i, "Artifact checksum must be a SHA-256 hex digest")
+      .regex(
+        /^[a-f0-9]{64}$/i,
+        "Artifact checksum must be a SHA-256 hex digest",
+      )
       .optional(),
     artifactContentType: z.string().min(1).max(200).optional(),
     responseLocator: z.string().min(1).max(500),
@@ -195,6 +224,7 @@ const protectedBenchmarkLabelSchema = z.object({
   input: protectedBenchmarkInputSchema,
   rubricVersion: z.string().min(1).max(200),
   labelAuthority: z.enum(["official_examiner", "qualified_examiner"]),
+  provenance: benchmarkLabelProvenanceSchema,
 });
 
 const benchmarkCaseSchema = z.object({
@@ -207,8 +237,51 @@ const benchmarkCaseSchema = z.object({
   accentGroup: z.string().min(1).max(100).nullable().default(null),
   split: z.enum(["development", "evaluation", "holdout"]),
   protectedLabel: protectedBenchmarkLabelSchema,
-  metadata: z.record(z.string(), z.unknown()).default({}),
+  metadata: z
+    .object({
+      /** Required for Speaking slice analysis and accent-bias checks. */
+      l1Group: z.string().min(1).max(100).optional(),
+      audioQualityGroup: z
+        .enum(["studio", "quiet_room", "typical_device", "degraded"])
+        .optional(),
+    })
+    .catchall(z.unknown())
+    .default({}),
 });
+
+const storedBenchmarkReleaseSchema = z
+  .object({
+    skill: z.enum(["ielts_speaking", "ielts_writing"]),
+    accentGroup: z.string().min(1).max(100).nullable().default(null),
+    protectedLabel: protectedBenchmarkLabelSchema,
+    metadata: benchmarkCaseSchema.shape.metadata,
+  })
+  .superRefine((benchmark, context) => {
+    if (benchmark.skill !== "ielts_speaking") return;
+    if (!benchmark.protectedLabel.input.audioObjectPath) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["protectedLabel", "input", "audioObjectPath"],
+        message: "Speaking release benchmark requires audio",
+      });
+    }
+    if (
+      !benchmark.accentGroup ||
+      !benchmark.metadata.l1Group ||
+      !benchmark.metadata.audioQualityGroup
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["metadata"],
+        message: "Speaking release benchmark requires slice metadata",
+      });
+    }
+  });
+
+/** Re-validates stored DB JSON and slice metadata at release time. */
+export function isReleaseEligibleStoredBenchmark(value: unknown): boolean {
+  return storedBenchmarkReleaseSchema.safeParse(value).success;
+}
 
 export const gradingBenchmarkImportFileSchema = z.object({
   manifestVersion: z.literal(1),
@@ -248,6 +321,22 @@ export function parseGradingBenchmarkImport(
       throw new Error(
         `Benchmark source is missing from approved manifest: ${benchmark.sourceUrl}`,
       );
+    }
+    if (benchmark.skill === "ielts_speaking") {
+      if (!benchmark.protectedLabel.input.audioObjectPath) {
+        throw new Error(
+          `Speaking benchmark requires examiner-labelled audio: ${benchmark.benchmarkKey}`,
+        );
+      }
+      if (
+        !benchmark.accentGroup ||
+        !benchmark.metadata.l1Group ||
+        !benchmark.metadata.audioQualityGroup
+      ) {
+        throw new Error(
+          `Speaking benchmark requires accent, L1, and audio-quality groups: ${benchmark.benchmarkKey}`,
+        );
+      }
     }
     const expectedCollection =
       benchmark.skill === "ielts_speaking" ? "ielts.speaking" : "ielts.writing";

@@ -107,7 +107,7 @@ The web app needs `@vercel/oidc`; it does not need a GCP private key.
 
 Before setting the web environment to `gcp`:
 
-1. Apply migrations through `20260830160000` in preview and verify all new RPCs
+1. Apply migrations through `20260901130000` in preview and verify all new RPCs
    reject `anon` and `authenticated` while service role succeeds.
 2. Submit one practice, Writing, and Speaking job. Confirm the Pub/Sub payload
    contains no learner content and each produces one checkpoint/run.
@@ -118,8 +118,12 @@ Before setting the web environment to `gcp`:
    resumes within the three-attempt cap.
 6. Simulate loss after provider start but before output checkpoint. Confirm the
    terminal code is `PROVIDER_OUTCOME_UNKNOWN` and no automatic second charge.
-7. Confirm an invalid Pub/Sub/Scheduler identity receives no work.
-8. Inspect DLQ alerts, latency, provider attempt count, workflow failures, and
+7. Simulate an HTTP 429/5xx and malformed provider output. Confirm only these
+   definite failures are re-driven within the three-attempt cap. A client
+   timeout or socket loss must remain outcome-unknown and must not auto-call a
+   fallback provider.
+8. Confirm an invalid Pub/Sub/Scheduler identity receives no work.
+9. Inspect DLQ alerts, latency, provider attempt count, workflow failures, and
    Cloud Run instance/cost dashboards.
 
 ## Rollback

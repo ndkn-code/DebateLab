@@ -1,0 +1,156 @@
+{
+  "collection": "debate.en.competitive",
+  "collectionVersion": 3,
+  "sources": [
+    {
+      "canonicalUrl": "https://www.youtube.com/watch?v=t5ChDcqZEfs",
+      "publisher": "Alex Lee",
+      "title": "NSDA Nationals 2023 World Schools Debate Final Round",
+      "authorityTier": "community",
+      "rightsStatus": "requires_review",
+      "reviewStatus": "candidate",
+      "metadata": { "discoveryMethod": "exa", "extractionMethod": "gemini_via_ego_lite", "egoTaskspace": 35, "verificationStatus": "blocked_user_control", "noFullTranscript": true, "derivedOnly": true }
+    },
+    {
+      "canonicalUrl": "https://www.youtube.com/watch?v=_kjeQW-RNyw",
+      "publisher": "WSDC 2025 video uploader",
+      "title": "WSDC 2025 Grand Final — India v Australia",
+      "authorityTier": "community",
+      "rightsStatus": "requires_review",
+      "reviewStatus": "candidate",
+      "metadata": { "discoveryMethod": "exa", "extractionMethod": "gemini_via_ego_lite", "egoTaskspace": 35, "verificationStatus": "blocked_user_control", "reportedResult": "India Proposition, reported 9-0 but tab not independently verified", "noFullTranscript": true, "derivedOnly": true }
+    }
+  ],
+  "items": [
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.youtube.com/watch?v=t5ChDcqZEfs",
+      "itemType": "round_argument_candidate",
+      "insight": { "format": "WSDC", "motion": "This House supports a people's democratic right to secede", "side": "proposition", "speakerRole": "First Proposition", "argument": "Democratic consent cannot be perpetual; political legitimacy requires a meaningful ability to revoke consent.", "weighing": "Frames the right as a prior legitimacy question rather than a guarantee that every exercise is optimal.", "timestamp": "00:07:41–00:09:02", "qualityNotes": ["Candidate threshold framing; verify against captions before approval."] },
+      "sourceLocator": "00:07:41–00:09:02",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": { "verified": false, "noTranscriptStored": true }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.youtube.com/watch?v=t5ChDcqZEfs",
+      "itemType": "round_mechanism_candidate",
+      "insight": { "format": "WSDC", "motion": "This House supports a people's democratic right to secede", "side": "proposition", "speakerRole": "First Proposition", "mechanism": "A credible secession threat can force devolution and shift negotiations toward autonomy even if separation does not occur.", "timestamp": "00:13:17", "qualityNotes": ["Candidate fallback-solvency mechanism; verify before approval."] },
+      "sourceLocator": "00:13:17",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": { "verified": false, "noTranscriptStored": true }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.youtube.com/watch?v=t5ChDcqZEfs",
+      "itemType": "round_argument_candidate",
+      "insight": { "format": "WSDC", "motion": "This House supports a people's democratic right to secede", "side": "opposition", "speakerRole": "First Opposition", "argument": "A claimed democratic right loses legitimacy when exercising it damages the wider democratic system and the rights of people who remain.", "timestamp": "00:19:04", "qualityNotes": ["Candidate competing-rights criterion; verify before approval."] },
+      "sourceLocator": "00:19:04",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": { "verified": false, "noTranscriptStored": true }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.youtube.com/watch?v=t5ChDcqZEfs",
+      "itemType": "round_rebuttal_candidate",
+      "insight": { "format": "WSDC", "motion": "This House supports a people's democratic right to secede", "side": "proposition", "speakerRole": "Second Proposition", "rebuttalTarget": "Peaceful negotiation is non-solving when an oppressive parent state has no incentive to bargain without secession leverage.", "timestamp": "00:25:59", "qualityNotes": ["Candidate direct response to countermodel feasibility; verify before approval."] },
+      "sourceLocator": "00:25:59",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": { "verified": false, "noTranscriptStored": true }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.youtube.com/watch?v=t5ChDcqZEfs",
+      "itemType": "round_clash_candidate",
+      "insight": { "format": "WSDC", "motion": "This House supports a people's democratic right to secede", "side": "opposition", "speakerRole": "Second Opposition", "clash": "A local majority cannot withdraw political consent on behalf of non-consenting people within the same territory.", "timestamp": "00:35:47", "qualityNotes": ["Candidate consent paradox; verify before approval."] },
+      "sourceLocator": "00:35:47",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": { "verified": false, "noTranscriptStored": true }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.youtube.com/watch?v=t5ChDcqZEfs",
+      "itemType": "round_weighing_candidate",
+      "insight": { "format": "WSDC", "motion": "This House supports a people's democratic right to secede", "side": "opposition", "speakerRole": "Third Opposition", "weighing": "A social contract protects broader collective liberty against a subgroup overriding it for localized preferences.", "timestamp": "00:53:18", "qualityNotes": ["Candidate bench-level prioritisation; verify before approval."] },
+      "sourceLocator": "00:53:18",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": { "verified": false, "noTranscriptStored": true }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.youtube.com/watch?v=t5ChDcqZEfs",
+      "itemType": "round_concession_candidate",
+      "insight": { "format": "WSDC", "motion": "This House supports a people's democratic right to secede", "side": "opposition", "speakerRole": "Opposition Reply", "concession": "Secession may exist as an abstract right while international institutions should still discourage destabilizing exercises of it.", "timestamp": "01:03:27", "qualityNotes": ["Candidate right-versus-endorsement distinction; verify before approval."] },
+      "sourceLocator": "01:03:27",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": { "verified": false, "noTranscriptStored": true }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.youtube.com/watch?v=_kjeQW-RNyw",
+      "itemType": "round_mechanism_candidate",
+      "insight": { "format": "WSDC", "motion": "This House prefers a world with a strong belief in Seriti", "side": "proposition", "speakerRole": "First Proposition", "mechanism": "Generational memory filters ancestral tradition into broad virtues rather than fixed micro-rules, allowing contemporary interpretation.", "timestamp": "00:09:04", "qualityNotes": ["Candidate framing against regressive-dogma attacks; verify before approval."] },
+      "sourceLocator": "00:09:04",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": { "verified": false, "noTranscriptStored": true }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.youtube.com/watch?v=_kjeQW-RNyw",
+      "itemType": "round_argument_candidate",
+      "insight": { "format": "WSDC", "motion": "This House prefers a world with a strong belief in Seriti", "side": "opposition", "speakerRole": "First Opposition", "argument": "Ancestral expectations can create moral coercion, constrain bodily and life choices, and cause chronic guilt when people cannot meet idealized standards.", "timestamp": "00:17:38–00:21:09", "qualityNotes": ["Candidate principled harm plus psychological mechanism; verify before approval."] },
+      "sourceLocator": "00:17:38–00:21:09",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": { "verified": false, "noTranscriptStored": true }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.youtube.com/watch?v=_kjeQW-RNyw",
+      "itemType": "round_concession_candidate",
+      "insight": { "format": "WSDC", "motion": "This House prefers a world with a strong belief in Seriti", "side": "proposition", "speakerRole": "Second Proposition", "concession": "Historical norms can be regressive.", "mechanism": "Present-day agents can recontextualize ancestral principles, and awareness of becoming an ancestral standard may incentivize prosocial legacy-building.", "timestamp": "00:28:02–00:32:15", "qualityNotes": ["Candidate concession paired with modernization and turn; verify before approval."] },
+      "sourceLocator": "00:28:02–00:32:15",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": { "verified": false, "noTranscriptStored": true }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.youtube.com/watch?v=_kjeQW-RNyw",
+      "itemType": "round_rebuttal_candidate",
+      "insight": { "format": "WSDC", "motion": "This House prefers a world with a strong belief in Seriti", "side": "opposition", "speakerRole": "Second Opposition", "rebuttalTarget": "The information slide's obligation not to dishonor ancestors conflicts with Proposition's claim that interpretation is freely flexible.", "timestamp": "00:38:13", "qualityNotes": ["Candidate text-grounded rebuttal; verify before approval."] },
+      "sourceLocator": "00:38:13",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": { "verified": false, "noTranscriptStored": true }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.youtube.com/watch?v=_kjeQW-RNyw",
+      "itemType": "round_weighing_candidate",
+      "insight": { "format": "WSDC", "motion": "This House prefers a world with a strong belief in Seriti", "side": "opposition", "speakerRole": "Third Opposition", "weighing": "Severe and irreversible harms to marginalized people outweigh speculative generalized contentment.", "timestamp": "00:54:47", "qualityNotes": ["Candidate severity-and-irreversibility weighing; verify before approval."] },
+      "sourceLocator": "00:54:47",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": { "verified": false, "noTranscriptStored": true }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.youtube.com/watch?v=_kjeQW-RNyw",
+      "itemType": "round_judge_reasoning_candidate",
+      "insight": { "format": "WSDC", "motion": "This House prefers a world with a strong belief in Seriti", "judgeReasoning": "The panel treated social-change material as symmetrical and decided the debate on contentment, crediting Proposition's more stable account of self-worth.", "timestamp": "02:17:50", "qualityNotes": ["Candidate ballot-trigger analysis from oral adjudication; result and wording require independent verification."] },
+      "sourceLocator": "02:17:50",
+      "reviewStatus": "candidate",
+      "usableFor": ["coaching"],
+      "metadata": { "verified": false, "noTranscriptStored": true }
+    }
+  ]
+}

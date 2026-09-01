@@ -28,7 +28,15 @@ export interface AiGradingRepository {
     payload: unknown,
     hash: string,
   ): Promise<void>;
-  reserveProvider(runId: string, claimToken: string): Promise<ProviderReservation>;
+  reserveProvider(
+    runId: string,
+    claimToken: string,
+  ): Promise<ProviderReservation>;
+  checkpointProviderFailure(
+    runId: string,
+    claimToken: string,
+    failureKind: string,
+  ): Promise<void>;
   checkpointOutput(
     runId: string,
     claimToken: string,
@@ -45,7 +53,9 @@ export interface AiGradingRepository {
 function firstRow(value: unknown): Record<string, unknown> | null {
   if (!Array.isArray(value) || value.length === 0) return null;
   const row = value[0];
-  return row && typeof row === "object" ? (row as Record<string, unknown>) : null;
+  return row && typeof row === "object"
+    ? (row as Record<string, unknown>)
+    : null;
 }
 
 function parseClaim(value: unknown): ClaimResult {
@@ -118,6 +128,17 @@ export function createProductionRepository(): AiGradingRepository {
         throw new Error("AI_GRADING_PROVIDER_RESERVATION_INVALID");
       }
       return data;
+    },
+    async checkpointProviderFailure(runId, claimToken, failureKind) {
+      const { error } = await supabase.rpc(
+        "checkpoint_ai_grading_provider_failure",
+        {
+          p_run_id: runId,
+          p_claim_token: claimToken,
+          p_failure_kind: failureKind,
+        },
+      );
+      assertRpc(error, "checkpoint AI grading provider failure");
     },
     async checkpointOutput(runId, claimToken, payload, hash) {
       const { error } = await supabase.rpc("checkpoint_ai_grading_output", {

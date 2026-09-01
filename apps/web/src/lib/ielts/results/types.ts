@@ -306,7 +306,7 @@ export interface SpeakingPronunciationHeatmap {
   overall: {
     accuracy: number;
     fluency: number;
-    completeness: number;
+    completeness: number | null;
     prosody: number | null;
     pronunciation: number;
   } | null;

@@ -53,7 +53,7 @@ async function main() {
     {
       audio,
       audioContentType,
-      referenceText: "A good answer uses clear examples.",
+      assessmentMode: "unscripted",
       userId: "user-1",
       speakingResponseId: "sr-e2e",
       practiceAttemptId: "attempt-1",
@@ -80,7 +80,7 @@ async function main() {
   if (outcome.status !== "ok") throw new Error("expected ok pronunciation");
   assert.equal(outcome.report.status, "scored");
   assert.equal(outcome.report.overall?.pronunciation, 86);
-  assert.equal(outcome.pronunciationBand, 7.5);
+  assert.equal(outcome.pronunciationBand, null);
 
   const request = requireCapturedRequest(capturedRequests[0] ?? null);
   assert.ok(request.url.includes("language=en-US"));
@@ -112,10 +112,10 @@ async function main() {
     },
     pronunciation: signal,
   });
-  assert.match(prompt, /PHONEME ASSESSMENT/);
+  assert.match(prompt, /ACOUSTIC PRONUNCIATION EVIDENCE/);
   assert.match(prompt, /overall 86\/100/);
   assert.match(prompt, /Flagged words: answer/);
-  assert.match(prompt, /weight it together with the transcript/);
+  assert.match(prompt, /not IELTS bands/);
 }
 
 main()

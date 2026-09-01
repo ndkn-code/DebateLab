@@ -37,6 +37,16 @@ const writingBenchmark = {
     },
     rubricVersion: "ielts-writing-2023",
     labelAuthority: "official_examiner" as const,
+    provenance: {
+      raterCount: 2,
+      independentlyMarked: true as const,
+      raterAuthorities: [
+        "official_examiner" as const,
+        "official_examiner" as const,
+      ],
+      adjudicationMethod: "official_published_adjudication" as const,
+      adjudicationLocator: "page 3",
+    },
   },
   metadata: { protectedOfflineEvaluationOnly: true },
 };
@@ -169,6 +179,74 @@ assert.throws(
       ],
     }),
   /exactly one of responseText, responseObjectPath, or audioObjectPath/,
+);
+
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [
+        {
+          ...writingBenchmark,
+          protectedLabel: {
+            ...writingBenchmark.protectedLabel,
+            provenance: {
+              ...writingBenchmark.protectedLabel.provenance,
+              raterCount: 3,
+            },
+          },
+        },
+      ],
+    }),
+  /Rater authority count must equal raterCount/,
+);
+
+const speakingBenchmark = {
+  ...writingBenchmark,
+  benchmarkKey: "official-speaking-part2-holdout-001",
+  collectionSlug: "ielts.speaking" as const,
+  skill: "ielts_speaking" as const,
+  taskType: "speaking_part2_cuecard",
+  accentGroup: "vi",
+  protectedLabel: {
+    ...writingBenchmark.protectedLabel,
+    criteria: {
+      fluencyCoherence: { band: 6.5, labelLocator: "mark sheet" },
+      lexicalResource: { band: 6.5, labelLocator: "mark sheet" },
+      grammaticalRangeAccuracy: { band: 6, labelLocator: "mark sheet" },
+      pronunciation: { band: 6, labelLocator: "mark sheet" },
+    },
+    input: {
+      prompt: "Protected speaking prompt",
+      audioObjectPath: "benchmarks/speaking/vi-001.wav",
+      artifactSha256: "d".repeat(64),
+      artifactContentType: "audio/wav",
+      responseLocator: "full recording",
+    },
+  },
+  metadata: { l1Group: "Vietnamese", audioQualityGroup: "typical_device" },
+};
+
+assert.equal(
+  parseGradingBenchmarkImport({
+    ...validManifest,
+    benchmarks: [speakingBenchmark],
+  }).benchmarks[0]?.protectedLabel.input.audioObjectPath,
+  "benchmarks/speaking/vi-001.wav",
+);
+
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [
+        {
+          ...speakingBenchmark,
+          metadata: { l1Group: "Vietnamese" },
+        },
+      ],
+    }),
+  /requires accent, L1, and audio-quality groups/,
 );
 
 console.log("AI grading benchmark import contract tests passed");

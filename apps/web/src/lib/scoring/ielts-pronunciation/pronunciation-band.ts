@@ -1,24 +1,94 @@
 /**
- * Derive an IELTS Pronunciation band (0–9, half-band) from a phoneme report.
- *
- * Azure's composite PronScore (0–100) is the single best objective signal for
- * the Pronunciation criterion. We map it linearly onto the 0–9 band scale and
- * snap to the IELTS half-band grid (masterplan §6). This is a transparent
- * SUGGESTION the Speaking scorer (WS-3.2) blends with its rubric judgment — the
- * authoritative `pronunciation_band` stays WS-3.2's to set.
+ * Optional, versioned calibration of Azure's provider-specific PronScore to an
+ * IELTS pronunciation estimate. There is deliberately no built-in mapping:
+ * Microsoft does not claim its 0–100 score is an IELTS scale, and the mapping
+ * must be fitted and held out on independently examiner-labelled target audio.
  */
 import { roundToHalfBand } from "../round-half-band";
 import type { PhonemeReport } from "./phoneme-report";
 
-const MAX_BAND = 9;
-const MAX_SCORE = 100;
+export interface PronunciationCalibrationKnot {
+  providerScore: number;
+  ieltsBand: number;
+}
+
+export interface PronunciationCalibrationProfile {
+  version: string;
+  provider: string;
+  model: string;
+  locales: string[];
+  minimumWordCount: number;
+  requiresProsody: boolean;
+  /** Monotone knots fitted on development labels, never on the holdout set. */
+  knots: PronunciationCalibrationKnot[];
+}
+
+function validProfile(profile: PronunciationCalibrationProfile): boolean {
+  if (!profile.version.trim() || profile.knots.length < 2) return false;
+  if (
+    !Number.isInteger(profile.minimumWordCount) ||
+    profile.minimumWordCount < 1
+  )
+    return false;
+  return profile.knots.every((knot, index, knots) => {
+    if (
+      !Number.isFinite(knot.providerScore) ||
+      knot.providerScore < 0 ||
+      knot.providerScore > 100 ||
+      !Number.isFinite(knot.ieltsBand) ||
+      knot.ieltsBand < 0 ||
+      knot.ieltsBand > 9
+    ) {
+      return false;
+    }
+    if (index === 0) return true;
+    return (
+      knot.providerScore > knots[index - 1]!.providerScore &&
+      knot.ieltsBand >= knots[index - 1]!.ieltsBand
+    );
+  });
+}
+
+function interpolate(
+  score: number,
+  knots: PronunciationCalibrationKnot[],
+): number {
+  if (score <= knots[0]!.providerScore) return knots[0]!.ieltsBand;
+  if (score >= knots.at(-1)!.providerScore) return knots.at(-1)!.ieltsBand;
+  for (let index = 1; index < knots.length; index += 1) {
+    const upper = knots[index]!;
+    const lower = knots[index - 1]!;
+    if (score > upper.providerScore) continue;
+    const fraction =
+      (score - lower.providerScore) /
+      (upper.providerScore - lower.providerScore);
+    return lower.ieltsBand + fraction * (upper.ieltsBand - lower.ieltsBand);
+  }
+  return knots.at(-1)!.ieltsBand;
+}
 
 /**
- * Linear 0–100 → 0–9 mapping, snapped to the nearest half-band. Returns `null`
- * for an empty/unscored report so the caller can fall back to its own judgment.
+ * Returns null unless an independently validated calibration profile exactly
+ * matches this provider/model/locale and the sample has sufficient evidence.
  */
-export function derivePronunciationBand(report: PhonemeReport): number | null {
-  if (report.status !== "scored" || report.overall === null) return null;
-  const band = (report.overall.pronunciation / MAX_SCORE) * MAX_BAND;
-  return roundToHalfBand(band);
+export function derivePronunciationBand(
+  report: PhonemeReport,
+  profile?: PronunciationCalibrationProfile | null,
+): number | null {
+  if (
+    report.status !== "scored" ||
+    report.overall === null ||
+    !profile ||
+    !validProfile(profile) ||
+    profile.provider !== report.provider ||
+    profile.model !== report.model ||
+    !profile.locales.includes(report.locale) ||
+    report.words.length < profile.minimumWordCount ||
+    (profile.requiresProsody && report.overall.prosody === null)
+  ) {
+    return null;
+  }
+  return roundToHalfBand(
+    interpolate(report.overall.pronunciation, profile.knots),
+  );
 }

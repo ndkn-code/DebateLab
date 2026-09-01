@@ -52,7 +52,7 @@ const PART_CONTEXT: Record<1 | 2 | 3, string> = {
 
 function criteriaDescriptors(hasPhonemeSignal: boolean): string {
   const pron = hasPhonemeSignal
-    ? "pronunciation (Pronunciation): individual sounds, word + sentence stress, intonation, and intelligibility. An automated phoneme assessment is provided below — weight it together with the transcript."
+    ? "pronunciation (Pronunciation): individual sounds, word + sentence stress, intonation, and intelligibility. Automated acoustic observations are provided below as supporting evidence; they never replace descriptor-based judgement."
     : "pronunciation (Pronunciation): individual sounds, word + sentence stress, intonation, and intelligibility. No phoneme analysis is available, so judge conservatively from the transcript + ASR signals and avoid over-penalising what may be transcription noise.";
   return `Score each of the four criteria 0-9 (half-bands allowed), applying the official public band descriptors (each criterion weighted 25%):
 - fluencyCoherence (Fluency & Coherence): speech rate + continuity, the amount/type of hesitation (content- vs language-related), self-correction/repetition, and how logically ideas connect and extend (range of cohesive devices/discourse markers).
@@ -91,7 +91,6 @@ function pronunciationSection(
     ["overall", signal.pronunciationScore],
     ["accuracy", signal.accuracyScore],
     ["fluency", signal.fluencyScore],
-    ["completeness", signal.completenessScore],
     ["prosody", signal.prosodyScore],
   ]
     .filter(([, value]) => value != null)
@@ -101,7 +100,7 @@ function pronunciationSection(
     signal.mispronouncedWords.length > 0
       ? `\nFlagged words: ${signal.mispronouncedWords.join(", ")}.`
       : "";
-  return `\nPHONEME ASSESSMENT (automated, Azure Speech — 0-100 scale; map onto the 0-9 Pronunciation band):\n${scores || "no aggregate scores"}.${words}\n`;
+  return `\nACOUSTIC PRONUNCIATION EVIDENCE (automated Azure Speech, unscripted 0-100 signals):\n${scores || "no aggregate scores"}.${words}\nThese are provider-specific acoustic signals, not IELTS bands. Do not convert them linearly or treat accent difference as an error. Apply the official IELTS Pronunciation descriptors to intelligibility, listener effort, chunking, rhythm, stress, intonation, and individual sounds; use the signals only as supporting evidence.\n`;
 }
 
 function groundingSection(grounding: SpeakingScorerGrounding): string {

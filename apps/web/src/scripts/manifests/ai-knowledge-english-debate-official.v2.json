@@ -1,0 +1,218 @@
+{
+  "collection": "debate.en.competitive",
+  "collectionVersion": 2,
+  "sources": [
+    {
+      "canonicalUrl": "https://www.wsdcdebating.org/_files/ugd/669183_0dbe2f2da23d46cfb8131597606e9ff9.pdf",
+      "publisher": "World Schools Debating Championships",
+      "title": "WSDC Adjudicators' Briefing",
+      "authorityTier": "official",
+      "rightsStatus": "requires_review",
+      "reviewStatus": "needs_review",
+      "metadata": { "discoveryMethod": "exa", "captureKind": "official_judge_training", "derivedOnly": true, "verifiedAgainstSource": true }
+    },
+    {
+      "canonicalUrl": "https://www.wsdcdebating.org/_files/ugd/669183_97429fca5c174499a281e2317ea6aa02.pdf",
+      "publisher": "World Schools Debating Championships",
+      "title": "WSDC Tournament Committee and Debate Rules",
+      "authorityTier": "official",
+      "rightsStatus": "requires_review",
+      "reviewStatus": "needs_review",
+      "metadata": { "discoveryMethod": "exa", "captureKind": "official_rules", "edition": "September 2024", "derivedOnly": true, "verifiedAgainstSource": true }
+    },
+    {
+      "canonicalUrl": "https://www.worlddebating.org/wudc-manual",
+      "publisher": "World Universities Debating Championship",
+      "title": "Ottawa WUDC Debating and Judging Manual",
+      "authorityTier": "official",
+      "rightsStatus": "requires_review",
+      "reviewStatus": "needs_review",
+      "metadata": { "discoveryMethod": "exa", "captureKind": "official_manual_index", "edition": "Ottawa WUDC 2027", "derivedOnly": true, "verifiedAgainstSource": true }
+    },
+    {
+      "canonicalUrl": "https://www.esu.org/wp-content/uploads/2021/11/Schools-Mace-Judge-Guide-2021-22.pdf",
+      "publisher": "English-Speaking Union",
+      "title": "ESU Schools' Mace Judging Guide",
+      "authorityTier": "official",
+      "rightsStatus": "requires_review",
+      "reviewStatus": "needs_review",
+      "metadata": { "discoveryMethod": "exa", "captureKind": "official_judging_guide", "derivedOnly": true, "verifiedAgainstSource": true }
+    },
+    {
+      "canonicalUrl": "https://www.speechanddebate.org/how-to-judge-world-schools-debate/",
+      "publisher": "National Speech & Debate Association",
+      "title": "How to Judge World Schools Debate",
+      "authorityTier": "official",
+      "rightsStatus": "requires_review",
+      "reviewStatus": "needs_review",
+      "metadata": { "discoveryMethod": "exa", "captureKind": "official_judge_guide", "derivedOnly": true, "verifiedAgainstSource": true }
+    }
+  ],
+  "items": [
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.wsdcdebating.org/_files/ugd/669183_0dbe2f2da23d46cfb8131597606e9ff9.pdf",
+      "itemType": "adjudication_standard",
+      "insight": { "format": "WSDC", "judgeReasoning": "Judge the debate that happened as an impartial ordinary intelligent voter. Do not use specialist knowledge, invent missing analysis, or penalize a team for an argument it did not make.", "qualityNotes": ["Ground the decision only in material delivered in the round.", "Separate improvement advice from reasons for the ballot."] },
+      "format": "WSDC",
+      "sourceLocator": "Part 01: Model Judge",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.wsdcdebating.org/_files/ugd/669183_0dbe2f2da23d46cfb8131597606e9ff9.pdf",
+      "itemType": "adjudication_standard",
+      "insight": { "format": "WSDC", "judgeReasoning": "Decide the winner holistically and comparatively by asking which team was more persuasive through reasoned argument within the rules. Role fulfilment matters but is not the sole or primary criterion.", "qualityNotes": ["Compare teams on the important issues rather than counting arguments.", "Keep the ballot internally consistent with speaker scores."] },
+      "format": "WSDC",
+      "sourceLocator": "Part 02: Judging Criteria — Deciding the win",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.wsdcdebating.org/_files/ugd/669183_0dbe2f2da23d46cfb8131597606e9ff9.pdf",
+      "itemType": "scoring_rubric",
+      "insight": { "format": "WSDC", "qualityNotes": ["Content is 40% and covers arguments, rebuttal, POIs, analytical rigour, and examples.", "Style is 40% and credits delivery only insofar as it changes persuasiveness or intelligibility; accent itself must never affect the score.", "Strategy is 20% and covers interpretation, relevance, prioritisation, structure, consistency, POIs, framing, and weighing."] },
+      "format": "WSDC",
+      "sourceLocator": "Part 02: Content, Style, Strategy",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.wsdcdebating.org/_files/ugd/669183_0dbe2f2da23d46cfb8131597606e9ff9.pdf",
+      "itemType": "argument_quality_pattern",
+      "insight": { "format": "WSDC", "argument": "Strong analysis explains the logical links from assumptions to a conclusion, establishes why the consequence occurs, and shows why the issue matters relative to the rest of the debate.", "weighing": "Importance must be demonstrated, not merely asserted.", "qualityNotes": ["Distinguish proving that an impact happens from claiming that it matters.", "Evaluate examples for relevance and representativeness rather than specificity alone."] },
+      "format": "WSDC",
+      "sourceLocator": "Part 02: Evaluating Analysis",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.wsdcdebating.org/_files/ugd/669183_0dbe2f2da23d46cfb8131597606e9ff9.pdf",
+      "itemType": "rebuttal_pattern",
+      "insight": { "format": "WSDC", "rebuttalTarget": "Engage the actual argument and its important logical links rather than misrepresenting it, attacking only an example, or merely declaring it false.", "clash": "Track how arguments evolve through responses and reconstruction.", "qualityNotes": ["Implicitly responsive material can count as rebuttal.", "A response is stronger when it changes what remains standing at the end of the issue."] },
+      "format": "WSDC",
+      "sourceLocator": "Part 02: Evaluating Analysis and Rebuttal",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.wsdcdebating.org/_files/ugd/669183_0dbe2f2da23d46cfb8131597606e9ff9.pdf",
+      "itemType": "weighing_pattern",
+      "insight": { "format": "WSDC", "weighing": "Identify the issues that emerged in the round, compare each team's contributions on those issues, then rank issues using the teams' explicit or implicit importance claims and comparative impact analysis.", "judgeReasoning": "Do not decide by counting how many arguments each side won.", "qualityNotes": ["Prioritise relevance and importance.", "Enter the debate as the average reasonable person only when the teams supplied no weighing."] },
+      "format": "WSDC",
+      "sourceLocator": "Part 02: Identifying and Weighing Issues",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.wsdcdebating.org/_files/ugd/669183_97429fca5c174499a281e2317ea6aa02.pdf",
+      "itemType": "speaker_role",
+      "insight": { "format": "WSDC", "speakerRole": "First Proposition", "mechanism": "Define the motion, establish the issues, outline the team case and division, and present the speaker's share of the case.", "qualityNotes": ["Definitions and models should make the motion meaningfully debatable."] },
+      "format": "WSDC",
+      "sourceLocator": "Judging Schedule §6.1",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.wsdcdebating.org/_files/ugd/669183_97429fca5c174499a281e2317ea6aa02.pdf",
+      "itemType": "speaker_role",
+      "insight": { "format": "WSDC", "speakerRole": "First Opposition", "rebuttalTarget": "Challenge the definition only when necessary, respond to the Proposition case, outline the Opposition case and division, and present the speaker's share.", "qualityNotes": ["Engagement begins with the first Opposition, not only later speakers."] },
+      "format": "WSDC",
+      "sourceLocator": "Judging Schedule §7",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.wsdcdebating.org/_files/ugd/669183_97429fca5c174499a281e2317ea6aa02.pdf",
+      "itemType": "speaker_role",
+      "insight": { "format": "WSDC", "speakerRole": "Second Speaker", "rebuttalTarget": "Respond to the opposing case and continue the team case consistently with the first speaker's announced division.", "qualityNotes": ["Substantial development, new analysis, examples, framing, and weighing can advance an existing argument without becoming an unrelated new case."] },
+      "format": "WSDC",
+      "sourceLocator": "Judging Schedule §§8.1–8.3 and WSDC judge briefing",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.wsdcdebating.org/_files/ugd/669183_97429fca5c174499a281e2317ea6aa02.pdf",
+      "itemType": "speaker_role",
+      "insight": { "format": "WSDC", "speakerRole": "Third Speaker", "rebuttalTarget": "Respond to the other team's case and resolve the major clashes. An entirely independent new argument is not permitted unless it was flagged in the first speech.", "qualityNotes": ["Prioritise decisive engagement and comparison over repetition."] },
+      "format": "WSDC",
+      "sourceLocator": "Judging Schedule §9 and WSDC judge briefing",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.wsdcdebating.org/_files/ugd/669183_97429fca5c174499a281e2317ea6aa02.pdf",
+      "itemType": "speaker_role",
+      "insight": { "format": "WSDC", "speakerRole": "Reply Speaker", "clash": "Summarise the debate from the team's viewpoint, compare the central issues, and explain why the team won without introducing new arguments.", "qualityNotes": ["A strong reply is a comparative, strategically biased adjudication rather than a chronological recap."] },
+      "format": "WSDC",
+      "sourceLocator": "Judging Schedule §11 and WSDC judge briefing",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.esu.org/wp-content/uploads/2021/11/Schools-Mace-Judge-Guide-2021-22.pdf",
+      "itemType": "scoring_rubric",
+      "insight": { "format": "ESU Schools Mace", "qualityNotes": ["Reasoning and Evidence rewards relevant, logically developed arguments and appropriate evidence.", "Organisation and Prioritisation rewards clear signposting, internal structure, and focus on the most important ideas.", "Listening and Response rewards engagement with the roots of the opposing case and prioritised rebuttal.", "Expression and Delivery rewards rhetoric and delivery that engage the audience."] },
+      "format": "ESU Schools Mace",
+      "sourceLocator": "Judging Criteria",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.esu.org/wp-content/uploads/2021/11/Schools-Mace-Judge-Guide-2021-22.pdf",
+      "itemType": "summary_pattern",
+      "insight": { "format": "ESU Schools Mace", "speakerRole": "Summary Speaker", "clash": "Organise the summary around two or three major points of clash and demonstrate comparatively why the team won them.", "qualityNotes": ["Respond to floor questions directly or through the team's clash analysis."] },
+      "format": "ESU Schools Mace",
+      "sourceLocator": "Role Fulfilment — Summary speeches",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.speechanddebate.org/how-to-judge-world-schools-debate/",
+      "itemType": "format_rule",
+      "insight": { "format": "NSDA World Schools", "qualityNotes": ["Value motions require principled comparison; policy motions require a reasonable model and comparative practical implications.", "Substantive speeches use the 60–80 range and replies 30–40.", "The winning team must have the higher total on each ballot; ties and low-point wins are not permitted."] },
+      "format": "NSDA World Schools",
+      "sourceLocator": "Evaluating the Round; Filling Out the Ballot",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false }
+    },
+    {
+      "collection": "debate.en.competitive",
+      "sourceCanonicalUrl": "https://www.worlddebating.org/wudc-manual",
+      "itemType": "format_boundary",
+      "insight": { "format": "British Parliamentary", "qualityNotes": ["The Ottawa WUDC manual is the current authoritative BP rules and judging source.", "Do not apply World Schools speaker roles, team structure, or 40/40/20 marks to a BP round.", "Retrieve the exact WUDC manual version before grading format-specific contribution and role fulfilment."] },
+      "format": "British Parliamentary",
+      "sourceLocator": "WUDC Manual index — Ottawa WUDC final version",
+      "reviewStatus": "needs_review",
+      "usableFor": ["grading", "coaching"],
+      "metadata": { "derivedOnly": true, "rightsChecked": false, "requiresManualPdfVerification": true }
+    }
+  ]
+}

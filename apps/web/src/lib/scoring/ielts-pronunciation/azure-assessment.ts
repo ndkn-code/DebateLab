@@ -76,6 +76,62 @@ export interface AzureMappingOptions {
   referenceText: string;
 }
 
+function weightedAverage(
+  reports: PhonemeReport[],
+  select: (report: PhonemeReport) => number | null,
+): number | null {
+  const values = reports.flatMap((report) => {
+    const value = select(report);
+    if (value === null) return [];
+    // Word count is a stable proxy for segment duration and prevents a short
+    // final recognition fragment from carrying the same weight as a full turn.
+    return [{ value, weight: Math.max(report.words.length, 1) }];
+  });
+  if (values.length === 0) return null;
+  const totalWeight = values.reduce((sum, item) => sum + item.weight, 0);
+  return Math.round(
+    values.reduce((sum, item) => sum + item.value * item.weight, 0) /
+      totalWeight,
+  );
+}
+
+/** Merge continuous-recognition segments into one learner-safe report. */
+export function combineAzureAssessmentReports(
+  reports: PhonemeReport[],
+  options: AzureMappingOptions,
+): PhonemeReport {
+  const scored = reports.filter(
+    (report) => report.status === "scored" && report.overall !== null,
+  );
+  if (scored.length === 0) return EMPTY_PHONEME_REPORT;
+  return phonemeReportSchema.parse({
+    schemaVersion: 1,
+    status: "scored",
+    provider: options.provider,
+    model: options.model,
+    locale: options.locale,
+    referenceText: options.referenceText,
+    recognizedText: scored
+      .map((report) => report.recognizedText.trim())
+      .filter(Boolean)
+      .join(" "),
+    overall: {
+      accuracy:
+        weightedAverage(scored, (report) => report.overall!.accuracy) ?? 0,
+      fluency:
+        weightedAverage(scored, (report) => report.overall!.fluency) ?? 0,
+      completeness: weightedAverage(
+        scored,
+        (report) => report.overall!.completeness,
+      ),
+      prosody: weightedAverage(scored, (report) => report.overall!.prosody),
+      pronunciation:
+        weightedAverage(scored, (report) => report.overall!.pronunciation) ?? 0,
+    },
+    words: scored.flatMap((report) => report.words),
+  });
+}
+
 // The Zod schema admits only finite numbers (it rejects NaN/Infinity), so a
 // value here is either a finite number or undefined (a missing optional field).
 function clampScore(value: number | undefined): number {
@@ -138,7 +194,9 @@ export function mapAzureAssessmentToReport(
     overall: {
       accuracy: clampScore(scores.AccuracyScore),
       fluency: clampScore(scores.FluencyScore),
-      completeness: clampScore(scores.CompletenessScore),
+      completeness: options.referenceText.trim()
+        ? nullableScore(scores.CompletenessScore)
+        : null,
       prosody: nullableScore(scores.ProsodyScore),
       pronunciation: clampScore(scores.PronScore),
     },

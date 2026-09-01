@@ -1,6 +1,7 @@
 import {
   parseGradingPrediction,
   parseOperationalSafetyEvidence,
+  isReleaseEligibleStoredBenchmark,
 } from "@/lib/ai/benchmarks/contracts";
 import {
   evaluateBenchmark,
@@ -85,6 +86,14 @@ function observationsFromPrediction(params: {
           typeof params.row.accent_group === "string"
             ? params.row.accent_group
             : null,
+        l1Group:
+          typeof record(params.row.metadata).l1Group === "string"
+            ? String(record(params.row.metadata).l1Group)
+            : null,
+        audioQualityGroup:
+          typeof record(params.row.metadata).audioQualityGroup === "string"
+            ? String(record(params.row.metadata).audioQualityGroup)
+            : null,
       },
     ];
   });
@@ -141,7 +150,7 @@ async function main() {
   const { data, error } = await client
     .from("ai_grading_benchmarks")
     .select(
-      "id, skill, task_type, accent_group, protected_label, ai_grading_evaluations(prediction, grader_version, corpus_version, run_metadata)",
+      "id, skill, task_type, accent_group, protected_label, metadata, ai_grading_evaluations(prediction, grader_version, corpus_version, run_metadata)",
     )
     .eq("split", "holdout")
     .eq("is_active", true);
@@ -199,6 +208,15 @@ async function main() {
       safety?.invalidAuthoritativeCitationCount ?? 0,
     duplicatePaidScoringCount: safety?.duplicatePaidScoringCount ?? 0,
     strandedWorkflowCount: safety?.strandedWorkflowCount ?? 0,
+    invalidBenchmarkLabelCount: benchmarkRows.filter(
+      (row) =>
+        !isReleaseEligibleStoredBenchmark({
+          skill: row.skill,
+          accentGroup: row.accent_group,
+          protectedLabel: row.protected_label,
+          metadata: row.metadata,
+        }),
+    ).length,
   });
   const result: ReleaseGateResult = safety
     ? base

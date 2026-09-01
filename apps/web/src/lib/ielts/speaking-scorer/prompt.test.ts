@@ -40,7 +40,7 @@ assert.match(p1, /Do NOT output an overall band/);
 // ASR caveat present; no phoneme block when no signal
 assert.match(p1, /automatic speech recognition/);
 assert.match(p1, /No phoneme analysis is available/);
-assert.equal(p1.includes("PHONEME ASSESSMENT"), false);
+assert.equal(p1.includes("ACOUSTIC PRONUNCIATION EVIDENCE"), false);
 // no grounding block when empty; no cue card; no duration
 assert.equal(p1.includes("GROUNDING"), false);
 assert.equal(p1.includes("CUE CARD"), false);
@@ -79,11 +79,12 @@ assert.match(p2, /≈ 80 words\/min/);
 // STT warning surfaced
 assert.match(p2, /low_confidence/);
 // phoneme block rendered + flagged words + "weight it together"
-assert.match(p2, /PHONEME ASSESSMENT/);
+assert.match(p2, /ACOUSTIC PRONUNCIATION EVIDENCE/);
 assert.match(p2, /overall 72\/100/);
 assert.match(p2, /accuracy 80\/100/);
 assert.match(p2, /Flagged words: alchemist, novel/);
-assert.match(p2, /weight it together with the transcript/);
+assert.match(p2, /not IELTS bands/);
+assert.match(p2, /Do not convert them linearly/);
 // completeness omitted because null
 assert.equal(p2.includes("completeness"), false);
 // grounding rendered

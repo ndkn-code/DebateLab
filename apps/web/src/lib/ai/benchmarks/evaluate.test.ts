@@ -26,6 +26,8 @@ const metrics = evaluateBenchmark([
     predictedBand: 6,
     taskType: "speaking_part_2",
     accentGroup: "vi",
+    l1Group: "Vietnamese",
+    audioQualityGroup: "typical_device",
   },
   {
     benchmarkId: "2",
@@ -37,6 +39,8 @@ const metrics = evaluateBenchmark([
 ]);
 assert.equal(metrics.withinHalfBandRate, 1);
 assert.equal(metrics.meanSignedError, 0.25);
+assert.equal(metrics.groupBias["l1:Vietnamese"], 0);
+assert.equal(metrics.groupBias["audio_quality:typical_device"], 0);
 
 const gate = evaluateReleaseGate({
   metrics: {
@@ -51,6 +55,7 @@ const gate = evaluateReleaseGate({
   invalidAuthoritativeCitationCount: 0,
   duplicatePaidScoringCount: 0,
   strandedWorkflowCount: 0,
+  invalidBenchmarkLabelCount: 0,
 });
 assert.deepEqual(gate, { passed: true, failures: [] });
 
@@ -129,6 +134,7 @@ const derived = evaluateDerivedReleaseGate({
   invalidAuthoritativeCitationCount: 0,
   duplicatePaidScoringCount: 0,
   strandedWorkflowCount: 0,
+  invalidBenchmarkLabelCount: 0,
 });
 assert.equal(derived.passed, true);
 assert.equal(

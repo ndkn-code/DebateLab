@@ -65,7 +65,11 @@ export function extractPronunciationSignal(
     pronunciationScore: report.overall.pronunciation,
     accuracyScore: report.overall.accuracy,
     fluencyScore: report.overall.fluency,
-    completenessScore: report.overall.completeness,
+    // Legacy unscripted reports may contain a fabricated 0/100 or 100/100.
+    // Completeness is meaningful only against a genuine scripted reference.
+    completenessScore: report.referenceText.trim()
+      ? report.overall.completeness
+      : null,
     prosodyScore: report.overall.prosody,
     mispronouncedWords: collectMispronouncedWords(report.words),
   };

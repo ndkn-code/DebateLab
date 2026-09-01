@@ -1,4 +1,7 @@
-import { auditProviderAttempt, classifyProviderFailure } from "./adapters/shared";
+import {
+  auditProviderAttempt,
+  classifyProviderFailure,
+} from "./adapters/shared";
 import { generateDeepSeek } from "./adapters/deepseek";
 import { generateGemini } from "./adapters/gemini";
 import { generateGroq } from "./adapters/groq";
@@ -17,31 +20,76 @@ import { extractJsonObject } from "./json";
 import { getAiTaskPolicy } from "./policies";
 import { z } from "zod";
 
-function resolvePolicy(task: AiTextRequest["task"], override?: Partial<AiTaskPolicy>): AiTaskPolicy {
+function resolvePolicy(
+  task: AiTextRequest["task"],
+  override?: Partial<AiTaskPolicy>,
+): AiTaskPolicy {
   return { ...getAiTaskPolicy(task), ...override };
 }
 
-function withTrace(context: AiExecutionContext, policy: AiTaskPolicy, structured = false): AiExecutionContext & { traceId: string } {
-  const budgetMs = policy.attemptTimeoutMs * Math.max(
-    1,
-    structured
-      ? policy.candidates.length * (policy.schemaRepairAttempts + 1)
-      : policy.candidates.length,
-  );
-  return { ...context, traceId: context.traceId || crypto.randomUUID(), deadlineAt: context.deadlineAt ?? Date.now() + budgetMs };
+function withTrace(
+  context: AiExecutionContext,
+  policy: AiTaskPolicy,
+  structured = false,
+): AiExecutionContext & { traceId: string } {
+  const budgetMs =
+    policy.attemptTimeoutMs *
+    Math.max(
+      1,
+      structured
+        ? policy.candidates.length * (policy.schemaRepairAttempts + 1)
+        : policy.candidates.length,
+    );
+  return {
+    ...context,
+    traceId: context.traceId || crypto.randomUUID(),
+    deadlineAt: context.deadlineAt ?? Date.now() + budgetMs,
+  };
 }
 
 function remainingTimeoutMs(context: AiExecutionContext, configuredMs: number) {
   if (!context.deadlineAt) return configuredMs;
   const remaining = context.deadlineAt - Date.now();
   if (remaining <= 0) {
-    throw new AiExecutionError({ message: "AI task deadline exceeded before provider call", kind: "deadline_exceeded" });
+    throw new AiExecutionError({
+      message: "AI task deadline exceeded before provider call",
+      kind: "deadline_exceeded",
+    });
   }
   return Math.max(1, Math.min(configuredMs, remaining));
 }
 
-function isFallbackEligible(kind: AiExecutionError["kind"]) {
-  return kind === "rate_limited" || kind === "provider_unavailable" || kind === "deadline_exceeded" || kind === "schema_invalid";
+function isFallbackEligible(error: AiExecutionError) {
+  if (error.kind === "rate_limited" || error.kind === "schema_invalid") {
+    return true;
+  }
+  if (error.kind !== "provider_unavailable") return false;
+  // A provider HTTP 5xx is a known failure. A socket loss or client deadline
+  // may still finish remotely, so an automatic fallback could duplicate a
+  // paid scoring call and is intentionally disallowed.
+  return (
+    error.attempts.length > 0 &&
+    error.attempts.every(
+      (attempt) =>
+        attempt.status !== "error" ||
+        (attempt.failureKind === "provider_unavailable" &&
+          typeof attempt.responseStatus === "number" &&
+          attempt.responseStatus >= 500 &&
+          attempt.responseStatus <= 599),
+    )
+  );
+}
+
+function providerResponseStatus(error: unknown): number | undefined {
+  if (!error || typeof error !== "object") return undefined;
+  const candidate = error as {
+    status?: unknown;
+    response?: { status?: unknown };
+  };
+  const value = candidate.status ?? candidate.response?.status;
+  return typeof value === "number" && Number.isInteger(value)
+    ? value
+    : undefined;
 }
 
 /**
@@ -54,7 +102,7 @@ async function countWorkflowProviderAttempt(context: AiExecutionContext) {
   if (typeof workflowRunId !== "string" || !workflowRunId) return;
   await import("@/lib/ai/workflow-runs")
     .then(({ incrementAiWorkflowProviderAttempt }) =>
-      incrementAiWorkflowProviderAttempt(workflowRunId)
+      incrementAiWorkflowProviderAttempt(workflowRunId),
     )
     .catch(() => undefined);
 }
@@ -71,7 +119,10 @@ async function invoke(params: {
 }): Promise<{ response: AdapterResponse; attempt: AiAttempt }> {
   const startedAt = Date.now();
   const controller = new AbortController();
-  const timeoutMs = remainingTimeoutMs(params.context, params.policy.attemptTimeoutMs);
+  const timeoutMs = remainingTimeoutMs(
+    params.context,
+    params.policy.attemptTimeoutMs,
+  );
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     // Count once for this declared provider invocation, before it is made. A
@@ -98,12 +149,21 @@ async function invoke(params: {
     const latencyMs = Date.now() - startedAt;
     return {
       response,
-      attempt: { provider: params.candidate.provider, model: params.candidate.model, status: "success", latencyMs },
+      attempt: {
+        provider: params.candidate.provider,
+        model: params.candidate.model,
+        status: "success",
+        latencyMs,
+      },
     };
   } catch (error) {
     const latencyMs = Date.now() - startedAt;
-    const kind = controller.signal.aborted ? "deadline_exceeded" : classifyProviderFailure(error);
-    const retryAfterMs = (error as { retryAfterMs?: number } | null)?.retryAfterMs;
+    const kind = controller.signal.aborted
+      ? "deadline_exceeded"
+      : classifyProviderFailure(error);
+    const retryAfterMs = (error as { retryAfterMs?: number } | null)
+      ?.retryAfterMs;
+    const responseStatus = providerResponseStatus(error);
     const providerRequestId = await auditProviderAttempt({
       provider: params.candidate.provider,
       model: params.candidate.model,
@@ -116,10 +176,21 @@ async function invoke(params: {
       candidateIndex: params.candidateIndex,
     }).catch(() => null);
     throw new AiExecutionError({
-      message: error instanceof Error ? error.message : "AI provider call failed",
+      message:
+        error instanceof Error ? error.message : "AI provider call failed",
       kind,
       retryAfterMs,
-      attempts: [{ provider: params.candidate.provider, model: params.candidate.model, status: "error", latencyMs, failureKind: kind, providerRequestId }],
+      attempts: [
+        {
+          provider: params.candidate.provider,
+          model: params.candidate.model,
+          status: "error",
+          latencyMs,
+          failureKind: kind,
+          responseStatus,
+          providerRequestId,
+        },
+      ],
       cause: error,
     });
   } finally {
@@ -192,10 +263,7 @@ function strictProviderSchema(value: unknown): unknown {
 
 function providerJsonSchema<T>(request: AiStructuredRequest<T>) {
   try {
-    const generated = z.toJSONSchema(request.schema) as Record<
-      string,
-      unknown
-    >;
+    const generated = z.toJSONSchema(request.schema) as Record<string, unknown>;
     // Provider schemas do not need the draft declaration and some constrained
     // decoders reject it even though the remaining schema is supported.
     const { $schema: _draft, ...schema } = generated;
@@ -299,7 +367,9 @@ function result<T>(params: {
     traceId: params.context.traceId,
     fallbackUsed: params.candidateIndex > 0,
     attempts: params.attempts,
-    providerRequestIds: params.attempts.flatMap((attempt) => attempt.providerRequestId ? [attempt.providerRequestId] : []),
+    providerRequestIds: params.attempts.flatMap((attempt) =>
+      attempt.providerRequestId ? [attempt.providerRequestId] : [],
+    ),
   };
 }
 
@@ -341,13 +411,18 @@ async function auditSchemaInvalid(params: {
     responseStatus: params.invocation.response.responseStatus,
     finishReason: params.invocation.response.finishReason,
     errorCode: "schema_invalid",
-    errorMessage: params.error instanceof Error ? params.error.message : String(params.error),
+    errorMessage:
+      params.error instanceof Error
+        ? params.error.message
+        : String(params.error),
     phase: params.phase,
     candidateIndex: params.candidateIndex,
   }).catch(() => null);
 }
 
-export async function generateText(request: AiTextRequest): Promise<AiResult<string>> {
+export async function generateText(
+  request: AiTextRequest,
+): Promise<AiResult<string>> {
   const policy = resolvePolicy(request.task, request.policy);
   const context = withTrace(request.context, policy);
   const startedAt = Date.now();
@@ -356,21 +431,52 @@ export async function generateText(request: AiTextRequest): Promise<AiResult<str
   for (let index = 0; index < policy.candidates.length; index += 1) {
     const candidate = policy.candidates[index]!;
     try {
-      const invocation = await invoke({ candidate, messages: request.messages, context, policy, phase: "primary", candidateIndex: index, responseFormat: "text" });
-      await auditValidatedSuccess({ invocation, candidate, context, phase: "primary", candidateIndex: index });
+      const invocation = await invoke({
+        candidate,
+        messages: request.messages,
+        context,
+        policy,
+        phase: "primary",
+        candidateIndex: index,
+        responseFormat: "text",
+      });
+      await auditValidatedSuccess({
+        invocation,
+        candidate,
+        context,
+        phase: "primary",
+        candidateIndex: index,
+      });
       attempts.push(invocation.attempt);
-      return result({ output: invocation.response.text, text: invocation.response.text, candidate, response: invocation.response, context, attempts, startedAt, candidateIndex: index });
+      return result({
+        output: invocation.response.text,
+        text: invocation.response.text,
+        candidate,
+        response: invocation.response,
+        context,
+        attempts,
+        startedAt,
+        candidateIndex: index,
+      });
     } catch (error) {
       const executionError = error as AiExecutionError;
       attempts.push(...executionError.attempts);
       finalError = executionError;
-      if (!isFallbackEligible(executionError.kind)) break;
+      if (!isFallbackEligible(executionError)) break;
     }
   }
-  throw new AiExecutionError({ message: finalError?.message || "No AI provider completed the task", kind: finalError?.kind || "unknown", retryAfterMs: finalError?.retryAfterMs, attempts, cause: finalError });
+  throw new AiExecutionError({
+    message: finalError?.message || "No AI provider completed the task",
+    kind: finalError?.kind || "unknown",
+    retryAfterMs: finalError?.retryAfterMs,
+    attempts,
+    cause: finalError,
+  });
 }
 
-export async function generateStructured<T>(request: AiStructuredRequest<T>): Promise<AiResult<T>> {
+export async function generateStructured<T>(
+  request: AiStructuredRequest<T>,
+): Promise<AiResult<T>> {
   const policy = resolvePolicy(request.task, request.policy);
   const context = withTrace(request.context, policy, true);
   // Enable constrained decoding only for contracts whose complete schema has
@@ -391,9 +497,15 @@ export async function generateStructured<T>(request: AiStructuredRequest<T>): Pr
       try {
         const messages = request.messages
           ? request.messages.map((message, messageIndex, all) =>
-              message.role === "user" && messageIndex === all.map((item) => item.role).lastIndexOf("user") && repair > 0
-                ? { ...message, content: `${message.content}\n\n${prompt.slice(request.prompt.length)}` }
-                : message
+              message.role === "user" &&
+              messageIndex ===
+                all.map((item) => item.role).lastIndexOf("user") &&
+              repair > 0
+                ? {
+                    ...message,
+                    content: `${message.content}\n\n${prompt.slice(request.prompt.length)}`,
+                  }
+                : message,
             )
           : [{ role: "user" as const, content: prompt }];
         const invocation = await invoke({
@@ -414,19 +526,59 @@ export async function generateStructured<T>(request: AiStructuredRequest<T>): Pr
             jsonSchema?.normalizationSchema,
           );
         } catch (error) {
-          await auditSchemaInvalid({ invocation, candidate, context, phase: repair === 0 ? "primary" : "schema_repair", candidateIndex: index, error });
-          finalError = new AiExecutionError({ message: error instanceof Error ? error.message : "Model response was invalid JSON", kind: "schema_invalid", attempts });
+          await auditSchemaInvalid({
+            invocation,
+            candidate,
+            context,
+            phase: repair === 0 ? "primary" : "schema_repair",
+            candidateIndex: index,
+            error,
+          });
+          finalError = new AiExecutionError({
+            message:
+              error instanceof Error
+                ? error.message
+                : "Model response was invalid JSON",
+            kind: "schema_invalid",
+            attempts,
+          });
           if (repair === policy.schemaRepairAttempts) break;
           prompt = `${request.prompt}\n\nThe previous response was invalid JSON. Return only one valid JSON object matching the required schema exactly. ${request.repairInstruction || "Do not add markdown or prose."}`;
           continue;
         }
         const parsed = request.schema.safeParse(raw);
         if (parsed.success) {
-          await auditValidatedSuccess({ invocation, candidate, context, phase: repair === 0 ? "primary" : "schema_repair", candidateIndex: index });
-          return result({ output: parsed.data, text: invocation.response.text, candidate, response: invocation.response, context, attempts, startedAt, candidateIndex: index });
+          await auditValidatedSuccess({
+            invocation,
+            candidate,
+            context,
+            phase: repair === 0 ? "primary" : "schema_repair",
+            candidateIndex: index,
+          });
+          return result({
+            output: parsed.data,
+            text: invocation.response.text,
+            candidate,
+            response: invocation.response,
+            context,
+            attempts,
+            startedAt,
+            candidateIndex: index,
+          });
         }
-        await auditSchemaInvalid({ invocation, candidate, context, phase: repair === 0 ? "primary" : "schema_repair", candidateIndex: index, error: parsed.error });
-        finalError = new AiExecutionError({ message: `Model response failed ${request.task} schema validation: ${parsed.error.issues[0]?.message || "invalid output"}`, kind: "schema_invalid", attempts });
+        await auditSchemaInvalid({
+          invocation,
+          candidate,
+          context,
+          phase: repair === 0 ? "primary" : "schema_repair",
+          candidateIndex: index,
+          error: parsed.error,
+        });
+        finalError = new AiExecutionError({
+          message: `Model response failed ${request.task} schema validation: ${parsed.error.issues[0]?.message || "invalid output"}`,
+          kind: "schema_invalid",
+          attempts,
+        });
         if (repair === policy.schemaRepairAttempts) break;
         prompt = `${request.prompt}\n\nThe previous response was invalid. Return only a valid JSON object matching the required schema exactly. ${request.repairInstruction || "Do not add markdown or prose."}`;
       } catch (error) {
@@ -451,7 +603,14 @@ export async function generateStructured<T>(request: AiStructuredRequest<T>): Pr
         break;
       }
     }
-    if (!finalError || !isFallbackEligible(finalError.kind)) break;
+    if (!finalError || !isFallbackEligible(finalError)) break;
   }
-  throw new AiExecutionError({ message: finalError?.message || "No AI provider produced valid structured output", kind: finalError?.kind || "unknown", retryAfterMs: finalError?.retryAfterMs, attempts, cause: finalError });
+  throw new AiExecutionError({
+    message:
+      finalError?.message || "No AI provider produced valid structured output",
+    kind: finalError?.kind || "unknown",
+    retryAfterMs: finalError?.retryAfterMs,
+    attempts,
+    cause: finalError,
+  });
 }

@@ -7,6 +7,8 @@ export interface BenchmarkObservation {
   predictedBand: number;
   taskType: string;
   accentGroup?: string | null;
+  l1Group?: string | null;
+  audioQualityGroup?: string | null;
   model?: string | null;
   rubricVersion?: string | number | null;
 }
@@ -97,6 +99,7 @@ export interface ReleaseGateInputs {
   invalidAuthoritativeCitationCount: number;
   duplicatePaidScoringCount: number;
   strandedWorkflowCount: number;
+  invalidBenchmarkLabelCount: number;
 }
 
 export interface DerivedReleaseGateInputs {
@@ -117,6 +120,7 @@ export interface DerivedReleaseGateInputs {
   invalidAuthoritativeCitationCount: number;
   duplicatePaidScoringCount: number;
   strandedWorkflowCount: number;
+  invalidBenchmarkLabelCount: number;
 }
 
 export interface ReleaseGateResult {
@@ -300,6 +304,10 @@ export function evaluateBenchmark(
       `criterion:${normalizeIeltsCriterion(item.criterion)}`,
       `task:${item.taskType}`,
       ...(item.accentGroup ? [`accent:${item.accentGroup}`] : []),
+      ...(item.l1Group ? [`l1:${item.l1Group}`] : []),
+      ...(item.audioQualityGroup
+        ? [`audio_quality:${item.audioQualityGroup}`]
+        : []),
       `band:${snapBand(item.expectedBand)}`,
     ];
     for (const key of keys)
@@ -354,6 +362,8 @@ export function evaluateReleaseGate(
   if (input.duplicatePaidScoringCount > 0)
     failures.push("duplicate_paid_scoring");
   if (input.strandedWorkflowCount > 0) failures.push("stranded_workflows");
+  if (input.invalidBenchmarkLabelCount > 0)
+    failures.push("benchmark_labels_not_independently_adjudicated");
   return { passed: failures.length === 0, failures };
 }
 
@@ -413,6 +423,7 @@ export function evaluateDerivedReleaseGate(
     invalidAuthoritativeCitationCount: input.invalidAuthoritativeCitationCount,
     duplicatePaidScoringCount: input.duplicatePaidScoringCount,
     strandedWorkflowCount: input.strandedWorkflowCount,
+    invalidBenchmarkLabelCount: input.invalidBenchmarkLabelCount,
   });
   if (repeatCoverageComplete) return result;
   return {

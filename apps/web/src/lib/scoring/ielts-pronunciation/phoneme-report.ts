@@ -48,7 +48,8 @@ export type WordScore = z.infer<typeof wordScoreSchema>;
 export const overallPronunciationSchema = z.object({
   accuracy: pronunciationScore,
   fluency: pronunciationScore,
-  completeness: pronunciationScore,
+  /** Null for unscripted assessment, where no reference text exists. */
+  completeness: pronunciationScore.nullable(),
   /** Present only when prosody assessment is enabled AND returned by Azure. */
   prosody: pronunciationScore.nullable(),
   /** Azure's composite PronScore — the single best Pronunciation-criterion signal. */
@@ -74,7 +75,9 @@ export const phonemeReportSchema = z.object({
 export type PhonemeReport = z.infer<typeof phonemeReportSchema>;
 
 /** The empty/no-op report — also what the bare jsonb `{}` default parses to. */
-export const EMPTY_PHONEME_REPORT: PhonemeReport = phonemeReportSchema.parse({});
+export const EMPTY_PHONEME_REPORT: PhonemeReport = phonemeReportSchema.parse(
+  {},
+);
 
 /**
  * Validate arbitrary jsonb into a {@link PhonemeReport}, tolerating the `{}`

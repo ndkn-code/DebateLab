@@ -59,3 +59,50 @@ test("Scheduler reconciliation republishes only reference-only jobs", async () =
     else process.env.GCP_AI_GRADING_TOPIC = previousTopic;
   }
 });
+
+test("Scheduler can republish every bounded grading kind in one ordered batch", async () => {
+  const previousProject = process.env.GCP_PROJECT_ID;
+  process.env.GCP_PROJECT_ID = "test-project";
+  const jobs = [
+    {
+      schemaVersion: 1 as const,
+      kind: "practice_analysis" as const,
+      sourceId: "00000000-0000-4000-8000-000000000011",
+      workflowRunId: "00000000-0000-4000-8000-000000000012",
+    },
+    {
+      schemaVersion: 1 as const,
+      kind: "ielts_writing_score" as const,
+      sourceId: "00000000-0000-4000-8000-000000000021",
+      workflowRunId: "00000000-0000-4000-8000-000000000022",
+    },
+  ];
+  let orderingKeys: string[] = [];
+  try {
+    const result = await reconcileAiGradingRuns({
+      candidates: async () => jobs,
+      token: async () => "adc-token",
+      fetch: async (_url, init) => {
+        const body = JSON.parse(String(init?.body)) as {
+          messages: Array<{ orderingKey: string }>;
+        };
+        orderingKeys = body.messages.map((message) => message.orderingKey);
+        return new Response(
+          JSON.stringify({
+            messageIds: ["message-practice", "message-writing"],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      },
+      markPublished: async () => undefined,
+    });
+    assert.deepEqual(result, { scanned: 2, published: 2 });
+    assert.deepEqual(
+      orderingKeys,
+      jobs.map((job) => job.workflowRunId),
+    );
+  } finally {
+    if (previousProject === undefined) delete process.env.GCP_PROJECT_ID;
+    else process.env.GCP_PROJECT_ID = previousProject;
+  }
+});

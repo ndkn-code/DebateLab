@@ -11,7 +11,8 @@ Pub/Sub. Dispatch is fail-closed unless `AI_GRADING_BACKEND` is explicitly
    target environment, then apply
    `supabase/migrations/20260829110000_ai_knowledge_platform.sql` and
    `supabase/migrations/20260829120000_ai_knowledge_operations.sql`, followed by
-   `supabase/migrations/20260830160000_ai_grading_gcp_runtime.sql`. Regenerate
+   `supabase/migrations/20260830160000_ai_grading_gcp_runtime.sql` and
+   `supabase/migrations/20260901130000_ai_grading_retry_consistency.sql`. Regenerate
    Supabase types afterward. All migrations are forward-only.
 2. Confirm the `ai_workflow_runs` row-level-security policy lets a learner read
    only their own runs and lets only the service role create or update runs.
@@ -101,7 +102,10 @@ claiming examiner-equivalent precision.
 Prepare a protected, human-reviewed benchmark manifest first. Every source must
 have approved rights, an official or qualified-examiner authority tier, exact
 response and label locators, all four criterion labels, and a single split per
-source. The importer is append-only by contract: an existing benchmark key may
+source. Release-eligible labels require at least two independent qualified
+examiner marks and documented adjudication. Speaking cases additionally require
+the protected audio plus accent, first-language, and audio-quality groups. The
+importer is append-only by contract: an existing benchmark key may
 be replayed only when its immutable label and provenance match exactly.
 
 ```bash
