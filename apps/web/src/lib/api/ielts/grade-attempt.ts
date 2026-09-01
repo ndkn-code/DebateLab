@@ -23,6 +23,7 @@ import { recomputeAttemptOverallBand } from "./overall-band-repository";
 import { completeSimulationAttemptIfReady } from "./band-scores-repository";
 import { recordIeltsObjectiveAttemptEvidence } from "./assess-evidence";
 import { maybeReplanAfterEvidence } from "./replan-hook";
+import { isFrozenObjectiveBlueprintMissing } from "./objective-blueprint";
 
 type AdminClient = ReturnType<typeof createTypedAdminClient>;
 
@@ -110,33 +111,47 @@ async function loadAndGrade(
     .maybeSingle();
   const conversionKey = resolveConversionKey(test?.metadata);
 
-  const [snapshotRes, responseRes, bandRes] = await Promise.all([
-    admin
-      .from("ielts_attempt_question_blueprints")
-      .select(
-        "id, question_id, skill, question_type, prompt, group_instructions, max_points, word_limit, options, visual, metadata, question_order, group_key, passage_id, listening_section_id, test_id, source_updated_at",
-      )
-      .eq("attempt_id", attemptId)
-      .in("skill", OBJECTIVE_SKILLS)
-      .order("question_order"),
-    admin
-      .from("ielts_question_responses")
-      .select("id, question_id, response")
-      .eq("attempt_id", attemptId),
-    admin
-      .from("band_conversions")
-      .select("conversion_key, skill, module, band, raw_min, raw_max")
-      .in("conversion_key", [...new Set(["default", conversionKey])])
-      .in("skill", OBJECTIVE_SKILLS),
-  ]);
+  const [snapshotRes, objectiveSectionRes, responseRes, bandRes] =
+    await Promise.all([
+      admin
+        .from("ielts_attempt_question_blueprints")
+        .select(
+          "id, question_id, skill, question_type, prompt, group_instructions, max_points, word_limit, options, visual, metadata, question_order, group_key, passage_id, listening_section_id, test_id, source_updated_at",
+        )
+        .eq("attempt_id", attemptId)
+        .in("skill", OBJECTIVE_SKILLS)
+        .order("question_order"),
+      admin
+        .from("ielts_attempt_sections")
+        .select("skill")
+        .eq("attempt_id", attemptId)
+        .in("skill", OBJECTIVE_SKILLS),
+      admin
+        .from("ielts_question_responses")
+        .select("id, question_id, response")
+        .eq("attempt_id", attemptId),
+      admin
+        .from("band_conversions")
+        .select("conversion_key, skill, module, band, raw_min, raw_max")
+        .in("conversion_key", [...new Set(["default", conversionKey])])
+        .in("skill", OBJECTIVE_SKILLS),
+    ]);
   if (snapshotRes.error)
     throw new Error(`grade(blueprint): ${snapshotRes.error.message}`);
+  if (objectiveSectionRes.error)
+    throw new Error(`grade(sections): ${objectiveSectionRes.error.message}`);
   if (responseRes.error)
     throw new Error(`grade(responses): ${responseRes.error.message}`);
   if (bandRes.error) throw new Error(`grade(bands): ${bandRes.error.message}`);
 
   const snapshotRows = snapshotRes.data ?? [];
-  if (attempt.blueprint_frozen_at && snapshotRows.length === 0) {
+  if (
+    isFrozenObjectiveBlueprintMissing({
+      frozen: Boolean(attempt.blueprint_frozen_at),
+      objectiveSectionCount: objectiveSectionRes.data?.length ?? 0,
+      objectiveBlueprintCount: snapshotRows.length,
+    })
+  ) {
     throw new Error("grade: frozen attempt blueprint missing");
   }
   // Attempts created before the frozen-blueprint migration retain a bounded
