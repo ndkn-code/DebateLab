@@ -234,20 +234,20 @@ export function CoachChatMockupClient() {
         <aside className="hidden w-[248px] shrink-0 flex-col border-r border-border bg-surface lg:flex">
           <div className="flex h-14 items-center justify-between border-b border-border px-4">
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-primary text-on-primary">
+              <div className="flex h-8 w-8 items-center justify-center rounded-control bg-primary text-on-primary">
                 <Shield className="h-5 w-5" />
               </div>
               <div className="type-title text-on-surface">
                 Thinkfy
               </div>
             </div>
-            <button type="button" aria-label="Collapse chat history" className="flex h-8 w-8 items-center justify-center rounded-[10px] text-on-surface-variant transition-colors duration-150 hover:bg-primary-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+            <button type="button" aria-label="Collapse chat history" className="flex h-8 w-8 items-center justify-center rounded-control text-on-surface-variant transition-colors duration-150 hover:bg-primary-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
               <PanelLeftClose className="h-4 w-4" />
             </button>
           </div>
 
           <div className="border-b border-border px-4 py-4">
-            <button type="button" className="flex h-8 w-full items-center justify-center gap-2 rounded-[10px] bg-primary px-3 type-label font-semibold text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px">
+            <button type="button" className="flex h-8 w-full items-center justify-center gap-2 rounded-control bg-primary px-3 type-label font-semibold text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px">
               <Plus className="h-4 w-4" />
               New chat
             </button>
@@ -258,7 +258,7 @@ export function CoachChatMockupClient() {
               <div className="px-1 text-xs font-semibold text-on-surface-variant">
                 Today
               </div>
-              <div className="mt-2 rounded-[10px] border-l-2 border-primary bg-primary-container px-3 py-2">
+              <div className="mt-2 rounded-control border-l-2 border-primary bg-primary-container px-3 py-2">
                 <div className="flex min-h-8 items-center gap-2">
                   <MessageSquare className="h-4 w-4 shrink-0 text-primary" />
                   <div className="min-w-0 flex-1 truncate type-label font-semibold text-primary-dim">
@@ -277,7 +277,7 @@ export function CoachChatMockupClient() {
                 {["Impact weighing help", "Rebuttal drill"].map((title) => (
                 <div
                   key={title}
-                  className="flex min-h-10 items-center gap-3 rounded-[10px] px-3 py-2 type-label text-on-surface-variant transition-colors duration-150 hover:bg-primary-container hover:text-primary-dim"
+                  className="flex min-h-10 items-center gap-3 rounded-control px-3 py-2 type-label text-on-surface-variant transition-colors duration-150 hover:bg-primary-container hover:text-primary-dim"
                 >
                   <MessageSquare className="h-4 w-4 shrink-0" />
                   <div className="min-w-0 flex-1 truncate text-sm font-medium">
@@ -307,15 +307,15 @@ export function CoachChatMockupClient() {
         <section className="flex min-w-0 flex-1 flex-col">
           <div className="flex h-14 shrink-0 items-center justify-between border-b border-border bg-surface px-4 sm:px-6">
             <div className="flex items-center gap-3">
-              <button type="button" aria-label="Open chat history" className="flex h-8 w-8 items-center justify-center rounded-[10px] text-on-surface-variant transition-colors duration-150 hover:bg-primary-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 lg:hidden">
+              <button type="button" aria-label="Open chat history" className="flex h-8 w-8 items-center justify-center rounded-control text-on-surface-variant transition-colors duration-150 hover:bg-primary-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 lg:hidden">
                 <Menu className="h-5 w-5" />
               </button>
-              <div className="flex h-8 w-8 items-center justify-center rounded-[10px] border border-border bg-primary-container text-primary-dim">
+              <div className="flex h-8 w-8 items-center justify-center rounded-control border border-border bg-primary-container text-primary-dim">
                 <Shield className="h-5 w-5" />
               </div>
               <div className="type-title text-on-surface">AI Coach</div>
             </div>
-            <button type="button" className="hidden h-8 items-center gap-2 rounded-[10px] border border-border bg-surface px-3 type-label font-semibold text-primary-dim transition-colors duration-150 hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:flex">
+            <button type="button" className="hidden h-8 items-center gap-2 rounded-control border border-border bg-surface px-3 type-label font-semibold text-primary-dim transition-colors duration-150 hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:flex">
               <UserRound className="h-4 w-4" />
               Coach profile
             </button>
@@ -342,7 +342,7 @@ export function CoachChatMockupClient() {
           <div className="px-4 pb-4 pt-2 sm:px-6 sm:pb-6">
             <div className="mx-auto w-full max-w-[920px]">
               <div className="flex items-end gap-3 rounded-[12px] border border-border bg-surface px-3 py-2 transition-[border-color,box-shadow] duration-150 focus-within:border-ring focus-within:ring-2 focus-within:ring-ring/20">
-                <button type="button" aria-label="Attach a file" className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-on-surface-variant transition-colors duration-150 hover:bg-primary-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:flex">
+                <button type="button" aria-label="Attach a file" className="hidden h-8 w-8 shrink-0 items-center justify-center rounded-control text-on-surface-variant transition-colors duration-150 hover:bg-primary-container hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:flex">
                   <Paperclip className="h-4 w-4" />
                 </button>
                 <textarea
@@ -364,7 +364,7 @@ export function CoachChatMockupClient() {
                   disabled={!input.trim() || showTyping}
                   type="button"
                   aria-label="Send message"
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-primary text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-primary text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
                 >
                   <Send className="h-4 w-4" />
                 </button>

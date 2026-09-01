@@ -35,7 +35,7 @@ function ViewerMessage({
   return (
     <div
       role={tone === "error" ? "alert" : "status"}
-      className={`mx-auto flex max-w-md flex-col items-center gap-3 rounded-[10px] border p-6 text-center ${tone === "error" ? "border-error/25 bg-error-container text-on-error-container" : "border-outline-variant bg-surface text-on-surface"}`}
+      className={`mx-auto flex max-w-md flex-col items-center gap-3 rounded-control border p-6 text-center ${tone === "error" ? "border-error/25 bg-error-container text-on-error-container" : "border-outline-variant bg-surface text-on-surface"}`}
     >
       <AlertCircle className="size-5" aria-hidden="true" />
       <p className="type-body-sm">{children}</p>
@@ -170,7 +170,7 @@ export function ThinkfyMaterialViewer({
               {copy.previewUnavailable}
             </ViewerMessage>
           ) : material.document ? (
-            <div className="rounded-[10px] border border-outline-variant bg-surface p-4 sm:p-8">
+            <div className="rounded-control border border-outline-variant bg-surface p-4 sm:p-8">
               <MaterialDocumentRenderer
                 document={material.document}
                 renditions={material.renditions}
@@ -185,7 +185,7 @@ export function ThinkfyMaterialViewer({
                 src={currentPageUrl}
                 alt={`${material.title}, ${copy.page} ${page + 1}`}
                 onError={() => setLoadFailed(true)}
-                className="max-h-[calc(100dvh-12rem)] max-w-full rounded-[10px] border border-outline-variant bg-white object-contain"
+                className="max-h-[calc(100dvh-12rem)] max-w-full rounded-control border border-outline-variant bg-white object-contain"
               />
               <figcaption className="type-caption text-on-surface-variant">
                 {copy.page} {page + 1} / {pageRenditions.length}
@@ -197,10 +197,10 @@ export function ThinkfyMaterialViewer({
               src={descriptorUrl}
               alt={material.title}
               onError={() => setLoadFailed(true)}
-              className="mx-auto max-h-full max-w-full rounded-[10px] border border-outline-variant object-contain"
+              className="mx-auto max-h-full max-w-full rounded-control border border-outline-variant object-contain"
             />
           ) : material.mediaKind === "audio" && descriptorUrl ? (
-            <figure className="mx-auto max-w-xl rounded-[10px] border border-outline-variant bg-surface p-5">
+            <figure className="mx-auto max-w-xl rounded-control border border-outline-variant bg-surface p-5">
               <figcaption className="mb-3 type-heading-sm font-semibold">
                 {material.title} · {copy.audio}
               </figcaption>
@@ -229,13 +229,13 @@ export function ThinkfyMaterialViewer({
                 sandbox=""
                 referrerPolicy="no-referrer"
                 onError={() => setLoadFailed(true)}
-                className="min-h-0 flex-1 rounded-[10px] border border-outline-variant bg-white"
+                className="min-h-0 flex-1 rounded-control border border-outline-variant bg-white"
               />
               <a
                 href={descriptorUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[10px] border border-outline-variant px-3 type-label font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="inline-flex min-h-10 items-center justify-center gap-2 rounded-control border border-outline-variant px-3 type-label font-semibold text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <Download className="size-4" aria-hidden="true" />
                 {copy.download}

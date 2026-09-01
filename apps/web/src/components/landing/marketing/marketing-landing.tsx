@@ -64,14 +64,14 @@ function MarketingHeader({
         <Link
           href={localizedHref(locale, productHref)}
           aria-label="Thinkfy"
-          className="rounded-[10px] focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+          className="rounded-control focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
         >
           <LogoMark size="sm" priority />
         </Link>
 
         <nav
           aria-label={copy.navigation.productLabel}
-          className="ml-auto hidden h-8 items-center rounded-[10px] border border-outline-variant bg-surface-container p-[3px] sm:flex lg:ml-4"
+          className="ml-auto hidden h-8 items-center rounded-control border border-outline-variant bg-surface-container p-[3px] sm:flex lg:ml-4"
         >
           {(["debate", "ielts"] as const).map((product) => (
             <Link
@@ -153,7 +153,7 @@ function MarketingHeader({
             }
             className="mx-auto flex max-w-[1280px] flex-col gap-1"
           >
-            <div className="mb-2 flex h-8 items-center rounded-[10px] border border-outline-variant bg-surface-container p-[3px] sm:hidden">
+            <div className="mb-2 flex h-8 items-center rounded-control border border-outline-variant bg-surface-container p-[3px] sm:hidden">
               <Link
                 href={localizedHref(locale, "/")}
                 onClick={() => setOpen(false)}
@@ -188,7 +188,7 @@ function MarketingHeader({
                 key={href}
                 href={href}
                 onClick={() => setOpen(false)}
-                className="flex min-h-10 items-center rounded-[10px] px-3 type-label text-on-surface-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex min-h-10 items-center rounded-control px-3 type-label text-on-surface-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {label}
               </a>
@@ -257,7 +257,7 @@ function ProcessSection({ copy }: { copy: MarketingPageCopy }) {
               ref={refs[index]}
               className="relative z-10 rounded-[12px] border border-outline-variant bg-surface p-5"
             >
-              <span className="flex size-8 items-center justify-center rounded-[10px] bg-primary type-label font-semibold text-on-primary">
+              <span className="flex size-8 items-center justify-center rounded-control bg-primary type-label font-semibold text-on-primary">
                 0{index + 1}
               </span>
               <h3 className="mt-5 type-title font-semibold">{step.title}</h3>
@@ -332,7 +332,7 @@ function AudienceTabs({
                 {content.points.map((point) => (
                   <li
                     key={point}
-                    className="flex min-h-10 items-center gap-3 rounded-[10px] bg-surface-container-low px-3 type-body-sm"
+                    className="flex min-h-10 items-center gap-3 rounded-control bg-surface-container-low px-3 type-body-sm"
                   >
                     <ProductIcon
                       name="check"
@@ -451,7 +451,7 @@ export function MarketingLanding({
                 key={feature.title}
                 className={cn(feature.size === "wide" && "md:col-span-2")}
               >
-                <div className="flex size-9 items-center justify-center rounded-[10px] bg-surface-container text-secondary">
+                <div className="flex size-9 items-center justify-center rounded-control bg-surface-container text-secondary">
                   <ProductIcon name={icon} size="md" />
                 </div>
                 <div className="mt-8 max-w-xl">

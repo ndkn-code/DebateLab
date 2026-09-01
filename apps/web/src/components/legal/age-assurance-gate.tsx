@@ -71,14 +71,14 @@ export function AgeAssuranceGate({
           <button
             type="button"
             onClick={() => router.refresh()}
-            className="min-h-10 rounded-[10px] bg-on-surface px-4 type-label font-semibold text-surface"
+            className="min-h-10 rounded-control bg-on-surface px-4 type-label font-semibold text-surface"
           >
             {vi ? "Kiểm tra lại" : "Check again"}
           </button>
           <button
             type="button"
             onClick={() => setStatus(null)}
-            className="min-h-10 rounded-[10px] border border-outline px-4 type-label font-semibold"
+            className="min-h-10 rounded-control border border-outline px-4 type-label font-semibold"
           >
             {vi ? "Gửi lại" : "Send again"}
           </button>
@@ -114,7 +114,7 @@ export function AgeAssuranceGate({
         {(["adult", "minor"] as const).map((value) => (
           <label
             key={value}
-            className="flex min-h-12 cursor-pointer items-center gap-3 rounded-[10px] border border-outline-variant p-3 hover:bg-surface-container-low"
+            className="flex min-h-12 cursor-pointer items-center gap-3 rounded-control border border-outline-variant p-3 hover:bg-surface-container-low"
           >
             <input
               type="radio"
@@ -145,7 +145,7 @@ export function AgeAssuranceGate({
             autoComplete="email"
             value={guardianEmail}
             onChange={(event) => setGuardianEmail(event.target.value)}
-            className="mt-2 min-h-11 w-full rounded-[10px] border border-outline bg-surface px-3 type-body font-normal"
+            className="mt-2 min-h-11 w-full rounded-control border border-outline bg-surface px-3 type-body font-normal"
             required
           />
         </label>
@@ -161,7 +161,7 @@ export function AgeAssuranceGate({
           !ageBand || pending || (ageBand === "minor" && !guardianEmail)
         }
         onClick={submit}
-        className="mt-6 min-h-11 w-full rounded-[10px] bg-on-surface px-4 type-label font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-45"
+        className="mt-6 min-h-11 w-full rounded-control bg-on-surface px-4 type-label font-semibold text-surface disabled:cursor-not-allowed disabled:opacity-45"
       >
         {pending
           ? vi

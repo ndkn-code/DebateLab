@@ -126,7 +126,7 @@ export function OrganizationSwitcher({
         aria-haspopup="listbox"
         aria-expanded={open}
         onClick={() => setOpen((value) => !value)}
-        className="flex min-h-11 w-full items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 py-2 text-left outline-none transition-colors hover:bg-surface-container-low focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+        className="flex min-h-11 w-full items-center gap-2 rounded-control border border-outline-variant bg-surface px-3 py-2 text-left outline-none transition-colors hover:bg-surface-container-low focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
       >
         <OrganizationIcon type={current.type} />
         <span className="min-w-0 flex-1">
@@ -158,7 +158,7 @@ export function OrganizationSwitcher({
           role="listbox"
           aria-label={t.switch}
           onKeyDown={onListKeyDown}
-          className="absolute left-0 top-[calc(100%+8px)] z-30 w-full min-w-72 rounded-[10px] border border-outline-variant bg-surface p-1.5 shadow-token-card"
+          className="absolute left-0 top-[calc(100%+8px)] z-30 w-full min-w-72 rounded-control border border-outline-variant bg-surface p-1.5 shadow-token-card"
         >
           {organizations.length === 0 ? (
             <p

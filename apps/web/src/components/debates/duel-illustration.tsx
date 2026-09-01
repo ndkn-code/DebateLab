@@ -33,7 +33,7 @@ export function DuelIllustration({
         role="img"
         aria-label={alt}
         className={cn(
-          "flex items-center justify-center rounded-[10px] border border-dashed border-outline-variant/30 bg-surface-container-low px-4 text-center",
+          "flex items-center justify-center rounded-control border border-dashed border-outline-variant/30 bg-surface-container-low px-4 text-center",
           className
         )}
       >

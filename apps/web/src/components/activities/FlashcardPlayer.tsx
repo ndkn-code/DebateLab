@@ -174,7 +174,7 @@ export function FlashcardPlayer({ content, onComplete }: Props) {
           >
             <motion.button
               onClick={handleReview}
-              className="flex h-8 flex-1 items-center justify-center gap-2 rounded-[10px] border border-warning bg-warning-container px-4 text-sm font-medium text-on-warning-container hover:bg-warning-container/80 transition-colors"
+              className="flex h-8 flex-1 items-center justify-center gap-2 rounded-control border border-warning bg-warning-container px-4 text-sm font-medium text-on-warning-container hover:bg-warning-container/80 transition-colors"
               whileTap={{ scale: 0.97 }}
             >
               <RotateCcw className="h-5 w-5" />
@@ -182,7 +182,7 @@ export function FlashcardPlayer({ content, onComplete }: Props) {
             </motion.button>
             <motion.button
               onClick={handleGotIt}
-              className="flex h-8 flex-1 items-center justify-center gap-2 rounded-[10px] bg-success px-4 text-sm font-medium text-on-success hover:bg-success-dim transition-colors"
+              className="flex h-8 flex-1 items-center justify-center gap-2 rounded-control bg-success px-4 text-sm font-medium text-on-success hover:bg-success-dim transition-colors"
               whileTap={{ scale: 0.97 }}
             >
               <Check className="h-5 w-5" />

@@ -1367,7 +1367,7 @@ function ProfileTabs({
 
   return (
     <nav className="overflow-x-auto" aria-label={t("label")}>
-      <div className="inline-flex min-w-full items-center gap-1 rounded-[10px] border border-outline-variant bg-surface-container p-1 sm:min-w-0">
+      <div className="inline-flex min-w-full items-center gap-1 rounded-control border border-outline-variant bg-surface-container p-1 sm:min-w-0">
         {PROFILE_SOCIAL_TABS.map((tab) => {
           const isActive = activeTab === tab;
           const isPending = pendingTab === tab;

@@ -397,7 +397,7 @@ export function MockTestPlayer({
       {error ? (
         <div
           role="alert"
-          className="absolute left-1/2 top-3 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-[10px] border border-error/20 bg-error-container px-4 py-3 type-label text-error shadow-token-card"
+          className="absolute left-1/2 top-3 z-50 w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 rounded-control border border-error/20 bg-error-container px-4 py-3 type-label text-error shadow-token-card"
         >
           <p className="font-semibold">{error}</p>
           {supportCode ? (

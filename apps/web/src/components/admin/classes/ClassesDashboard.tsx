@@ -156,7 +156,7 @@ function ClassCard({ item }: { item: AdminClassListRow }) {
   return (
     <Link
       href={`/dashboard/admin/classes/${item.id}`}
-      className="block rounded-[10px] border border-outline-variant bg-surface p-3 transition-colors duration-150 hover:border-primary/35 hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      className="block rounded-control border border-outline-variant bg-surface p-3 transition-colors duration-150 hover:border-primary/35 hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-center gap-3">
@@ -292,7 +292,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
         {!isSchedulesView && (
           <button
             onClick={() => setCreateOpen(true)}
-            className="inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-on-primary shadow-none transition-all duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+            className="inline-flex h-8 items-center justify-center gap-2 rounded-control bg-primary px-3 text-sm font-medium text-on-primary shadow-none transition-all duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
           >
             <Plus className="h-4 w-4" />
             {t("newClass")}
@@ -300,7 +300,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
         )}
       </div>
 
-      <FadeInItem className="mt-5 flex w-full overflow-hidden rounded-[10px] border border-outline-variant bg-surface p-1 shadow-none sm:w-fit">
+      <FadeInItem className="mt-5 flex w-full overflow-hidden rounded-control border border-outline-variant bg-surface p-1 shadow-none sm:w-fit">
         <Link
           href="/dashboard/admin/classes"
           className={cn(
@@ -456,7 +456,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
           <FadeInItem>
             <form
               onSubmit={handleFilterSubmit}
-              className="mt-4 rounded-[10px] border border-outline-variant bg-surface p-3"
+              className="mt-4 rounded-control border border-outline-variant bg-surface p-3"
             >
               <div className="grid gap-3 lg:grid-cols-[1fr_220px_220px_auto]">
                 <label className="relative block">
@@ -465,13 +465,13 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
                     name="q"
                     defaultValue={searchDefaults.q}
                     placeholder={t("searchPlaceholder")}
-                    className="h-8 w-full rounded-[10px] border border-outline-variant bg-surface pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-ring/40"
+                    className="h-8 w-full rounded-control border border-outline-variant bg-surface pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-ring/40"
                   />
                 </label>
                 <select
                   name="status"
                   defaultValue={searchDefaults.status}
-                  className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/40"
+                  className="h-8 rounded-control border border-outline-variant bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/40"
                 >
                   <option value="all">{t("status.all")}</option>
                   <option value="active">{t("status.active")}</option>
@@ -481,14 +481,14 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
                 <select
                   name="sort"
                   defaultValue={searchDefaults.sort}
-                  className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/40"
+                  className="h-8 rounded-control border border-outline-variant bg-surface px-3 text-sm outline-none focus:border-primary focus:ring-2 focus:ring-ring/40"
                 >
                   <option value="newest">{t("sort.newest")}</option>
                   <option value="oldest">{t("sort.oldest")}</option>
                   <option value="title">{t("sort.title")}</option>
                   <option value="attendance">{t("sort.attendance")}</option>
                 </select>
-                <button className="inline-flex h-8 items-center justify-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 type-label font-semibold text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+                <button className="inline-flex h-8 items-center justify-center gap-2 rounded-control border border-outline-variant bg-surface px-3 type-label font-semibold text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
                   <Filter className="h-4 w-4" />
                   {t("filters")}
                 </button>
@@ -496,7 +496,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
             </form>
           </FadeInItem>
 
-          <FadeInItem className="mt-3 hidden overflow-hidden rounded-[10px] border border-outline-variant bg-surface lg:block">
+          <FadeInItem className="mt-3 hidden overflow-hidden rounded-control border border-outline-variant bg-surface lg:block">
             <div className="grid h-10 grid-cols-[1.8fr_0.7fr_1.2fr_0.7fr_0.8fr_1fr_40px] items-center border-b border-outline-variant bg-surface-container px-3 type-caption font-semibold text-on-surface-variant">
               <div>{t("table.class")}</div>
               <div>{t("table.status")}</div>
@@ -584,7 +584,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="create-class-dialog-title"
-            className="w-full max-w-xl rounded-[10px] border border-outline-variant bg-surface p-5 shadow-lg"
+            className="w-full max-w-xl rounded-control border border-outline-variant bg-surface p-5 shadow-lg"
           >
             <div className="flex items-start justify-between gap-3">
               <div>

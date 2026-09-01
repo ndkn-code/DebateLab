@@ -198,7 +198,7 @@ export function MockPreTestGuide({
                     open: { opacity: 1, y: 0 },
                   }
             }
-            className="flex min-h-12 items-center gap-3 rounded-[10px] border border-outline-variant bg-surface px-3 py-2 text-on-surface"
+            className="flex min-h-12 items-center gap-3 rounded-control border border-outline-variant bg-surface px-3 py-2 text-on-surface"
           >
             <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary-container text-primary">
               <ProductIcon name={item.icon} size="sm" weight="duotone" />

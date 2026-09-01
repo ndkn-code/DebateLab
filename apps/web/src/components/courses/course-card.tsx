@@ -36,7 +36,7 @@ function ProgressRing({ progress }: { progress: number }) {
 
   return (
     <div
-      className="relative flex size-10 items-center justify-center rounded-[10px] border border-outline-variant bg-surface"
+      className="relative flex size-10 items-center justify-center rounded-control border border-outline-variant bg-surface"
       role="img"
       aria-label={`${progress}%`}
     >
@@ -100,14 +100,14 @@ export function CourseCard({
   const cardContent = (
     <article
       className={cn(
-        "flex h-full flex-col rounded-[10px] border bg-surface shadow-none transition-[border-color,background-color,transform] duration-150",
+        "flex h-full flex-col rounded-control border bg-surface shadow-none transition-[border-color,background-color,transform] duration-150",
         course.status === "in-progress"
           ? "border-primary/50 bg-primary-container/20"
           : "border-outline-variant",
         !isMock && "hover:-translate-y-0.5 hover:border-primary/40",
       )}
     >
-      <div className="relative mx-3 mt-3 overflow-hidden rounded-[10px]">
+      <div className="relative mx-3 mt-3 overflow-hidden rounded-control">
         <div className="aspect-[1.82/1]">
           <CourseArtwork variant={artworkVariant} />
         </div>
@@ -152,7 +152,7 @@ export function CourseCard({
 
           <span
             className={cn(
-              "type-label inline-flex h-8 shrink-0 items-center rounded-[10px] px-3",
+              "type-label inline-flex h-8 shrink-0 items-center rounded-control px-3",
               actionClasses,
             )}
           >

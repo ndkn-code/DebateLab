@@ -171,7 +171,7 @@ function AssignmentRow({
           : "Start";
 
   return (
-    <li className="flex min-h-11 flex-col gap-2 rounded-[10px] border border-outline-variant bg-surface-container-low px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+    <li className="flex min-h-11 flex-col gap-2 rounded-control border border-outline-variant bg-surface-container-low px-3 py-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
       <div className="min-w-0">
         <p className="type-label font-semibold text-on-surface">
           {assignment.title}
@@ -191,7 +191,7 @@ function AssignmentRow({
         </span>
         <Link
           href={`/dashboard/clubs/${assignment.clubId}/assignments/${assignment.id}`}
-          className="inline-flex h-8 items-center gap-1 rounded-[10px] border border-outline-variant px-2.5 type-caption font-semibold text-primary transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="inline-flex h-8 items-center gap-1 rounded-control border border-outline-variant px-2.5 type-caption font-semibold text-primary transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           {actionLabel}
           <ExternalLink className="size-3.5" aria-hidden="true" />
@@ -282,7 +282,7 @@ function OccurrenceCard({
   const vi = locale === "vi";
   const attendance = occurrence.attendance;
   return (
-    <article className="rounded-[10px] border border-outline-variant bg-surface p-3 shadow-token-card">
+    <article className="rounded-control border border-outline-variant bg-surface p-3 shadow-token-card">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 type-caption text-on-surface-variant">
@@ -315,7 +315,7 @@ function OccurrenceCard({
             </p>
           ) : null}
           {occurrence.notes ? (
-            <p className="mt-2 rounded-[10px] bg-surface-container-low px-3 py-2 type-body-sm text-on-surface-variant">
+            <p className="mt-2 rounded-control bg-surface-container-low px-3 py-2 type-body-sm text-on-surface-variant">
               {occurrence.notes}
             </p>
           ) : null}
@@ -350,7 +350,7 @@ function OccurrenceCard({
                       href={href}
                       target="_blank"
                       rel="noreferrer"
-                      className="flex h-10 items-center justify-between gap-2 rounded-[10px] border border-outline-variant px-3 type-body-sm text-primary transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="flex h-10 items-center justify-between gap-2 rounded-control border border-outline-variant px-3 type-body-sm text-primary transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <span className="min-w-0 truncate">{resource.title}</span>
                       <ExternalLink
@@ -359,7 +359,7 @@ function OccurrenceCard({
                       />
                     </a>
                   ) : (
-                    <span className="flex h-10 items-center rounded-[10px] border border-outline-variant px-3 type-body-sm text-on-surface-variant">
+                    <span className="flex h-10 items-center rounded-control border border-outline-variant px-3 type-body-sm text-on-surface-variant">
                       {resource.title}
                     </span>
                   )}
@@ -397,7 +397,7 @@ function OccurrenceCard({
 
 function EmptyState({ vi }: { vi: boolean }) {
   return (
-    <div className="rounded-[10px] border border-dashed border-outline-variant bg-surface-container-low px-4 py-8 text-center">
+    <div className="rounded-control border border-dashed border-outline-variant bg-surface-container-low px-4 py-8 text-center">
       <CalendarDays
         className="mx-auto size-8 text-on-surface-variant"
         aria-hidden="true"
@@ -480,29 +480,29 @@ export function StudentLmsWeek({
             <Link
               href={weekQuery(addDays(data.range.startDate, -7))}
               aria-label={vi ? "Tuần trước" : "Previous week"}
-              className="inline-flex size-8 items-center justify-center rounded-[10px] border border-outline-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex size-8 items-center justify-center rounded-control border border-outline-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ChevronLeft className="size-4" aria-hidden="true" />
             </Link>
             <Link
               href="/ielts/classes"
-              className="inline-flex h-8 items-center rounded-[10px] border border-outline-variant px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex h-8 items-center rounded-control border border-outline-variant px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {vi ? "Hôm nay" : "Today"}
             </Link>
             <Link
               href={weekQuery(addDays(data.range.startDate, 7))}
               aria-label={vi ? "Tuần sau" : "Next week"}
-              className="inline-flex size-8 items-center justify-center rounded-[10px] border border-outline-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex size-8 items-center justify-center rounded-control border border-outline-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ChevronRight className="size-4" aria-hidden="true" />
             </Link>
           </div>
         </header>
 
-        <section className="mt-4 grid gap-3 rounded-[10px] border border-outline-variant bg-surface p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+        <section className="mt-4 grid gap-3 rounded-control border border-outline-variant bg-surface p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
           <div className="flex min-w-0 items-start gap-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-[10px] bg-primary text-on-primary">
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-control bg-primary text-on-primary">
               <ClipboardList className="size-4" aria-hidden="true" />
             </span>
             <div className="min-w-0">
@@ -531,7 +531,7 @@ export function StudentLmsWeek({
                 ? `/dashboard/clubs/${nextAssignment.assignment.clubId}/assignments/${nextAssignment.assignment.id}`
                 : "/ielts/assigned"
             }
-            className="inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-3 type-label font-semibold text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            className="inline-flex h-8 items-center justify-center gap-2 rounded-control bg-primary px-3 type-label font-semibold text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             {nextAssignment
               ? vi
@@ -546,7 +546,7 @@ export function StudentLmsWeek({
 
         {generalMaterials.length ? (
           <section
-            className="mt-3 rounded-[10px] border border-outline-variant bg-surface p-3"
+            className="mt-3 rounded-control border border-outline-variant bg-surface p-3"
             aria-label={vi ? "Tài liệu lớp học" : "Class materials"}
           >
             <LearnerMaterials materials={generalMaterials} locale={locale} />
@@ -574,7 +574,7 @@ export function StudentLmsWeek({
             </Link>
           </div>
           <div className="mt-2 overflow-x-auto pb-1">
-            <ol className="grid min-w-[36rem] grid-cols-7 overflow-hidden rounded-[10px] border border-outline-variant bg-surface">
+            <ol className="grid min-w-[36rem] grid-cols-7 overflow-hidden rounded-control border border-outline-variant bg-surface">
               {dates.map((date) => {
                 const itemCount = (grouped.get(date) ?? []).length;
                 const isToday = date === today;
@@ -618,7 +618,7 @@ export function StudentLmsWeek({
               return (
                 <div key={date} className="grid gap-2 lg:grid-cols-[8rem_1fr]">
                   <div
-                    className={`rounded-[10px] border px-3 py-2 lg:self-start ${isToday ? "border-primary bg-primary-container/35" : "border-outline-variant bg-surface-container-low"}`}
+                    className={`rounded-control border px-3 py-2 lg:self-start ${isToday ? "border-primary bg-primary-container/35" : "border-outline-variant bg-surface-container-low"}`}
                   >
                     <p className="type-label font-semibold uppercase text-on-surface-variant">
                       {formatDate(date, locale, { weekday: "long" })}
@@ -652,7 +652,7 @@ export function StudentLmsWeek({
           </section>
           <aside className="grid content-start gap-3">
             <section
-              className="rounded-[10px] border border-outline-variant bg-surface p-3"
+              className="rounded-control border border-outline-variant bg-surface p-3"
               aria-labelledby="student-announcements-heading"
             >
               <div className="flex items-center justify-between gap-3">
@@ -700,7 +700,7 @@ export function StudentLmsWeek({
             </section>
 
             <section
-              className="rounded-[10px] border border-outline-variant bg-surface p-3"
+              className="rounded-control border border-outline-variant bg-surface p-3"
               aria-labelledby="student-notifications-heading"
             >
               <div className="flex items-center justify-between gap-3">
@@ -756,7 +756,7 @@ export function StudentLmsWeek({
                               )}
                               className="mt-1.5"
                             >
-                              <button className="h-8 rounded-[10px] border border-outline-variant px-2.5 type-caption font-semibold text-primary transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+                              <button className="h-8 rounded-control border border-outline-variant px-2.5 type-caption font-semibold text-primary transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
                                 {vi ? "Đánh dấu đã đọc" : "Mark as read"}
                               </button>
                             </form>

@@ -178,7 +178,7 @@ export function EmailMonitorDashboard({ data }: Props) {
               type="button"
               disabled
               aria-label="Date range: last 14 days"
-              className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant/50 bg-surface-container-lowest px-3 type-label font-medium text-on-surface-variant shadow-token-card disabled:cursor-default disabled:opacity-100"
+              className="inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant/50 bg-surface-container-lowest px-3 type-label font-medium text-on-surface-variant shadow-token-card disabled:cursor-default disabled:opacity-100"
             >
               <CalendarDays className="h-4 w-4 text-primary" />
               Last 14 days
@@ -187,7 +187,7 @@ export function EmailMonitorDashboard({ data }: Props) {
               type="button"
               onClick={() => router.refresh()}
               aria-label="Refresh email monitor"
-              className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant/50 bg-surface-container-lowest px-3 type-label font-medium text-on-surface-variant shadow-token-card hover:bg-surface-container"
+              className="inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant/50 bg-surface-container-lowest px-3 type-label font-medium text-on-surface-variant shadow-token-card hover:bg-surface-container"
             >
               <RefreshCw className="h-4 w-4 text-primary" />
               Refresh
@@ -208,7 +208,7 @@ export function EmailMonitorDashboard({ data }: Props) {
                 setActiveTab(tab.key as "monitor" | "templates" | "campaigns")
               }
               className={cn(
-                "h-8 rounded-[10px] px-4 type-label font-medium transition-colors",
+                "h-8 rounded-control px-4 type-label font-medium transition-colors",
                 activeTab === tab.key
                   ? "bg-primary text-on-primary shadow-sm shadow-primary/20"
                   : "text-on-surface-variant hover:bg-surface-container-lowest",
@@ -232,7 +232,7 @@ export function EmailMonitorDashboard({ data }: Props) {
               {monitorKpis.map((kpi) => (
                 <div
                   key={kpi.key}
-                  className="min-w-0 rounded-[10px] border border-outline-variant bg-surface p-3"
+                  className="min-w-0 rounded-control border border-outline-variant bg-surface p-3"
                 >
                   <div className="flex items-center gap-3">
                     <div
@@ -263,7 +263,7 @@ export function EmailMonitorDashboard({ data }: Props) {
             </section>
 
             <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
-              <div className="min-w-0 rounded-[10px] border border-outline-variant bg-surface p-4">
+              <div className="min-w-0 rounded-control border border-outline-variant bg-surface p-4">
                 <div className="flex items-center justify-between">
                   <div>
                     <h2 className="text-lg font-bold text-on-surface">
@@ -321,7 +321,7 @@ export function EmailMonitorDashboard({ data }: Props) {
                 </div>
               </div>
 
-              <div className="min-w-0 overflow-hidden rounded-[10px] border border-outline-variant bg-surface">
+              <div className="min-w-0 overflow-hidden rounded-control border border-outline-variant bg-surface">
                 <div className="flex h-10 items-center justify-between border-b border-outline-variant px-4">
                   <h2 className="text-lg font-bold text-on-surface">
                     Template performance
@@ -425,7 +425,7 @@ export function EmailMonitorDashboard({ data }: Props) {
             </section>
 
             <section className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(360px,0.65fr)]">
-              <div className="min-w-0 overflow-hidden rounded-[10px] border border-outline-variant bg-surface">
+              <div className="min-w-0 overflow-hidden rounded-control border border-outline-variant bg-surface">
                 <div className="flex h-10 items-center border-b border-outline-variant px-4">
                   <h2 className="text-lg font-bold text-on-surface">
                     Recent sends

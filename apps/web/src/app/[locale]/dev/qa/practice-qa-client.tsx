@@ -169,7 +169,7 @@ export function DevPracticeQaPage() {
                 aria-selected={activeTab === tab.key}
                 onClick={() => setActiveTab(tab.key)}
                 className={cn(
-                  "inline-flex h-8 items-center rounded-[10px] border px-2.5 type-label font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                  "inline-flex h-8 items-center rounded-control border px-2.5 type-label font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                   activeTab === tab.key
                     ? "border-primary bg-primary-container text-primary-dim"
                     : "border-border bg-surface text-on-surface-variant hover:bg-primary-container hover:text-primary-dim"
@@ -255,7 +255,7 @@ export function DevPracticeQaPage() {
             }
           />
           <div className="mx-auto max-w-[1560px] px-4 sm:px-6 lg:px-8">
-            <div className="rounded-[10px] border border-border bg-surface p-4">
+            <div className="rounded-control border border-border bg-surface p-4">
               <h2 className="type-title font-semibold text-on-surface">
                 Legacy feedback compatibility
               </h2>

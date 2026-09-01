@@ -57,7 +57,7 @@ function FilterChip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex h-8 items-center rounded-[10px] border px-3 type-label font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "inline-flex h-8 items-center rounded-control border px-3 type-label font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         active
           ? "border-primary bg-primary text-on-primary"
           : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/35 hover:text-on-surface",
@@ -106,7 +106,7 @@ export function PracticeFilterPopover({
             type="button"
             aria-label={t("filters")}
             className={cn(
-              "relative inline-flex h-8 shrink-0 items-center gap-2 rounded-[10px] border bg-surface px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "relative inline-flex h-8 shrink-0 items-center gap-2 rounded-control border bg-surface px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
               activeFilterCount > 0
                 ? "border-primary/40 text-primary"
                 : "border-outline-variant text-on-surface-variant",

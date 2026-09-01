@@ -223,7 +223,7 @@ function ActivityCard({
       {item.href ? (
         <Link
           href={item.href}
-          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-[10px] px-3 type-label font-semibold text-primary transition-colors hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-control px-3 type-label font-semibold text-primary transition-colors hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {t("review")}
           <ArrowRight className="size-4" />
@@ -297,7 +297,7 @@ export function ProfileActivitiesTab({
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder={t("search_placeholder")}
-            className="h-8 w-full rounded-[10px] border border-outline-variant bg-surface-container-lowest pl-10 pr-3 type-label font-medium text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/70 focus:border-primary/45 focus:ring-2 focus:ring-ring"
+            className="h-8 w-full rounded-control border border-outline-variant bg-surface-container-lowest pl-10 pr-3 type-label font-medium text-on-surface outline-none transition-colors placeholder:text-on-surface-variant/70 focus:border-primary/45 focus:ring-2 focus:ring-ring"
           />
         </label>
 
@@ -310,7 +310,7 @@ export function ProfileActivitiesTab({
                 type="button"
                 onClick={() => setFilter(item.value)}
                 className={cn(
-                  "inline-flex h-8 items-center justify-center rounded-[10px] border px-3 type-label font-semibold transition-colors",
+                  "inline-flex h-8 items-center justify-center rounded-control border px-3 type-label font-semibold transition-colors",
                   active
                     ? "border-primary bg-primary text-on-primary shadow-token-primary"
                     : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/35 hover:text-on-surface",
@@ -326,7 +326,7 @@ export function ProfileActivitiesTab({
           <select
             value={sort}
             onChange={(event) => setSort(event.target.value as ActivitySort)}
-            className="h-8 w-full appearance-none rounded-[10px] border border-outline-variant bg-surface-container-lowest pl-3 pr-9 type-label font-semibold text-on-surface outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-ring"
+            className="h-8 w-full appearance-none rounded-control border border-outline-variant bg-surface-container-lowest pl-3 pr-9 type-label font-semibold text-on-surface outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-ring"
           >
             <option value="newest">{t("sort_newest")}</option>
             <option value="oldest">{t("sort_oldest")}</option>

@@ -135,7 +135,7 @@ export function CreateClubDialog({
               <button
                 type="button"
                 onClick={() => onCreated(resultClubId)}
-                className="mt-3 inline-flex h-8 items-center justify-center rounded-[10px] bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="mt-3 inline-flex h-8 items-center justify-center rounded-control bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 {t("create.open")}
               </button>
@@ -216,11 +216,11 @@ export function CreateClubDialog({
                 </p>
               </div>
               <div className="flex gap-2">
-                <button type="button" onClick={() => addRecipient("owner")} className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-xs font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
+                <button type="button" onClick={() => addRecipient("owner")} className="inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant bg-surface px-3 text-xs font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
                   <UserRoundPlus className="h-4 w-4 text-primary" />
                   {t("roles.owner")}
                 </button>
-                <button type="button" onClick={() => addRecipient()} className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-xs font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
+                <button type="button" onClick={() => addRecipient()} className="inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant bg-surface px-3 text-xs font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
                   <Plus className="h-4 w-4 text-primary" />
                   {t("roles.student")}
                 </button>
@@ -229,7 +229,7 @@ export function CreateClubDialog({
 
             <div className="mt-3 space-y-2">
               {recipients.map((recipient, index) => (
-                <div key={index} className="grid gap-2 rounded-[10px] border border-outline-variant bg-surface p-2 sm:grid-cols-[112px_1fr_36px]">
+                <div key={index} className="grid gap-2 rounded-control border border-outline-variant bg-surface p-2 sm:grid-cols-[112px_1fr_36px]">
                   <select
                     value={recipient.role}
                     onChange={(event) => updateRecipient(index, { role: event.target.value as ClubRole })}
@@ -260,7 +260,7 @@ export function CreateClubDialog({
             </div>
           </section>
 
-          <label className="flex items-center justify-between gap-3 rounded-[10px] border border-outline-variant bg-surface p-3">
+          <label className="flex items-center justify-between gap-3 rounded-control border border-outline-variant bg-surface p-3">
             <span>
               <span className="block text-sm font-bold text-on-surface">{t("create.skipInvitation")}</span>
               <span className="block text-xs leading-5 text-on-surface-variant">{t("create.skipInvitationHelp")}</span>
@@ -288,13 +288,13 @@ export function CreateClubDialog({
         </div>
 
         <div className="flex flex-col-reverse gap-2 border-t border-outline-variant p-4 sm:flex-row sm:justify-end">
-          <button type="button" onClick={onClose} className="inline-flex h-8 items-center justify-center rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
+          <button type="button" onClick={onClose} className="inline-flex h-8 items-center justify-center rounded-control border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
             {t("create.cancel")}
           </button>
           <button
             type="submit"
             disabled={isPending || ownerCount === 0}
-            className="inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none transition hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-surface-container-high"
+            className="inline-flex h-8 items-center justify-center gap-2 rounded-control bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none transition hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:bg-surface-container-high"
           >
             {skipInvitation ? <CheckCircle2 className="h-4 w-4" /> : <Send className="h-4 w-4" />}
             {isPending ? t("create.creating") : skipInvitation ? t("create.add") : t("create.invite")}

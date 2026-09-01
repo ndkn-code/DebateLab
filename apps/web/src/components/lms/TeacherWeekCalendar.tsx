@@ -91,7 +91,7 @@ function TeacherEventLink({
     <Link
       href={`/dashboard/classes/${item.classId}`}
       style={positioned ? { top, height } : undefined}
-      className={`${positioned ? "absolute inset-x-1 z-10 overflow-hidden" : "block min-h-11"} rounded-[10px] border border-l-4 px-2 py-1.5 type-caption transition-colors duration-150 hover:brightness-95 focus-visible:z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${eventTone(item)}`}
+      className={`${positioned ? "absolute inset-x-1 z-10 overflow-hidden" : "block min-h-11"} rounded-control border border-l-4 px-2 py-1.5 type-caption transition-colors duration-150 hover:brightness-95 focus-visible:z-30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${eventTone(item)}`}
     >
       <span className="block font-semibold tabular-nums text-on-surface">
         {formatTime(item.startsAt, locale, item.timezone)}–
@@ -166,7 +166,7 @@ export function TeacherWeekCalendar({
     <ProductPageShell>
       <PageContainer size="data" className="py-4 lg:py-5">
         {isAdminPreview ? (
-          <div className="mb-3 flex flex-col gap-2 rounded-[10px] border border-primary/20 bg-primary-container/35 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="mb-3 flex flex-col gap-2 rounded-control border border-primary/20 bg-primary-container/35 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex min-w-0 items-start gap-2">
               <ProductIcon
                 name="shield"
@@ -186,7 +186,7 @@ export function TeacherWeekCalendar({
             </div>
             <Link
               href="/dashboard/admin"
-              className="inline-flex h-8 shrink-0 items-center justify-center rounded-[10px] border border-outline-variant bg-surface px-3 type-label font-semibold text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex h-8 shrink-0 items-center justify-center rounded-control border border-outline-variant bg-surface px-3 type-label font-semibold text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {vi ? "Quay lại Quản trị" : "Return to Admin"}
             </Link>
@@ -210,7 +210,7 @@ export function TeacherWeekCalendar({
             {SHARED_LMS_MATERIALS_V1 ? (
               <Link
                 href="/dashboard/teacher/materials"
-                className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               >
                 <ProductIcon name="book" size="sm" />
                 {vi ? "Tài liệu" : "Materials"}
@@ -218,7 +218,7 @@ export function TeacherWeekCalendar({
             ) : null}
             <Link
               href={currentViewHref}
-              className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ProductIcon
                 name={showClasses ? "calendar" : "users"}
@@ -235,27 +235,27 @@ export function TeacherWeekCalendar({
             <Link
               href={query(addDays(data.startDate, -7))}
               aria-label={vi ? "Tuần trước" : "Previous week"}
-              className="inline-flex size-8 items-center justify-center rounded-[10px] border border-outline-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex size-8 items-center justify-center rounded-control border border-outline-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ProductIcon name="chevronLeft" size="sm" />
             </Link>
             <Link
               href="/dashboard/teacher"
-              className="inline-flex h-8 items-center rounded-[10px] border border-outline-variant px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex h-8 items-center rounded-control border border-outline-variant px-3 type-label font-semibold transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               {vi ? "Hôm nay" : "Today"}
             </Link>
             <Link
               href={query(addDays(data.startDate, 7))}
               aria-label={vi ? "Tuần sau" : "Next week"}
-              className="inline-flex size-8 items-center justify-center rounded-[10px] border border-outline-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="inline-flex size-8 items-center justify-center rounded-control border border-outline-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ProductIcon name="chevronRight" size="sm" />
             </Link>
           </div>
         </header>
 
-        <form className="mt-3 grid gap-2 rounded-[10px] border border-outline-variant bg-surface-container-low p-2.5 sm:grid-cols-[minmax(10rem,1fr)_minmax(10rem,1fr)_auto]">
+        <form className="mt-3 grid gap-2 rounded-control border border-outline-variant bg-surface-container-low p-2.5 sm:grid-cols-[minmax(10rem,1fr)_minmax(10rem,1fr)_auto]">
           <input type="hidden" name="weekStart" value={data.startDate} />
           {showClasses ? (
             <input type="hidden" name="view" value="classes" />
@@ -265,7 +265,7 @@ export function TeacherWeekCalendar({
             <select
               name="program"
               defaultValue={selectedProgram ?? ""}
-              className="h-8 rounded-[10px] border border-outline-variant bg-surface px-2 type-label focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="h-8 rounded-control border border-outline-variant bg-surface px-2 type-label focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <option value="">{vi ? "Tất cả" : "All subjects"}</option>
               <option value="ielts">IELTS</option>
@@ -278,7 +278,7 @@ export function TeacherWeekCalendar({
             <select
               name="classId"
               defaultValue={selectedClassId ?? ""}
-              className="h-8 rounded-[10px] border border-outline-variant bg-surface px-2 type-label focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              className="h-8 rounded-control border border-outline-variant bg-surface px-2 type-label focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <option value="">{vi ? "Tất cả lớp" : "All classes"}</option>
               {data.classes.map((item) => (
@@ -288,7 +288,7 @@ export function TeacherWeekCalendar({
               ))}
             </select>
           </label>
-          <button className="h-8 self-end rounded-[10px] bg-primary px-4 type-label font-semibold text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+          <button className="h-8 self-end rounded-control bg-primary px-4 type-label font-semibold text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
             {vi ? "Lọc" : "Apply"}
           </button>
         </form>
@@ -363,7 +363,7 @@ export function TeacherWeekCalendar({
           <>
             <div className="mt-4 grid gap-3 xl:grid-cols-[minmax(0,1fr)_18rem]">
               <section
-                className="hidden overflow-hidden rounded-[10px] border border-outline-variant bg-surface xl:block"
+                className="hidden overflow-hidden rounded-control border border-outline-variant bg-surface xl:block"
                 aria-label={vi ? "Lịch tuần" : "Week calendar"}
               >
                 <div>
@@ -463,7 +463,7 @@ export function TeacherWeekCalendar({
               </section>
 
               <aside
-                className="hidden self-start overflow-hidden rounded-[10px] border border-outline-variant bg-surface xl:block"
+                className="hidden self-start overflow-hidden rounded-control border border-outline-variant bg-surface xl:block"
                 aria-labelledby="teacher-week-agenda-heading"
               >
                 <div className="border-b border-outline-variant bg-surface-container-low px-3 py-2.5">
@@ -533,7 +533,7 @@ export function TeacherWeekCalendar({
                   return (
                     <div
                       key={day}
-                      className="grid overflow-hidden rounded-[10px] border border-outline-variant bg-surface sm:grid-cols-[8rem_1fr]"
+                      className="grid overflow-hidden rounded-control border border-outline-variant bg-surface sm:grid-cols-[8rem_1fr]"
                     >
                       <div className="border-b border-outline-variant bg-surface-container-low px-3 py-2.5 sm:border-b-0 sm:border-r">
                         <p className="type-label font-semibold uppercase text-on-surface-variant">
@@ -571,7 +571,7 @@ export function TeacherWeekCalendar({
                   );
                 })}
                 {data.occurrences.length === 0 ? (
-                  <div className="rounded-[10px] border border-dashed border-outline-variant bg-surface-container-low px-4 py-10 text-center type-body-sm text-on-surface-variant">
+                  <div className="rounded-control border border-dashed border-outline-variant bg-surface-container-low px-4 py-10 text-center type-body-sm text-on-surface-variant">
                     {vi
                       ? "Không có lớp trong tuần này."
                       : "No classes this week."}

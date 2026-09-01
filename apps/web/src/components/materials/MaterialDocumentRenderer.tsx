@@ -39,7 +39,7 @@ function RenditionImage({
       src={src}
       alt={alt}
       loading="lazy"
-      className="mx-auto max-h-[70dvh] max-w-full rounded-[10px] border border-outline-variant object-contain"
+      className="mx-auto max-h-[70dvh] max-w-full rounded-control border border-outline-variant object-contain"
     />
   );
 }
@@ -87,7 +87,7 @@ export function MaterialDocumentRenderer({
                 return (
                   <div
                     key={block.id}
-                    className="rounded-[10px] border border-info/25 bg-info-container p-4 type-body-sm text-on-info-container"
+                    className="rounded-control border border-info/25 bg-info-container p-4 type-body-sm text-on-info-container"
                   >
                     {block.text}
                   </div>
@@ -103,7 +103,7 @@ export function MaterialDocumentRenderer({
                 return (
                   <aside
                     key={block.id}
-                    className={`flex gap-3 rounded-[10px] border p-4 type-body-sm ${tone}`}
+                    className={`flex gap-3 rounded-control border p-4 type-body-sm ${tone}`}
                   >
                     {block.tone === "tip" ? (
                       <Lightbulb
@@ -147,7 +147,7 @@ export function MaterialDocumentRenderer({
                 return (
                   <figure
                     key={block.id}
-                    className="rounded-[10px] border border-outline-variant bg-surface-container-low p-4"
+                    className="rounded-control border border-outline-variant bg-surface-container-low p-4"
                   >
                     <figcaption className="mb-3 flex items-center gap-2 type-label font-semibold">
                       <Volume2
@@ -185,7 +185,7 @@ export function MaterialDocumentRenderer({
                 return (
                   <div
                     key={block.id}
-                    className="overflow-x-auto rounded-[10px] border border-outline-variant"
+                    className="overflow-x-auto rounded-control border border-outline-variant"
                     tabIndex={0}
                     role="region"
                     aria-label={copy.table}
@@ -220,7 +220,7 @@ export function MaterialDocumentRenderer({
                 return (
                   <dl
                     key={block.id}
-                    className="divide-y divide-outline-variant rounded-[10px] border border-outline-variant"
+                    className="divide-y divide-outline-variant rounded-control border border-outline-variant"
                   >
                     {block.terms.map((item) => (
                       <div
@@ -243,7 +243,7 @@ export function MaterialDocumentRenderer({
                 <section
                   key={block.id}
                   aria-labelledby={`${block.id}-prompt`}
-                  className="rounded-[10px] border border-outline-variant p-4"
+                  className="rounded-control border border-outline-variant p-4"
                 >
                   <h3
                     id={`${block.id}-prompt`}
@@ -258,7 +258,7 @@ export function MaterialDocumentRenderer({
                         disabled
                         rows={block.responseMode === "long_text" ? 5 : 2}
                         placeholder={copy.readonlyAnswer}
-                        className="mt-1 w-full resize-none rounded-[10px] border border-outline-variant bg-surface-container-low px-3 py-2 disabled:opacity-100"
+                        className="mt-1 w-full resize-none rounded-control border border-outline-variant bg-surface-container-low px-3 py-2 disabled:opacity-100"
                       />
                     </label>
                   ) : null}

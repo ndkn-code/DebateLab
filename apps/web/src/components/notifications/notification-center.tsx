@@ -213,7 +213,7 @@ export function NotificationCenter({
       <SheetTrigger
         aria-label={`${copy.title}, ${copy.unread(unreadCount)}`}
         className={cn(
-          "relative inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] text-sidebar-muted transition-colors hover:bg-white/[0.08] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+          "relative inline-flex size-11 shrink-0 items-center justify-center rounded-control text-sidebar-muted transition-colors hover:bg-white/[0.08] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
           className,
         )}
       >
@@ -246,7 +246,7 @@ export function NotificationCenter({
           aria-label={
             locale === "vi" ? "Đóng thông báo" : "Close notifications"
           }
-          className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-[10px] text-on-surface-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+          className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-control text-on-surface-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
         >
           <X className="h-4 w-4" aria-hidden="true" />
         </SheetClose>
@@ -265,7 +265,7 @@ export function NotificationCenter({
                   aria-pressed={filter === value}
                   onClick={() => setFilter(value)}
                   className={cn(
-                    "h-8 shrink-0 rounded-[10px] px-2.5 type-label font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                    "h-8 shrink-0 rounded-control px-2.5 type-label font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                     filter === value
                       ? "bg-primary text-on-primary"
                       : "text-on-surface-variant hover:bg-surface-container",
@@ -280,7 +280,7 @@ export function NotificationCenter({
             type="button"
             onClick={markAllRead}
             disabled={unreadCount === 0}
-            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-[10px] px-2 type-label font-medium text-primary hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-40"
+            className="inline-flex h-8 shrink-0 items-center gap-1 rounded-control px-2 type-label font-medium text-primary hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-40"
           >
             <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
             <span className="sr-only sm:not-sr-only">{copy.markAll}</span>
@@ -303,14 +303,14 @@ export function NotificationCenter({
               <button
                 type="button"
                 onClick={() => void loadInbox()}
-                className="mt-3 inline-flex h-8 items-center rounded-[10px] px-3 type-label font-semibold text-primary hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="mt-3 inline-flex h-8 items-center rounded-control px-3 type-label font-semibold text-primary hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 {copy.retry}
               </button>
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex min-h-64 flex-col items-center justify-center px-8 text-center">
-              <span className="flex size-10 items-center justify-center rounded-[10px] bg-secondary-container text-secondary-dim">
+              <span className="flex size-10 items-center justify-center rounded-control bg-secondary-container text-secondary-dim">
                 <Check className="h-5 w-5" aria-hidden="true" />
               </span>
               <h3 className="mt-3 type-label font-semibold text-on-surface">
@@ -348,7 +348,7 @@ export function NotificationCenter({
             render={
               <Link
                 href="/settings#notifications"
-                className="flex h-8 items-center justify-center gap-2 rounded-[10px] type-label font-medium text-primary hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="flex h-8 items-center justify-center gap-2 rounded-control type-label font-medium text-primary hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               />
             }
           >
@@ -444,7 +444,7 @@ function NotificationGroup({
                   type="button"
                   onClick={() => onMarkRead(event)}
                   aria-label={`${copy.markRead}: ${event.title}`}
-                  className="inline-flex size-8 items-center justify-center rounded-[10px] text-on-surface-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  className="inline-flex size-8 items-center justify-center rounded-control text-on-surface-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                 >
                   <Check className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -454,7 +454,7 @@ function NotificationGroup({
                   type="button"
                   onClick={() => onMute(event)}
                   aria-label={`${copy.mute}: ${event.title}`}
-                  className="inline-flex size-8 items-center justify-center rounded-[10px] text-on-surface-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  className="inline-flex size-8 items-center justify-center rounded-control text-on-surface-variant hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                 >
                   <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                 </button>

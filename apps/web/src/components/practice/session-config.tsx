@@ -111,7 +111,7 @@ function SegmentedControl<Value extends string>({
 
   return (
     <div
-      className="grid gap-1 rounded-[10px] bg-surface-container p-1"
+      className="grid gap-1 rounded-control bg-surface-container p-1"
       style={{
         gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))`,
       }}
@@ -193,7 +193,7 @@ function TimeStepper({
     );
 
   return (
-    <div className="rounded-[10px] border border-outline-variant bg-surface-container-lowest p-3">
+    <div className="rounded-control border border-outline-variant bg-surface-container-lowest p-3">
       <Text variant="label" as="p" className="font-bold text-on-surface">
         {label}
       </Text>
@@ -498,7 +498,7 @@ export function SessionConfig({
                 </span>
               </div>
 
-              <div className="mt-3 rounded-[10px] border border-outline-variant bg-surface-container-low p-3">
+              <div className="mt-3 rounded-control border border-outline-variant bg-surface-container-low p-3">
                 <div className="flex items-center gap-2 type-label font-bold text-on-surface">
                   <Scale className="h-4 w-4 text-primary" />
                   {t("session.motion_brief")}
@@ -589,7 +589,7 @@ export function SessionConfig({
               />
             </div>
 
-            <div className="flex min-h-10 items-center justify-between gap-4 rounded-[10px] border border-outline-variant bg-surface px-3 py-1.5">
+            <div className="flex min-h-10 items-center justify-between gap-4 rounded-control border border-outline-variant bg-surface px-3 py-1.5">
               <Text
                 id="ai-hints-label"
                 variant="label"
@@ -609,7 +609,7 @@ export function SessionConfig({
 
         {startError ? (
           <div
-            className="mx-4 mb-2 flex items-start gap-2 rounded-[10px] border border-error/25 bg-error-container px-3 py-2 type-caption text-on-error-container"
+            className="mx-4 mb-2 flex items-start gap-2 rounded-control border border-error/25 bg-error-container px-3 py-2 type-caption text-on-error-container"
             role="alert"
           >
             <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
@@ -648,7 +648,7 @@ export function SessionConfig({
           <Button
             onClick={handleBegin}
             disabled={isDeducting || showBeginTransition}
-            className="h-8 flex-1 rounded-[10px] type-body font-bold sm:max-w-[230px]"
+            className="h-8 flex-1 rounded-control type-body font-bold sm:max-w-[230px]"
           >
             {isDeducting || showBeginTransition
               ? t("starting")

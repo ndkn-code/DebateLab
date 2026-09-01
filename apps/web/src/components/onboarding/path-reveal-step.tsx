@@ -134,7 +134,7 @@ export function PathRevealStep({
             <Button
               onClick={handleFinish}
               disabled={isPending}
-              className="h-8 rounded-[10px] bg-primary px-5 text-sm font-medium text-on-primary hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className="h-8 rounded-control bg-primary px-5 text-sm font-medium text-on-primary hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               size="lg"
             >
               {t("path_reveal.cta")}

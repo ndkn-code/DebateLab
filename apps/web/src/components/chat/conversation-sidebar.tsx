@@ -117,7 +117,7 @@ function SidebarContent({
           title={collapsed ? t("new_chat") : undefined}
           aria-label={t("new_chat")}
           className={cn(
-            "h-8 gap-2 rounded-[10px] bg-primary type-label font-medium text-on-primary shadow-none",
+            "h-8 gap-2 rounded-control bg-primary type-label font-medium text-on-primary shadow-none",
             collapsed ? "w-8 px-0" : "w-full",
           )}
         >
@@ -158,7 +158,7 @@ function SidebarContent({
               type="button"
               onClick={() => setShowRepeated(true)}
               aria-expanded={false}
-              className="flex min-h-9 w-full items-center justify-between rounded-[10px] px-2 py-2 text-left type-caption text-on-surface-variant transition-colors hover:bg-surface-container-low/70 hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex min-h-9 w-full items-center justify-between rounded-control px-2 py-2 text-left type-caption text-on-surface-variant transition-colors hover:bg-surface-container-low/70 hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span className="truncate">{t("new_conversation")}</span>
               <span className="flex items-center gap-1 text-xs text-on-surface-variant/65">
@@ -172,7 +172,7 @@ function SidebarContent({
               type="button"
               onClick={() => setShowRepeated(false)}
               aria-expanded={true}
-              className="flex min-h-8 w-full items-center justify-between rounded-[10px] px-2 py-1.5 text-left type-caption font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex min-h-8 w-full items-center justify-between rounded-control px-2 py-1.5 text-left type-caption font-medium text-on-surface-variant transition-colors hover:bg-surface-container-low/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span>{t("new_conversation")}</span>
               <ChevronDown className="h-3.5 w-3.5 rotate-180" />

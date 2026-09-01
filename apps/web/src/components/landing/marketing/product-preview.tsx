@@ -23,7 +23,7 @@ export function HeroProductPreview({ copy }: { copy: MarketingPageCopy }) {
 
         <div className="py-5">
           <div className="flex items-start gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-[10px] bg-primary text-on-primary">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-control bg-primary text-on-primary">
               {copy.product === "debate" ? (
                 <ProductIcon name="mic" size="md" />
               ) : (
@@ -40,7 +40,7 @@ export function HeroProductPreview({ copy }: { copy: MarketingPageCopy }) {
             </div>
           </div>
           <div className="mt-5 grid grid-cols-2 gap-2">
-            <div className="rounded-[10px] border border-outline-variant bg-surface-container-low p-3">
+            <div className="rounded-control border border-outline-variant bg-surface-container-low p-3">
               <p className="type-caption text-on-surface-variant">
                 {copy.preview.metricLabel}
               </p>
@@ -48,7 +48,7 @@ export function HeroProductPreview({ copy }: { copy: MarketingPageCopy }) {
                 {copy.preview.metricValue}
               </p>
             </div>
-            <div className="rounded-[10px] border border-outline-variant bg-surface-container-low p-3">
+            <div className="rounded-control border border-outline-variant bg-surface-container-low p-3">
               <p className="type-caption text-on-surface-variant">
                 {copy.preview.secondaryLabel}
               </p>
@@ -59,7 +59,7 @@ export function HeroProductPreview({ copy }: { copy: MarketingPageCopy }) {
           </div>
         </div>
 
-        <div className="flex h-8 items-center justify-between rounded-[10px] bg-primary px-3 type-label font-semibold text-on-primary">
+        <div className="flex h-8 items-center justify-between rounded-control bg-primary px-3 type-label font-semibold text-on-primary">
           <span>{copy.preview.action}</span>
           <ProductIcon name="arrowRight" size="sm" />
         </div>
@@ -73,7 +73,7 @@ export function FeedbackProductPreview({ copy }: { copy: MarketingPageCopy }) {
     <div className="rounded-[12px] border border-outline-variant bg-surface p-4 shadow-token-card sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant pb-4">
         <div className="flex items-center gap-2">
-          <span className="flex size-8 items-center justify-center rounded-[10px] bg-primary text-on-primary">
+          <span className="flex size-8 items-center justify-center rounded-control bg-primary text-on-primary">
             <ProductIcon name="sparkles" size="sm" />
           </span>
           <span className="type-label font-semibold">{copy.productName}</span>
@@ -87,7 +87,7 @@ export function FeedbackProductPreview({ copy }: { copy: MarketingPageCopy }) {
         {copy.productProof.labels.map((label, index) => (
           <div
             key={label}
-            className="rounded-[10px] border border-outline-variant bg-surface-container-low p-3"
+            className="rounded-control border border-outline-variant bg-surface-container-low p-3"
           >
             <div className="flex items-center justify-between gap-2">
               <span className="type-caption text-on-surface-variant">
@@ -120,7 +120,7 @@ export function FeedbackProductPreview({ copy }: { copy: MarketingPageCopy }) {
         ))}
       </div>
 
-      <div className="mt-3 rounded-[10px] border border-secondary/20 bg-secondary-container p-4">
+      <div className="mt-3 rounded-control border border-secondary/20 bg-secondary-container p-4">
         <div className="flex items-start gap-3">
           <ProductIcon
             name="target"

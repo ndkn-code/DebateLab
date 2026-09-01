@@ -166,7 +166,7 @@ export default async function Page({ params }: Props) {
           {previews.map((preview) => (
             <article
               key={preview.templateKey}
-              className="mx-auto w-full min-w-0 max-w-full overflow-hidden rounded-[10px] border border-border bg-surface sm:max-w-[430px]"
+              className="mx-auto w-full min-w-0 max-w-full overflow-hidden rounded-control border border-border bg-surface sm:max-w-[430px]"
             >
               <div className="border-b border-border px-4 py-3">
                 <h3 className="type-title font-semibold text-on-surface">
@@ -198,7 +198,7 @@ export default async function Page({ params }: Props) {
           {streakCases.map((preview) => (
             <article
               key={preview.key}
-              className="mx-auto w-full min-w-0 max-w-full overflow-hidden rounded-[10px] border border-border bg-surface sm:max-w-[390px]"
+              className="mx-auto w-full min-w-0 max-w-full overflow-hidden rounded-control border border-border bg-surface sm:max-w-[390px]"
             >
               <div className="border-b border-border px-4 py-3">
                 <h3 className="type-title font-semibold text-on-surface">{preview.label}</h3>

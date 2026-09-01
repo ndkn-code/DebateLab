@@ -228,7 +228,7 @@ export function TeacherMaterialLibrary({
 
         <section
           aria-label={vi ? "Tổng quan tài liệu" : "Material overview"}
-          className="mt-4 grid overflow-hidden rounded-[10px] border border-outline-variant bg-surface sm:grid-cols-4"
+          className="mt-4 grid overflow-hidden rounded-control border border-outline-variant bg-surface sm:grid-cols-4"
         >
           {[
             [materials.length, vi ? "Tất cả" : "All materials", FileText],
@@ -266,7 +266,7 @@ export function TeacherMaterialLibrary({
         {loadFailed ? (
           <p
             role="alert"
-            className="mt-3 rounded-[10px] border border-error/25 bg-error-container px-3 py-2 type-caption text-on-error-container"
+            className="mt-3 rounded-control border border-error/25 bg-error-container px-3 py-2 type-caption text-on-error-container"
           >
             {vi
               ? "Không thể tải thư viện tài liệu. Hãy thử lại sau."
@@ -275,13 +275,13 @@ export function TeacherMaterialLibrary({
         ) : !onUploadRequest && !clubId ? (
           <p
             role="status"
-            className="mt-3 rounded-[10px] border border-info/25 bg-info-container px-3 py-2 type-caption text-on-info-container"
+            className="mt-3 rounded-control border border-info/25 bg-info-container px-3 py-2 type-caption text-on-info-container"
           >
             {copy.uploadUnavailable}
           </p>
         ) : null}
 
-        <div className="mt-4 grid min-h-[32rem] overflow-hidden rounded-[10px] border border-outline-variant bg-surface xl:grid-cols-[minmax(0,1fr)_22rem]">
+        <div className="mt-4 grid min-h-[32rem] overflow-hidden rounded-control border border-outline-variant bg-surface xl:grid-cols-[minmax(0,1fr)_22rem]">
           <section aria-label={copy.library} className="min-w-0">
             <div className="flex flex-col gap-2 border-b border-outline-variant p-3 sm:flex-row">
               <label className="relative flex-1">
@@ -294,7 +294,7 @@ export function TeacherMaterialLibrary({
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder={copy.search}
-                  className="h-10 w-full rounded-[10px] border border-outline-variant bg-background pl-9 pr-3 type-body-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="h-10 w-full rounded-control border border-outline-variant bg-background pl-9 pr-3 type-body-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 />
               </label>
               <label className="relative">
@@ -308,7 +308,7 @@ export function TeacherMaterialLibrary({
                   onChange={(event) =>
                     setFilter(event.target.value as StatusFilter)
                   }
-                  className="h-10 min-w-44 appearance-none rounded-[10px] border border-outline-variant bg-background pl-9 pr-3 type-body-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="h-10 min-w-44 appearance-none rounded-control border border-outline-variant bg-background pl-9 pr-3 type-body-sm outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <option value="all">{copy.allStatuses}</option>
                   <option value="in_progress">
@@ -371,7 +371,7 @@ export function TeacherMaterialLibrary({
                 })}
               </ul>
             ) : (
-              <p className="m-4 rounded-[10px] border border-dashed border-outline-variant p-8 text-center type-body-sm text-on-surface-variant">
+              <p className="m-4 rounded-control border border-dashed border-outline-variant p-8 text-center type-body-sm text-on-surface-variant">
                 {materials.length ? copy.noMatches : copy.noMaterials}
               </p>
             )}
@@ -394,7 +394,7 @@ export function TeacherMaterialLibrary({
                     {selected.description ?? selected.sourceFileName}
                   </p>
                 </div>
-                <dl className="divide-y divide-outline-variant rounded-[10px] border border-outline-variant bg-surface">
+                <dl className="divide-y divide-outline-variant rounded-control border border-outline-variant bg-surface">
                   <div className="flex justify-between gap-3 px-3 py-2.5">
                     <dt className="type-caption text-on-surface-variant">
                       {copy.processingStatus}
@@ -443,7 +443,7 @@ export function TeacherMaterialLibrary({
                       {selected.placements.map((placement) => (
                         <li
                           key={placement.id}
-                          className="rounded-[10px] border border-outline-variant bg-surface p-3"
+                          className="rounded-control border border-outline-variant bg-surface p-3"
                         >
                           <div className="flex items-start justify-between gap-2">
                             <p className="type-label font-semibold">
@@ -469,7 +469,7 @@ export function TeacherMaterialLibrary({
                   </section>
                 ) : null}
                 {selectedRightsApproved === false ? (
-                  <div className="flex gap-2 rounded-[10px] border border-warning/25 bg-warning-container p-3 type-caption text-on-warning-container">
+                  <div className="flex gap-2 rounded-control border border-warning/25 bg-warning-container p-3 type-caption text-on-warning-container">
                     <AlertTriangle
                       className="size-4 shrink-0"
                       aria-hidden="true"
@@ -483,7 +483,7 @@ export function TeacherMaterialLibrary({
                 ) : null}
                 {selected.processingStatus === "ready" &&
                 !selectedContentApproved ? (
-                  <div className="flex gap-2 rounded-[10px] border border-warning/25 bg-warning-container p-3 type-caption text-on-warning-container">
+                  <div className="flex gap-2 rounded-control border border-warning/25 bg-warning-container p-3 type-caption text-on-warning-container">
                     <AlertTriangle
                       className="size-4 shrink-0"
                       aria-hidden="true"
@@ -497,7 +497,7 @@ export function TeacherMaterialLibrary({
                 ) : null}
                 {selected.document ? (
                   <section
-                    className="max-h-[32rem] overflow-y-auto rounded-[10px] border border-outline-variant bg-background p-4"
+                    className="max-h-[32rem] overflow-y-auto rounded-control border border-outline-variant bg-background p-4"
                     aria-label={
                       vi
                         ? "Nội dung chuyển đổi cần duyệt"
@@ -811,7 +811,7 @@ export function TeacherMaterialLibrary({
                       autoFocus
                       value={rightsBasis}
                       onChange={(event) => setRightsBasis(event.target.value)}
-                      className="mt-2 h-10 w-full rounded-[10px] border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="mt-2 h-10 w-full rounded-control border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       {[
                         "original",
@@ -847,7 +847,7 @@ export function TeacherMaterialLibrary({
                     <input
                       value={rightsHolder}
                       onChange={(event) => setRightsHolder(event.target.value)}
-                      className="mt-2 h-10 w-full rounded-[10px] border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="mt-2 h-10 w-full rounded-control border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     />
                   </label>
                   <label className="block type-label font-medium text-on-surface">
@@ -858,7 +858,7 @@ export function TeacherMaterialLibrary({
                       onChange={(event) =>
                         setRightsSourceUrl(event.target.value)
                       }
-                      className="mt-2 h-10 w-full rounded-[10px] border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="mt-2 h-10 w-full rounded-control border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     />
                   </label>
                   <label className="block type-label font-medium text-on-surface">
@@ -869,7 +869,7 @@ export function TeacherMaterialLibrary({
                       onChange={(event) =>
                         setRightsLicenseUrl(event.target.value)
                       }
-                      className="mt-2 h-10 w-full rounded-[10px] border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="mt-2 h-10 w-full rounded-control border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     />
                   </label>
                   <label className="block type-label font-medium text-on-surface">
@@ -878,7 +878,7 @@ export function TeacherMaterialLibrary({
                       value={rightsNotes}
                       onChange={(event) => setRightsNotes(event.target.value)}
                       rows={3}
-                      className="mt-2 w-full rounded-[10px] border border-outline-variant bg-background px-3 py-2 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="mt-2 w-full rounded-control border border-outline-variant bg-background px-3 py-2 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     />
                   </label>
                   <Button type="submit" disabled={busy}>
@@ -944,7 +944,7 @@ export function TeacherMaterialLibrary({
                       required
                       value={targetId}
                       onChange={(event) => setTargetId(event.target.value)}
-                      className="mt-2 h-10 w-full rounded-[10px] border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="mt-2 h-10 w-full rounded-control border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       {targets.map((target) => (
                         <option key={target.id} value={target.id}>
@@ -962,7 +962,7 @@ export function TeacherMaterialLibrary({
                           event.target.value as "draft" | "scheduled",
                         )
                       }
-                      className="mt-2 h-10 w-full rounded-[10px] border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="mt-2 h-10 w-full rounded-control border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     >
                       <option value="draft">{copy.draft}</option>
                       <option value="scheduled">{copy.scheduled}</option>
@@ -976,7 +976,7 @@ export function TeacherMaterialLibrary({
                         type="datetime-local"
                         value={releaseAt}
                         onChange={(event) => setReleaseAt(event.target.value)}
-                        className="mt-2 h-10 w-full rounded-[10px] border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                        className="mt-2 h-10 w-full rounded-control border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                       />
                     </label>
                   ) : null}
@@ -988,7 +988,7 @@ export function TeacherMaterialLibrary({
                       type="datetime-local"
                       value={expiresAt}
                       onChange={(event) => setExpiresAt(event.target.value)}
-                      className="mt-2 h-10 w-full rounded-[10px] border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="mt-2 h-10 w-full rounded-control border border-outline-variant bg-background px-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     />
                   </label>
                   <label className="flex min-h-10 items-center gap-2 type-label font-medium text-on-surface">
@@ -1050,7 +1050,7 @@ export function TeacherMaterialLibrary({
                       onChange={(event) =>
                         setWithdrawReason(event.target.value)
                       }
-                      className="mt-2 min-h-24 w-full rounded-[10px] border border-outline-variant bg-background p-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="mt-2 min-h-24 w-full rounded-control border border-outline-variant bg-background p-3 type-body-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     />
                   </label>
                   <Button

@@ -82,7 +82,7 @@ function FeaturedCourseHero({ course }: { course: CourseLibraryItem }) {
     <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none">
       <div className="grid gap-0 xl:grid-cols-[190px_minmax(0,1fr)_290px]">
         <div className="p-3">
-          <div className="overflow-hidden rounded-[10px] border border-outline-variant">
+          <div className="overflow-hidden rounded-control border border-outline-variant">
             <div className="aspect-[1.13/1] xl:aspect-[1.16/1]">
               <CourseArtwork variant={resolveCourseArtworkVariant(course)} />
             </div>
@@ -186,7 +186,7 @@ function HeroActionLink({
     <Link
       href={href}
       className={cn(
-        "type-label inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "type-label inline-flex h-8 items-center justify-center gap-2 rounded-control bg-primary px-4 font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
         disabled && "pointer-events-none opacity-80",
       )}
     >
@@ -212,7 +212,7 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
 
       <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none">
         <div className="grid gap-3 p-3 lg:grid-cols-[88px_minmax(0,1fr)_260px_130px] lg:items-center lg:p-4">
-          <div className="overflow-hidden rounded-[10px] border border-outline-variant">
+          <div className="overflow-hidden rounded-control border border-outline-variant">
             <div className="aspect-square">
               <CourseArtwork variant={resolveCourseArtworkVariant(course)} />
             </div>
@@ -238,7 +238,7 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
             </div>
           </div>
 
-          <div className="rounded-[10px] bg-surface-container px-4 py-3">
+          <div className="rounded-control bg-surface-container px-4 py-3">
             <Text className="font-medium text-on-surface-variant">
               {t("recommendation.why_course")}
             </Text>
@@ -259,7 +259,7 @@ function RecommendationPanel({ course }: { course: CourseLibraryItem }) {
             <Link
               href={course.isMock ? "#" : course.ctaHref}
               className={cn(
-                "type-label inline-flex h-8 items-center justify-center rounded-[10px] border border-outline-variant bg-surface px-4 font-medium text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                "type-label inline-flex h-8 items-center justify-center rounded-control border border-outline-variant bg-surface px-4 font-medium text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 course.isMock && "pointer-events-none",
               )}
             >
@@ -344,7 +344,7 @@ export function CourseListContent({ library }: CourseListContentProps) {
                   type="button"
                   onClick={() => setCategory(filter.value)}
                   className={cn(
-                    "type-body inline-flex h-8 items-center gap-2 rounded-[10px] border px-3 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                    "type-body inline-flex h-8 items-center gap-2 rounded-control border px-3 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                     category === filter.value
                       ? "border-primary bg-primary text-on-primary"
                       : "border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container",
@@ -383,7 +383,7 @@ export function CourseListContent({ library }: CourseListContentProps) {
               ))}
             </div>
           ) : (
-            <div className="rounded-[10px] border border-dashed border-outline-variant bg-surface px-6 py-8 text-center text-on-surface-variant">
+            <div className="rounded-control border border-dashed border-outline-variant bg-surface px-6 py-8 text-center text-on-surface-variant">
               {t("empty_subtitle")}
             </div>
           )}

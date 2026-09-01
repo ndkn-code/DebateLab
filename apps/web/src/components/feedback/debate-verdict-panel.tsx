@@ -161,7 +161,7 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
               verdict.decidingReasons.map((reason, index) => (
                 <li
                   key={`${reason}-${index}`}
-                  className="flex items-start gap-3.5 rounded-[10px] bg-surface-container/60 p-4"
+                  className="flex items-start gap-3.5 rounded-control bg-surface-container/60 p-4"
                 >
                   <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary type-caption font-extrabold text-on-primary">
                     {index + 1}
@@ -189,7 +189,7 @@ export function DebateVerdictPanel({ session }: DebateVerdictPanelProps) {
             {t("nextMove")}
           </h3>
 
-          <div className="mt-5 flex flex-1 flex-col rounded-[10px] bg-primary-container/50 p-5">
+          <div className="mt-5 flex flex-1 flex-col rounded-control bg-primary-container/50 p-5">
             <p className="inline-flex items-start gap-3 type-body font-extrabold leading-7 text-on-surface">
               <Target className="mt-1 h-5 w-5 shrink-0 text-primary" />
               {t("nextMovePrompt")}

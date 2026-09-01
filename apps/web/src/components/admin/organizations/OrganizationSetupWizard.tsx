@@ -422,7 +422,7 @@ export function OrganizationSetupWizard({
                 <label
                   key={type}
                   className={cn(
-                    "min-h-20 cursor-pointer rounded-[10px] border p-4 text-left transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-ring motion-reduce:transition-none",
+                    "min-h-20 cursor-pointer rounded-control border p-4 text-left transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-ring motion-reduce:transition-none",
                     draft.organizationType === type
                       ? "border-primary bg-primary-container"
                       : "border-outline-variant hover:bg-surface-container-low",
@@ -529,7 +529,7 @@ export function OrganizationSetupWizard({
             </Field>
             <Field label={t.role}>
               <select
-                className="h-10 w-full rounded-[10px] border border-outline-variant bg-surface px-3 type-body text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-10 w-full rounded-control border border-outline-variant bg-surface px-3 type-body text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={draft.inviteRole}
                 onChange={(event) =>
                   update("inviteRole", event.target.value as OrganizationRole)
@@ -560,7 +560,7 @@ export function OrganizationSetupWizard({
             </Field>
             <Field label={t.program}>
               <select
-                className="h-10 w-full rounded-[10px] border border-outline-variant bg-surface px-3 type-body text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-10 w-full rounded-control border border-outline-variant bg-surface px-3 type-body text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 value={draft.programType}
                 onChange={(event) =>
                   update(
@@ -602,7 +602,7 @@ export function OrganizationSetupWizard({
                 />
               </Field>
             </div>
-            <dl className="grid gap-3 rounded-[10px] bg-surface-container-low p-4 type-body-sm sm:grid-cols-2">
+            <dl className="grid gap-3 rounded-control bg-surface-container-low p-4 type-body-sm sm:grid-cols-2">
               <Summary label={t.name} value={draft.name} />
               <Summary
                 label={t.typeTitle}
@@ -620,7 +620,7 @@ export function OrganizationSetupWizard({
                 }
               />
             </dl>
-            <label className="flex min-h-11 items-start gap-3 rounded-[10px] border border-outline-variant p-3">
+            <label className="flex min-h-11 items-start gap-3 rounded-control border border-outline-variant p-3">
               <input
                 type="checkbox"
                 className="mt-0.5 h-4 w-4 accent-primary"

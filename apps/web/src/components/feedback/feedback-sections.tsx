@@ -30,7 +30,7 @@ function FeedbackList({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <div className="rounded-[10px] border border-outline-variant/10 bg-surface-container-lowest">
+    <div className="rounded-control border border-outline-variant/10 bg-surface-container-lowest">
       <button
         onClick={() => setOpen(!open)}
         className="flex w-full items-center gap-3 p-4"
@@ -89,7 +89,7 @@ function DebateCaseOverview({ feedback }: { feedback: DebateScore }) {
   if (overviewLines.length === 0) return null;
 
   return (
-    <div className="rounded-[10px] border border-outline-variant/10 bg-surface-container-lowest p-4">
+    <div className="rounded-control border border-outline-variant/10 bg-surface-container-lowest p-4">
       <h3 className="text-sm font-semibold text-on-surface">Case Overview</h3>
       <div className="mt-3 space-y-3">
         {overviewLines.map((line, index) => (
@@ -110,7 +110,7 @@ function DebateArgumentBreakdowns({
   if (items.length === 0) return null;
 
   return (
-    <div className="rounded-[10px] border border-outline-variant/10 bg-surface-container-lowest p-4">
+    <div className="rounded-control border border-outline-variant/10 bg-surface-container-lowest p-4">
       <h3 className="text-sm font-semibold text-on-surface">Argument Breakdown</h3>
       <div className="mt-3 space-y-3">
         {items.map((item, index) => (
@@ -193,7 +193,7 @@ export function FeedbackSections({
       />
 
       {/* Full Transcript */}
-      <div className="rounded-[10px] border border-outline-variant/10 bg-surface-container-lowest">
+      <div className="rounded-control border border-outline-variant/10 bg-surface-container-lowest">
         <button
           onClick={() => setShowTranscript(!showTranscript)}
           className="flex w-full items-center gap-3 p-4"

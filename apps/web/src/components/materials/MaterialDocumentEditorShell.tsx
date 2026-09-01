@@ -96,10 +96,10 @@ export function MaterialDocumentEditorShell({
   return (
     <section
       aria-labelledby="material-document-editor-heading"
-      className="rounded-[10px] border border-outline-variant bg-surface"
+      className="rounded-control border border-outline-variant bg-surface"
     >
       <header className="border-b border-outline-variant p-4">
-        <div className="flex gap-3 rounded-[10px] border border-warning/25 bg-warning-container p-3 text-on-warning-container">
+        <div className="flex gap-3 rounded-control border border-warning/25 bg-warning-container p-3 text-on-warning-container">
           <AlertTriangle
             className="mt-0.5 size-4 shrink-0"
             aria-hidden="true"
@@ -120,7 +120,7 @@ export function MaterialDocumentEditorShell({
           <section
             key={section.id}
             aria-labelledby={`${section.id}-heading`}
-            className="rounded-[10px] border border-outline-variant p-3"
+            className="rounded-control border border-outline-variant p-3"
           >
             <h3
               id={`${section.id}-heading`}
@@ -142,7 +142,7 @@ export function MaterialDocumentEditorShell({
                         updateText(sectionIndex, blockIndex, event.target.value)
                       }
                       rows={block.type === "heading" ? 2 : 5}
-                      className="mt-1 w-full rounded-[10px] border border-outline-variant bg-background px-3 py-2 type-body-sm font-normal text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                      className="mt-1 w-full rounded-control border border-outline-variant bg-background px-3 py-2 type-body-sm font-normal text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     />
                   </label>
                 ) : (

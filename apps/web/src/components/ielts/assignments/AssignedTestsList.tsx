@@ -82,7 +82,7 @@ function AssignedCard({
       {href ? (
         <Link
           href={href}
-          className="inline-flex h-8 items-center justify-center gap-1 rounded-[10px] bg-on-surface px-3 type-label font-semibold text-surface transition-colors hover:bg-primary hover:text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex h-8 items-center justify-center gap-1 rounded-control bg-on-surface px-3 type-label font-semibold text-surface transition-colors hover:bg-primary hover:text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           {ctaLabel}
           <ChevronRight className="h-4 w-4" />

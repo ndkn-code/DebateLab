@@ -169,7 +169,7 @@ export function CategoryCards({ feedback }: CategoryCardsProps) {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
             className={cn(
-              "rounded-[10px] border border-outline-variant bg-gradient-to-br p-4 transition-colors hover:border-outline",
+              "rounded-control border border-outline-variant bg-gradient-to-br p-4 transition-colors hover:border-outline",
               cat.gradient
             )}
           >

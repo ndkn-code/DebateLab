@@ -343,7 +343,7 @@ function AgendaView({
                   onClick={(clickEvent) =>
                     onSelect(event, clickEvent.currentTarget)
                   }
-                  className="flex min-h-16 w-full items-start gap-3 rounded-[10px] border border-outline-variant bg-surface-container-low p-3 text-left transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  className="flex min-h-16 w-full items-start gap-3 rounded-control border border-outline-variant bg-surface-container-low p-3 text-left transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 >
                   <span className="w-20 shrink-0 type-caption font-semibold tabular-nums text-on-surface">
                     {formatTime(event.startsAt, locale, timezone)}
@@ -792,7 +792,7 @@ function EventDrawer({
               </SheetDescription>
             </SheetHeader>
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-              <dl className="grid gap-3 rounded-[10px] border border-outline-variant bg-surface-container-low p-3">
+              <dl className="grid gap-3 rounded-control border border-outline-variant bg-surface-container-low p-3">
                 <div className="flex items-start gap-3">
                   <Clock3
                     className="mt-0.5 size-4 shrink-0 text-primary"
@@ -843,7 +843,7 @@ function EventDrawer({
               {rescheduleOpen ? (
                 <form
                   onSubmit={submitReschedule}
-                  className="mt-4 grid gap-3 rounded-[10px] border border-primary/30 bg-primary-container/25 p-3"
+                  className="mt-4 grid gap-3 rounded-control border border-primary/30 bg-primary-container/25 p-3"
                   aria-label={vi ? "Đổi lịch" : "Reschedule lesson"}
                 >
                   <p className="type-label font-semibold text-on-surface">
@@ -856,7 +856,7 @@ function EventDrawer({
                       value={startValue}
                       onChange={(e) => setStartValue(e.target.value)}
                       required
-                      className="h-9 rounded-[10px] border border-outline-variant bg-surface px-2 text-on-surface"
+                      className="h-9 rounded-control border border-outline-variant bg-surface px-2 text-on-surface"
                     />
                   </label>
                   <label className="grid gap-1 type-caption font-semibold text-on-surface-variant">
@@ -866,7 +866,7 @@ function EventDrawer({
                       value={endValue}
                       onChange={(e) => setEndValue(e.target.value)}
                       required
-                      className="h-9 rounded-[10px] border border-outline-variant bg-surface px-2 text-on-surface"
+                      className="h-9 rounded-control border border-outline-variant bg-surface px-2 text-on-surface"
                     />
                   </label>
                   <div className="flex justify-end gap-2">
@@ -1449,7 +1449,7 @@ export function TeacherCalendar({
           >
             {vi ? "Hôm nay" : "Today"}
           </Button>
-          <div className="flex items-center rounded-[10px] border border-outline-variant bg-surface">
+          <div className="flex items-center rounded-control border border-outline-variant bg-surface">
             <Button
               variant="ghost"
               size="icon"
@@ -1475,10 +1475,10 @@ export function TeacherCalendar({
             type="date"
             value={anchor}
             onChange={(event) => navigate({ date: event.target.value })}
-            className="h-8 rounded-[10px] border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
+            className="h-8 rounded-control border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
           />
           <div
-            className="hidden items-center rounded-[10px] border border-outline-variant bg-surface-container p-[3px] md:flex"
+            className="hidden items-center rounded-control border border-outline-variant bg-surface-container p-[3px] md:flex"
             aria-label={vi ? "Chế độ xem" : "Calendar view"}
           >
             {(["day", "week", "month", "agenda"] as const).map((item) => (
@@ -1497,7 +1497,7 @@ export function TeacherCalendar({
             ))}
           </div>
           <div
-            className="flex items-center rounded-[10px] border border-outline-variant bg-surface-container p-[3px] md:hidden"
+            className="flex items-center rounded-control border border-outline-variant bg-surface-container p-[3px] md:hidden"
             aria-label={vi ? "Chế độ xem di động" : "Mobile calendar view"}
           >
             {(["day", "agenda"] as const).map((item) => (
@@ -1532,7 +1532,7 @@ export function TeacherCalendar({
           onChange={(event) =>
             navigate({ classId: event.target.value || null })
           }
-          className="h-8 rounded-[10px] border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
+          className="h-8 rounded-control border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
         >
           <option value="">{vi ? "Tất cả lớp" : "All classes"}</option>
           {data.classes.map((item) => (
@@ -1547,7 +1547,7 @@ export function TeacherCalendar({
           onChange={(event) =>
             navigate({ program: event.target.value || null })
           }
-          className="h-8 rounded-[10px] border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
+          className="h-8 rounded-control border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
         >
           <option value="">{vi ? "Tất cả môn" : "All subjects"}</option>
           <option value="ielts">IELTS</option>
@@ -1558,7 +1558,7 @@ export function TeacherCalendar({
           aria-label={vi ? "Lọc theo trạng thái" : "Filter by status"}
           value={selectedStatus}
           onChange={(event) => navigate({ status: event.target.value || null })}
-          className="h-8 rounded-[10px] border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
+          className="h-8 rounded-control border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
         >
           <option value="">{vi ? "Tất cả trạng thái" : "All statuses"}</option>
           <option value="scheduled">{vi ? "Đã lên lịch" : "Scheduled"}</option>
@@ -1566,7 +1566,7 @@ export function TeacherCalendar({
           <option value="cancelled">{vi ? "Đã hủy" : "Cancelled"}</option>
         </select>
         {selectedClass ? (
-          <label className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface-variant">
+          <label className="inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface-variant">
             {vi ? "Màu lớp" : "Class color"}
             <select
               aria-label={vi ? "Chọn màu lớp" : "Choose class color"}

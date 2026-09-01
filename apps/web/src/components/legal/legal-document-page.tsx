@@ -31,7 +31,7 @@ export function LegalDocumentPage({
         <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link
             href={localizedPath(locale)}
-            className="rounded-[10px] type-title font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="rounded-control type-title font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             thinkfy<span className="text-secondary">.</span>
           </Link>
@@ -46,7 +46,7 @@ export function LegalDocumentPage({
                 key={item.kind}
                 href={localizedPath(locale, `/${item.kind}`)}
                 aria-current={item.kind === kind ? "page" : undefined}
-                className={`inline-flex h-8 items-center rounded-[10px] px-3 type-label font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                className={`inline-flex h-8 items-center rounded-control px-3 type-label font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   item.kind === kind
                     ? "bg-on-surface text-surface"
                     : "text-on-surface-variant hover:bg-surface-container"
@@ -76,7 +76,7 @@ export function LegalDocumentPage({
         {!ready ? (
           <aside
             role="note"
-            className="mt-6 rounded-[10px] border border-warning/35 bg-warning-container p-4 type-body-sm text-on-warning-container"
+            className="mt-6 rounded-control border border-warning/35 bg-warning-container p-4 type-body-sm text-on-warning-container"
           >
             {document.draftNotice}
           </aside>

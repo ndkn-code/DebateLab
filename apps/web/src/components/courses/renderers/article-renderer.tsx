@@ -89,7 +89,7 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
         </div>
       </article>
 
-      <article className="rounded-[10px] border border-outline-variant bg-surface-container px-4 py-3">
+      <article className="rounded-control border border-outline-variant bg-surface-container px-4 py-3">
         <div className="flex items-start gap-3">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-surface-container text-on-surface-variant">
             <AlertTriangle className="h-5 w-5" />
@@ -105,7 +105,7 @@ export function ArticleRenderer({ lesson }: ArticleRendererProps) {
         </div>
       </article>
 
-      <details className="group overflow-hidden rounded-[10px] border border-outline-variant bg-surface-container">
+      <details className="group overflow-hidden rounded-control border border-outline-variant bg-surface-container">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3.5">
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-surface-container text-on-surface-variant">

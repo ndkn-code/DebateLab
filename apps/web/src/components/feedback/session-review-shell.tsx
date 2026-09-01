@@ -59,7 +59,7 @@ export function SessionReviewShell({
         <aside className="min-w-0 lg:sticky lg:top-5 lg:self-start lg:pt-[72px]">
           <nav
             aria-label={t("sections")}
-            className="flex w-full min-w-0 max-w-full gap-1.5 overflow-x-auto rounded-[10px] border border-outline-variant bg-surface p-1.5 shadow-none lg:flex-col lg:overflow-visible"
+            className="flex w-full min-w-0 max-w-full gap-1.5 overflow-x-auto rounded-control border border-outline-variant bg-surface p-1.5 shadow-none lg:flex-col lg:overflow-visible"
           >
             {availableTabs.map(({ id, icon: Icon }) => {
               const isActive = resolvedActiveTab === id;

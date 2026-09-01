@@ -189,12 +189,12 @@ export function ChatArea({
           <button
             type="button"
             onClick={onOpenSidebar}
-            className="flex size-8 items-center justify-center rounded-[10px] text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
+            className="flex size-8 items-center justify-center rounded-control text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring lg:hidden"
             aria-label={t("conversations")}
           >
             <MessageSquareText className="size-4" />
           </button>
-          <span className="flex size-8 items-center justify-center rounded-[10px] bg-primary-container text-primary">
+          <span className="flex size-8 items-center justify-center rounded-control bg-primary-container text-primary">
             <Sparkles className="size-4" aria-hidden="true" />
           </span>
           <div className="min-w-0">

@@ -56,7 +56,7 @@ function ClubCard({
   return (
     <Link
       href={href}
-      className="grid gap-3 rounded-[10px] border border-outline-variant bg-surface p-3 transition-colors hover:border-primary/40 hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 lg:min-h-10 lg:grid-cols-[1.4fr_0.7fr_0.7fr_0.8fr_0.6fr_0.8fr_40px] lg:items-center lg:px-3 lg:py-1"
+      className="grid gap-3 rounded-control border border-outline-variant bg-surface p-3 transition-colors hover:border-primary/40 hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 lg:min-h-10 lg:grid-cols-[1.4fr_0.7fr_0.7fr_0.8fr_0.6fr_0.8fr_40px] lg:items-center lg:px-3 lg:py-1"
     >
       <div className="flex min-w-0 items-center gap-3">
         <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-[8px] bg-primary-container text-primary">
@@ -174,12 +174,12 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
           <div className="flex flex-wrap gap-2">
             <button
               onClick={() => setCreateOpen(true)}
-              className="inline-flex h-8 items-center gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-on-primary shadow-none transition hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="inline-flex h-8 items-center gap-2 rounded-control bg-primary px-3 text-sm font-medium text-on-primary shadow-none transition hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <Plus className="h-4 w-4" />
               Create club
             </button>
-            <div className="flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface-variant">
+            <div className="flex h-8 items-center gap-2 rounded-control border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface-variant">
               <ShieldCheck className="h-4 w-4 text-success" />
               {data.qaEnabled ? "QA/QC pipeline active" : "Data contract V1"}
             </div>
@@ -193,7 +193,7 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
                 key={state.key}
                 href={`/dashboard/admin/clubs?qa=${state.key}`}
                 className={cn(
-                  "inline-flex h-8 items-center rounded-[10px] border px-3 type-label font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                  "inline-flex h-8 items-center rounded-control border px-3 type-label font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                   data.qaState === state.key
                     ? "border-primary bg-surface-container text-on-surface-variant"
                     : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/50",
@@ -282,12 +282,12 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
           )}
         </ChartCard>
 
-        <div className="mt-4 rounded-[10px] border border-outline-variant bg-surface p-3">
+        <div className="mt-4 rounded-control border border-outline-variant bg-surface p-3">
           <label className="relative block">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
             <input
               placeholder="Search clubs"
-              className="h-8 w-full rounded-[10px] border border-outline-variant bg-surface pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-ring/40"
+              className="h-8 w-full rounded-control border border-outline-variant bg-surface pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-ring/40"
             />
           </label>
         </div>
@@ -311,7 +311,7 @@ export function ClubsDashboard({ data }: { data: AdminClubsPageData }) {
               </p>
               <button
                 onClick={() => setCreateOpen(true)}
-                className="mt-5 inline-flex h-8 items-center gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none transition hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="mt-5 inline-flex h-8 items-center gap-2 rounded-control bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none transition hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 <Plus className="h-4 w-4" />
                 Create club

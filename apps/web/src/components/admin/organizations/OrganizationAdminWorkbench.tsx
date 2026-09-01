@@ -112,7 +112,7 @@ export function OrganizationAdminWorkbench({
       {showCompatibilityNotice ? (
         <div
           role="status"
-          className="rounded-[10px] border border-primary/25 bg-primary-container px-4 py-3 type-body-sm text-on-surface"
+          className="rounded-control border border-primary/25 bg-primary-container px-4 py-3 type-body-sm text-on-surface"
         >
           {t.compatibility}
         </div>
@@ -121,7 +121,7 @@ export function OrganizationAdminWorkbench({
       {loadError ? (
         <div
           role="alert"
-          className="rounded-[10px] border border-error/30 bg-error/5 px-4 py-3 type-label text-on-surface"
+          className="rounded-control border border-error/30 bg-error/5 px-4 py-3 type-label text-on-surface"
         >
           {t.loadError}
         </div>
@@ -141,7 +141,7 @@ export function OrganizationAdminWorkbench({
             name="q"
             defaultValue={filters.query}
             placeholder={t.search}
-            className="h-10 w-full rounded-[10px] border border-outline-variant bg-surface pl-9 pr-3 type-body text-on-surface placeholder:text-on-surface-variant focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-10 w-full rounded-control border border-outline-variant bg-surface pl-9 pr-3 type-body text-on-surface placeholder:text-on-surface-variant focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           />
         </label>
         <label>
@@ -149,7 +149,7 @@ export function OrganizationAdminWorkbench({
           <select
             name="type"
             defaultValue={filters.type}
-            className="h-10 w-full rounded-[10px] border border-outline-variant bg-surface px-3 type-body text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-10 w-full rounded-control border border-outline-variant bg-surface px-3 type-body text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="all">{t.allTypes}</option>
             <option value="club">{t.club}</option>
@@ -161,7 +161,7 @@ export function OrganizationAdminWorkbench({
           <select
             name="status"
             defaultValue={filters.status}
-            className="h-10 w-full rounded-[10px] border border-outline-variant bg-surface px-3 type-body text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="h-10 w-full rounded-control border border-outline-variant bg-surface px-3 type-body text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <option value="all">{t.allStatuses}</option>
             <option value="draft">{t.draft}</option>
@@ -199,7 +199,7 @@ export function OrganizationAdminWorkbench({
                     href={href}
                     className="group flex min-h-16 items-center gap-3 px-3 py-3 outline-none transition-colors hover:bg-surface-container-low focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring motion-reduce:transition-none sm:px-4"
                   >
-                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-surface-container text-on-surface-variant">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-control bg-surface-container text-on-surface-variant">
                       {organization.type === "school" ? (
                         <GraduationCap className="h-5 w-5" aria-hidden="true" />
                       ) : (

@@ -399,7 +399,7 @@ export function MicCheck({
                 </p>
               </div>
 
-              <ol className="w-full space-y-2 rounded-[10px] border border-outline-variant/10 bg-surface-container-low p-4 text-sm text-on-surface-variant">
+              <ol className="w-full space-y-2 rounded-control border border-outline-variant/10 bg-surface-container-low p-4 text-sm text-on-surface-variant">
                 <li className="flex gap-2">
                   <span className="shrink-0 font-semibold text-on-surface">1.</span>
                   {t("session.mic_step_1")}

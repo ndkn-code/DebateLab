@@ -219,7 +219,7 @@ function SearchField({
         value={value}
         onChange={(event) => onChange(event.target.value)}
         placeholder={label}
-        className="h-8 w-full rounded-[10px] border border-outline-variant bg-surface pl-9 pr-3 type-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
+        className="h-8 w-full rounded-control border border-outline-variant bg-surface pl-9 pr-3 type-body-sm text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary"
       />
     </label>
   );
@@ -354,7 +354,7 @@ function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
         <select
           value={status}
           onChange={(event) => setStatus(event.target.value)}
-          className="h-8 rounded-[10px] border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
+          className="h-8 rounded-control border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
           aria-label={vi ? "Lọc trạng thái" : "Filter status"}
         >
           <option value="needs_review">
@@ -368,7 +368,7 @@ function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
           {vi ? "Sắp xếp: cũ nhất trước" : "Sorted: oldest first"}
         </span>
       </div>
-      <div className="mt-3 overflow-x-auto rounded-[10px] border border-outline-variant bg-surface">
+      <div className="mt-3 overflow-x-auto rounded-control border border-outline-variant bg-surface">
         <table className="w-full min-w-[48rem] border-collapse text-left">
           <thead className="bg-surface-container-low type-caption uppercase tracking-wide text-on-surface-variant">
             <tr>
@@ -470,7 +470,7 @@ function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
                 </SheetDescription>
               </SheetHeader>
               <div className="min-h-0 flex-1 overflow-y-auto p-5">
-                <div className="min-h-64 rounded-[10px] border border-outline-variant bg-surface-container-low p-4">
+                <div className="min-h-64 rounded-control border border-outline-variant bg-surface-container-low p-4">
                   <p className="type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
                     {vi ? "Minh chứng bài làm" : "Submission evidence"}
                   </p>
@@ -486,7 +486,7 @@ function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
                     rows={6}
                     value={feedback}
                     onChange={(event) => setFeedback(event.target.value)}
-                    className="rounded-[10px] border border-outline-variant bg-surface p-3 type-body-sm font-normal"
+                    className="rounded-control border border-outline-variant bg-surface p-3 type-body-sm font-normal"
                     placeholder={
                       vi
                         ? "Viết phản hồi có thể thực hiện..."
@@ -558,7 +558,7 @@ function AssignmentTable({
 }) {
   const vi = locale === "vi";
   return (
-    <div className="overflow-x-auto rounded-[10px] border border-outline-variant bg-surface">
+    <div className="overflow-x-auto rounded-control border border-outline-variant bg-surface">
       <table className="w-full min-w-[52rem] text-left">
         <thead className="bg-surface-container-low type-caption uppercase tracking-wide text-on-surface-variant">
           <tr>
@@ -634,7 +634,7 @@ function AssignmentsSurface({ data }: { data: TeacherWorkspacePresentation }) {
       />
       {composerOpen ? (
         <form
-          className="mt-3 grid gap-3 rounded-[10px] border border-primary/30 bg-primary-container/20 p-4 sm:grid-cols-2"
+          className="mt-3 grid gap-3 rounded-control border border-primary/30 bg-primary-container/20 p-4 sm:grid-cols-2"
           onSubmit={(event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();
             if (!isDemo) return;
@@ -667,12 +667,12 @@ function AssignmentsSurface({ data }: { data: TeacherWorkspacePresentation }) {
             required
             aria-label={vi ? "Tên bài tập" : "Assignment title"}
             placeholder={vi ? "Tên bài tập" : "Assignment title"}
-            className="h-9 rounded-[10px] border border-outline-variant bg-surface px-3 type-body-sm"
+            className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm"
           />
           <select
             name="classId"
             aria-label={vi ? "Chọn lớp" : "Choose class"}
-            className="h-9 rounded-[10px] border border-outline-variant bg-surface px-3 type-body-sm"
+            className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm"
           >
             {data.classes.map((item) => (
               <option key={item.id} value={item.id}>
@@ -683,7 +683,7 @@ function AssignmentsSurface({ data }: { data: TeacherWorkspacePresentation }) {
           <select
             name="kind"
             aria-label={vi ? "Loại bài tập" : "Assignment type"}
-            className="h-9 rounded-[10px] border border-outline-variant bg-surface px-3 type-body-sm"
+            className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm"
           >
             {(
               [
@@ -705,7 +705,7 @@ function AssignmentsSurface({ data }: { data: TeacherWorkspacePresentation }) {
             required
             defaultValue="2026-09-08T17:00"
             aria-label={vi ? "Hạn nộp" : "Due date"}
-            className="h-9 rounded-[10px] border border-outline-variant bg-surface px-3 type-body-sm"
+            className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm"
           />
           <div className="flex justify-end gap-2 sm:col-span-2">
             <Button
@@ -759,7 +759,7 @@ function GradebookSurface({ data }: { data: TeacherWorkspacePresentation }) {
       <>
         <SurfaceHeader surface="gradebook" locale={data.locale} />
         <div
-          className="mt-3 rounded-[10px] border border-outline-variant bg-surface px-5 py-10 text-center"
+          className="mt-3 rounded-control border border-outline-variant bg-surface px-5 py-10 text-center"
           role="status"
         >
           <h2 className="type-title-sm font-semibold text-on-surface">
@@ -778,7 +778,7 @@ function GradebookSurface({ data }: { data: TeacherWorkspacePresentation }) {
     <>
       <SurfaceHeader surface="gradebook" locale={data.locale} />
       <div
-        className="mt-3 overflow-auto rounded-[10px] border border-outline-variant bg-surface"
+        className="mt-3 overflow-auto rounded-control border border-outline-variant bg-surface"
         data-gradebook-scroller
       >
         <table className="min-w-[56rem] border-separate border-spacing-0 text-left">
@@ -861,7 +861,7 @@ function GradebookSurface({ data }: { data: TeacherWorkspacePresentation }) {
             </SheetDescription>
           </SheetHeader>
           <div className="grid gap-4 px-4 pb-4">
-            <div className="rounded-[10px] border border-outline-variant bg-surface-container-low p-4 type-body-sm text-on-surface-variant">
+            <div className="rounded-control border border-outline-variant bg-surface-container-low p-4 type-body-sm text-on-surface-variant">
               {vi
                 ? "Mở bài nộp và rubric liên quan trước khi công bố điểm."
                 : "Review the linked submission and rubric evidence before publishing a score."}
@@ -874,7 +874,7 @@ function GradebookSurface({ data }: { data: TeacherWorkspacePresentation }) {
                 max={selectedAssessment?.maxScore ?? 100}
                 value={scoreInput}
                 onChange={(event) => setScoreInput(event.target.value)}
-                className="h-9 rounded-[10px] border border-outline-variant bg-surface px-3 type-body-sm font-normal"
+                className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm font-normal"
               />
             </label>
             <Button
@@ -925,7 +925,7 @@ function AttendanceSurface({ data }: { data: TeacherWorkspacePresentation }) {
       <>
         <SurfaceHeader surface="attendance" locale={data.locale} />
         <div
-          className="mt-3 rounded-[10px] border border-outline-variant bg-surface px-5 py-10 text-center"
+          className="mt-3 rounded-control border border-outline-variant bg-surface px-5 py-10 text-center"
           role="status"
         >
           <h2 className="type-title-sm font-semibold text-on-surface">
@@ -957,7 +957,7 @@ function AttendanceSurface({ data }: { data: TeacherWorkspacePresentation }) {
           </Button>
         }
       />
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[10px] border border-outline-variant bg-surface p-3">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-control border border-outline-variant bg-surface p-3">
         <div>
           <p className="type-label font-semibold text-on-surface">
             {attendanceClass?.title ?? (vi ? "Lớp đã chọn" : "Selected class")}
@@ -986,13 +986,13 @@ function AttendanceSurface({ data }: { data: TeacherWorkspacePresentation }) {
       </div>
       {saved ? (
         <p
-          className="mt-3 rounded-[10px] bg-success-container px-3 py-2 type-body-sm font-semibold text-on-success-container"
+          className="mt-3 rounded-control bg-success-container px-3 py-2 type-body-sm font-semibold text-on-success-container"
           role="status"
         >
           {vi ? "Đã lưu điểm danh bản xem trước." : "Preview attendance saved."}
         </p>
       ) : null}
-      <div className="mt-3 divide-y divide-outline-variant rounded-[10px] border border-outline-variant bg-surface">
+      <div className="mt-3 divide-y divide-outline-variant rounded-control border border-outline-variant bg-surface">
         {data.attendance.map((student) => (
           <fieldset
             key={student.id}
@@ -1007,7 +1007,7 @@ function AttendanceSurface({ data }: { data: TeacherWorkspacePresentation }) {
                 <label
                   key={value}
                   className={cn(
-                    "flex h-8 cursor-pointer items-center justify-center rounded-[10px] border px-2 type-caption font-semibold capitalize",
+                    "flex h-8 cursor-pointer items-center justify-center rounded-control border px-2 type-caption font-semibold capitalize",
                     statuses[student.id] === value
                       ? "border-primary bg-primary-container text-on-primary-container"
                       : "border-outline-variant text-on-surface-variant",
@@ -1077,7 +1077,7 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
       />
       {composerOpen ? (
         <form
-          className="mt-3 grid gap-3 rounded-[10px] border border-primary/30 bg-primary-container/20 p-4 sm:grid-cols-2"
+          className="mt-3 grid gap-3 rounded-control border border-primary/30 bg-primary-container/20 p-4 sm:grid-cols-2"
           onSubmit={(event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();
             const form = new FormData(event.currentTarget);
@@ -1105,12 +1105,12 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
             required
             aria-label={vi ? "Tên tài liệu" : "Material title"}
             placeholder={vi ? "Tên tài liệu" : "Material title"}
-            className="h-9 rounded-[10px] border border-outline-variant bg-surface px-3 type-body-sm"
+            className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm"
           />
           <select
             name="classId"
             aria-label={vi ? "Chọn lớp" : "Choose class"}
-            className="h-9 rounded-[10px] border border-outline-variant bg-surface px-3 type-body-sm"
+            className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm"
           >
             {data.classes.map((item) => (
               <option key={item.id} value={item.id}>
@@ -1121,7 +1121,7 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
           <select
             name="kind"
             aria-label={vi ? "Loại tài liệu" : "Material type"}
-            className="h-9 rounded-[10px] border border-outline-variant bg-surface px-3 type-body-sm"
+            className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm"
           >
             {(["document", "video", "link", "worksheet"] as const).map(
               (kind) => (
@@ -1154,7 +1154,7 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
         {rows.map((item) => (
           <article
             key={item.id}
-            className="flex flex-col gap-3 rounded-[10px] border border-outline-variant bg-surface p-3 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-3 rounded-control border border-outline-variant bg-surface p-3 sm:flex-row sm:items-center sm:justify-between"
           >
             <div className="flex min-w-0 items-start gap-3">
               <span className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary-container text-on-primary-container">
@@ -1200,7 +1200,7 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
             </SheetDescription>
           </SheetHeader>
           <div className="grid gap-3 px-4 pb-4">
-            <div className="grid min-h-56 place-items-center rounded-[10px] border border-outline-variant bg-surface-container-low p-4 text-center type-body-sm text-on-surface-variant">
+            <div className="grid min-h-56 place-items-center rounded-control border border-outline-variant bg-surface-container-low p-4 text-center type-body-sm text-on-surface-variant">
               {vi
                 ? "Bản xem trước tài liệu và thông tin phát hành xuất hiện tại đây."
                 : "Material preview and release details appear here."}
@@ -1242,7 +1242,7 @@ function AnnouncementsSurface({
       />
       {composerOpen ? (
         <form
-          className="mt-3 grid gap-3 rounded-[10px] border border-primary/30 bg-primary-container/20 p-4"
+          className="mt-3 grid gap-3 rounded-control border border-primary/30 bg-primary-container/20 p-4"
           onSubmit={(event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();
             if (!isDemo) return;
@@ -1274,7 +1274,7 @@ function AnnouncementsSurface({
             required
             aria-label={vi ? "Tiêu đề" : "Title"}
             placeholder={vi ? "Tiêu đề" : "Title"}
-            className="h-9 rounded-[10px] border border-outline-variant bg-surface px-3 type-body-sm"
+            className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm"
           />
           <textarea
             name="body"
@@ -1282,12 +1282,12 @@ function AnnouncementsSurface({
             aria-label={vi ? "Nội dung" : "Message"}
             placeholder={vi ? "Nội dung thông báo" : "Write an announcement"}
             rows={4}
-            className="rounded-[10px] border border-outline-variant bg-surface p-3 type-body-sm"
+            className="rounded-control border border-outline-variant bg-surface p-3 type-body-sm"
           />
           <select
             name="classId"
             aria-label={vi ? "Chọn lớp" : "Choose class"}
-            className="h-9 rounded-[10px] border border-outline-variant bg-surface px-3 type-body-sm"
+            className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm"
           >
             {data.classes.map((item) => (
               <option key={item.id} value={item.id}>
@@ -1309,7 +1309,7 @@ function AnnouncementsSurface({
         {announcements.map((item) => (
           <article
             key={item.id}
-            className="rounded-[10px] border border-outline-variant bg-surface p-4"
+            className="rounded-control border border-outline-variant bg-surface p-4"
           >
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -1495,7 +1495,7 @@ function ClassDetailSurface({
       >
         {tab === "overview" ? (
           <div className="grid gap-3 md:grid-cols-3">
-            <article className="rounded-[10px] border border-outline-variant bg-surface p-4">
+            <article className="rounded-control border border-outline-variant bg-surface p-4">
               <GraduationCap className="size-5 text-primary" />
               <p className="mt-3 type-caption text-on-surface-variant">
                 {vi ? "Tiến độ khóa học" : "Course progress"}
@@ -1505,7 +1505,7 @@ function ClassDetailSurface({
                 {classItem.completion ? "%" : ""}
               </p>
             </article>
-            <article className="rounded-[10px] border border-outline-variant bg-surface p-4">
+            <article className="rounded-control border border-outline-variant bg-surface p-4">
               <Users className="size-5 text-primary" />
               <p className="mt-3 type-caption text-on-surface-variant">
                 {vi ? "Tỷ lệ có mặt" : "Attendance rate"}
@@ -1515,7 +1515,7 @@ function ClassDetailSurface({
                 {classItem.attendanceRate ? "%" : ""}
               </p>
             </article>
-            <article className="rounded-[10px] border border-outline-variant bg-surface p-4">
+            <article className="rounded-control border border-outline-variant bg-surface p-4">
               <ClipboardList className="size-5 text-primary" />
               <p className="mt-3 type-caption text-on-surface-variant">
                 {vi ? "Cần chấm" : "Needs review"}
@@ -1541,7 +1541,7 @@ function ClassDetailSurface({
           <AnnouncementsSurface data={scopedData} />
         ) : null}
         {tab === "roster" ? (
-          <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
+          <div className="rounded-control border border-outline-variant bg-surface p-4">
             <h2 className="type-title-sm font-semibold text-on-surface">
               {vi ? "Danh sách lớp" : "Roster"}
             </h2>
@@ -1553,7 +1553,7 @@ function ClassDetailSurface({
           </div>
         ) : null}
         {tab === "lessons" ? (
-          <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
+          <div className="rounded-control border border-outline-variant bg-surface p-4">
             <h2 className="type-title-sm font-semibold text-on-surface">
               {vi ? "Bài học sắp tới" : "Upcoming lessons"}
             </h2>
@@ -1627,7 +1627,7 @@ export function TeacherWorkspaceScreen({
     <ProductPageShell>
       <PageContainer size="data" className="py-4 lg:py-5">
         {data.source === "explicit_demo" ? (
-          <div className="mb-3 flex items-start gap-2 rounded-[10px] border border-primary/25 bg-primary-container/30 px-3 py-2.5">
+          <div className="mb-3 flex items-start gap-2 rounded-control border border-primary/25 bg-primary-container/30 px-3 py-2.5">
             <Shield
               className="mt-0.5 size-4 shrink-0 text-primary"
               aria-hidden="true"

@@ -38,7 +38,7 @@ function MissingSessionState({ onBack }: { onBack: () => void }) {
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-background px-4 py-10">
-      <div className="w-full max-w-md rounded-[10px] border border-outline-variant bg-surface-container-lowest p-5 text-center shadow-none">
+      <div className="w-full max-w-md rounded-control border border-outline-variant bg-surface-container-lowest p-5 text-center shadow-none">
         <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary-container text-primary">
           <AlertCircle className="h-6 w-6" />
         </div>
@@ -48,7 +48,7 @@ function MissingSessionState({ onBack }: { onBack: () => void }) {
         <p className="mt-2 text-sm leading-6 text-on-surface-variant">
           {t("session.setup_expired_body")}
         </p>
-        <Button onClick={onBack} className="mt-5 h-8 w-full gap-2 rounded-[10px]">
+        <Button onClick={onBack} className="mt-5 h-8 w-full gap-2 rounded-control">
           <ArrowLeft className="h-4 w-4" />
           {t("session.return_to_practice")}
         </Button>

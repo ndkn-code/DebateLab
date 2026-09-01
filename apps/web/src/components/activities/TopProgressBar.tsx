@@ -34,7 +34,7 @@ export function TopProgressBar({
       {/* Back button */}
       <Link
         href={courseOverviewHref ?? `/dashboard/courses/${courseId}`}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       >
         <ArrowLeft className="h-5 w-5" />
       </Link>

@@ -63,7 +63,7 @@ function PrimaryTodayAction({
           </span>
         </span>
       </span>
-      <span className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-[10px] bg-on-surface px-3 type-label font-semibold text-surface transition-colors group-hover:bg-primary group-hover:text-on-primary">
+      <span className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-control bg-on-surface px-3 type-label font-semibold text-surface transition-colors group-hover:bg-primary group-hover:text-on-primary">
         {t("today_start")}
         <ArrowRight className="size-4" aria-hidden />
       </span>

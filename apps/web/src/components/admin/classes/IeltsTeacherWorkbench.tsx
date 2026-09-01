@@ -433,7 +433,7 @@ function EmptyState({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-40 flex-col items-center justify-center rounded-[10px] border border-dashed border-outline-variant bg-surface-container/40 px-4 text-center">
+    <div className="flex min-h-40 flex-col items-center justify-center rounded-control border border-dashed border-outline-variant bg-surface-container/40 px-4 text-center">
       <Icon className="mb-2 h-5 w-5 text-on-surface-variant" />
       <p className="type-body-sm text-on-surface-variant">{children}</p>
     </div>
@@ -452,7 +452,7 @@ function MetricCard({
   detail?: string;
 }) {
   return (
-    <div className="rounded-[10px] border border-outline-variant bg-surface px-3 py-3">
+    <div className="rounded-control border border-outline-variant bg-surface px-3 py-3">
       <div className="flex items-center gap-2 type-label font-medium text-on-surface-variant">
         <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-surface-container">
           <Icon className="h-4 w-4" />
@@ -827,7 +827,7 @@ export function IeltsTeacherWorkbench({
   if (!data.enabled) {
     return (
       <div className="mt-5 rounded-[12px] border border-outline-variant bg-surface p-6">
-        <div className="flex h-9 w-9 items-center justify-center rounded-[10px] bg-surface-container">
+        <div className="flex h-9 w-9 items-center justify-center rounded-control bg-surface-container">
           <GraduationCap className="h-5 w-5 text-on-surface-variant" />
         </div>
         <h2 className="mt-4 type-title-sm font-medium text-on-surface">
@@ -873,7 +873,7 @@ export function IeltsTeacherWorkbench({
         <button
           type="button"
           onClick={onTakeAttendance}
-          className="inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-3 type-label font-medium text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px"
+          className="inline-flex h-8 items-center justify-center gap-2 rounded-control bg-primary px-3 type-label font-medium text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px"
         >
           <CalendarDays className="h-4 w-4" />
           {t.takeAttendance}
@@ -883,7 +883,7 @@ export function IeltsTeacherWorkbench({
       {(data.gradebookError || data.contentError) && (
         <div
           role="alert"
-          className="mt-4 flex gap-2 rounded-[10px] border border-warning/25 bg-warning-container px-3 py-2.5 type-body-sm text-on-warning-container"
+          className="mt-4 flex gap-2 rounded-control border border-warning/25 bg-warning-container px-3 py-2.5 type-body-sm text-on-warning-container"
         >
           <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
           <div>
@@ -899,7 +899,7 @@ export function IeltsTeacherWorkbench({
         <div
           role="status"
           className={cn(
-            "mt-4 rounded-[10px] border px-3 py-2 type-body-sm",
+            "mt-4 rounded-control border px-3 py-2 type-body-sm",
             feedback.tone === "success"
               ? "border-success/20 bg-success-container text-success-dim"
               : "border-error/20 bg-error-container text-error-dim",
@@ -910,7 +910,7 @@ export function IeltsTeacherWorkbench({
       )}
 
       <div
-        className="mt-4 overflow-x-auto rounded-[10px] border border-outline-variant bg-surface-container-low p-1"
+        className="mt-4 overflow-x-auto rounded-control border border-outline-variant bg-surface-container-low p-1"
         role="tablist"
         aria-label={t.title}
       >
@@ -978,7 +978,7 @@ export function IeltsTeacherWorkbench({
                   }
                 />
               </div>
-              <div className="rounded-[10px] border border-outline-variant bg-surface">
+              <div className="rounded-control border border-outline-variant bg-surface">
                 <div className="border-b border-outline-variant px-3 py-2.5">
                   <h3 className="type-label font-medium text-on-surface">
                     {t.skills}
@@ -1000,7 +1000,7 @@ export function IeltsTeacherWorkbench({
                 </div>
               </div>
             </div>
-            <div className="rounded-[10px] border border-outline-variant bg-surface">
+            <div className="rounded-control border border-outline-variant bg-surface">
               <div className="border-b border-outline-variant px-3 py-2.5">
                 <h3 className="type-label font-medium text-on-surface">
                   {t.progress}
@@ -1053,7 +1053,7 @@ export function IeltsTeacherWorkbench({
             <EmptyState icon={GraduationCap}>{t.emptyGradebook}</EmptyState>
           ) : (
             <>
-              <div className="hidden overflow-x-auto rounded-[10px] border border-outline-variant bg-surface lg:block">
+              <div className="hidden overflow-x-auto rounded-control border border-outline-variant bg-surface lg:block">
                 <table className="w-full min-w-[760px] border-collapse text-left type-label">
                   <thead className="bg-surface-container text-on-surface-variant">
                     <tr>
@@ -1111,7 +1111,7 @@ export function IeltsTeacherWorkbench({
                 {data.gradebook.rows.map((row) => (
                   <article
                     key={row.userId}
-                    className="rounded-[10px] border border-outline-variant bg-surface p-3"
+                    className="rounded-control border border-outline-variant bg-surface p-3"
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -1152,7 +1152,7 @@ export function IeltsTeacherWorkbench({
             <EmptyState icon={CheckCircle2}>{t.emptyReviews}</EmptyState>
           ) : (
             <div className="grid gap-4 lg:grid-cols-[320px_1fr]">
-              <div className="overflow-hidden rounded-[10px] border border-outline-variant bg-surface">
+              <div className="overflow-hidden rounded-control border border-outline-variant bg-surface">
                 {reviewQueue.map((item) => {
                   const status =
                     reviewOverrides[item.key]?.status ??
@@ -1201,7 +1201,7 @@ export function IeltsTeacherWorkbench({
                   ref={detailRef}
                   tabIndex={-1}
                   aria-busy={isPending}
-                  className="rounded-[10px] border border-outline-variant bg-surface p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="rounded-control border border-outline-variant bg-surface p-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
@@ -1286,7 +1286,7 @@ export function IeltsTeacherWorkbench({
                       }
                     >
                       <legend className="sr-only">{t.reviewDetail}</legend>
-                      <div className="overflow-x-auto rounded-[10px] border border-outline-variant">
+                      <div className="overflow-x-auto rounded-control border border-outline-variant">
                         <div className="grid min-w-[520px] grid-cols-[minmax(180px,1fr)_72px_116px_72px] bg-surface-container px-3 py-2 type-caption font-medium text-on-surface-variant">
                           <span>{t.criterion}</span>
                           <span>{t.ai}</span>
@@ -1340,7 +1340,7 @@ export function IeltsTeacherWorkbench({
                                 defaultValue={
                                   teacherBand == null ? "" : String(teacherBand)
                                 }
-                                className="h-8 rounded-[10px] border border-outline-variant bg-background px-2 type-body-sm tabular-nums text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+                                className="h-8 rounded-control border border-outline-variant bg-background px-2 type-body-sm tabular-nums text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 <option value="">{t.selectBand}</option>
                                 {BAND_OPTIONS.map((band) => (
@@ -1371,7 +1371,7 @@ export function IeltsTeacherWorkbench({
                             selectedReview.target.currentReviewNote ??
                             ""
                           }
-                          className="mt-1 w-full rounded-[10px] border border-outline-variant bg-background px-3 py-2 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
+                          className="mt-1 w-full rounded-control border border-outline-variant bg-background px-3 py-2 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60"
                         />
                       </label>
                       {(selectedReviewStatus === "none" ||
@@ -1383,7 +1383,7 @@ export function IeltsTeacherWorkbench({
                           <button
                             type="submit"
                             disabled={isPending}
-                            className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 type-label font-medium text-on-surface transition-colors duration-150 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant bg-surface px-3 type-label font-medium text-on-surface transition-colors duration-150 hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <Save className="h-4 w-4" />
                             {isPending ? t.saving : t.saveReview}
@@ -1396,7 +1396,7 @@ export function IeltsTeacherWorkbench({
                   {selectedReviewStatus === "draft" && selectedReviewId ? (
                     <form
                       onSubmit={handlePublishReview}
-                      className="mt-4 rounded-[10px] border border-success/20 bg-success-container/45 p-3"
+                      className="mt-4 rounded-control border border-success/20 bg-success-container/45 p-3"
                     >
                       <p className="type-label font-medium text-on-surface">
                         {t.authoritative}
@@ -1418,7 +1418,7 @@ export function IeltsTeacherWorkbench({
                       <button
                         type="submit"
                         disabled={isPending || !selectedBandsComplete}
-                        className="mt-3 inline-flex h-8 items-center gap-2 rounded-[10px] bg-primary px-3 type-label font-medium text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
+                        className="mt-3 inline-flex h-8 items-center gap-2 rounded-control bg-primary px-3 type-label font-medium text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <Check className="h-4 w-4" />
                         {isPending ? t.saving : t.publishReview}
@@ -1429,7 +1429,7 @@ export function IeltsTeacherWorkbench({
                   {selectedReviewStatus === "published" && selectedReviewId ? (
                     <form
                       onSubmit={handleReturnReview}
-                      className="mt-4 rounded-[10px] border border-warning/25 bg-warning-container/50 p-3"
+                      className="mt-4 rounded-control border border-warning/25 bg-warning-container/50 p-3"
                     >
                       <p className="type-label font-medium text-on-warning-container">
                         {t.returnHelp}
@@ -1443,7 +1443,7 @@ export function IeltsTeacherWorkbench({
                           required
                           minLength={3}
                           rows={3}
-                          className="mt-1 w-full rounded-[10px] border border-warning/30 bg-surface px-3 py-2 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                          className="mt-1 w-full rounded-control border border-warning/30 bg-surface px-3 py-2 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                         />
                       </label>
                       <label className="mt-2 flex items-start gap-2 type-label text-on-warning-container">
@@ -1457,7 +1457,7 @@ export function IeltsTeacherWorkbench({
                       <button
                         type="submit"
                         disabled={isPending}
-                        className="mt-3 inline-flex h-8 items-center gap-2 rounded-[10px] border border-warning/40 bg-surface px-3 type-label font-medium text-on-warning-container transition-colors duration-150 hover:bg-warning-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
+                        className="mt-3 inline-flex h-8 items-center gap-2 rounded-control border border-warning/40 bg-surface px-3 type-label font-medium text-on-warning-container transition-colors duration-150 hover:bg-warning-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <RotateCcw className="h-4 w-4" />
                         {isPending ? t.saving : t.returnReview}
@@ -1466,7 +1466,7 @@ export function IeltsTeacherWorkbench({
                   ) : null}
 
                   {selectedReviewStatus === "returned" ? (
-                    <div className="mt-4 rounded-[10px] border border-outline-variant bg-surface-container px-3 py-2.5 type-label text-on-surface-variant">
+                    <div className="mt-4 rounded-control border border-outline-variant bg-surface-container px-3 py-2.5 type-label text-on-surface-variant">
                       {t.awaitingResubmission}
                     </div>
                   ) : null}
@@ -1493,7 +1493,7 @@ export function IeltsTeacherWorkbench({
                 return (
                   <article
                     key={assignment.assignmentId}
-                    className="rounded-[10px] border border-outline-variant bg-surface"
+                    className="rounded-control border border-outline-variant bg-surface"
                   >
                     <div className="flex items-start justify-between gap-3 border-b border-outline-variant px-3 py-3">
                       <div>
@@ -1544,7 +1544,7 @@ export function IeltsTeacherWorkbench({
             <div className="space-y-4">
               <form
                 onSubmit={handleResource}
-                className="rounded-[10px] border border-outline-variant bg-surface p-4"
+                className="rounded-control border border-outline-variant bg-surface p-4"
               >
                 <h3 className="flex items-center gap-2 type-body-sm font-medium text-on-surface">
                   <Plus className="h-4 w-4" />
@@ -1563,7 +1563,7 @@ export function IeltsTeacherWorkbench({
                 />
               </form>
               {data.resources.length ? (
-                <div className="overflow-hidden rounded-[10px] border border-outline-variant bg-surface">
+                <div className="overflow-hidden rounded-control border border-outline-variant bg-surface">
                   {data.resources.map((resource) => (
                     <ResourceRow key={resource.id} resource={resource} t={t} />
                   ))}
@@ -1575,7 +1575,7 @@ export function IeltsTeacherWorkbench({
             <div className="space-y-4">
               <form
                 onSubmit={handleVocabulary}
-                className="rounded-[10px] border border-outline-variant bg-surface p-4"
+                className="rounded-control border border-outline-variant bg-surface p-4"
               >
                 <h3 className="flex items-center gap-2 type-body-sm font-medium text-on-surface">
                   <Languages className="h-4 w-4" />
@@ -1599,7 +1599,7 @@ export function IeltsTeacherWorkbench({
                 />
               </form>
               {data.vocabulary.length ? (
-                <div className="overflow-hidden rounded-[10px] border border-outline-variant bg-surface">
+                <div className="overflow-hidden rounded-control border border-outline-variant bg-surface">
                   {data.vocabulary.map((set) => (
                     <div
                       key={set.id}
@@ -1643,7 +1643,7 @@ export function IeltsTeacherWorkbench({
           <div className="grid gap-4 lg:grid-cols-[minmax(0,420px)_1fr]">
             <form
               onSubmit={handleAnnouncement}
-              className="rounded-[10px] border border-outline-variant bg-surface p-4"
+              className="rounded-control border border-outline-variant bg-surface p-4"
             >
               <h3 className="flex items-center gap-2 type-body-sm font-medium text-on-surface">
                 <Megaphone className="h-4 w-4" />
@@ -1659,7 +1659,7 @@ export function IeltsTeacherWorkbench({
                     name="body"
                     required
                     rows={5}
-                    className="mt-1 w-full rounded-[10px] border border-outline-variant bg-background px-3 py-2 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                    className="mt-1 w-full rounded-control border border-outline-variant bg-background px-3 py-2 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                   />
                 </label>
                 <label className="block">
@@ -1668,7 +1668,7 @@ export function IeltsTeacherWorkbench({
                   </span>
                   <select
                     name="status"
-                    className="mt-1 h-8 w-full rounded-[10px] border border-outline-variant bg-background px-3 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+                    className="mt-1 h-8 w-full rounded-control border border-outline-variant bg-background px-3 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <option value="draft">{t.draft}</option>
                     <option value="published">{t.published}</option>
@@ -1683,7 +1683,7 @@ export function IeltsTeacherWorkbench({
               />
             </form>
             {data.announcements.length ? (
-              <div className="overflow-hidden rounded-[10px] border border-outline-variant bg-surface">
+              <div className="overflow-hidden rounded-control border border-outline-variant bg-surface">
                 {data.announcements.map((announcement) => (
                   <article
                     key={announcement.id}
@@ -1747,7 +1747,7 @@ function Field({
         name={name}
         type={type}
         required={required}
-        className="mt-1 h-8 w-full rounded-[10px] border border-outline-variant bg-background px-3 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
+        className="mt-1 h-8 w-full rounded-control border border-outline-variant bg-background px-3 type-body-sm text-on-surface outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-ring"
       />
     </label>
   );
@@ -1768,7 +1768,7 @@ function SubmitButton({
     <button
       type="submit"
       disabled={pending}
-      className="mt-3 inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-3 type-label font-medium text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
+      className="mt-3 inline-flex h-8 items-center justify-center gap-2 rounded-control bg-primary px-3 type-label font-medium text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
     >
       <Icon className="h-4 w-4" />
       {pending ? pendingLabel : label}

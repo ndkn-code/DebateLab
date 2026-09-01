@@ -56,7 +56,7 @@ export default async function GuardianConsentPage({
           {vi ? "Yêu cầu đồng ý của người giám hộ" : "Guardian consent request"}
         </h1>
         {completed ? (
-          <div className="mt-5 rounded-[10px] border border-outline-variant bg-surface-container-low p-4">
+          <div className="mt-5 rounded-control border border-outline-variant bg-surface-container-low p-4">
             <p className="type-title font-semibold">
               {resultParam === "grant"
                 ? vi
@@ -98,14 +98,14 @@ export default async function GuardianConsentPage({
               <button
                 name="decision"
                 value="decline"
-                className="min-h-11 rounded-[10px] border border-outline px-4 type-label font-semibold"
+                className="min-h-11 rounded-control border border-outline px-4 type-label font-semibold"
               >
                 {vi ? "Không đồng ý" : "Decline"}
               </button>
               <button
                 name="decision"
                 value="grant"
-                className="min-h-11 rounded-[10px] bg-on-surface px-4 type-label font-semibold text-surface"
+                className="min-h-11 rounded-control bg-on-surface px-4 type-label font-semibold text-surface"
               >
                 {vi ? "Đồng ý" : "Give consent"}
               </button>

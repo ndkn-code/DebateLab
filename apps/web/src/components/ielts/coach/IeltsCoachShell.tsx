@@ -302,7 +302,7 @@ export function IeltsCoachShell() {
         >
           {messages.length === 0 ? (
             <div className="mx-auto flex min-h-[360px] max-w-2xl flex-col justify-center">
-              <span className="flex size-10 items-center justify-center rounded-[10px] bg-primary-container text-primary">
+              <span className="flex size-10 items-center justify-center rounded-control bg-primary-container text-primary">
                 <ProductIcon name="sparkles" size="md" weight="duotone" />
               </span>
               <h2 className="mt-4 type-heading-lg text-on-surface">
@@ -317,7 +317,7 @@ export function IeltsCoachShell() {
                     key={prompt}
                     type="button"
                     onClick={() => void sendMessage(prompt)}
-                    className="min-h-11 rounded-[10px] border border-outline-variant bg-surface px-3 py-2.5 text-left type-label text-on-surface transition-[border-color,background-color,transform] duration-150 hover:border-primary/30 hover:bg-primary/5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="min-h-11 rounded-control border border-outline-variant bg-surface px-3 py-2.5 text-left type-label text-on-surface transition-[border-color,background-color,transform] duration-150 hover:border-primary/30 hover:bg-primary/5 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     {prompt}
                   </button>

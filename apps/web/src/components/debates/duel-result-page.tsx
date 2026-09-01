@@ -75,7 +75,7 @@ export function DuelResultPage({ shareCode }: DuelResultPageProps) {
   if (error || !room) {
     return (
       <div className="min-h-full bg-background px-4 py-10">
-        <div className="mx-auto max-w-3xl rounded-[10px] border border-outline-variant/15 bg-surface p-6 text-center shadow-none">
+        <div className="mx-auto max-w-3xl rounded-control border border-outline-variant/15 bg-surface p-6 text-center shadow-none">
           <h1 className="text-2xl font-semibold text-on-surface">
             Duel result unavailable
           </h1>
@@ -100,7 +100,7 @@ export function DuelResultPage({ shareCode }: DuelResultPageProps) {
     }
     return (
       <div className="min-h-full bg-background px-4 py-10">
-        <div className="mx-auto max-w-3xl rounded-[10px] border border-outline-variant/15 bg-surface p-6 text-center shadow-none">
+        <div className="mx-auto max-w-3xl rounded-control border border-outline-variant/15 bg-surface p-6 text-center shadow-none">
           <h1 className="text-2xl font-semibold text-on-surface">
             Judging the duel…
           </h1>
@@ -158,7 +158,7 @@ function DuelForfeitResult({ room }: { room: DebateDuelRoomView }) {
           <Link
             href={`/debates/new?topic=${encodeURIComponent(room.topicTitle)}`}
           >
-            <Button className="h-8 rounded-[10px] bg-primary text-on-primary hover:bg-primary/90">
+            <Button className="h-8 rounded-control bg-primary text-on-primary hover:bg-primary/90">
               <RotateCcw className="mr-2 h-4 w-4" />
               Rematch
             </Button>
@@ -166,7 +166,7 @@ function DuelForfeitResult({ room }: { room: DebateDuelRoomView }) {
           <Link href="/debates">
             <Button
               variant="outline"
-              className="h-8 rounded-[10px] border-outline-variant/25 bg-surface text-on-surface"
+              className="h-8 rounded-control border-outline-variant/25 bg-surface text-on-surface"
             >
               Back to duels
               <ArrowRight className="ml-2 h-4 w-4" />
@@ -198,7 +198,7 @@ export function DuelResultContent({
   if (!room.judgment) {
     return (
       <div className="min-h-full bg-background px-4 py-10">
-        <div className="mx-auto max-w-3xl rounded-[10px] border border-outline-variant/15 bg-surface p-6 text-center shadow-none">
+        <div className="mx-auto max-w-3xl rounded-control border border-outline-variant/15 bg-surface p-6 text-center shadow-none">
           <h1 className="text-2xl font-semibold text-on-surface">
             Duel result unavailable
           </h1>
@@ -252,7 +252,7 @@ export function DuelResultContent({
                 </p>
               </div>
 
-              <div className="rounded-[10px] border border-outline-variant/15 bg-surface-container-low px-5 py-4">
+              <div className="rounded-control border border-outline-variant/15 bg-surface-container-low px-5 py-4">
                 <div className="type-eyebrow text-on-surface-variant">
                   Confidence
                 </div>
@@ -271,7 +271,7 @@ export function DuelResultContent({
                 return (
                   <div
                     key={side}
-                    className={`rounded-[10px] border p-4 ${
+                    className={`rounded-control border p-4 ${
                       isWinner
                         ? "border-primary/25 bg-primary/8"
                         : "border-outline-variant/15 bg-surface-container-low"
@@ -326,7 +326,7 @@ export function DuelResultContent({
             </div>
 
             <div className="mt-5 grid gap-3 lg:grid-cols-[1.15fr_0.85fr]">
-              <div className="rounded-[10px] border border-outline-variant/15 bg-surface-container-low p-4">
+              <div className="rounded-control border border-outline-variant/15 bg-surface-container-low p-4">
                 <div className="flex items-center gap-2 type-eyebrow text-primary">
                   <Scale className="h-4 w-4" />
                   Comparative ballot
@@ -336,7 +336,7 @@ export function DuelResultContent({
                     ([criterion, value]) => (
                       <div
                         key={criterion}
-                        className="rounded-[10px] border border-outline-variant/12 bg-surface px-4 py-3"
+                        className="rounded-control border border-outline-variant/12 bg-surface px-4 py-3"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="font-medium capitalize text-on-surface">
@@ -360,7 +360,7 @@ export function DuelResultContent({
               </div>
 
               <div className="space-y-4">
-                <div className="rounded-[10px] border border-outline-variant/15 bg-surface-container-low p-4">
+                <div className="rounded-control border border-outline-variant/15 bg-surface-container-low p-4">
                   <div className="flex items-center gap-2 type-eyebrow text-primary">
                     <Sparkles className="h-4 w-4" />
                     Round breakdown
@@ -369,7 +369,7 @@ export function DuelResultContent({
                     {judgment.roundBreakdown.map((round) => (
                       <div
                         key={round.roundNumber}
-                        className="rounded-[10px] border border-outline-variant/12 bg-surface px-4 py-3"
+                        className="rounded-control border border-outline-variant/12 bg-surface px-4 py-3"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <span className="font-medium text-on-surface">
@@ -391,13 +391,13 @@ export function DuelResultContent({
                   </div>
                 </div>
 
-                <div className="rounded-[10px] border border-outline-variant/15 bg-surface-container-low p-4">
+                <div className="rounded-control border border-outline-variant/15 bg-surface-container-low p-4">
                   <div className="type-eyebrow text-primary">Next move</div>
                   <div className="mt-4 flex flex-wrap gap-3">
                     <Link
                       href={`/debates/new?topic=${encodeURIComponent(room.topicTitle)}`}
                     >
-                      <Button className="h-8 rounded-[10px] bg-primary text-on-primary hover:bg-primary/90">
+                      <Button className="h-8 rounded-control bg-primary text-on-primary hover:bg-primary/90">
                         <RotateCcw className="mr-2 h-4 w-4" />
                         Rematch
                       </Button>
@@ -409,7 +409,7 @@ export function DuelResultContent({
                     >
                       <Button
                         variant="outline"
-                        className="h-8 rounded-[10px] border-outline-variant/25 bg-surface text-on-surface"
+                        className="h-8 rounded-control border-outline-variant/25 bg-surface text-on-surface"
                       >
                         Ask AI Coach
                         <ArrowRight className="ml-2 h-4 w-4" />

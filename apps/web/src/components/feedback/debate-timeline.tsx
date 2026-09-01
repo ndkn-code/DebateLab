@@ -40,7 +40,7 @@ export function DebateTimeline({ rounds }: DebateTimelineProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.08 }}
               className={cn(
-                "rounded-[10px] border bg-gradient-to-br p-4",
+                "rounded-control border bg-gradient-to-br p-4",
                 isUser
                   ? "border-primary/10 from-primary-container/30 to-primary-container/10"
                   : "border-outline-variant/10 from-surface-container-low to-surface-container-lowest"

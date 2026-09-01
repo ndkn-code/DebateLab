@@ -175,7 +175,7 @@ export function ActivityCompletionScreen({
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8 }}
           onClick={onContinue}
-          className="mt-6 inline-flex h-8 items-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          className="mt-6 inline-flex h-8 items-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           whileTap={{ scale: 0.97 }}
         >
           {t("continue")}

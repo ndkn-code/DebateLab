@@ -31,7 +31,7 @@ export function SegmentedRange<T extends string>({
     <div
       role="tablist"
       aria-label="Time range"
-      className={cn("inline-flex items-center gap-1 rounded-[10px] border border-outline-variant bg-surface-container p-1", className)}
+      className={cn("inline-flex items-center gap-1 rounded-control border border-outline-variant bg-surface-container p-1", className)}
     >
       {resolved.map((option) => {
         const active = option.value === value;

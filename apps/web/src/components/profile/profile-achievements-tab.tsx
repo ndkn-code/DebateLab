@@ -286,7 +286,7 @@ function AchievementCard({
               : t("feature_label", { title: achievement.title })
           }
           className={cn(
-            "absolute right-3 top-3 flex size-8 items-center justify-center rounded-[10px] transition-colors",
+            "absolute right-3 top-3 flex size-8 items-center justify-center rounded-control transition-colors",
             featured
               ? "bg-reward text-on-reward"
               : "bg-surface-container text-on-surface-variant hover:text-on-surface",
@@ -296,7 +296,7 @@ function AchievementCard({
           <Star className={cn("size-4.5", featured && "fill-current")} />
         </button>
       ) : featured ? (
-        <span className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-[10px] bg-reward text-on-reward">
+        <span className="absolute right-3 top-3 flex size-8 items-center justify-center rounded-control bg-reward text-on-reward">
           <Star className="size-4.5 fill-current" />
         </span>
       ) : null}
@@ -472,7 +472,7 @@ export function ProfileAchievementsTab({
                 type="button"
                 onClick={() => setCategory(item)}
                 className={cn(
-                  "inline-flex h-8 items-center rounded-[10px] border px-3 type-label font-semibold transition-colors",
+                  "inline-flex h-8 items-center rounded-control border px-3 type-label font-semibold transition-colors",
                   active
                     ? "border-primary bg-primary text-on-primary shadow-token-primary"
                     : "border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/35 hover:text-on-surface",
@@ -488,7 +488,7 @@ export function ProfileAchievementsTab({
           <select
             value={sort}
             onChange={(event) => setSort(event.target.value as AchievementSort)}
-            className="h-8 w-full appearance-none rounded-[10px] border border-outline-variant bg-surface-container-lowest pl-3 pr-9 type-label font-semibold text-on-surface outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-ring"
+            className="h-8 w-full appearance-none rounded-control border border-outline-variant bg-surface-container-lowest pl-3 pr-9 type-label font-semibold text-on-surface outline-none transition-colors focus:border-primary/45 focus:ring-2 focus:ring-ring"
           >
             <option value="featured">{t("sort_featured")}</option>
             <option value="recent">{t("sort_recent")}</option>

@@ -756,7 +756,7 @@ function CoachFollowUpQuestion({
           type="button"
           onClick={() => onDraftMessage(copy.motionDetailsDraft)}
           disabled={actionsDisabled}
-          className="mt-2 inline-flex h-8 items-center gap-2 rounded-[10px] border border-primary/20 bg-surface px-3 type-caption font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
+          className="mt-2 inline-flex h-8 items-center gap-2 rounded-control border border-primary/20 bg-surface px-3 type-caption font-semibold text-primary transition-colors hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Sparkles className="h-3.5 w-3.5" />
           {copy.addMotionDetails}
@@ -945,7 +945,7 @@ function CoachVisualExplainerCard({
           <button
             type="button"
             onClick={() => setReplayKey((key) => key + 1)}
-            className="mt-6 inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 type-label font-semibold text-on-surface transition-colors hover:border-primary/30 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="mt-6 inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant bg-surface px-3 type-label font-semibold text-on-surface transition-colors hover:border-primary/30 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <RotateCcw className="h-4 w-4" aria-hidden="true" />
             {copy.replayAnimation}

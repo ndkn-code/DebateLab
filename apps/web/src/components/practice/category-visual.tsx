@@ -64,12 +64,12 @@ const SIZE_STYLES = {
     image: 32,
   },
   sm: {
-    tile: "size-10 rounded-[10px]",
+    tile: "size-10 rounded-control",
     icon: "h-5 w-5",
     image: 44,
   },
   lg: {
-    tile: "size-12 rounded-[10px]",
+    tile: "size-12 rounded-control",
     icon: "h-7 w-7",
     image: 64,
   },

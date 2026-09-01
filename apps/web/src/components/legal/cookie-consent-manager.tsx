@@ -61,14 +61,14 @@ export function CookieConsentManager({
       <button
         type="button"
         onClick={() => choose(false)}
-        className="inline-flex min-h-10 items-center justify-center rounded-[10px] border border-outline px-3 type-label font-semibold text-on-surface hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex min-h-10 items-center justify-center rounded-control border border-outline px-3 type-label font-semibold text-on-surface hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {vi ? "Từ chối phân tích" : "Reject analytics"}
       </button>
       <button
         type="button"
         onClick={() => choose(true)}
-        className="inline-flex min-h-10 items-center justify-center rounded-[10px] bg-on-surface px-3 type-label font-semibold text-surface hover:bg-on-surface/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="inline-flex min-h-10 items-center justify-center rounded-control bg-on-surface px-3 type-label font-semibold text-surface hover:bg-on-surface/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         {vi ? "Đồng ý phân tích" : "Accept analytics"}
       </button>
@@ -77,7 +77,7 @@ export function CookieConsentManager({
 
   if (mode === "settings") {
     return (
-      <div className="mt-5 rounded-[10px] border border-outline-variant bg-surface-container-low p-4">
+      <div className="mt-5 rounded-control border border-outline-variant bg-surface-container-low p-4">
         <p className="type-body-sm text-on-surface-variant" aria-live="polite">
           {vi ? "Lựa chọn hiện tại" : "Current choice"}:{" "}
           {consent === "granted"

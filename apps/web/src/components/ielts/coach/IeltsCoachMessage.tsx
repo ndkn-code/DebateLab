@@ -97,7 +97,7 @@ function StructuredCoachResponse({
       <section className="rounded-xl bg-surface-container-low p-3">
         <p className="type-eyebrow text-primary">{copy.scoreSummary}</p>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          <div className="rounded-[10px] bg-surface p-2.5">
+          <div className="rounded-control bg-surface p-2.5">
             <p className="type-caption text-on-surface-variant">
               {copy.currentBand}
             </p>
@@ -105,7 +105,7 @@ function StructuredCoachResponse({
               {currentBand ?? copy.notAvailable}
             </p>
           </div>
-          <div className="rounded-[10px] bg-surface p-2.5">
+          <div className="rounded-control bg-surface p-2.5">
             <p className="type-caption text-on-surface-variant">
               {copy.targetBand}
             </p>
@@ -113,7 +113,7 @@ function StructuredCoachResponse({
               {output.bandCriterionGap.targetBand ?? copy.notAvailable}
             </p>
           </div>
-          <div className="col-span-2 rounded-[10px] bg-surface p-2.5 sm:col-span-1">
+          <div className="col-span-2 rounded-control bg-surface p-2.5 sm:col-span-1">
             <p className="type-caption text-on-surface-variant">
               {copy.scoreAuthority}
             </p>

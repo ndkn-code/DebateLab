@@ -74,7 +74,7 @@ export function DragOrderPlayer({ content, onComplete }: Props) {
               key={item.id}
               layout
               transition={{ type: "spring", damping: 25, stiffness: 300 }}
-              className={`flex items-center gap-3 rounded-[10px] border p-3 transition-all ${
+              className={`flex items-center gap-3 rounded-control border p-3 transition-all ${
                 checked
                   ? isCorrect
                     ? "border-green-500 bg-green-50"
@@ -145,7 +145,7 @@ export function DragOrderPlayer({ content, onComplete }: Props) {
       {!checked && (
         <motion.button
           onClick={handleCheck}
-          className="mt-8 inline-flex h-8 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+          className="mt-8 inline-flex h-8 rounded-control bg-primary px-4 text-sm font-medium text-on-primary hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           whileTap={{ scale: 0.97 }}
         >
           {t("checkOrder")}

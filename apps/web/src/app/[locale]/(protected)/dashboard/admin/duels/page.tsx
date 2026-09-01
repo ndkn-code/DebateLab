@@ -76,7 +76,7 @@ function StatCard({
         : "bg-primary/10 text-primary";
 
   return (
-    <div className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none">
+    <div className="rounded-control border border-outline-variant bg-surface p-4 shadow-none">
       <div className={`flex h-8 w-8 items-center justify-center rounded-[8px] ${toneClass}`}>
         {icon}
       </div>
@@ -177,7 +177,7 @@ export default async function AdminDuelsPage() {
         </div>
 
         <div className="mt-6 grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]">
-          <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none">
+          <section className="rounded-control border border-outline-variant bg-surface p-4 shadow-none">
             <h2 className="text-base font-medium text-on-surface">Recent matches</h2>
             <div className="mt-5 space-y-3">
               {recentDuels.length === 0 ? (
@@ -188,7 +188,7 @@ export default async function AdminDuelsPage() {
                 recentDuels.map((duel) => (
                   <div
                     key={duel.id}
-                    className="rounded-[10px] border border-outline-variant bg-surface-container-low px-4 py-3"
+                    className="rounded-control border border-outline-variant bg-surface-container-low px-4 py-3"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
@@ -222,7 +222,7 @@ export default async function AdminDuelsPage() {
             </div>
           </section>
 
-          <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none">
+          <section className="rounded-control border border-outline-variant bg-surface p-4 shadow-none">
             <h2 className="text-base font-medium text-on-surface">Rating events</h2>
             <div className="mt-5 space-y-3">
               {ratingEvents.length === 0 ? (
@@ -233,7 +233,7 @@ export default async function AdminDuelsPage() {
                 ratingEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="rounded-[10px] border border-outline-variant bg-surface-container-low px-4 py-3"
+                    className="rounded-control border border-outline-variant bg-surface-container-low px-4 py-3"
                   >
                     <div className="flex items-center justify-between gap-3">
                       <span className="text-sm font-semibold text-on-surface">
@@ -255,7 +255,7 @@ export default async function AdminDuelsPage() {
           </section>
         </div>
 
-        <section className="mt-6 rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none">
+        <section className="mt-6 rounded-control border border-outline-variant bg-surface p-4 shadow-none">
           <div className="flex items-center gap-2">
             <ShieldCheck className="h-5 w-5 text-success" />
             <h2 className="text-base font-medium text-on-surface">
@@ -271,7 +271,7 @@ export default async function AdminDuelsPage() {
               integrityEvents.map((event) => (
                 <div
                   key={event.id}
-                  className="rounded-[10px] border border-outline-variant bg-surface-container-low px-4 py-3"
+                  className="rounded-control border border-outline-variant bg-surface-container-low px-4 py-3"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="inline-flex items-center gap-2 text-sm font-semibold text-on-surface">

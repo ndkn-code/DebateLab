@@ -104,7 +104,7 @@ export function CoachBrief({
             <button
               key={prompt}
               onClick={() => onPromptSelect(prompt)}
-              className="h-8 rounded-[10px] border border-outline-variant bg-surface-container-low px-3 type-label font-medium text-on-surface transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+              className="h-8 rounded-control border border-outline-variant bg-surface-container-low px-3 type-label font-medium text-on-surface transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
             >
               {prompt}
             </button>
@@ -125,7 +125,7 @@ function InsightStat({
   description: string;
 }) {
   return (
-    <div className="rounded-[10px] border border-outline-variant bg-surface-container-low px-3 py-3">
+    <div className="rounded-control border border-outline-variant bg-surface-container-low px-3 py-3">
       <div className="type-eyebrow text-on-surface-variant">{label}</div>
       <div className="mt-2 type-heading-md text-on-surface">{value}</div>
       <Text variant="body-sm" className="mt-2 text-on-surface-variant">
@@ -376,7 +376,7 @@ export function CoachInsightsRail({
             <button
               key={prompt}
               onClick={() => onPromptSelect(prompt)}
-              className="h-8 rounded-[10px] border border-outline-variant bg-surface-container-low px-3 type-caption font-medium text-on-surface transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
+              className="h-8 rounded-control border border-outline-variant bg-surface-container-low px-3 type-caption font-medium text-on-surface transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-primary"
             >
               {prompt}
             </button>

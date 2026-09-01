@@ -261,7 +261,7 @@ function CriteriaGrid({
       <h4 className="type-label font-semibold text-on-surface">{copy.criterionScores}</h4>
       <ul className="mt-2 grid gap-2 sm:grid-cols-2">
         {criteria.map((criterion) => (
-          <li key={criterion.key} className="rounded-[10px] border border-outline-variant bg-surface px-3 py-2.5">
+          <li key={criterion.key} className="rounded-control border border-outline-variant bg-surface px-3 py-2.5">
             <div className="flex items-start justify-between gap-3">
               <span className="type-label text-on-surface">{criterion.label}</span>
               <span
@@ -297,8 +297,8 @@ function EvidenceDetails({
   const reviewed = items.filter((item) => item.reviewStatus.toLowerCase() === "approved");
 
   return (
-    <details className="group rounded-[10px] border border-outline-variant bg-surface">
-      <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 rounded-[10px] px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary/45 [&::-webkit-details-marker]:hidden">
+    <details className="group rounded-control border border-outline-variant bg-surface">
+      <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 rounded-control px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-primary/45 [&::-webkit-details-marker]:hidden">
         <span>{copy.scoringReferences}</span>
         <span className="text-on-surface-variant">
           {reviewed.length} {copy.reviewed}
@@ -375,7 +375,7 @@ export function GradingResultDetails({
         </Badge>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 py-2.5 sm:grid-cols-3">
+      <div className="mt-3 grid grid-cols-2 gap-2 rounded-control border border-outline-variant bg-surface px-3 py-2.5 sm:grid-cols-3">
         <div>
           <p className="type-caption text-on-surface-variant">{copy.confidence}</p>
           <p className={cn("type-label font-semibold", CONFIDENCE_CLASS[metadata.confidence])}>
@@ -395,7 +395,7 @@ export function GradingResultDetails({
       {limitations.length > 0 ? (
         <div
           role="note"
-          className="mt-3 rounded-[10px] border border-warning/30 bg-warning-container px-3 py-2.5 text-on-warning-container"
+          className="mt-3 rounded-control border border-warning/30 bg-warning-container px-3 py-2.5 text-on-warning-container"
         >
           <p className="type-label font-semibold">{copy.keepInMind}</p>
           <ul className="mt-1 flex list-disc flex-col gap-1 pl-4 type-body-sm">

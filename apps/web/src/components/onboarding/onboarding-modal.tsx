@@ -166,14 +166,14 @@ export function OnboardingModal({ userId }: OnboardingModalProps) {
                 type="button"
                 aria-pressed={selected === level.id}
                 onClick={() => setSelected(level.id)}
-                className={`flex min-h-14 w-full items-center gap-3 rounded-[10px] border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                className={`flex min-h-14 w-full items-center gap-3 rounded-control border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
                   selected === level.id
                     ? "border-primary bg-primary-container"
                     : "border-outline-variant hover:border-primary/40 hover:bg-surface-container-low"
                 }`}
               >
                 <div
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[10px] ${
+                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-control ${
                     selected === level.id
                       ? "bg-primary/15"
                       : "bg-surface-container"
@@ -201,7 +201,7 @@ export function OnboardingModal({ userId }: OnboardingModalProps) {
         </div>
 
         {selectedLevel && (
-          <div className="mb-5 rounded-[10px] bg-primary-container p-3 text-center">
+          <div className="mb-5 rounded-control bg-primary-container p-3 text-center">
             <p className="type-caption text-on-surface-variant">
               {copy.recommend}
             </p>
@@ -215,14 +215,14 @@ export function OnboardingModal({ userId }: OnboardingModalProps) {
           <Button
             onClick={handleStart}
             disabled={!selected || isPending}
-            className="h-8 w-full gap-2 rounded-[10px] bg-on-surface text-surface"
+            className="h-8 w-full gap-2 rounded-control bg-on-surface text-surface"
           >
             {isPending ? copy.starting : copy.start}
           </Button>
           <button
             onClick={handleSkip}
             disabled={isPending}
-            className="min-h-8 rounded-[10px] type-label text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="min-h-8 rounded-control type-label text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {copy.skip}
           </button>

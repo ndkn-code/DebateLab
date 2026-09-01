@@ -73,7 +73,7 @@ export function IeltsTestLibrary({ tests }: { tests: IeltsTestCard[] }) {
                       aria-pressed={selected}
                       onClick={() => setFilter(option)}
                       className={cn(
-                        "inline-flex min-h-8 items-center rounded-[10px] border px-3 type-label font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        "inline-flex min-h-8 items-center rounded-control border px-3 type-label font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         selected
                           ? "border-on-surface bg-on-surface text-surface"
                           : "border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface",

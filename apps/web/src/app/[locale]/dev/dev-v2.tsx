@@ -66,7 +66,7 @@ export function DevQaToolbar({
   children: ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1.5 rounded-[10px] border border-border bg-surface-container-low px-2.5 py-2">
+    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-1.5 rounded-control border border-border bg-surface-container-low px-2.5 py-2">
       <span className="mr-1 type-caption font-semibold text-on-surface-variant">
         {label}
       </span>
@@ -76,7 +76,7 @@ export function DevQaToolbar({
 }
 
 export const devQaChipClass =
-  "inline-flex h-8 max-w-full items-center whitespace-nowrap rounded-[10px] border border-border px-2.5 type-label font-medium text-on-surface-variant transition-colors duration-150 hover:border-primary/40 hover:bg-primary-container hover:text-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
+  "inline-flex h-8 max-w-full items-center whitespace-nowrap rounded-control border border-border px-2.5 type-label font-medium text-on-surface-variant transition-colors duration-150 hover:border-primary/40 hover:bg-primary-container hover:text-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
 
 export const devQaActiveChipClass =
-  "inline-flex h-8 max-w-full items-center whitespace-nowrap rounded-[10px] border border-primary bg-primary-container px-2.5 type-label font-medium text-primary-dim transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50";
+  "inline-flex h-8 max-w-full items-center whitespace-nowrap rounded-control border border-primary bg-primary-container px-2.5 type-label font-medium text-primary-dim transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50";

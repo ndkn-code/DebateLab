@@ -1025,7 +1025,7 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
       <div className="mx-auto w-full max-w-[1440px]">
         <header className="flex flex-col gap-4 border-b border-outline-variant pb-5 xl:flex-row xl:items-end xl:justify-between">
           <div className="flex min-w-0 items-start gap-4">
-            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-[10px] border border-outline-variant bg-surface-container-high text-xl font-medium text-on-surface shadow-none">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-control border border-outline-variant bg-surface-container-high text-xl font-medium text-on-surface shadow-none">
               {data.club.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
@@ -1045,7 +1045,7 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
                 <span className="inline-flex h-6 items-center rounded-full border border-outline-variant bg-surface-container px-2 text-xs font-bold text-success">
                   {data.club.status}
                 </span>
-                <span className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface-variant">
+                <span className="inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface-variant">
                   <Clock3 className="h-4 w-4 text-on-surface-variant" />
                   GMT+7 Vietnam
                 </span>
@@ -1085,18 +1085,18 @@ export function ClubDetailDashboard({ data }: { data: AdminClubDetailData }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-3">
-            <button className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
+            <button className="inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
               <Import className="h-4 w-4" />
               Import Students
             </button>
-            <button className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
+            <button className="inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface transition hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50">
               <Mail className="h-4 w-4" />
               Message Club
             </button>
             <button
               type="button"
               onClick={() => setActiveTab("Assignments")}
-              className="inline-flex h-8 items-center gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none transition hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="inline-flex h-8 items-center gap-2 rounded-control bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none transition hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <Plus className="h-4 w-4" />
               Create Assignment

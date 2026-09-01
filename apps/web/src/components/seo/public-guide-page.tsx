@@ -25,7 +25,7 @@ export function PublicGuidePage({
           </Link>
           <Link
             href={`/${locale}/${slug.startsWith("ielts") ? "ielts" : ""}`}
-            className="inline-flex min-h-10 items-center rounded-[10px] bg-on-surface px-4 type-label font-semibold text-surface"
+            className="inline-flex min-h-10 items-center rounded-control bg-on-surface px-4 type-label font-semibold text-surface"
           >
             {vi ? "Bắt đầu miễn phí" : "Start free"}
           </Link>
@@ -58,7 +58,7 @@ export function PublicGuidePage({
                   {section.steps.map((step, index) => (
                     <li
                       key={step}
-                      className="rounded-[10px] border border-outline-variant bg-surface p-3 type-body-sm"
+                      className="rounded-control border border-outline-variant bg-surface p-3 type-body-sm"
                     >
                       <span className="mr-2 font-semibold text-secondary">
                         {index + 1}.
@@ -105,7 +105,7 @@ export function PublicGuidePage({
           </p>
           <Link
             href={`/${locale}/auth/login?next=${encodeURIComponent(slug.startsWith("ielts") ? "/ielts/onboarding" : "/onboarding")}`}
-            className="mt-5 inline-flex min-h-10 items-center rounded-[10px] bg-on-surface px-4 type-label font-semibold text-surface"
+            className="mt-5 inline-flex min-h-10 items-center rounded-control bg-on-surface px-4 type-label font-semibold text-surface"
           >
             {vi ? "Bắt đầu miễn phí" : "Start free"}
           </Link>

@@ -249,7 +249,7 @@ function DashboardBackdrop({ locale }: { locale: QaLocale }) {
       <div className="flex min-h-dvh">
         <aside className="hidden w-[220px] shrink-0 border-r border-border bg-surface px-3 py-4 md:block">
           <div className="mb-5 flex items-center gap-3 px-2">
-            <div className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-primary text-on-primary">
+            <div className="flex h-8 w-8 items-center justify-center rounded-control bg-primary text-on-primary">
               <Shield className="h-5 w-5" />
             </div>
             <span className="type-title font-semibold">Thinkfy</span>
@@ -259,7 +259,7 @@ function DashboardBackdrop({ locale }: { locale: QaLocale }) {
               <div
                 key={label}
                 className={cn(
-                  "flex h-9 items-center gap-3 rounded-[10px] px-3 type-label font-medium text-on-surface-variant transition-colors duration-150",
+                  "flex h-9 items-center gap-3 rounded-control px-3 type-label font-medium text-on-surface-variant transition-colors duration-150",
                   index === 0 && "bg-primary-container text-primary-dim"
                 )}
               >
@@ -298,7 +298,7 @@ function DashboardBackdrop({ locale }: { locale: QaLocale }) {
                   <p className="type-label font-semibold">63/100</p>
                 </div>
               </div>
-              <button type="button" className="mt-6 inline-flex h-8 items-center rounded-[10px] bg-primary px-3 type-label font-semibold text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px">
+              <button type="button" className="mt-6 inline-flex h-8 items-center rounded-control bg-primary px-3 type-label font-semibold text-on-primary transition-colors duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px">
                 {vi ? "Bắt đầu" : "Start"}
               </button>
             </section>
@@ -308,7 +308,7 @@ function DashboardBackdrop({ locale }: { locale: QaLocale }) {
                 {["Continue course", "Review feedback", "Strengthen rebuttal"].map((item) => (
                   <div
                     key={item}
-                    className="flex min-h-10 items-center justify-between gap-3 rounded-[10px] border border-border px-3 py-2"
+                    className="flex min-h-10 items-center justify-between gap-3 rounded-control border border-border px-3 py-2"
                   >
                     <span className="type-label font-medium">
                       {vi
@@ -362,7 +362,7 @@ export function SmartPopupQaClient() {
                   type="button"
                   onClick={() => setAnswers((current) => ({ ...current, [question.id]: rating }))}
                   className={cn(
-                    "h-8 rounded-[10px] border type-label font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                    "h-8 rounded-control border type-label font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                     value === rating
                       ? "border-primary bg-primary text-on-primary"
                       : "border-border bg-surface text-on-surface-variant hover:bg-primary-container"
@@ -392,7 +392,7 @@ export function SmartPopupQaClient() {
                 setAnswers((current) => ({ ...current, [question.id]: option.id }))
               }
               className={cn(
-                "min-h-10 rounded-[10px] border px-3 py-2 text-left type-label font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+                "min-h-10 rounded-control border px-3 py-2 text-left type-label font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                 value === option.id
                   ? "border-primary bg-primary-container text-on-surface"
                   : "border-border bg-surface text-on-surface-variant hover:bg-primary-container"
@@ -412,7 +412,7 @@ export function SmartPopupQaClient() {
           setAnswers((current) => ({ ...current, [question.id]: event.target.value }))
         }
         placeholder={question.placeholder}
-        className="min-h-24 w-full rounded-[10px] border border-border bg-surface px-3 py-2 type-body text-on-surface outline-none transition-[border-color,box-shadow] duration-150 focus:border-ring focus:ring-2 focus:ring-ring/30"
+        className="min-h-24 w-full rounded-control border border-border bg-surface px-3 py-2 type-body text-on-surface outline-none transition-[border-color,box-shadow] duration-150 focus:border-ring focus:ring-2 focus:ring-ring/30"
       />
     );
   }

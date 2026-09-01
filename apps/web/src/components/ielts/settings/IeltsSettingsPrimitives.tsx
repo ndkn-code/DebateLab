@@ -152,7 +152,7 @@ export function SaveBar({
       <SaveState state={state} copy={copy} />
       <button
         type="button"
-        className="inline-flex h-8 items-center justify-center rounded-[10px] bg-primary px-2.5 type-body-sm font-medium text-primary-foreground outline-none transition-colors hover:bg-primary-dim focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
+        className="inline-flex h-8 items-center justify-center rounded-control bg-primary px-2.5 type-body-sm font-medium text-primary-foreground outline-none transition-colors hover:bg-primary-dim focus-visible:ring-3 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50"
         disabled={disabled}
         aria-busy={pending}
         onClick={onSave}

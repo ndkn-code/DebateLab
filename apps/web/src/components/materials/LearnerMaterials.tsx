@@ -74,7 +74,7 @@ export function LearnerMaterials({
                 <button
                   type="button"
                   onClick={() => setSelected(material)}
-                  className="group flex min-h-11 w-full items-center gap-3 rounded-[10px] border border-outline-variant bg-surface px-3 py-2.5 text-left transition-colors hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none"
+                  className="group flex min-h-11 w-full items-center gap-3 rounded-control border border-outline-variant bg-surface px-3 py-2.5 text-left transition-colors hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary motion-reduce:transition-none"
                 >
                   <span
                     className={`flex size-8 shrink-0 items-center justify-center rounded-lg ${unavailable ? "bg-surface-container text-on-surface-variant" : "bg-primary-container text-primary"}`}
@@ -104,7 +104,7 @@ export function LearnerMaterials({
           })}
         </ul>
       ) : (
-        <p className="mt-3 rounded-[10px] border border-dashed border-outline-variant p-5 text-center type-body-sm text-on-surface-variant">
+        <p className="mt-3 rounded-control border border-dashed border-outline-variant p-5 text-center type-body-sm text-on-surface-variant">
           {emptyMessage ?? copy.noMaterials}
         </p>
       )}

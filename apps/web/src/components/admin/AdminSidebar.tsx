@@ -137,7 +137,7 @@ function NavLinks({
     <div className="flex h-full min-h-0 flex-col">
       {/* Header */}
       <div className="flex h-16 shrink-0 items-center gap-3 border-b border-outline-variant px-5">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[10px] bg-primary text-primary-foreground">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-primary text-primary-foreground">
           <Shield className="h-4 w-4" aria-hidden="true" />
         </div>
         <span className="truncate text-base font-semibold text-sidebar-foreground">
@@ -164,7 +164,7 @@ function NavLinks({
                   href={item.href}
                   onClick={onNavClick}
                   className={cn(
-                    "type-label relative isolate flex min-h-9 items-center gap-3 rounded-[10px] px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px",
+                    "type-label relative isolate flex min-h-9 items-center gap-3 rounded-control px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px",
                     isActive
                       ? "sidebar-nav-selected-motion"
                       : "sidebar-nav-idle",
@@ -183,7 +183,7 @@ function NavLinks({
                               mass: 0.8,
                             }
                       }
-                      className="sidebar-nav-active-marker pointer-events-none absolute inset-0 z-0 rounded-[10px]"
+                      className="sidebar-nav-active-marker pointer-events-none absolute inset-0 z-0 rounded-control"
                       aria-hidden="true"
                     />
                   ) : null}
@@ -206,7 +206,7 @@ function NavLinks({
         <Link
           href="/dashboard/teacher"
           onClick={onNavClick}
-          className="sidebar-nav-action type-label flex min-h-9 items-center gap-3 rounded-[10px] px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+          className="sidebar-nav-action type-label flex min-h-9 items-center gap-3 rounded-control px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
         >
           <GraduationCap className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="truncate">{t("teacherMode")}</span>
@@ -214,7 +214,7 @@ function NavLinks({
         <Link
           href="/dashboard"
           onClick={onNavClick}
-          className="sidebar-nav-action type-label flex min-h-9 items-center gap-3 rounded-[10px] px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+          className="sidebar-nav-action type-label flex min-h-9 items-center gap-3 rounded-control px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
         >
           <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
           <span className="truncate">{t("backToDashboard")}</span>
@@ -240,7 +240,7 @@ export function AdminSidebar() {
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetTrigger
             aria-label={t("title")}
-            className="flex h-11 w-11 items-center justify-center rounded-[10px] text-sidebar-muted transition-colors hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="flex h-11 w-11 items-center justify-center rounded-control text-sidebar-muted transition-colors hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
             <Menu className="h-5 w-5" aria-hidden="true" />
           </SheetTrigger>

@@ -42,7 +42,7 @@ export function PracticePanel({
   return (
     <section
       className={cn(
-        "rounded-[10px] border border-outline-variant bg-surface-container-lowest shadow-none",
+        "rounded-control border border-outline-variant bg-surface-container-lowest shadow-none",
         className
       )}
     >
@@ -419,7 +419,7 @@ export function PrimaryActionButton({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "h-8 min-w-[210px] gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary shadow-none hover:bg-primary-dim",
+        "h-8 min-w-[210px] gap-2 rounded-control bg-primary px-4 text-sm font-medium text-on-primary shadow-none hover:bg-primary-dim",
         className
       )}
     >
@@ -446,7 +446,7 @@ export function PauseButton({
       onClick={onClick}
       variant="outline"
       className={cn(
-        "h-8 min-w-[132px] gap-2 rounded-[10px] border-outline-variant bg-surface text-sm font-medium text-on-surface shadow-none hover:bg-background",
+        "h-8 min-w-[132px] gap-2 rounded-control border-outline-variant bg-surface text-sm font-medium text-on-surface shadow-none hover:bg-background",
         className
       )}
     >

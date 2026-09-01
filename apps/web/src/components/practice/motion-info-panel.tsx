@@ -39,7 +39,7 @@ function normalizeForComparison(value: string | null | undefined) {
 
 function CoachBriefItem({ label, text }: { label: string; text: string }) {
   return (
-    <div className="rounded-[10px] bg-surface-container px-3.5 py-3">
+    <div className="rounded-control bg-surface-container px-3.5 py-3">
       <Eyebrow className="text-on-surface-variant">
         {label}
       </Eyebrow>

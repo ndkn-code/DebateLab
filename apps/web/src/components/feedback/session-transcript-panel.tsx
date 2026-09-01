@@ -102,7 +102,7 @@ export function SessionTranscriptPanel({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <Link
           href={backHref}
-          className="inline-flex min-h-[44px] items-center gap-3 rounded-[10px] px-3 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface hover:text-primary"
+          className="inline-flex min-h-[44px] items-center gap-3 rounded-control px-3 py-2 text-sm font-semibold text-on-surface-variant transition-colors hover:bg-surface hover:text-primary"
         >
           <ArrowLeft className="h-4 w-4" />
           {backLabel}
@@ -110,7 +110,7 @@ export function SessionTranscriptPanel({
       </div>
 
       {showSttNotice && (
-        <div className="rounded-[10px] border border-outline-variant bg-surface-container px-4 py-3 text-sm font-medium text-on-surface-variant">
+        <div className="rounded-control border border-outline-variant bg-surface-container px-4 py-3 text-sm font-medium text-on-surface-variant">
           {session.practiceLanguage === "vi"
             ? "Bản ghi đã được làm sạch nhẹ cho các lỗi speech-to-text có khả năng xảy ra. Phần chấm điểm không nên phạt phát âm nếu chỉ có dấu hiệu từ bản chữ."
             : "This transcript was lightly cleaned for likely speech-to-text artifacts. Feedback should not penalize pronunciation from text-only uncertainty."}

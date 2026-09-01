@@ -165,7 +165,7 @@ export function SpeakingPhase({
   return (
     <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-3 px-4 pb-20 pt-3 sm:px-5 lg:px-6">
       <div className="fixed bottom-24 right-3 z-40 flex flex-col items-end gap-2 lg:bottom-auto lg:right-5 lg:top-28">
-        <div className="inline-flex items-center gap-2 rounded-[10px] border border-outline-variant bg-surface/95 px-3 py-2 text-sm font-bold text-on-surface-variant shadow-none backdrop-blur">
+        <div className="inline-flex items-center gap-2 rounded-control border border-outline-variant bg-surface/95 px-3 py-2 text-sm font-bold text-on-surface-variant shadow-none backdrop-blur">
           <Clock3 className="h-4 w-4 text-primary" />
           <span className="tabular-nums">{formatPracticeTime(timeLeft)}</span>
         </div>
@@ -177,7 +177,7 @@ export function SpeakingPhase({
               ? t("session.hide_motion_brief")
               : t("session.show_motion_brief")
           }
-          className="inline-flex h-11 w-11 items-center justify-center rounded-[10px] border border-outline-variant bg-surface/95 text-primary shadow-none backdrop-blur transition hover:bg-surface-container"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-control border border-outline-variant bg-surface/95 text-primary shadow-none backdrop-blur transition hover:bg-surface-container"
         >
           <BookOpenText className="h-5 w-5" />
         </button>
@@ -357,13 +357,13 @@ export function SpeakingPhase({
                   <Button
                     onClick={() => setShowEndConfirm(false)}
                     variant="outline"
-                    className="rounded-[10px] border-outline-variant/70 bg-surface text-on-surface-variant"
+                    className="rounded-control border-outline-variant/70 bg-surface text-on-surface-variant"
                   >
                     {t("session.cancel")}
                   </Button>
                   <Button
                     onClick={handleConfirmEnd}
-                    className="rounded-[10px] bg-primary text-on-primary shadow-none hover:bg-primary-dim"
+                    className="rounded-control bg-primary text-on-primary shadow-none hover:bg-primary-dim"
                   >
                     {t("session.end_now")}
                   </Button>

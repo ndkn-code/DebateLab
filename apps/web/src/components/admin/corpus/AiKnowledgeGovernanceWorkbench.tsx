@@ -503,7 +503,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                     event.target.value as (typeof COLLECTIONS)[number],
                   )
                 }
-                className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="h-8 rounded-control border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 {COLLECTIONS.map((option) => (
                   <option key={option} value={option}>
@@ -521,7 +521,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                 onChange={(event) =>
                   setReviewStatus(event.target.value as "all" | ReviewStatus)
                 }
-                className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="h-8 rounded-control border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 <option value="all">{copy.allStatuses}</option>
                 {REVIEW_STATUSES.map((status) => (
@@ -534,7 +534,7 @@ export function AiKnowledgeGovernanceWorkbench() {
             <button
               type="button"
               onClick={() => void load()}
-              className="mt-auto inline-flex h-8 items-center justify-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 type-label font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="mt-auto inline-flex h-8 items-center justify-center gap-2 rounded-control border border-outline-variant bg-surface px-3 type-label font-semibold text-on-surface transition hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <RefreshCw className="h-4 w-4" />
               {copy.refresh}
@@ -548,14 +548,14 @@ export function AiKnowledgeGovernanceWorkbench() {
 
       <div aria-live="polite" className="space-y-3">
         {notice ? (
-          <div className="rounded-[10px] border border-secondary/20 bg-secondary/10 px-3 py-2 type-body-sm text-secondary">
+          <div className="rounded-control border border-secondary/20 bg-secondary/10 px-3 py-2 type-body-sm text-secondary">
             {notice}
           </div>
         ) : null}
         {error ? (
           <div
             role="alert"
-            className="rounded-[10px] border border-error/20 bg-error-container px-3 py-2 type-body-sm text-error"
+            className="rounded-control border border-error/20 bg-error-container px-3 py-2 type-body-sm text-error"
           >
             {error}
           </div>
@@ -607,7 +607,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                 </div>
                 <div
                   aria-label={copy.collection}
-                  className="inline-flex w-fit rounded-[10px] border border-outline-variant bg-surface-container-low p-0.5"
+                  className="inline-flex w-fit rounded-control border border-outline-variant bg-surface-container-low p-0.5"
                   role="group"
                 >
                   {IELTS_KNOWLEDGE_COLLECTIONS.map((option) => {
@@ -664,7 +664,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                     aria-label={`${label}: ${
                       typeof value === "number" ? value : copy.preflightPending
                     }`}
-                    className="rounded-[10px] border border-outline-variant/70 bg-surface-container-low px-3 py-2"
+                    className="rounded-control border border-outline-variant/70 bg-surface-container-low px-3 py-2"
                   >
                     <p className="type-caption text-on-surface-variant">
                       {label}
@@ -676,7 +676,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                 ))}
               </div>
 
-              <ol className="mt-4 grid overflow-hidden rounded-[10px] border border-outline-variant md:grid-cols-3">
+              <ol className="mt-4 grid overflow-hidden rounded-control border border-outline-variant md:grid-cols-3">
                 {[
                   {
                     href: "#ielts-release-sources",
@@ -764,7 +764,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                   return (
                     <div
                       key={`${version}-${status}`}
-                      className="rounded-[10px] border border-outline-variant bg-surface-container-low p-3"
+                      className="rounded-control border border-outline-variant bg-surface-container-low p-3"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <span className="type-label font-semibold text-on-surface">
@@ -778,7 +778,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                             type="button"
                             disabled={publishing}
                             onClick={() => void publishVersion(version)}
-                            className="inline-flex h-8 items-center gap-2 rounded-[10px] bg-on-surface px-3 type-label font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                            className="inline-flex h-8 items-center gap-2 rounded-control bg-on-surface px-3 type-label font-semibold text-surface transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             {publishing ? (
                               <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" />
@@ -832,11 +832,11 @@ export function AiKnowledgeGovernanceWorkbench() {
                 />
               </div>
               {ieltsReleaseModel.sources.length === 0 ? (
-                <p className="mt-3 rounded-[10px] bg-surface-container-low px-3 py-4 type-body-sm text-on-surface-variant">
+                <p className="mt-3 rounded-control bg-surface-container-low px-3 py-4 type-body-sm text-on-surface-variant">
                   {copy.noItems}
                 </p>
               ) : (
-                <ul className="mt-3 divide-y divide-outline-variant overflow-hidden rounded-[10px] border border-outline-variant bg-surface-container-low">
+                <ul className="mt-3 divide-y divide-outline-variant overflow-hidden rounded-control border border-outline-variant bg-surface-container-low">
                   {ieltsReleaseModel.sources.map((source) => {
                     const sourceReviewStatus = textValue(
                       source.row.review_status,
@@ -901,7 +901,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                                 { authorityTier: event.target.value },
                               )
                             }
-                            className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                            className="h-8 rounded-control border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
                           >
                             {AUTHORITY_TIERS.map((value) => (
                               <option key={value} value={value}>
@@ -928,7 +928,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                                 { rightsStatus: event.target.value },
                               )
                             }
-                            className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                            className="h-8 rounded-control border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
                           >
                             {RIGHTS_STATUSES.map((value) => (
                               <option key={value} value={value}>
@@ -951,7 +951,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                                 event.target.value as ReviewStatus,
                               )
                             }
-                            className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                            className="h-8 rounded-control border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
                           >
                             {REVIEW_STATUSES.map((status) => (
                               <option key={status} value={status}>
@@ -983,11 +983,11 @@ export function AiKnowledgeGovernanceWorkbench() {
               </h3>
             </div>
             {visibleItems.length === 0 ? (
-              <p className="mt-3 rounded-[10px] bg-surface-container-low px-3 py-4 type-body-sm text-on-surface-variant">
+              <p className="mt-3 rounded-control bg-surface-container-low px-3 py-4 type-body-sm text-on-surface-variant">
                 {copy.noItems}
               </p>
             ) : (
-              <ul className="mt-3 flex flex-col divide-y divide-outline-variant rounded-[10px] border border-outline-variant bg-surface-container-low px-3">
+              <ul className="mt-3 flex flex-col divide-y divide-outline-variant rounded-control border border-outline-variant bg-surface-container-low px-3">
                 {visibleItems.map((item) => {
                   const source = sourceFor(item);
                   const version =
@@ -1112,7 +1112,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                                     { authorityTier: event.target.value },
                                   )
                                 }
-                                className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                                className="h-8 rounded-control border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
                               >
                                 {AUTHORITY_TIERS.map((value) => (
                                   <option key={value} value={value}>
@@ -1139,7 +1139,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                                     { rightsStatus: event.target.value },
                                   )
                                 }
-                                className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                                className="h-8 rounded-control border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
                               >
                                 {RIGHTS_STATUSES.map((value) => (
                                   <option key={value} value={value}>
@@ -1165,7 +1165,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                                     event.target.value as ReviewStatus,
                                   )
                                 }
-                                className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                                className="h-8 rounded-control border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
                               >
                                 {REVIEW_STATUSES.map((status) => (
                                   <option key={status} value={status}>
@@ -1194,7 +1194,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                                 event.target.value as ReviewStatus,
                               )
                             }
-                            className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
+                            className="h-8 rounded-control border border-outline-variant bg-surface px-3 type-label text-on-surface outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:opacity-50"
                           >
                             {REVIEW_STATUSES.map((status) => (
                               <option key={status} value={status}>
@@ -1217,7 +1217,7 @@ export function AiKnowledgeGovernanceWorkbench() {
               aria-labelledby="ielts-release-publish-title"
               className="scroll-mt-4 rounded-xl border border-outline-variant/20 bg-surface p-4"
             >
-              <div className="grid gap-3 rounded-[10px] border border-outline-variant bg-surface-container-low p-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+              <div className="grid gap-3 rounded-control border border-outline-variant bg-surface-container-low p-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
                     <h3
@@ -1273,7 +1273,7 @@ export function AiKnowledgeGovernanceWorkbench() {
                   onClick={() =>
                     void publishVersion(IELTS_KNOWLEDGE_RELEASE_VERSION)
                   }
-                  className="inline-flex h-8 items-center justify-center gap-2 rounded-[10px] bg-on-surface px-3 type-label font-semibold text-surface transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-45"
+                  className="inline-flex h-8 items-center justify-center gap-2 rounded-control bg-on-surface px-3 type-label font-semibold text-surface transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-45"
                 >
                   {busyAction ===
                   `publish:${IELTS_KNOWLEDGE_RELEASE_VERSION}` ? (

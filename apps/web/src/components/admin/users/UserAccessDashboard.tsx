@@ -232,13 +232,13 @@ export function UserAccessDashboard({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Button className="h-8 gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none transition-all hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+            <Button className="h-8 gap-2 rounded-control bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none transition-all hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
               <Sparkles className="h-4 w-4" />
               Invite User
             </Button>
             <Button
               variant="outline"
-              className="h-8 gap-2 rounded-[10px] border-outline-variant bg-surface px-3 text-sm transition-all hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="h-8 gap-2 rounded-control border-outline-variant bg-surface px-3 text-sm transition-all hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <SlidersHorizontal className="h-4 w-4" />
               Export
@@ -250,7 +250,7 @@ export function UserAccessDashboard({
       <main className="grid w-full gap-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-5 2xl:grid-cols-[minmax(0,1fr)_340px]">
         <section className="min-w-0 space-y-4">
           {loadError ? (
-            <div className="rounded-[10px] border border-error/20 bg-error-container px-4 py-3 text-sm text-error-dim">
+            <div className="rounded-control border border-error/20 bg-error-container px-4 py-3 text-sm text-error-dim">
               {loadError}
             </div>
           ) : null}
@@ -296,13 +296,13 @@ export function UserAccessDashboard({
             ))}
           </StaggeredContainer>
 
-          <FadeInItem className="grid gap-3 rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:grid-cols-2 2xl:grid-cols-[minmax(240px,1fr)_130px_130px_170px_96px]">
+          <FadeInItem className="grid gap-3 rounded-control border border-outline-variant bg-surface p-4 shadow-none md:grid-cols-2 2xl:grid-cols-[minmax(240px,1fr)_130px_130px_170px_96px]">
             <label className="relative block">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-on-surface-variant" />
               <Input
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                className="h-8 rounded-[10px] border-outline-variant bg-surface pl-9 text-sm"
+                className="h-8 rounded-control border-outline-variant bg-surface pl-9 text-sm"
                 placeholder="Search users by name or email..."
               />
             </label>
@@ -311,7 +311,7 @@ export function UserAccessDashboard({
               onChange={(event) =>
                 setRoleFilter(event.target.value as UserRole | "all")
               }
-              className="h-8 rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+              className="h-8 rounded-control border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
             >
               <option value="all">Role: All</option>
               <option value="student">Student</option>
@@ -323,7 +323,7 @@ export function UserAccessDashboard({
               onChange={(event) =>
                 setPlanFilter(event.target.value as PlanType | "all")
               }
-              className="h-8 rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+              className="h-8 rounded-control border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
             >
               <option value="all">Plan: All</option>
               <option value="free">Free</option>
@@ -337,7 +337,7 @@ export function UserAccessDashboard({
                   event.target.value as EntitlementSource | "all",
                 )
               }
-              className="h-8 rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+              className="h-8 rounded-control border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
             >
               <option value="all">Entitlement: All</option>
               <option value="beta_all_access">Beta all-access</option>
@@ -346,13 +346,13 @@ export function UserAccessDashboard({
             </Select>
             <Button
               variant="outline"
-              className="h-8 rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+              className="h-8 rounded-control border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
             >
               Filters
             </Button>
           </FadeInItem>
 
-          <FadeInItem className="overflow-hidden rounded-[10px] border border-outline-variant bg-surface shadow-none">
+          <FadeInItem className="overflow-hidden rounded-control border border-outline-variant bg-surface shadow-none">
             <div className="overflow-x-auto">
               <div className="min-w-[820px] 2xl:min-w-[980px]">
                 <div className="grid h-10 grid-cols-[minmax(200px,1fr)_112px_90px_140px_70px_108px_56px] items-center border-b border-outline-variant bg-surface-container px-3 type-caption font-semibold text-on-surface-variant 2xl:grid-cols-[minmax(240px,1.4fr)_130px_110px_150px_100px_140px_72px] 2xl:px-4">
@@ -482,7 +482,7 @@ export function UserAccessDashboard({
           </FadeInItem>
         </section>
 
-        <FadeInItem className="rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none 2xl:sticky 2xl:top-5 2xl:self-start">
+        <FadeInItem className="rounded-control border border-outline-variant bg-surface p-5 shadow-none 2xl:sticky 2xl:top-5 2xl:self-start">
           {selectedUser ? (
             <div className="space-y-5">
               <div className="flex items-start gap-4">
@@ -520,7 +520,7 @@ export function UserAccessDashboard({
                     `/dashboard/admin/users/${selectedUser.id}/analytics`,
                   )
                 }
-                className="h-8 w-full justify-center gap-2 rounded-[10px] bg-primary text-primary-foreground transition-all hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+                className="h-8 w-full justify-center gap-2 rounded-control bg-primary text-primary-foreground transition-all hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
               >
                 <BarChart3 className="h-4 w-4" />
                 View Analytics
@@ -539,7 +539,7 @@ export function UserAccessDashboard({
                     )
                   }
                   disabled={isPending}
-                  className="rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+                  className="rounded-control border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
                 >
                   <option value="student">Student</option>
                   <option value="teacher">Teacher</option>
@@ -592,7 +592,7 @@ export function UserAccessDashboard({
                 </div>
               </div>
 
-              <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
+              <div className="rounded-control border border-outline-variant bg-surface p-4">
                 <p className="text-sm font-bold text-on-surface">
                   Manual Grant
                 </p>
@@ -603,7 +603,7 @@ export function UserAccessDashboard({
                       setGrantPlan(event.target.value as PlanType)
                     }
                     disabled={isPending}
-                    className="rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+                    className="rounded-control border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
                   >
                     <option value="premium">Premium</option>
                     <option value="enterprise">Enterprise</option>
@@ -615,7 +615,7 @@ export function UserAccessDashboard({
                       setGrantMonths(Number(event.target.value))
                     }
                     disabled={isPending}
-                    className="rounded-[10px] border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+                    className="rounded-control border-outline-variant bg-surface transition-all hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
                   >
                     <option value="1">1 mo</option>
                     <option value="3">3 mo</option>
@@ -626,7 +626,7 @@ export function UserAccessDashboard({
                 <Button
                   onClick={() => handleGrant(selectedUser.id)}
                   disabled={isPending}
-                  className="mt-3 h-8 w-full rounded-[10px] bg-primary text-primary-foreground transition-all hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+                  className="mt-3 h-8 w-full rounded-control bg-primary text-primary-foreground transition-all hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
                 >
                   {isPending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -637,7 +637,7 @@ export function UserAccessDashboard({
                 </Button>
               </div>
 
-              <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
+              <div className="rounded-control border border-outline-variant bg-surface p-4">
                 <p className="text-sm font-bold text-on-surface">
                   Subscription Records
                 </p>
@@ -677,7 +677,7 @@ export function UserAccessDashboard({
                 </div>
               </div>
 
-              <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
+              <div className="rounded-control border border-outline-variant bg-surface p-4">
                 <p className="text-sm font-bold text-on-surface">
                   Feature Access
                 </p>
@@ -710,7 +710,7 @@ export function UserAccessDashboard({
                   selectedUser.latestSubscription?.id &&
                   handleCancel(selectedUser.latestSubscription.id)
                 }
-                className="h-8 w-full justify-center gap-2 rounded-[10px] border border-error/20 bg-error-container text-error-dim transition-all hover:bg-error-container/80 focus-visible:ring-2 focus-visible:ring-error/30 active:translate-y-px"
+                className="h-8 w-full justify-center gap-2 rounded-control border border-error/20 bg-error-container text-error-dim transition-all hover:bg-error-container/80 focus-visible:ring-2 focus-visible:ring-error/30 active:translate-y-px"
               >
                 <XCircle className="h-4 w-4" />
                 Revoke Access
@@ -748,7 +748,7 @@ function MetricCard({
   } satisfies Record<typeof tone, string>;
 
   return (
-    <div className="flex min-h-20 items-center gap-3 rounded-[10px] border border-outline-variant bg-surface p-3 transition-colors duration-150 hover:border-outline focus-within:ring-2 focus-within:ring-ring/30">
+    <div className="flex min-h-20 items-center gap-3 rounded-control border border-outline-variant bg-surface p-3 transition-colors duration-150 hover:border-outline focus-within:ring-2 focus-within:ring-ring/30">
       <div
         className={cn(
           "flex size-8 shrink-0 items-center justify-center rounded-[8px]",

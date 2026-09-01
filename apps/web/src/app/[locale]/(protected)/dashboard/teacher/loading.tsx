@@ -20,7 +20,7 @@ export default function TeacherWorkspaceLoading() {
           }
         >
           <div className="flex items-center gap-3 border-b border-outline-variant pb-4">
-            <span className="flex size-10 items-center justify-center rounded-[10px] bg-surface-container-high text-on-surface-variant">
+            <span className="flex size-10 items-center justify-center rounded-control bg-surface-container-high text-on-surface-variant">
               <CalendarDays />
             </span>
             <div className="space-y-2">

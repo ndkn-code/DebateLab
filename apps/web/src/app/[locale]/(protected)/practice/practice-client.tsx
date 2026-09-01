@@ -587,7 +587,7 @@ export default function PracticePage({
                       <button
                         type="button"
                         aria-label={t("how_it_works")}
-                        className="flex size-8 items-center justify-center rounded-[10px] border border-outline-variant bg-surface text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        className="flex size-8 items-center justify-center rounded-control border border-outline-variant bg-surface text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                       />
                     }
                   >
@@ -606,7 +606,7 @@ export default function PracticePage({
                       {[1, 2, 3].map((step) => (
                         <div
                           key={step}
-                          className="grid min-h-10 grid-cols-[auto_1fr] gap-x-3 rounded-[10px] border border-outline-variant bg-surface-container-low p-3"
+                          className="grid min-h-10 grid-cols-[auto_1fr] gap-x-3 rounded-control border border-outline-variant bg-surface-container-low p-3"
                         >
                           <Eyebrow className="text-primary/75">
                             {t("how_it_works_step_kicker", { step })}
@@ -637,7 +637,7 @@ export default function PracticePage({
                   setVisibleCount(INITIAL_VISIBLE_TOPICS);
                 }}
                 placeholder={t("search_placeholder")}
-                className="h-8 w-full rounded-[10px] border border-outline-variant bg-surface-container-lowest pl-10 pr-3 type-body-sm font-medium text-on-surface outline-none transition-all placeholder:text-on-surface-variant/70 focus:border-secondary focus:ring-2 focus:ring-ring/30"
+                className="h-8 w-full rounded-control border border-outline-variant bg-surface-container-lowest pl-10 pr-3 type-body-sm font-medium text-on-surface outline-none transition-all placeholder:text-on-surface-variant/70 focus:border-secondary focus:ring-2 focus:ring-ring/30"
               />
             </div>
 
@@ -654,7 +654,7 @@ export default function PracticePage({
             />
           </div>
 
-          <div className="mt-3 flex w-fit items-center gap-1 rounded-[10px] bg-surface-container p-1">
+          <div className="mt-3 flex w-fit items-center gap-1 rounded-control bg-surface-container p-1">
             {tabs.map((tab) => {
               const isActive = activeTab === tab.key;
 
@@ -702,7 +702,7 @@ export default function PracticePage({
                   <button
                     type="button"
                     onClick={handleSurprise}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-[10px] px-3 type-label text-primary transition-colors hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-control px-3 type-label text-primary transition-colors hover:bg-primary-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <Shuffle className="h-[13px] w-[13px]" />
                     {t("surprise_me")}

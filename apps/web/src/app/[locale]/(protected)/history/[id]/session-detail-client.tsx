@@ -135,7 +135,7 @@ export default function SessionDetailClient({
           <Link href="/profile?tab=activities" className="mt-4 inline-flex">
             <Button
               variant="outline"
-              className="h-8 gap-2 rounded-[10px] border-outline-variant bg-surface text-on-surface"
+              className="h-8 gap-2 rounded-control border-outline-variant bg-surface text-on-surface"
             >
               <ArrowLeft className="h-4 w-4" />
               {tResult("backToHistory")}
@@ -159,7 +159,7 @@ export default function SessionDetailClient({
           <Link href="/profile?tab=activities" className="mt-4 inline-flex">
             <Button
               variant="outline"
-              className="h-8 gap-2 rounded-[10px] border-outline-variant bg-surface text-on-surface"
+              className="h-8 gap-2 rounded-control border-outline-variant bg-surface text-on-surface"
             >
               <ArrowLeft className="h-4 w-4" />
               {tResult("backToHistory")}

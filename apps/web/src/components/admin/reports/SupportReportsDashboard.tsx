@@ -656,7 +656,7 @@ export function SupportReportsDashboard({ data }: Props) {
           </div>
           <Button
             variant="outline"
-            className="h-8 gap-2 self-start rounded-[10px]"
+            className="h-8 gap-2 self-start rounded-control"
             onClick={() => router.refresh()}
           >
             <RefreshCw className="h-4 w-4" />
@@ -693,7 +693,7 @@ export function SupportReportsDashboard({ data }: Props) {
 
         <FadeInItem>
           <ChartCard
-            className="rounded-[10px] border border-outline-variant/50 shadow-none"
+            className="rounded-control border border-outline-variant/50 shadow-none"
             title="Report filters"
             actions={
               <Badge variant="outline" className="h-6">
@@ -753,7 +753,7 @@ export function SupportReportsDashboard({ data }: Props) {
 
         <FadeInItem>
           <ChartCard
-            className="rounded-[10px] border border-outline-variant/50 shadow-none"
+            className="rounded-control border border-outline-variant/50 shadow-none"
             title="Triage queue"
             actions={
               <div className="flex items-center gap-2">

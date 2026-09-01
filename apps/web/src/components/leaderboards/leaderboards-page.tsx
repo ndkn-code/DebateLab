@@ -210,7 +210,7 @@ function SegmentedControl<T extends string>({
   return (
     <div
       aria-label={label}
-      className="inline-flex max-w-full rounded-[10px] border border-outline-variant bg-surface-container p-1"
+      className="inline-flex max-w-full rounded-control border border-outline-variant bg-surface-container p-1"
     >
       {options.map((option) => {
         const active = value === option.value;
@@ -305,7 +305,7 @@ function PersonalRow({
       transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
       data-testid="leaderboard-row"
       className={cn(
-        "flex min-h-10 items-center gap-3 rounded-[10px] border border-outline-variant/60 px-3 py-2 text-on-surface-variant transition-colors sm:gap-4 sm:px-4",
+        "flex min-h-10 items-center gap-3 rounded-control border border-outline-variant/60 px-3 py-2 text-on-surface-variant transition-colors sm:gap-4 sm:px-4",
         row.isCurrentUser
           ? currentUserRowTone(row.zone)
           : "bg-transparent hover:bg-surface-container-low",
@@ -452,7 +452,7 @@ function OrganizationRow({
       transition={{ duration: prefersReducedMotion ? 0 : 0.2, ease: "easeOut" }}
       data-testid="organization-leaderboard-row"
       className={cn(
-        "flex min-h-10 items-center gap-3 rounded-[10px] border border-outline-variant/60 px-3 py-2 text-on-surface-variant transition-colors sm:gap-4 sm:px-4",
+        "flex min-h-10 items-center gap-3 rounded-control border border-outline-variant/60 px-3 py-2 text-on-surface-variant transition-colors sm:gap-4 sm:px-4",
         row.isCurrentOrganization
           ? "bg-surface-container-high text-on-surface shadow-token-card"
           : "bg-transparent hover:bg-surface-container-low",
@@ -538,7 +538,7 @@ function SeasonOutcomeBanner({
       initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       className={cn(
-        "mt-3 flex w-full flex-col gap-3 rounded-[10px] border px-4 py-3 text-left sm:flex-row sm:items-center",
+        "mt-3 flex w-full flex-col gap-3 rounded-control border px-4 py-3 text-left sm:flex-row sm:items-center",
         isPositive
           ? "border-outline-variant bg-surface-container text-on-surface-variant"
           : isNegative
@@ -927,7 +927,7 @@ export function LeaderboardsPage({
             onClick={() => setLeaderboardInfoOpen(true)}
             aria-label={t("info.triggerLabel")}
             title={t("info.triggerLabel")}
-            className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-[10px] border border-outline-variant bg-surface-container-low text-on-surface-variant transition-colors hover:border-primary/45 hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="absolute right-3 top-3 inline-flex size-8 items-center justify-center rounded-control border border-outline-variant bg-surface-container-low text-on-surface-variant transition-colors hover:border-primary/45 hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Info className="size-4" />
           </button>

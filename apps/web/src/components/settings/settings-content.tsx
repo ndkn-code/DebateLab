@@ -269,7 +269,7 @@ const VISIBILITY_OPTIONS: Array<{
 ];
 
 const INPUT_CLASSNAME =
-  "h-8 w-full rounded-[10px] border border-outline-variant bg-surface-container-lowest px-3 type-label font-medium text-on-surface outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface";
+  "h-8 w-full rounded-control border border-outline-variant bg-surface-container-lowest px-3 type-label font-medium text-on-surface outline-none transition-colors placeholder:text-muted-foreground focus:border-primary focus:ring-3 focus:ring-primary/15 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface";
 
 const SELECT_CLASSNAME =
   "rounded-lg border-outline-variant bg-white text-on-surface focus:border-primary focus-visible:ring-primary/20 dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface";

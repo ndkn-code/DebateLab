@@ -33,13 +33,13 @@ function ModeCard({
   const content = (
     <div
       className={cn(
-        "group relative flex min-h-[220px] flex-col overflow-hidden rounded-[10px] border bg-surface p-4 text-left shadow-none transition-colors",
+        "group relative flex min-h-[220px] flex-col overflow-hidden rounded-control border bg-surface p-4 text-left shadow-none transition-colors",
         disabled
           ? "cursor-not-allowed border-outline-variant/15 opacity-75"
           : "border-outline-variant hover:border-primary/45 hover:bg-primary-container/15",
       )}
     >
-      <div className="flex flex-1 items-center justify-center rounded-[10px] bg-surface-container-low">
+      <div className="flex flex-1 items-center justify-center rounded-control bg-surface-container-low">
         <DuelIllustration
           name={illustration}
           alt={title}
@@ -56,7 +56,7 @@ function ModeCard({
 
       <span
         className={cn(
-          "mt-3 inline-flex h-8 w-full items-center justify-center gap-2 rounded-[10px] bg-primary px-3 type-label font-semibold text-on-primary",
+          "mt-3 inline-flex h-8 w-full items-center justify-center gap-2 rounded-control bg-primary px-3 type-label font-semibold text-on-primary",
           disabled && "bg-surface-container text-on-surface-variant",
         )}
       >

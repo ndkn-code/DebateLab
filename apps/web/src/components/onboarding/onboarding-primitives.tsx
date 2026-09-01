@@ -43,7 +43,7 @@ export function OnboardingShell({
               onClick={onBack}
               disabled={!showBack || !onBack}
               className={cn(
-                "inline-flex h-8 items-center gap-1.5 rounded-[10px] px-2.5 text-sm font-medium text-on-surface-variant transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
+                "inline-flex h-8 items-center gap-1.5 rounded-control px-2.5 text-sm font-medium text-on-surface-variant transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45",
                 showBack && onBack
                   ? "hover:bg-surface-container hover:text-on-surface"
                   : "pointer-events-none opacity-0",
@@ -127,7 +127,7 @@ export function OnboardingChoiceCard({
       animate={{ opacity: disabled && !selected ? 0.56 : 1 }}
       transition={{ duration: 0.15, ease: "easeOut" }}
       className={cn(
-        "group relative flex min-h-16 w-full items-center gap-4 rounded-[10px] border bg-surface px-4 py-3 text-left transition-[border-color,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-5",
+        "group relative flex min-h-16 w-full items-center gap-4 rounded-control border bg-surface px-4 py-3 text-left transition-[border-color,background-color] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-5",
         selected
           ? "border-primary bg-primary-container"
           : "border-outline-variant/70 hover:border-primary/45 hover:bg-surface-container-lowest",
@@ -136,7 +136,7 @@ export function OnboardingChoiceCard({
     >
       <span
         className={cn(
-          "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[10px] transition-colors",
+          "relative flex h-10 w-10 shrink-0 items-center justify-center rounded-control transition-colors",
           selected
             ? "bg-primary text-on-primary"
             : "bg-surface-container text-primary group-hover:bg-primary-container",
@@ -201,7 +201,7 @@ export function OnboardingPill({
       animate={{ opacity: disabled && !selected ? 0.55 : 1 }}
       transition={{ duration: 0.15, ease: "easeOut" }}
       className={cn(
-        "h-8 rounded-[10px] border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-5",
+        "h-8 rounded-control border px-4 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 sm:px-5",
         selected
           ? "border-primary bg-primary text-on-primary shadow-token-primary"
           : "border-outline-variant/70 bg-surface text-on-surface-variant hover:border-primary/45 hover:bg-primary-container hover:text-on-surface",
@@ -229,7 +229,7 @@ export function OnboardingPreviewCard({
   return (
     <div
       className={cn(
-        "rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none",
+        "rounded-control border border-outline-variant bg-surface p-4 shadow-none",
         className,
       )}
     >

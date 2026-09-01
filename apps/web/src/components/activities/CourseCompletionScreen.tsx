@@ -96,7 +96,7 @@ export function CourseCompletionScreen({
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 transition={{ delay: 0.6 + i * 0.15 }}
-                className="flex flex-col items-center rounded-[10px] bg-white border border-outline-variant p-4"
+                className="flex flex-col items-center rounded-control bg-white border border-outline-variant p-4"
               >
                 <Icon className={`h-6 w-6 ${stat.fill} mb-2`} />
                 <span className={`text-2xl font-extrabold ${stat.color}`}>{stat.value}</span>
@@ -125,13 +125,13 @@ export function CourseCompletionScreen({
             <>
               <Link
                 href={courseOverviewHref ?? "/dashboard/courses"}
-                className="flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="flex h-8 items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 {t("backToCourseOverview")}
               </Link>
               <Link
                 href={editorHref ?? "/dashboard/admin/courses"}
-                className="flex h-8 items-center justify-center gap-2 rounded-[10px] border border-outline-variant px-4 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="flex h-8 items-center justify-center gap-2 rounded-control border border-outline-variant px-4 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
               >
                 {t("backToEditor")}
               </Link>

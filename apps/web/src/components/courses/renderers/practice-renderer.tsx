@@ -186,7 +186,7 @@ export function PracticeRenderer({ lesson }: PracticeRendererProps) {
           </DialogHeader>
 
           <div className="space-y-4">
-            <div className="rounded-[10px] border border-outline-variant bg-surface-container-low p-3">
+            <div className="rounded-control border border-outline-variant bg-surface-container-low p-3">
               <Eyebrow className="font-semibold text-primary">
                 {t("practice.focus_area")}
               </Eyebrow>
@@ -309,7 +309,7 @@ function getSideLabel(
 
 function SummaryStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-[10px] border border-outline-variant bg-surface-container-low p-3">
+    <div className="rounded-control border border-outline-variant bg-surface-container-low p-3">
       <Eyebrow className="font-medium text-on-surface-variant">{label}</Eyebrow>
       <p className="mt-2 text-sm font-semibold text-on-surface">{value}</p>
     </div>

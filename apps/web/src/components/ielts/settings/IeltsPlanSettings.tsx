@@ -187,7 +187,7 @@ export function CoachingSettings(props: SharedPlanProps) {
               <label
                 key={language}
                 className={cn(
-                  "grid min-h-11 cursor-pointer place-items-center rounded-[10px] border px-3 type-body-sm font-semibold outline-none transition-colors focus-within:ring-3 focus-within:ring-ring/40",
+                  "grid min-h-11 cursor-pointer place-items-center rounded-control border px-3 type-body-sm font-semibold outline-none transition-colors focus-within:ring-3 focus-within:ring-ring/40",
                   planDraft.feedbackLanguage === language
                     ? "border-primary bg-primary-container text-on-primary-container"
                     : "border-outline-variant bg-surface-container-lowest text-on-surface hover:bg-surface-container-high",

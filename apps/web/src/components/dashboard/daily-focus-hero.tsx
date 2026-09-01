@@ -134,7 +134,7 @@ export function DailyFocusHero({
           <Link
             href={drill.href}
             data-testid="dashboard-recommended-cta"
-            className="type-label mt-3 inline-flex h-8 min-w-[140px] items-center justify-center gap-2 rounded-[10px] bg-primary px-4 font-medium text-on-primary transition-[background-color,transform] hover:bg-primary-dim active:translate-y-px focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/40"
+            className="type-label mt-3 inline-flex h-8 min-w-[140px] items-center justify-center gap-2 rounded-control bg-primary px-4 font-medium text-on-primary transition-[background-color,transform] hover:bg-primary-dim active:translate-y-px focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/40"
           >
             {getPlanCtaLabel(drill, t)}
             <ArrowRight aria-hidden="true" className="h-4 w-4" />

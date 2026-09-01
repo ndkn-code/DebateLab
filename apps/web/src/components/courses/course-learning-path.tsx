@@ -209,7 +209,7 @@ export function CourseLearningPath({ course }: CourseLearningPathProps) {
                 ) : null}
               </div>
 
-              <div className="min-w-[210px] rounded-[10px] bg-surface-container p-3">
+              <div className="min-w-[210px] rounded-control bg-surface-container p-3">
                 <div className="flex items-center justify-between text-xs text-on-surface-variant">
                   <span>
                     {t("detail.lessons_completed", {

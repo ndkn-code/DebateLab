@@ -112,7 +112,7 @@ export function ModuleCompletionScreen({
           {nextModuleFirstActivityId && !isLastModule && (
             <Link
               href={nextModuleHref ?? `/dashboard/courses/${courseId}/activity/${nextModuleFirstActivityId}`}
-              className="flex h-8 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className="flex h-8 items-center justify-center gap-2 rounded-control bg-primary px-4 text-sm font-medium text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               {t("continueToModule", { moduleName: nextModuleTitle ?? "Next" })}
               <ArrowRight className="h-5 w-5" />
@@ -120,7 +120,7 @@ export function ModuleCompletionScreen({
           )}
           <Link
             href={courseOverviewHref ?? `/dashboard/courses/${courseId}`}
-            className="flex h-8 items-center justify-center gap-2 rounded-[10px] border border-outline-variant px-4 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+            className="flex h-8 items-center justify-center gap-2 rounded-control border border-outline-variant px-4 text-sm font-medium text-on-surface-variant transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >
             <ArrowLeft className="h-4 w-4" />
             {t("backToCourseOverview")}

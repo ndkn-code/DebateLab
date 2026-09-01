@@ -51,7 +51,7 @@ export function OrganizationContextCard({
       )}
     >
       <div className="flex items-start gap-3">
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[10px] bg-primary-container text-primary">
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-control bg-primary-container text-primary">
           <Icon className="h-5 w-5" aria-hidden="true" />
         </span>
         <span className="min-w-0 flex-1">

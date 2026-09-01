@@ -102,7 +102,7 @@ export function QuizPlayer({ content, onComplete }: Props) {
               const isSelected = selectedId === opt.id;
               const isCorrectOpt = opt.id === q.correctAnswer;
 
-              let cls = "w-full text-left rounded-[10px] border p-3 text-sm transition-all duration-150";
+              let cls = "w-full text-left rounded-control border p-3 text-sm transition-all duration-150";
               if (phase === "feedback") {
                 if (isCorrectOpt) cls += " border-green-500 bg-green-50";
                 else if (isSelected) cls += " border-red-500 bg-red-50";
@@ -146,7 +146,7 @@ export function QuizPlayer({ content, onComplete }: Props) {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
               >
-                <div className={`flex items-center gap-3 rounded-[10px] p-3 mb-4 ${
+                <div className={`flex items-center gap-3 rounded-control p-3 mb-4 ${
                   isCorrect ? "bg-green-50 border border-green-200" : "bg-red-50 border border-red-200"
                 }`}>
                   <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${
@@ -167,7 +167,7 @@ export function QuizPlayer({ content, onComplete }: Props) {
                 </div>
 
                 {q.explanation && (
-                  <div className="flex gap-3 rounded-[10px] bg-info-container border border-info/30 p-3">
+                  <div className="flex gap-3 rounded-control bg-info-container border border-info/30 p-3">
                     <Lightbulb className="h-5 w-5 text-info shrink-0 mt-0.5" />
                     <div>
                       <p className="text-sm font-semibold text-info mb-1">{t("whyCorrect")}</p>
@@ -185,7 +185,7 @@ export function QuizPlayer({ content, onComplete }: Props) {
               <motion.button
                 onClick={handleCheck}
                 disabled={!selectedId}
-                className="inline-flex h-8 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="inline-flex h-8 rounded-control bg-primary px-4 text-sm font-medium text-on-primary transition-colors disabled:opacity-40 disabled:cursor-not-allowed hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 whileTap={{ scale: 0.97 }}
               >
                 {t("checkAnswer")}
@@ -193,7 +193,7 @@ export function QuizPlayer({ content, onComplete }: Props) {
             ) : (
               <motion.button
                 onClick={handleContinue}
-                className="inline-flex h-8 rounded-[10px] bg-primary px-4 text-sm font-medium text-on-primary hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                className="inline-flex h-8 rounded-control bg-primary px-4 text-sm font-medium text-on-primary hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 whileTap={{ scale: 0.97 }}

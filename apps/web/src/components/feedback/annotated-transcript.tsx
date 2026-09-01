@@ -580,14 +580,14 @@ export function AnnotatedTranscript({
 
   if (!transcript.trim()) {
     return (
-      <section className="rounded-[10px] border border-outline-variant bg-surface p-8 text-center text-sm leading-7 text-on-surface-variant">
+      <section className="rounded-control border border-outline-variant bg-surface p-8 text-center text-sm leading-7 text-on-surface-variant">
         {emptyLabel}
       </section>
     );
   }
 
   return (
-    <section className="rounded-[10px] border border-outline-variant bg-surface p-5 shadow-none sm:p-6">
+    <section className="rounded-control border border-outline-variant bg-surface p-5 shadow-none sm:p-6">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h2 className="text-2xl font-bold tracking-normal text-on-surface">
@@ -641,7 +641,7 @@ export function AnnotatedTranscript({
       >
         <div
           ref={transcriptPaneRef}
-          className="relative z-10 min-h-[280px] overflow-y-auto rounded-[10px] border border-outline-variant bg-surface px-4 py-5 sm:px-5 xl:max-h-[calc(100vh-230px)]"
+          className="relative z-10 min-h-[280px] overflow-y-auto rounded-control border border-outline-variant bg-surface px-4 py-5 sm:px-5 xl:max-h-[calc(100vh-230px)]"
         >
           <div className="space-y-7">
             {chunks.map((chunk) => {
@@ -774,7 +774,7 @@ export function AnnotatedTranscript({
                   }}
                   tabIndex={0}
                   className={cn(
-                    "relative cursor-pointer rounded-[10px] border bg-surface p-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                    "relative cursor-pointer rounded-control border bg-surface p-4 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                     tone.card,
                     isActive && "shadow-none"
                   )}
@@ -852,7 +852,7 @@ export function AnnotatedTranscript({
               );
             })
           ) : (
-            <div className="rounded-[10px] border border-outline-variant bg-background p-5 text-sm leading-6 text-on-surface-variant">
+            <div className="rounded-control border border-outline-variant bg-background p-5 text-sm leading-6 text-on-surface-variant">
               <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-primary-container text-primary">
                 <CheckCircle2 className="h-5 w-5" />
               </div>

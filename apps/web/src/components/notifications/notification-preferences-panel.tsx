@@ -180,7 +180,7 @@ export function NotificationPreferencesPanel({
   return (
     <div className="divide-y divide-outline-variant/60">
       {reviewVisible ? (
-        <div className="m-4 flex flex-col gap-3 rounded-[10px] border border-primary/20 bg-primary-container/45 p-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="m-4 flex flex-col gap-3 rounded-control border border-primary/20 bg-primary-container/45 p-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex min-w-0 items-start gap-3">
             <Info
               className="mt-0.5 h-4 w-4 shrink-0 text-primary"
@@ -366,7 +366,7 @@ export function NotificationPreferencesPanel({
                     },
                   })
                 }
-                className="h-8 rounded-[10px] border border-outline-variant bg-surface-container-lowest px-2 type-label outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:opacity-50"
+                className="h-8 rounded-control border border-outline-variant bg-surface-container-lowest px-2 type-label outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:opacity-50"
               />
             </label>
             <label className="grid gap-1 type-label font-medium text-on-surface">
@@ -384,7 +384,7 @@ export function NotificationPreferencesPanel({
                     },
                   })
                 }
-                className="h-8 rounded-[10px] border border-outline-variant bg-surface-container-lowest px-2 type-label outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:opacity-50"
+                className="h-8 rounded-control border border-outline-variant bg-surface-container-lowest px-2 type-label outline-none focus-visible:ring-3 focus-visible:ring-ring/40 disabled:opacity-50"
               />
             </label>
           </div>

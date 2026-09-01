@@ -97,7 +97,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
       <div className="mx-auto max-w-6xl">
         <Link
           href="/courses"
-          className="mb-4 inline-flex h-8 items-center gap-2 rounded-[10px] px-2 type-label font-semibold text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="mb-4 inline-flex h-8 items-center gap-2 rounded-control px-2 type-label font-semibold text-on-surface-variant transition-colors hover:bg-surface-container hover:text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <ArrowLeft className="h-4 w-4" />
           {t("detail.back")}
@@ -107,7 +107,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
           <div className="min-w-0">
             <section className="rounded-xl border border-outline-variant bg-surface p-4 shadow-none sm:p-5">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-                <div className="relative h-24 w-full shrink-0 overflow-hidden rounded-[10px] border border-outline-variant bg-primary-container sm:w-24">
+                <div className="relative h-24 w-full shrink-0 overflow-hidden rounded-control border border-outline-variant bg-primary-container sm:w-24">
                   {course.thumbnail_url ? (
                     <Image
                       src={course.thumbnail_url}
@@ -301,7 +301,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                   <Button
                     onClick={handleEnroll}
                     disabled={isEnrolling}
-                    className="mt-4 h-8 w-full rounded-[10px] bg-primary text-on-primary hover:bg-primary-dim"
+                    className="mt-4 h-8 w-full rounded-control bg-primary text-on-primary hover:bg-primary-dim"
                     size="lg"
                   >
                     {isEnrolling ? t("detail.enrolling") : t("detail.enroll")}
@@ -310,7 +310,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
               ) : course.nextLesson ? (
                 <div className="mt-4 space-y-4">
                   <div className="flex gap-3">
-                    <div className="relative size-16 shrink-0 overflow-hidden rounded-[10px] border border-outline-variant bg-primary-container">
+                    <div className="relative size-16 shrink-0 overflow-hidden rounded-control border border-outline-variant bg-primary-container">
                       {course.thumbnail_url ? (
                         <Image
                           src={course.thumbnail_url}
@@ -360,7 +360,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                   {nextLessonItem?.locked ? (
                     <Button
                       disabled
-                      className="h-8 w-full rounded-[10px] bg-primary text-on-primary disabled:opacity-60"
+                      className="h-8 w-full rounded-control bg-primary text-on-primary disabled:opacity-60"
                       size="lg"
                     >
                       {t("reader.next_locked")}
@@ -368,7 +368,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                   ) : (
                     <Link href={course.nextLesson.href}>
                       <Button
-                        className="h-8 w-full rounded-[10px] bg-primary text-on-primary hover:bg-primary-dim"
+                        className="h-8 w-full rounded-control bg-primary text-on-primary hover:bg-primary-dim"
                         size="lg"
                       >
                         {t("reader.view_next_lesson")}
@@ -377,7 +377,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
                   )}
                 </div>
               ) : (
-                <div className="mt-3 rounded-[10px] bg-surface-container p-3 type-body-sm text-on-surface-variant">
+                <div className="mt-3 rounded-control bg-surface-container p-3 type-body-sm text-on-surface-variant">
                   {t("hero.completed_description")}
                 </div>
               )}
@@ -410,7 +410,7 @@ export function CourseDetailContent({ course }: CourseDetailContentProps) {
               </div>
               <Link href={coachHref} className="mt-5 block">
                 <Button
-                  className="h-8 w-full rounded-[10px] border border-outline-variant bg-surface text-on-surface hover:bg-surface-container"
+                  className="h-8 w-full rounded-control border border-outline-variant bg-surface text-on-surface hover:bg-surface-container"
                   variant="outline"
                 >
                   {t("reader.ask_ai_coach")}
@@ -436,19 +436,19 @@ function LessonStepperItem({
   const node = (
     <div className="relative z-10 flex size-10 items-center justify-center">
       {item.completed ? (
-        <div className="flex size-10 items-center justify-center rounded-[10px] border border-success/30 bg-success-container text-on-success-container">
+        <div className="flex size-10 items-center justify-center rounded-control border border-success/30 bg-success-container text-on-success-container">
           <Check className="h-4 w-4" />
         </div>
       ) : item.current ? (
-        <div className="flex size-10 items-center justify-center rounded-[10px] bg-primary text-label font-semibold text-on-primary ring-2 ring-primary-container">
+        <div className="flex size-10 items-center justify-center rounded-control bg-primary text-label font-semibold text-on-primary ring-2 ring-primary-container">
           {item.lessonNumber}
         </div>
       ) : item.locked ? (
-        <div className="flex size-10 items-center justify-center rounded-[10px] border border-outline-variant bg-surface-container text-on-surface-variant">
+        <div className="flex size-10 items-center justify-center rounded-control border border-outline-variant bg-surface-container text-on-surface-variant">
           <Lock className="h-4 w-4" />
         </div>
       ) : (
-        <div className="flex size-10 items-center justify-center rounded-[10px] border border-outline-variant bg-surface type-label font-semibold text-on-surface-variant">
+        <div className="flex size-10 items-center justify-center rounded-control border border-outline-variant bg-surface type-label font-semibold text-on-surface-variant">
           {item.lessonNumber}
         </div>
       )}
@@ -602,7 +602,7 @@ function LessonActionBar({
             <Button
               variant="outline"
               size="lg"
-              className="h-8 rounded-[10px] border-outline-variant bg-surface text-on-surface hover:bg-surface-container"
+              className="h-8 rounded-control border-outline-variant bg-surface text-on-surface hover:bg-surface-container"
             >
               <ArrowLeft className="h-4 w-4" />
               {t("lesson.previous")}
@@ -618,7 +618,7 @@ function LessonActionBar({
             disabled={isPending}
             variant="outline"
             size="lg"
-            className="h-8 rounded-[10px] border-outline-variant bg-surface text-on-surface hover:bg-surface-container"
+            className="h-8 rounded-control border-outline-variant bg-surface text-on-surface hover:bg-surface-container"
           >
             <CheckCircle2 className="h-4 w-4" />
             {isPending ? t("practice.saving") : t("practice.mark_complete")}
@@ -629,7 +629,7 @@ function LessonActionBar({
           isCompleted ? (
             <Link href={course.nextLesson.href}>
               <Button
-                className="h-8 rounded-[10px] bg-primary px-4 text-on-primary hover:bg-primary-dim"
+                className="h-8 rounded-control bg-primary px-4 text-on-primary hover:bg-primary-dim"
                 size="lg"
               >
                 {t("reader.continue_to_lesson", {
@@ -641,7 +641,7 @@ function LessonActionBar({
           ) : (
             <Button
               disabled
-              className="h-8 rounded-[10px] bg-primary px-4 text-on-primary disabled:opacity-60"
+              className="h-8 rounded-control bg-primary px-4 text-on-primary disabled:opacity-60"
               size="lg"
             >
               {t("reader.next_locked")}
@@ -651,7 +651,7 @@ function LessonActionBar({
         ) : (
           <Link href="/courses">
             <Button
-              className="h-8 rounded-[10px] bg-primary px-4 text-on-primary hover:bg-primary-dim"
+              className="h-8 rounded-control bg-primary px-4 text-on-primary hover:bg-primary-dim"
               size="lg"
             >
               {t("reader.back_to_library")}
@@ -680,7 +680,7 @@ function EnrollButton({ courseId }: { courseId: string }) {
     <Button
       onClick={handleClick}
       disabled={isPending}
-      className="h-8 rounded-[10px] bg-primary px-4 text-on-primary hover:bg-primary-dim"
+      className="h-8 rounded-control bg-primary px-4 text-on-primary hover:bg-primary-dim"
       size="lg"
     >
       {isPending ? t("detail.enrolling") : t("detail.enroll")}

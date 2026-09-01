@@ -684,13 +684,13 @@ export function ClassDetailDashboard({
         <div className="flex gap-2">
           <button
             onClick={() => setEditOpen(true)}
-            className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-primary transition-all duration-150 hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+            className="h-8 rounded-control border border-outline-variant bg-surface px-3 text-sm font-medium text-primary transition-all duration-150 hover:bg-surface-container focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
           >
             {t("edit")}
           </button>
           <button
             onClick={() => setAttendanceOpen(true)}
-            className="h-8 rounded-[10px] bg-primary px-3 text-sm font-medium text-on-primary shadow-none transition-all duration-150 hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+            className="h-8 rounded-control bg-primary px-3 text-sm font-medium text-on-primary shadow-none transition-all duration-150 hover:bg-primary-dim focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
           >
             {t("takeAttendance")}
           </button>
@@ -703,7 +703,7 @@ export function ClassDetailDashboard({
         </div>
       )}
 
-      <FadeInItem className="mt-6 grid gap-3 rounded-[10px] border border-outline-variant bg-surface p-4 text-sm shadow-none sm:grid-cols-2 lg:grid-cols-5">
+      <FadeInItem className="mt-6 grid gap-3 rounded-control border border-outline-variant bg-surface p-4 text-sm shadow-none sm:grid-cols-2 lg:grid-cols-5">
         <div className="flex items-start gap-3">
           <CalendarDays className="mt-0.5 h-4 w-4 text-primary" />
           <div>
@@ -1251,7 +1251,7 @@ export function ClassDetailDashboard({
             role="dialog"
             aria-modal="true"
             aria-labelledby="edit-class-dialog-title"
-            className="w-full max-w-xl rounded-[10px] border border-outline-variant bg-surface p-5 shadow-lg"
+            className="w-full max-w-xl rounded-control border border-outline-variant bg-surface p-5 shadow-lg"
           >
             <h2
               id="edit-class-dialog-title"

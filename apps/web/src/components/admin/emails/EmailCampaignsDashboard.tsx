@@ -633,7 +633,7 @@ export function EmailCampaignsDashboard() {
           </div>
 
           {selected?.status === "draft" ? (
-            <div className="mt-6 rounded-[10px] border border-primary/20 bg-primary-container/35 p-4">
+            <div className="mt-6 rounded-control border border-primary/20 bg-primary-container/35 p-4">
               <div className="flex items-start gap-3">
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-[8px] bg-primary-container text-primary">
                   <ShieldCheck className="h-4 w-4" aria-hidden="true" />

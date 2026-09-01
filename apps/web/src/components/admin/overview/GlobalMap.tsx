@@ -94,7 +94,7 @@ export function GlobalMap({ geoData }: Props) {
         </svg>
       </div>
       {tooltip && (
-        <div className="pointer-events-none absolute right-4 top-14 rounded-[10px] border border-outline-variant bg-surface px-3 py-2 text-sm">
+        <div className="pointer-events-none absolute right-4 top-14 rounded-control border border-outline-variant bg-surface px-3 py-2 text-sm">
           <p className="font-medium text-on-surface">{tooltip.country}</p>
           {tooltip.city && (
             <p className="text-on-surface-variant text-xs">{tooltip.city}</p>

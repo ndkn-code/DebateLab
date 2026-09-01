@@ -236,7 +236,7 @@ function DesktopHeader({
         </div>
         <div className="flex min-w-[420px] flex-col items-end gap-4">
           <div className="flex w-full items-center justify-end gap-3">
-            <div className="flex h-8 w-[360px] items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-on-surface-variant shadow-none">
+            <div className="flex h-8 w-[360px] items-center gap-2 rounded-control border border-outline-variant bg-surface px-3 text-on-surface-variant shadow-none">
               <Search className="h-4 w-4" />
               <span className="truncate text-sm">Search users, content, and more...</span>
               <kbd className="type-caption ml-auto rounded-md border border-outline-variant bg-surface-container px-1.5 py-0.5 text-on-surface-variant">
@@ -245,7 +245,7 @@ function DesktopHeader({
             </div>
             <button
               type="button"
-              className="inline-flex h-8 items-center gap-2 rounded-[10px] bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="inline-flex h-8 items-center gap-2 rounded-control bg-primary px-3 text-sm font-medium text-primary-foreground shadow-none hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <Download className="h-4 w-4" />
               Export
@@ -274,7 +274,7 @@ function MobileHeader() {
 
 function UserSummary({ data }: { data: AdminUserAnalyticsProfile }) {
   return (
-    <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5">
+    <section className="rounded-control border border-outline-variant bg-surface p-4 shadow-none md:p-5">
       <div className="grid gap-5 md:grid-cols-[minmax(240px,1.15fr)_repeat(5,minmax(110px,0.6fr))_auto] md:items-center">
         <div className="flex min-w-0 items-center gap-4">
           <Avatar className="h-16 w-16 shrink-0 border border-outline-variant bg-surface-container md:h-[70px] md:w-[70px]">
@@ -342,13 +342,13 @@ function UserSummary({ data }: { data: AdminUserAnalyticsProfile }) {
 
         <Link
           href="/dashboard/admin/users"
-          className="hidden h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface-variant hover:bg-surface-container md:inline-flex"
+          className="hidden h-8 items-center gap-2 rounded-control border border-outline-variant bg-surface px-3 text-sm font-medium text-on-surface-variant hover:bg-surface-container md:inline-flex"
         >
           View Profile
           <ExternalLink className="h-4 w-4" />
         </Link>
 
-        <div className="rounded-[10px] border border-outline-variant bg-surface-container p-4 md:hidden">
+        <div className="rounded-control border border-outline-variant bg-surface-container p-4 md:hidden">
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-semibold text-on-surface-variant">Effective plan</p>
             <Badge className="rounded-md bg-success-container text-success-dim">
@@ -419,7 +419,7 @@ function InsightRail({
   return (
     <aside
       className={cn(
-      "rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5 xl:sticky xl:top-5",
+      "rounded-control border border-outline-variant bg-surface p-4 shadow-none md:p-5 xl:sticky xl:top-5",
         className
       )}
     >
@@ -535,7 +535,7 @@ function TrendPanel({ data }: { data: AdminUserAnalyticsProfile }) {
 
 function FeaturePanel({ features }: { features: AdminFeatureAdoption[] }) {
   return (
-    <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5">
+    <section className="rounded-control border border-outline-variant bg-surface p-4 shadow-none md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-on-surface">Feature Adoption</h3>
@@ -555,7 +555,7 @@ function FeaturePanel({ features }: { features: AdminFeatureAdoption[] }) {
 
 function CourseProgressPanel({ data }: { data: AdminUserAnalyticsProfile }) {
   return (
-    <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5">
+    <section className="rounded-control border border-outline-variant bg-surface p-4 shadow-none md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-bold text-on-surface">Course Progress</h3>
@@ -696,7 +696,7 @@ function SkillPanel({ data }: { data: AdminUserAnalyticsProfile }) {
 
 function RecentActivityPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
   return (
-    <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5">
+    <section className="rounded-control border border-outline-variant bg-surface p-4 shadow-none md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-bold text-on-surface">Recent Activity</h3>
@@ -734,7 +734,7 @@ function RecentActivityPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
 
 function ModuleProgressPanel({ data }: { data: AdminUserAnalyticsProfile }) {
   return (
-    <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5">
+    <section className="rounded-control border border-outline-variant bg-surface p-4 shadow-none md:p-5">
       <div className="flex items-center justify-between gap-3">
         <div>
           <h3 className="text-base font-bold text-on-surface">Module Progress</h3>
@@ -777,7 +777,7 @@ function ModuleProgressPanel({ data }: { data: AdminUserAnalyticsProfile }) {
 
 function RawEventsPanel({ events }: { events: AdminAnalyticsRawEvent[] }) {
   return (
-    <section className="rounded-[10px] border border-outline-variant bg-surface p-4 shadow-none md:p-5">
+    <section className="rounded-control border border-outline-variant bg-surface p-4 shadow-none md:p-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
           <h3 className="text-base font-bold text-on-surface">Raw Events</h3>

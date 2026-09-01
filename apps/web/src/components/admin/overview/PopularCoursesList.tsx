@@ -20,7 +20,7 @@ export function PopularCoursesList({ courses }: Props) {
   const t = useTranslations("admin.overview");
 
   return (
-    <div className="rounded-[10px] border border-outline-variant bg-surface p-4">
+    <div className="rounded-control border border-outline-variant bg-surface p-4">
       <h3 className="mb-3 type-label font-semibold text-on-surface">
         {t("popularCourses")}
       </h3>

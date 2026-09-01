@@ -279,7 +279,7 @@ function SeatCard({
     : "Open seat";
 
   return (
-    <div className="rounded-[10px] border border-outline-variant/15 bg-surface p-5">
+    <div className="rounded-control border border-outline-variant/15 bg-surface p-5">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
@@ -341,7 +341,7 @@ function SeatCard({
 
 function MetricPill({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-[10px] border border-outline-variant/12 bg-surface px-3 py-3 text-center text-xs font-medium text-primary">
+    <div className="rounded-control border border-outline-variant/12 bg-surface px-3 py-3 text-center text-xs font-medium text-primary">
       {children}
     </div>
   );
@@ -523,10 +523,10 @@ export function DuelLobbySetupView({
         </div>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-          <main className="rounded-[10px] border border-outline-variant/15 bg-surface p-5 shadow-none lg:p-6">
+          <main className="rounded-control border border-outline-variant/15 bg-surface p-5 shadow-none lg:p-6">
             {startMode ? (
               <div className="space-y-5">
-                <div className="rounded-[10px] border border-outline-variant/12 bg-surface-container-low p-5">
+                <div className="rounded-control border border-outline-variant/12 bg-surface-container-low p-5">
                   <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_170px] lg:items-center">
                     <div>
                       <div className="type-eyebrow text-primary">
@@ -577,7 +577,7 @@ export function DuelLobbySetupView({
                   />
                 </div>
 
-                <div className="rounded-[10px] border border-primary/40 bg-primary/6 p-5">
+                <div className="rounded-control border border-primary/40 bg-primary/6 p-5">
                   <div className="grid gap-4 md:grid-cols-[130px_minmax(0,1fr)_170px] md:items-center">
                     <Image
                       src="/images/debates/stopwatch.png"
@@ -611,7 +611,7 @@ export function DuelLobbySetupView({
                   </div>
                 </div>
 
-                <div className="rounded-[10px] border border-outline-variant/12 bg-surface p-5">
+                <div className="rounded-control border border-outline-variant/12 bg-surface p-5">
                   <h3 className="font-semibold text-on-surface">
                     Readiness checklist
                   </h3>
@@ -653,7 +653,7 @@ export function DuelLobbySetupView({
                       : "lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)]",
                   )}
                 >
-                  <div className="rounded-[10px] border border-outline-variant/12 bg-surface-container-low p-5">
+                  <div className="rounded-control border border-outline-variant/12 bg-surface-container-low p-5">
                     {isMatchmaking ? (
                       <div className="grid gap-5 sm:grid-cols-[120px_minmax(0,1fr)] sm:items-center">
                         <DuelIllustration
@@ -691,7 +691,7 @@ export function DuelLobbySetupView({
                             <button
                               type="button"
                               onClick={copyInvite}
-                              className="flex h-8 w-12 items-center justify-center rounded-[10px] border border-outline-variant/15 bg-surface text-primary shadow-sm"
+                              className="flex h-8 w-12 items-center justify-center rounded-control border border-outline-variant/15 bg-surface text-primary shadow-sm"
                               aria-label="Copy invite"
                             >
                               <Copy className="h-5 w-5" />
@@ -704,7 +704,7 @@ export function DuelLobbySetupView({
                           <Button
                             type="button"
                             onClick={copyInvite}
-                            className="mt-4 h-8 w-full rounded-[10px]"
+                            className="mt-4 h-8 w-full rounded-control"
                           >
                             <Link2 className="h-4 w-4" />
                             {copied ? "Invite copied" : "Copy invite"}
@@ -720,7 +720,7 @@ export function DuelLobbySetupView({
                     )}
                   </div>
 
-                  <div className="rounded-[10px] border border-outline-variant/12 bg-surface p-5">
+                  <div className="rounded-control border border-outline-variant/12 bg-surface p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <div className="type-eyebrow text-primary">
@@ -804,7 +804,7 @@ export function DuelLobbySetupView({
                   />
                 </div>
 
-                <div className="rounded-[10px] border border-outline-variant/12 bg-surface p-5">
+                <div className="rounded-control border border-outline-variant/12 bg-surface p-5">
                   <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px] lg:items-center">
                     <div className="flex gap-4">
                       <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-success/12 text-success">
@@ -824,13 +824,13 @@ export function DuelLobbySetupView({
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-3 text-center text-sm">
-                      <div className="rounded-[10px] bg-success/10 px-4 py-3 text-success">
+                      <div className="rounded-control bg-success/10 px-4 py-3 text-success">
                         <div className="font-semibold">
                           {formatDifficulty(room.topicDifficulty)}
                         </div>
                         <div className="text-xs">Difficulty</div>
                       </div>
-                      <div className="rounded-[10px] border border-outline-variant/12 bg-surface-container-low px-4 py-3 text-on-surface">
+                      <div className="rounded-control border border-outline-variant/12 bg-surface-container-low px-4 py-3 text-on-surface">
                         <div className="font-semibold">
                           ~
                           {Math.round(
@@ -871,7 +871,7 @@ export function DuelLobbySetupView({
                 disabled={
                   pending || (!startMode && !isMatchmaking && !onEditSetup)
                 }
-                className="h-8 rounded-[10px] border-outline-variant/25 bg-surface text-primary"
+                className="h-8 rounded-control border-outline-variant/25 bg-surface text-primary"
               >
                 {startMode ? (
                   <>
@@ -898,7 +898,7 @@ export function DuelLobbySetupView({
                     !room.canStart &&
                     (!room.viewer.isParticipant || (viewerReady && bothReady)))
                 }
-                className="h-8 rounded-[10px] text-base"
+                className="h-8 rounded-control text-base"
               >
                 {room.canStart && <Play className="h-4 w-4" />}
                 {!room.canStart && <Users className="h-4 w-4" />}
@@ -914,13 +914,13 @@ export function DuelLobbySetupView({
             </div>
 
             {actionError && (
-              <div className="mt-4 rounded-[10px] border border-error/20 bg-error/8 px-4 py-3 text-sm text-error">
+              <div className="mt-4 rounded-control border border-error/20 bg-error/8 px-4 py-3 text-sm text-error">
                 {actionError}
               </div>
             )}
           </main>
 
-          <aside className="space-y-4 rounded-[10px] border border-outline-variant/15 bg-surface p-5 shadow-none">
+          <aside className="space-y-4 rounded-control border border-outline-variant/15 bg-surface p-5 shadow-none">
             <div className="flex items-center justify-between gap-3">
               <h2 className="text-xl font-bold text-on-surface">
                 Duel preview
@@ -931,7 +931,7 @@ export function DuelLobbySetupView({
               </div>
             </div>
 
-            <div className="rounded-[10px] border border-outline-variant/15 bg-surface-container-low p-4">
+            <div className="rounded-control border border-outline-variant/15 bg-surface-container-low p-4">
               <Image
                 src="/images/debates/duel-preview.png"
                 width={320}
@@ -939,7 +939,7 @@ export function DuelLobbySetupView({
                 alt=""
                 className="mx-auto h-32 w-full object-contain"
               />
-              <div className="mt-3 rounded-[10px] border border-outline-variant/12 bg-surface p-4">
+              <div className="mt-3 rounded-control border border-outline-variant/12 bg-surface p-4">
                 <div className="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold uppercase text-primary">
                   {room.topicCategory.split(" & ")[0]}
                 </div>
@@ -974,7 +974,7 @@ export function DuelLobbySetupView({
                       : "Both debaters must be ready to start."}
                   </p>
                 </div>
-                <div className="rounded-[10px] border border-outline-variant/12 bg-surface px-4 py-3 text-center">
+                <div className="rounded-control border border-outline-variant/12 bg-surface px-4 py-3 text-center">
                   <div className="text-xs text-on-surface-variant">
                     Share code
                   </div>
@@ -993,7 +993,7 @@ export function DuelLobbySetupView({
             </div>
 
             <div className="grid gap-3">
-              <div className="flex items-center justify-between rounded-[10px] border border-outline-variant/12 bg-surface-container-low px-4 py-3 text-sm">
+              <div className="flex items-center justify-between rounded-control border border-outline-variant/12 bg-surface-container-low px-4 py-3 text-sm">
                 <span className="inline-flex items-center gap-2 text-on-surface-variant">
                   <Coins className="h-4 w-4 text-primary" />
                   Entry cost
@@ -1002,7 +1002,7 @@ export function DuelLobbySetupView({
                   {room.config.entryCost} Credits each
                 </span>
               </div>
-              <div className="flex items-center justify-between rounded-[10px] border border-outline-variant/12 bg-surface-container-low px-4 py-3 text-sm">
+              <div className="flex items-center justify-between rounded-control border border-outline-variant/12 bg-surface-container-low px-4 py-3 text-sm">
                 <span className="inline-flex items-center gap-2 text-on-surface-variant">
                   <Clock3 className="h-4 w-4 text-primary" />
                   Charged
@@ -1074,7 +1074,7 @@ export function DuelPreviewSidebar({
   return (
     <aside
       id="duel-preview"
-      className="space-y-6 rounded-[10px] border border-outline-variant/20 bg-surface p-6 shadow-none"
+      className="space-y-6 rounded-control border border-outline-variant/20 bg-surface p-6 shadow-none"
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold text-on-surface">Duel preview</h2>

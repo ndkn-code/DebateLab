@@ -68,7 +68,7 @@ function LoginContent() {
       <div className="text-center">
         <Link
           href="/"
-          className="inline-flex justify-center rounded-[10px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          className="inline-flex justify-center rounded-control focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <LogoMark size="lg" priority />
         </Link>
@@ -78,7 +78,7 @@ function LoginContent() {
       </div>
 
       {referrerName && (
-        <div className="flex items-center gap-2.5 rounded-[10px] border border-primary/25 bg-primary-container px-3 py-2">
+        <div className="flex items-center gap-2.5 rounded-control border border-primary/25 bg-primary-container px-3 py-2">
           <Gift className="h-4 w-4 shrink-0 text-primary" />
           <p className="type-body-sm text-on-surface">
             {copy.invited} <span className="font-semibold">{referrerName}</span>
@@ -90,7 +90,7 @@ function LoginContent() {
       {error && (
         <p
           role="alert"
-          className="rounded-[10px] bg-error-container px-3 py-2 text-center type-body-sm text-on-error-container"
+          className="rounded-control bg-error-container px-3 py-2 text-center type-body-sm text-on-error-container"
         >
           {error}
         </p>
@@ -101,7 +101,7 @@ function LoginContent() {
         variant="outline"
         disabled={loading}
         aria-busy={loading}
-        className="h-10 w-full gap-3 rounded-[10px] border-outline-variant bg-surface text-on-surface shadow-none hover:bg-surface-container-low"
+        className="h-10 w-full gap-3 rounded-control border-outline-variant bg-surface text-on-surface shadow-none hover:bg-surface-container-low"
         onClick={handleGoogleLogin}
       >
         {loading ? (
