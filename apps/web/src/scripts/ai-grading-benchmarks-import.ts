@@ -3,7 +3,14 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
-import { parseGradingBenchmarkImport } from "@/lib/ai/benchmarks/contracts";
+import {
+  AI_GRADING_BENCHMARK_PRIVATE_BUCKET,
+  parseGradingBenchmarkImport,
+} from "@/lib/ai/benchmarks/contracts";
+import {
+  buildIeltsBenchmarkRequest,
+  ieltsBenchmarkModelInputSha256,
+} from "@/lib/ai/benchmarks/request";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type JsonRecord = Record<string, unknown>;
@@ -31,43 +38,109 @@ function equalJson(left: unknown, right: unknown) {
   return canonicalJson(left) === canonicalJson(right);
 }
 
-function sha256(value: string | ArrayBuffer): string {
+function sha256(value: string | ArrayBuffer | Uint8Array): string {
   return createHash("sha256")
-    .update(typeof value === "string" ? Buffer.from(value, "utf8") : Buffer.from(value))
+    .update(
+      typeof value === "string"
+        ? Buffer.from(value, "utf8")
+        : value instanceof Uint8Array
+          ? Buffer.from(value)
+          : Buffer.from(value),
+    )
     .digest("hex");
 }
 
 interface StorageObjectQuery {
   eq(column: string, value: string): StorageObjectQuery;
   maybeSingle(): PromiseLike<{
-    data: { version?: unknown; metadata?: unknown } | null;
+    data: {
+      id?: unknown;
+      public?: unknown;
+      version?: unknown;
+      metadata?: unknown;
+    } | null;
     error: { message: string } | null;
   }>;
+}
+
+type StorageMetadataClient = {
+  schema(name: "storage"): {
+    from(table: "objects" | "buckets"): {
+      select(columns: string): StorageObjectQuery;
+    };
+  };
+};
+
+async function assertPrivateBenchmarkBucket(client: StorageMetadataClient) {
+  const { data, error } = await client
+    .schema("storage")
+    .from("buckets")
+    .select("id,public")
+    .eq("id", AI_GRADING_BENCHMARK_PRIVATE_BUCKET)
+    .maybeSingle();
+  if (
+    error ||
+    !data ||
+    data.id !== AI_GRADING_BENCHMARK_PRIVATE_BUCKET ||
+    data.public !== false
+  ) {
+    throw new Error("Benchmark private storage bucket is unavailable");
+  }
+}
+
+async function verifyAcousticAttestation(
+  client: ReturnType<typeof createAdminClient>,
+  benchmarkKey: string,
+  input: ReturnType<typeof parseGradingBenchmarkImport>["benchmarks"][number]["protectedLabel"]["input"],
+) {
+  const attestation = input.audioPreprocessing?.acousticAttestation;
+  if (!attestation) return;
+  const rpcClient = client as unknown as {
+    rpc(
+      name: string,
+      args: Record<string, unknown>,
+    ): PromiseLike<{ data: unknown; error: { message: string } | null }>;
+  };
+  const { data, error } = await rpcClient.rpc(
+    "verify_ai_grading_benchmark_acoustic_attestation",
+    {
+      p_benchmark_key: benchmarkKey,
+      p_envelope: attestation.envelope,
+      p_signature: attestation.signature,
+    },
+  );
+  if (error || data !== true) {
+    throw new Error(`Benchmark acoustic attestation failed: ${benchmarkKey}`);
+  }
 }
 
 async function verifyBenchmarkArtifacts(
   client: ReturnType<typeof createAdminClient>,
   manifest: ReturnType<typeof parseGradingBenchmarkImport>,
-) {
-  const storageMetadataClient = client as unknown as {
-    schema(name: "storage"): {
-      from(table: "objects"): { select(columns: string): StorageObjectQuery };
-    };
-  };
+): Promise<Map<string, Uint8Array>> {
+  const audioReports = new Map<string, Uint8Array>();
+  const storageMetadataClient = client as unknown as StorageMetadataClient;
+  await assertPrivateBenchmarkBucket(storageMetadataClient);
   for (const benchmark of manifest.benchmarks) {
     const input = benchmark.protectedLabel.input;
+    await verifyAcousticAttestation(client, benchmark.benchmarkKey, input);
     if (input.responseText) {
       if (sha256(input.responseText) !== input.artifactSha256.toLowerCase()) {
-        throw new Error(`Benchmark text checksum mismatch: ${benchmark.benchmarkKey}`);
+        throw new Error(
+          `Benchmark text checksum mismatch: ${benchmark.benchmarkKey}`,
+        );
       }
       continue;
     }
     const storagePath = input.audioObjectPath ?? input.responseObjectPath;
-    if (!storagePath) throw new Error(`Benchmark artifact missing: ${benchmark.benchmarkKey}`);
+    if (!storagePath)
+      throw new Error(`Benchmark artifact missing: ${benchmark.benchmarkKey}`);
     const [bucket, ...nameParts] = storagePath.split("/");
     const objectName = nameParts.join("/");
-    if (!bucket || !objectName) {
-      throw new Error(`Benchmark storage path must be bucket/object: ${benchmark.benchmarkKey}`);
+    if (bucket !== AI_GRADING_BENCHMARK_PRIVATE_BUCKET || !objectName) {
+      throw new Error(
+        `Benchmark storage path must be bucket/object: ${benchmark.benchmarkKey}`,
+      );
     }
     const { data: objectRow, error: objectError } = await storageMetadataClient
       .schema("storage")
@@ -77,7 +150,9 @@ async function verifyBenchmarkArtifacts(
       .eq("name", objectName)
       .maybeSingle();
     if (objectError || !objectRow) {
-      throw new Error(`Benchmark storage metadata missing: ${benchmark.benchmarkKey}`);
+      throw new Error(
+        `Benchmark storage metadata missing: ${benchmark.benchmarkKey}`,
+      );
     }
     const metadata = record(objectRow.metadata);
     const etag = metadata.eTag ?? metadata.etag;
@@ -85,18 +160,80 @@ async function verifyBenchmarkArtifacts(
       String(objectRow.version ?? "") !== input.artifactStorageVersion ||
       String(etag ?? "") !== input.artifactEtag
     ) {
-      throw new Error(`Benchmark storage version/ETag mismatch: ${benchmark.benchmarkKey}`);
+      throw new Error(
+        `Benchmark storage version/ETag mismatch: ${benchmark.benchmarkKey}`,
+      );
     }
     const { data: artifact, error: downloadError } = await client.storage
       .from(bucket)
       .download(objectName);
     if (downloadError || !artifact) {
-      throw new Error(`Benchmark artifact download failed: ${benchmark.benchmarkKey}`);
+      throw new Error(
+        `Benchmark artifact download failed: ${benchmark.benchmarkKey}`,
+      );
     }
-    if (sha256(await artifact.arrayBuffer()) !== input.artifactSha256.toLowerCase()) {
-      throw new Error(`Benchmark object checksum mismatch: ${benchmark.benchmarkKey}`);
+    if (
+      sha256(await artifact.arrayBuffer()) !==
+      input.artifactSha256.toLowerCase()
+    ) {
+      throw new Error(
+        `Benchmark object checksum mismatch: ${benchmark.benchmarkKey}`,
+      );
     }
+    if (!input.audioObjectPath) continue;
+    const report = input.audioPreprocessing?.pronunciation;
+    if (!report) {
+      throw new Error(
+        `Benchmark Azure report provenance missing: ${benchmark.benchmarkKey}`,
+      );
+    }
+    const [reportBucket, ...reportNameParts] =
+      report.reportObjectPath.split("/");
+    const reportName = reportNameParts.join("/");
+    if (
+      reportBucket !== AI_GRADING_BENCHMARK_PRIVATE_BUCKET ||
+      !reportName
+    ) {
+      throw new Error(
+        `Benchmark Azure report path must be bucket/object: ${benchmark.benchmarkKey}`,
+      );
+    }
+    const { data: reportRow, error: reportObjectError } =
+      await storageMetadataClient
+        .schema("storage")
+        .from("objects")
+        .select("version,metadata")
+        .eq("bucket_id", reportBucket)
+        .eq("name", reportName)
+        .maybeSingle();
+    const reportMetadata = record(reportRow?.metadata);
+    const reportEtag = reportMetadata.eTag ?? reportMetadata.etag;
+    if (
+      reportObjectError ||
+      !reportRow ||
+      String(reportRow.version ?? "") !== report.reportStorageVersion ||
+      String(reportEtag ?? "") !== report.reportEtag
+    ) {
+      throw new Error(
+        `Benchmark Azure report identity mismatch: ${benchmark.benchmarkKey}`,
+      );
+    }
+    const { data: reportObject, error: reportDownloadError } =
+      await client.storage.from(reportBucket).download(reportName);
+    if (reportDownloadError || !reportObject) {
+      throw new Error(
+        `Benchmark Azure report download failed: ${benchmark.benchmarkKey}`,
+      );
+    }
+    const reportBytes = new Uint8Array(await reportObject.arrayBuffer());
+    if (sha256(reportBytes) !== report.reportSha256.toLowerCase()) {
+      throw new Error(
+        `Benchmark Azure report checksum mismatch: ${benchmark.benchmarkKey}`,
+      );
+    }
+    audioReports.set(benchmark.benchmarkKey, reportBytes);
   }
+  return audioReports;
 }
 
 async function main() {
@@ -106,11 +243,40 @@ async function main() {
       "AI_GRADING_BENCHMARKS_FILE is required (along with the Supabase admin environment)",
     );
   }
-  const manifest = parseGradingBenchmarkImport(
+  const parsedManifest = parseGradingBenchmarkImport(
     JSON.parse(await readFile(filePath, "utf8")),
   );
   const client = createAdminClient();
-  await verifyBenchmarkArtifacts(client, manifest);
+  const audioReports = await verifyBenchmarkArtifacts(client, parsedManifest);
+  // Never trust manifest-supplied request, config, or report digests. The
+  // artifact verifier loads the immutable private Azure report first, then the
+  // shared request boundary independently checks its bytes and derived signal.
+  const manifest = {
+    ...parsedManifest,
+    benchmarks: parsedManifest.benchmarks.map((benchmark) => {
+      const request = buildIeltsBenchmarkRequest(
+        {
+          skill: benchmark.skill,
+          taskType: benchmark.taskType,
+          rubricVersion: benchmark.protectedLabel.rubricVersion,
+          input: benchmark.protectedLabel.input,
+        },
+        {
+          audioReportBytes: audioReports.get(benchmark.benchmarkKey),
+        },
+      );
+      return {
+        ...benchmark,
+        protectedLabel: {
+          ...benchmark.protectedLabel,
+          input: {
+            ...benchmark.protectedLabel.input,
+            modelInputSha256: ieltsBenchmarkModelInputSha256(request),
+          },
+        },
+      };
+    }),
+  };
 
   const collectionSlugs = [
     ...new Set(

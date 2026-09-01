@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -8,6 +9,9 @@ import {
   parseOperationalSafetyEvidence,
   parseGradingBenchmarkImport,
 } from "./contracts";
+
+const sha256 = (value: string) =>
+  createHash("sha256").update(value, "utf8").digest("hex");
 
 const source = {
   canonicalUrl: "https://example.org/official-ielts-holdout.pdf",
@@ -40,11 +44,17 @@ const writingBenchmark = {
     input: {
       prompt: "Protected benchmark prompt",
       responseText: "Protected benchmark response",
+      grounding: {
+        questionReferenceAnswer: "Reviewed exact-question model answer",
+        examinerNotes: ["Address every part of the task."],
+        peerReferenceAnswers: ["Reviewed same-task peer answer"],
+      },
+      cueCardBullets: [],
       artifactSha256: "e".repeat(64),
       modelInputSha256: "7".repeat(64),
       responseLocator: "page 2",
     },
-    rubricVersion: "ielts-writing-2023",
+    rubricVersion: "ielts-writing-rubric-v1",
     labelAuthority: "official_examiner" as const,
     provenance: {
       raterCount: 2,
@@ -141,7 +151,11 @@ const scannedWritingBenchmark = {
     ...writingBenchmark.protectedLabel,
     input: {
       prompt: "Protected benchmark prompt",
-      responseObjectPath: "benchmarks/writing/scan-001.pdf",
+      responseObjectPath:
+        "ai-grading-benchmarks-private/writing/scan-001.pdf",
+      scoringResponseText: "Reviewed OCR transcription of the response.",
+      grounding: writingBenchmark.protectedLabel.input.grounding,
+      cueCardBullets: [],
       artifactSha256: "b".repeat(64),
       modelInputSha256: "8".repeat(64),
       artifactContentType: "application/pdf",
@@ -157,7 +171,27 @@ assert.equal(
     ...validManifest,
     benchmarks: [scannedWritingBenchmark],
   }).benchmarks[0]?.protectedLabel.input.responseObjectPath,
-  "benchmarks/writing/scan-001.pdf",
+  "ai-grading-benchmarks-private/writing/scan-001.pdf",
+);
+
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [
+        {
+          ...scannedWritingBenchmark,
+          protectedLabel: {
+            ...scannedWritingBenchmark.protectedLabel,
+            input: {
+              ...scannedWritingBenchmark.protectedLabel.input,
+              responseObjectPath: "public/writing/scan-001.pdf",
+            },
+          },
+        },
+      ],
+    }),
+  /must be stored in ai-grading-benchmarks-private/,
 );
 
 assert.throws(
@@ -173,7 +207,8 @@ assert.throws(
             ...scannedWritingBenchmark.protectedLabel,
             input: {
               ...scannedWritingBenchmark.protectedLabel.input,
-              responseObjectPath: "benchmarks/writing/scan-copy.pdf",
+              responseObjectPath:
+                "ai-grading-benchmarks-private/writing/scan-copy.pdf",
               responseLocator: "PDF page 2",
               artifactSha256: "B".repeat(64),
               artifactStorageVersion: "storage-version-copy",
@@ -217,7 +252,8 @@ assert.throws(
             ...writingBenchmark.protectedLabel,
             input: {
               ...writingBenchmark.protectedLabel.input,
-              responseObjectPath: "benchmarks/writing/duplicate.pdf",
+              responseObjectPath:
+                "ai-grading-benchmarks-private/writing/duplicate.pdf",
               artifactSha256: "c".repeat(64),
               artifactContentType: "application/pdf",
             },
@@ -265,7 +301,94 @@ const speakingBenchmark = {
     },
     input: {
       prompt: "Protected speaking prompt",
-      audioObjectPath: "benchmarks/speaking/vi-001.wav",
+      audioObjectPath:
+        "ai-grading-benchmarks-private/speaking/vi-001.wav",
+      scoringResponseText:
+        "I would like to describe a teacher who changed how I learn.",
+      scoringContext: {
+        durationSeconds: 65,
+        pronunciation: {
+          pronunciationScore: 72,
+          accuracyScore: 74,
+          fluencyScore: 70,
+          completenessScore: null,
+          prosodyScore: 69,
+          mispronouncedWords: ["changed"],
+        },
+      },
+      grounding: {
+        questionReferenceAnswer: "Reviewed exact-question sample answer",
+        examinerNotes: ["Cover every cue-card bullet."],
+        peerReferenceAnswers: ["Reviewed Part 2 peer answer"],
+      },
+      cueCardBullets: [
+        "who the teacher was",
+        "what the teacher taught",
+        "why the teacher was helpful",
+      ],
+      audioPreprocessing: {
+        audioArtifactSha256: "d".repeat(64),
+        stt: {
+          provider: "deepgram",
+          model: "nova-3",
+          transcriptSha256: sha256(
+            "I would like to describe a teacher who changed how I learn.",
+          ),
+        },
+        pronunciation: {
+          provider: "azure" as const,
+          model: "pronunciation-assessment" as const,
+          apiVersion: "speech-sdk/1.51.0" as const,
+          assessmentMode: "unscripted" as const,
+          config: {
+            locale: "en-US",
+            gradingSystem: "HundredMark" as const,
+            granularity: "Phoneme" as const,
+            dimension: "Comprehensive" as const,
+            phonemeAlphabet: "IPA" as const,
+            enableProsodyAssessment: true as const,
+            enableMiscue: false as const,
+            audioFormat: {
+              container: "wav" as const,
+              encoding: "pcm_s16le" as const,
+              sampleRateHertz: 16_000 as const,
+              bitsPerSample: 16 as const,
+              channels: 1 as const,
+            },
+            referenceTextSha256: sha256(""),
+          },
+          configSha256: "4".repeat(64),
+          reportObjectPath:
+            "ai-grading-benchmarks-private/azure/vi-001.json",
+          reportStorageVersion: "report-storage-v1",
+          reportEtag: "report-etag-v1",
+          reportSha256: "5".repeat(64),
+          completenessLimitationReason:
+            "Unscripted continuous assessment does not report completeness.",
+        },
+        acousticAttestation: {
+          envelope: {
+            envelopeVersion: 1 as const,
+            benchmarkKey: "official-speaking-part2-holdout-001",
+            captureId: "00000000-0000-4000-8000-000000000099",
+            audioObjectPath:
+              "ai-grading-benchmarks-private/speaking/vi-001.wav",
+            reportObjectPath:
+              "ai-grading-benchmarks-private/azure/vi-001.json",
+            audioArtifactSha256: "d".repeat(64),
+            transcriptSha256: sha256(
+              "I would like to describe a teacher who changed how I learn.",
+            ),
+            configSha256: "4".repeat(64),
+            reportSha256: "5".repeat(64),
+            provider: "azure" as const,
+            model: "pronunciation-assessment" as const,
+            apiVersion: "speech-sdk/1.51.0" as const,
+            assessmentMode: "unscripted" as const,
+          },
+          signature: "6".repeat(64),
+        },
+      },
       artifactSha256: "d".repeat(64),
       modelInputSha256: "6".repeat(64),
       artifactContentType: "audio/wav",
@@ -273,6 +396,7 @@ const speakingBenchmark = {
       artifactEtag: "etag-audio-001",
       responseLocator: "full recording",
     },
+    rubricVersion: "ielts-speaking-rubric-v1",
   },
   metadata: { l1Group: "Vietnamese", audioQualityGroup: "typical_device" },
 };
@@ -282,7 +406,97 @@ assert.equal(
     ...validManifest,
     benchmarks: [speakingBenchmark],
   }).benchmarks[0]?.protectedLabel.input.audioObjectPath,
-  "benchmarks/speaking/vi-001.wav",
+  "ai-grading-benchmarks-private/speaking/vi-001.wav",
+);
+
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [
+        {
+          ...speakingBenchmark,
+          protectedLabel: {
+            ...speakingBenchmark.protectedLabel,
+            input: {
+              ...speakingBenchmark.protectedLabel.input,
+              audioPreprocessing: {
+                ...speakingBenchmark.protectedLabel.input.audioPreprocessing,
+                acousticAttestation: {
+                  ...speakingBenchmark.protectedLabel.input.audioPreprocessing
+                    .acousticAttestation,
+                  envelope: {
+                    ...speakingBenchmark.protectedLabel.input.audioPreprocessing
+                      .acousticAttestation.envelope,
+                    reportSha256: "f".repeat(64),
+                  },
+                },
+              },
+            },
+          },
+        },
+      ],
+    }),
+  /Acoustic attestation must bind/,
+);
+
+const reusedReportSpeaking = structuredClone(speakingBenchmark);
+reusedReportSpeaking.benchmarkKey = "official-speaking-part2-holdout-002";
+reusedReportSpeaking.protectedLabel.input.scoringResponseText =
+  "A distinct second protected speaking response.";
+reusedReportSpeaking.protectedLabel.input.audioObjectPath =
+  "ai-grading-benchmarks-private/speaking/vi-002.wav";
+reusedReportSpeaking.protectedLabel.input.artifactSha256 = "7".repeat(64);
+reusedReportSpeaking.protectedLabel.input.responseLocator =
+  "second full recording";
+reusedReportSpeaking.protectedLabel.input.audioPreprocessing.audioArtifactSha256 =
+  "7".repeat(64);
+reusedReportSpeaking.protectedLabel.input.audioPreprocessing.stt.transcriptSha256 =
+  sha256("A distinct second protected speaking response.");
+const reusedEnvelope =
+  reusedReportSpeaking.protectedLabel.input.audioPreprocessing
+    .acousticAttestation.envelope;
+reusedEnvelope.benchmarkKey = reusedReportSpeaking.benchmarkKey;
+reusedEnvelope.captureId = "00000000-0000-4000-8000-000000000100";
+reusedEnvelope.audioObjectPath =
+  reusedReportSpeaking.protectedLabel.input.audioObjectPath;
+reusedEnvelope.audioArtifactSha256 = "7".repeat(64);
+reusedEnvelope.transcriptSha256 =
+  reusedReportSpeaking.protectedLabel.input.audioPreprocessing.stt.transcriptSha256;
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [speakingBenchmark, reusedReportSpeaking],
+    }),
+  /Duplicate benchmark artifact locator\/content/,
+);
+
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [
+        {
+          ...speakingBenchmark,
+          protectedLabel: {
+            ...speakingBenchmark.protectedLabel,
+            input: {
+              ...speakingBenchmark.protectedLabel.input,
+              audioPreprocessing: {
+                ...speakingBenchmark.protectedLabel.input.audioPreprocessing,
+                pronunciation: {
+                  ...speakingBenchmark.protectedLabel.input.audioPreprocessing
+                    .pronunciation,
+                  reportObjectPath: "public/azure/vi-001.json",
+                },
+              },
+            },
+          },
+        },
+      ],
+    }),
+  /must be stored in ai-grading-benchmarks-private/,
 );
 
 assert.throws(
@@ -332,6 +546,15 @@ const storedWritingBenchmark = {
   metadata: writingBenchmark.metadata,
   source: storedSource,
 };
+const storedSpeakingBenchmark = {
+  benchmarkKey: speakingBenchmark.benchmarkKey,
+  skill: speakingBenchmark.skill,
+  taskType: speakingBenchmark.taskType,
+  accentGroup: speakingBenchmark.accentGroup,
+  protectedLabel: speakingBenchmark.protectedLabel,
+  metadata: speakingBenchmark.metadata,
+  source: storedSource,
+};
 assert.equal(isReleaseEligibleStoredBenchmark(storedWritingBenchmark), true);
 assert.equal(
   isReleaseEligibleStoredBenchmark({
@@ -357,6 +580,17 @@ assert.equal(
   ]),
   1,
 );
+assert.equal(
+  countInvalidStoredBenchmarkRows([
+    storedSpeakingBenchmark,
+    {
+      ...storedSpeakingBenchmark,
+      benchmarkKey: reusedReportSpeaking.benchmarkKey,
+      protectedLabel: reusedReportSpeaking.protectedLabel,
+    },
+  ]),
+  1,
+);
 
 const importer = readFileSync(
   resolve(process.cwd(), "src/scripts/ai-grading-benchmarks-import.ts"),
@@ -368,11 +602,50 @@ assert.match(importer, /equalJson\(existing\.metadata, row\.metadata\)/);
 assert.match(importer, /sha256\(input\.responseText\)/);
 assert.match(importer, /artifactStorageVersion/);
 assert.match(importer, /\.download\(objectName\)/);
+assert.match(importer, /reportObjectPath/);
+assert.match(importer, /reportStorageVersion/);
+assert.match(importer, /reportEtag/);
+assert.match(importer, /reportSha256/);
+assert.match(importer, /audioReportBytes/);
+assert.match(importer, /ieltsBenchmarkModelInputSha256/);
+assert.match(importer, /.from\("buckets"\)/);
+assert.match(importer, /data\.public !== false/);
+assert.match(importer, /AI_GRADING_BENCHMARK_PRIVATE_BUCKET/);
+assert.match(
+  importer,
+  /verify_ai_grading_benchmark_acoustic_attestation/,
+);
+assert.doesNotMatch(importer, /AI_GRADING_BENCHMARK_ATTESTATION_SECRET/);
+assert.doesNotMatch(importer, /createHmac|subtle\.sign|extensions\.hmac/);
 assert.match(
   importer,
   /must be registered and independently approved before label import/,
 );
 assert.doesNotMatch(importer, /\.from\("ai_knowledge_sources"\)\s*\.insert/);
+
+const releaseGate = readFileSync(
+  resolve(process.cwd(), "src/scripts/ai-grading-release-gate.ts"),
+  "utf8",
+);
+assert.match(releaseGate, /reportObjectPath/);
+assert.match(releaseGate, /reportStorageVersion/);
+assert.match(releaseGate, /reportEtag/);
+assert.match(releaseGate, /reportSha256/);
+assert.match(releaseGate, /\.download\(reportName\)/);
+assert.match(releaseGate, /assertIeltsBenchmarkModelInputHash/);
+assert.match(releaseGate, /audioReportBytes/);
+assert.match(releaseGate, /\.from\("buckets"\)/);
+assert.match(releaseGate, /data\.public !== false/);
+assert.match(releaseGate, /AI_GRADING_BENCHMARK_PRIVATE_BUCKET/);
+assert.match(
+  releaseGate,
+  /verify_ai_grading_benchmark_acoustic_attestation/,
+);
+assert.ok(
+  releaseGate.indexOf("verifyStoredModelInputs({ rows") <
+    releaseGate.indexOf("const coverage = validateIeltsBenchmarkCoverage"),
+  "release must verify protected model inputs before counting benchmark coverage",
+);
 
 const operationalScenarios = [
   "duplicate_delivery",

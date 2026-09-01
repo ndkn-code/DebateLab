@@ -138,7 +138,8 @@ const operationalSafetyEvidenceSchema = z
         context.addIssue({
           code: z.ZodIssueCode.custom,
           path: ["scenarios", index],
-          message: "Operational scenario does not match locked workflow counters",
+          message:
+            "Operational scenario does not match locked workflow counters",
         });
       }
       if (scenario.actualWorkflowStatus !== scenario.terminalStatus) {
@@ -172,7 +173,8 @@ const evaluationImportEntrySchema = z
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["runs"],
-        message: "Evaluation requires one primary and one independent repeat run",
+        message:
+          "Evaluation requires one primary and one independent repeat run",
       });
     }
     const [first, second] = entry.runs;
@@ -218,9 +220,7 @@ export function parseBenchmarkEvaluationImport(
     }
     seen.add(entry.benchmarkKey);
     for (const run of entry.runs) {
-      if (
-        providerRequestIds.has(run.providerRequestId)
-      ) {
+      if (providerRequestIds.has(run.providerRequestId)) {
         throw new Error("Evaluation run identity is reused across benchmarks");
       }
       providerRequestIds.add(run.providerRequestId);
@@ -286,13 +286,125 @@ const benchmarkLabelProvenanceSchema = z
     }
   });
 
-const protectedBenchmarkInputSchema = z
+const benchmarkPronunciationSignalSchema = z.object({
+  pronunciationScore: z.number().finite().min(0).max(100),
+  accuracyScore: z.number().finite().min(0).max(100),
+  fluencyScore: z.number().finite().min(0).max(100),
+  completenessScore: z.number().finite().min(0).max(100).nullable(),
+  prosodyScore: z.number().finite().min(0).max(100),
+  mispronouncedWords: z.array(z.string().min(1).max(200)).max(25),
+});
+
+const sha256Schema = z
+  .string()
+  .regex(/^[a-f0-9]{64}$/i, "Value must be a SHA-256 hex digest");
+
+const EMPTY_TEXT_SHA256 =
+  "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
+export const AI_GRADING_BENCHMARK_PRIVATE_BUCKET =
+  "ai-grading-benchmarks-private" as const;
+
+const protectedBenchmarkObjectPathSchema = z
+  .string()
+  .min(AI_GRADING_BENCHMARK_PRIVATE_BUCKET.length + 2)
+  .max(1_000)
+  .refine(
+    (value) =>
+      value.startsWith(`${AI_GRADING_BENCHMARK_PRIVATE_BUCKET}/`) &&
+      !value.includes("//") &&
+      !value.split("/").some((segment) => segment === "." || segment === ".."),
+    `Protected benchmark objects must be stored in ${AI_GRADING_BENCHMARK_PRIVATE_BUCKET}`,
+  );
+
+const benchmarkGroundingSchema = z.object({
+  questionReferenceAnswer: z.string().min(1).max(100_000).nullable(),
+  examinerNotes: z.array(z.string().min(1).max(10_000)).max(100),
+  peerReferenceAnswers: z.array(z.string().min(1).max(100_000)).max(50),
+});
+
+const benchmarkAcousticAttestationEnvelopeSchema = z.object({
+  envelopeVersion: z.literal(1),
+  benchmarkKey: z.string().min(1).max(300),
+  captureId: z.string().uuid(),
+  audioObjectPath: protectedBenchmarkObjectPathSchema,
+  reportObjectPath: protectedBenchmarkObjectPathSchema,
+  audioArtifactSha256: sha256Schema,
+  transcriptSha256: sha256Schema,
+  configSha256: sha256Schema,
+  reportSha256: sha256Schema,
+  provider: z.literal("azure"),
+  model: z.literal("pronunciation-assessment"),
+  apiVersion: z.literal("speech-sdk/1.51.0"),
+  assessmentMode: z.literal("unscripted"),
+});
+
+const benchmarkAudioPreprocessingSchema = z.object({
+  audioArtifactSha256: sha256Schema,
+  stt: z.object({
+    provider: z.string().min(1).max(100),
+    model: z.string().min(1).max(200),
+    transcriptSha256: sha256Schema,
+  }),
+  pronunciation: z.object({
+    provider: z.literal("azure"),
+    model: z.literal("pronunciation-assessment"),
+    apiVersion: z.literal("speech-sdk/1.51.0"),
+    // Production IELTS Speaking always uses spontaneous continuous assessment.
+    assessmentMode: z.literal("unscripted"),
+    config: z.object({
+      locale: z.string().min(2).max(20),
+      gradingSystem: z.literal("HundredMark"),
+      granularity: z.literal("Phoneme"),
+      dimension: z.literal("Comprehensive"),
+      phonemeAlphabet: z.literal("IPA"),
+      enableProsodyAssessment: z.literal(true),
+      enableMiscue: z.literal(false),
+      audioFormat: z.object({
+        container: z.literal("wav"),
+        encoding: z.literal("pcm_s16le"),
+        sampleRateHertz: z.literal(16_000),
+        bitsPerSample: z.literal(16),
+        channels: z.literal(1),
+      }),
+      referenceTextSha256: z.literal(EMPTY_TEXT_SHA256),
+    }),
+    configSha256: sha256Schema,
+    reportObjectPath: protectedBenchmarkObjectPathSchema,
+    reportStorageVersion: z.string().min(1).max(500),
+    reportEtag: z.string().min(1).max(500),
+    reportSha256: sha256Schema,
+    completenessLimitationReason: z.string().min(1).max(500).nullable(),
+  }),
+  acousticAttestation: z.object({
+    envelope: benchmarkAcousticAttestationEnvelopeSchema,
+    signature: sha256Schema,
+  }),
+});
+
+export const protectedBenchmarkInputSchema = z
   .object({
     prompt: z.string().min(1).max(20_000),
     responseText: z.string().min(1).max(100_000).optional(),
     /** Private object-storage path for a scanned or otherwise non-text response. */
-    responseObjectPath: z.string().min(1).max(1_000).optional(),
-    audioObjectPath: z.string().min(1).max(1_000).optional(),
+    responseObjectPath: protectedBenchmarkObjectPathSchema.optional(),
+    audioObjectPath: protectedBenchmarkObjectPathSchema.optional(),
+    /**
+     * Locked deterministic preprocessing of a non-text artifact. For audio,
+     * this is the examiner-approved transcript; for scans, it is the reviewed
+     * OCR transcription. The raw artifact remains the checksum authority.
+     */
+    scoringResponseText: z.string().min(1).max(100_000).optional(),
+    scoringContext: z
+      .object({
+        durationSeconds: z.number().finite().positive().max(7_200).optional(),
+        sttWarnings: z.array(z.string().min(1).max(500)).max(20).optional(),
+        pronunciation: benchmarkPronunciationSignalSchema.nullable().optional(),
+      })
+      .optional(),
+    grounding: benchmarkGroundingSchema,
+    cueCardBullets: z.array(z.string().min(1).max(2_000)).max(20),
+    audioPreprocessing: benchmarkAudioPreprocessingSchema.optional(),
     artifactSha256: z
       .string()
       .regex(
@@ -324,6 +436,14 @@ const protectedBenchmarkInputSchema = z
     const hasObjectArtifact = Boolean(
       input.responseObjectPath || input.audioObjectPath,
     );
+    if (hasObjectArtifact && !input.scoringResponseText) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["scoringResponseText"],
+        message:
+          "Protected non-text benchmark artifacts require locked scoring text",
+      });
+    }
     if (
       hasObjectArtifact &&
       (!input.artifactContentType ||
@@ -348,7 +468,75 @@ const protectedBenchmarkInputSchema = z
         message: "An audio benchmark artifact must use an audio content type",
       });
     }
+    if (input.audioObjectPath) {
+      const signal = input.scoringContext?.pronunciation;
+      if (!signal || !input.audioPreprocessing) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["audioPreprocessing"],
+          message:
+            "Speaking audio requires complete acoustic evidence and preprocessing provenance",
+        });
+      } else if (
+        signal.completenessScore === null &&
+        !input.audioPreprocessing.pronunciation.completenessLimitationReason
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [
+            "audioPreprocessing",
+            "pronunciation",
+            "completenessLimitationReason",
+          ],
+          message:
+            "Unscripted assessment requires an explicit completeness limitation reason",
+        });
+      } else if (
+        signal.completenessScore !== null &&
+        input.audioPreprocessing.pronunciation.assessmentMode === "unscripted"
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["scoringContext", "pronunciation", "completenessScore"],
+          message: "Unscripted assessment cannot claim completeness",
+        });
+      }
+      if (input.audioPreprocessing) {
+        const preprocessing = input.audioPreprocessing;
+        const envelope = preprocessing.acousticAttestation.envelope;
+        const pronunciation = preprocessing.pronunciation;
+        const mismatched =
+          envelope.audioObjectPath !== input.audioObjectPath ||
+          envelope.reportObjectPath !== pronunciation.reportObjectPath ||
+          envelope.audioArtifactSha256.toLowerCase() !==
+            input.artifactSha256.toLowerCase() ||
+          envelope.audioArtifactSha256.toLowerCase() !==
+            preprocessing.audioArtifactSha256.toLowerCase() ||
+          envelope.transcriptSha256.toLowerCase() !==
+            preprocessing.stt.transcriptSha256.toLowerCase() ||
+          envelope.configSha256.toLowerCase() !==
+            pronunciation.configSha256.toLowerCase() ||
+          envelope.reportSha256.toLowerCase() !==
+            pronunciation.reportSha256.toLowerCase() ||
+          envelope.provider !== pronunciation.provider ||
+          envelope.model !== pronunciation.model ||
+          envelope.apiVersion !== pronunciation.apiVersion ||
+          envelope.assessmentMode !== pronunciation.assessmentMode;
+        if (mismatched) {
+          context.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["audioPreprocessing", "acousticAttestation"],
+            message:
+              "Acoustic attestation must bind the exact audio, transcript, Azure config, and report",
+          });
+        }
+      }
+    }
   });
+
+export type ProtectedBenchmarkInput = z.infer<
+  typeof protectedBenchmarkInputSchema
+>;
 
 const protectedBenchmarkLabelSchema = z.object({
   criteria: z.record(z.string(), protectedCriterionLabelSchema),
@@ -359,7 +547,8 @@ const protectedBenchmarkLabelSchema = z.object({
   provenance: benchmarkLabelProvenanceSchema,
 });
 
-const benchmarkCaseSchema = z.object({
+const benchmarkCaseSchema = z
+  .object({
   benchmarkKey: z.string().min(1).max(300),
   collectionSlug: z.enum(["ielts.speaking", "ielts.writing"]),
   sourceUrl: z.string().url(),
@@ -379,7 +568,26 @@ const benchmarkCaseSchema = z.object({
     })
     .catchall(z.unknown())
     .default({}),
-});
+  })
+  .superRefine((benchmark, context) => {
+    const envelope =
+      benchmark.protectedLabel.input.audioPreprocessing?.acousticAttestation
+        .envelope;
+    if (envelope && envelope.benchmarkKey !== benchmark.benchmarkKey) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: [
+          "protectedLabel",
+          "input",
+          "audioPreprocessing",
+          "acousticAttestation",
+          "envelope",
+          "benchmarkKey",
+        ],
+        message: "Acoustic attestation benchmark identity mismatch",
+      });
+    }
+  });
 
 const storedBenchmarkReleaseSchema = z
   .object({
@@ -443,6 +651,16 @@ const storedBenchmarkReleaseSchema = z
         message: "Speaking release benchmark requires audio",
       });
     }
+    const envelope =
+      benchmark.protectedLabel.input.audioPreprocessing?.acousticAttestation
+        .envelope;
+    if (!envelope || envelope.benchmarkKey !== benchmark.benchmarkKey) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["protectedLabel", "input", "audioPreprocessing"],
+        message: "Speaking release benchmark acoustic identity is invalid",
+      });
+    }
     if (
       !benchmark.accentGroup ||
       !benchmark.metadata.l1Group ||
@@ -470,6 +688,9 @@ export function countInvalidStoredBenchmarkRows(values: unknown[]): number {
   const artifactHashes = new Set<string>();
   const artifactLocators = new Set<string>();
   const normalizedTexts = new Set<string>();
+  const acousticReportPaths = new Set<string>();
+  const acousticReportHashes = new Set<string>();
+  const acousticEnvelopes = new Set<string>();
   let invalid = 0;
   for (const value of values) {
     const parsed = storedBenchmarkReleaseSchema.safeParse(value);
@@ -481,21 +702,37 @@ export function countInvalidStoredBenchmarkRows(values: unknown[]): number {
       parsed.data.protectedLabel.input.artifactSha256.toLowerCase();
     const input = parsed.data.protectedLabel.input;
     const locator =
-      input.audioObjectPath ?? input.responseObjectPath ?? input.responseLocator;
-    const normalizedText = input.responseText
+      input.audioObjectPath ??
+      input.responseObjectPath ??
+      input.responseLocator;
+    const normalizedText = (input.responseText ?? input.scoringResponseText)
       ?.normalize("NFKC")
       .trim()
       .replace(/\s+/g, " ");
+    const acoustic = input.audioPreprocessing;
+    const acousticEnvelope = acoustic
+      ? JSON.stringify(acoustic.acousticAttestation.envelope)
+      : null;
     if (
       artifactHashes.has(artifactHash) ||
       artifactLocators.has(locator) ||
-      (normalizedText ? normalizedTexts.has(normalizedText) : false)
+      (normalizedText ? normalizedTexts.has(normalizedText) : false) ||
+      (acoustic
+        ? acousticReportPaths.has(acoustic.pronunciation.reportObjectPath) ||
+          acousticReportHashes.has(acoustic.pronunciation.reportSha256) ||
+          acousticEnvelopes.has(acousticEnvelope!)
+        : false)
     ) {
       invalid += 1;
     }
     artifactHashes.add(artifactHash);
     artifactLocators.add(locator);
     if (normalizedText) normalizedTexts.add(normalizedText);
+    if (acoustic) {
+      acousticReportPaths.add(acoustic.pronunciation.reportObjectPath);
+      acousticReportHashes.add(acoustic.pronunciation.reportSha256);
+      acousticEnvelopes.add(acousticEnvelope!);
+    }
   }
   return invalid;
 }
@@ -531,13 +768,17 @@ export function parseGradingBenchmarkImport(
   const artifactHashes = new Set<string>();
   const artifactLocators = new Set<string>();
   const normalizedTexts = new Set<string>();
+  const acousticReportPaths = new Set<string>();
+  const acousticReportHashes = new Set<string>();
+  const acousticEnvelopes = new Set<string>();
   const splitBySource = new Map<string, string>();
   for (const benchmark of parsed.benchmarks) {
     if (keys.has(benchmark.benchmarkKey)) {
       throw new Error(`Duplicate benchmarkKey: ${benchmark.benchmarkKey}`);
     }
     keys.add(benchmark.benchmarkKey);
-    const artifactHash = benchmark.protectedLabel.input.artifactSha256.toLowerCase();
+    const artifactHash =
+      benchmark.protectedLabel.input.artifactSha256.toLowerCase();
     if (artifactHashes.has(artifactHash)) {
       throw new Error(
         `Duplicate benchmark artifact: ${benchmark.benchmarkKey}`,
@@ -546,14 +787,25 @@ export function parseGradingBenchmarkImport(
     artifactHashes.add(artifactHash);
     const input = benchmark.protectedLabel.input;
     const artifactLocator =
-      input.audioObjectPath ?? input.responseObjectPath ?? input.responseLocator;
-    const normalizedText = input.responseText
+      input.audioObjectPath ??
+      input.responseObjectPath ??
+      input.responseLocator;
+    const normalizedText = (input.responseText ?? input.scoringResponseText)
       ?.normalize("NFKC")
       .trim()
       .replace(/\s+/g, " ");
+    const acoustic = input.audioPreprocessing;
+    const acousticEnvelope = acoustic
+      ? JSON.stringify(acoustic.acousticAttestation.envelope)
+      : null;
     if (
       artifactLocators.has(artifactLocator) ||
-      (normalizedText ? normalizedTexts.has(normalizedText) : false)
+      (normalizedText ? normalizedTexts.has(normalizedText) : false) ||
+      (acoustic
+        ? acousticReportPaths.has(acoustic.pronunciation.reportObjectPath) ||
+          acousticReportHashes.has(acoustic.pronunciation.reportSha256) ||
+          acousticEnvelopes.has(acousticEnvelope!)
+        : false)
     ) {
       throw new Error(
         `Duplicate benchmark artifact locator/content: ${benchmark.benchmarkKey}`,
@@ -561,6 +813,11 @@ export function parseGradingBenchmarkImport(
     }
     artifactLocators.add(artifactLocator);
     if (normalizedText) normalizedTexts.add(normalizedText);
+    if (acoustic) {
+      acousticReportPaths.add(acoustic.pronunciation.reportObjectPath);
+      acousticReportHashes.add(acoustic.pronunciation.reportSha256);
+      acousticEnvelopes.add(acousticEnvelope!);
+    }
     if (!sourceUrls.has(benchmark.sourceUrl)) {
       throw new Error(
         `Benchmark source is missing from approved manifest: ${benchmark.sourceUrl}`,

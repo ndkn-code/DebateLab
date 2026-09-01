@@ -1,7 +1,6 @@
 import "server-only";
 
 import { generateStructured } from "@/lib/ai/core";
-import { getIeltsScoringCandidates } from "@/lib/ai/core/policies";
 import { isGroqChatConfigured } from "@/lib/ai/groq";
 import {
   ieltsWritingModelOutputSchema,
@@ -12,7 +11,7 @@ import {
   IELTS_WRITING_SCORE_OUTPUT_TYPE,
   IELTS_WRITING_SCORE_SOURCE_ROUTE,
 } from "./constants";
-import { getIeltsWritingGroqModelName } from "./provider-policy";
+import { getIeltsWritingScoringPolicy } from "./provider-policy";
 
 /**
  * Centralized IELTS Writing model boundary. Product-specific configuration
@@ -20,9 +19,6 @@ import { getIeltsWritingGroqModelName } from "./provider-policy";
  * schema validation, and provider telemetry. Gemini is intentionally excluded
  * because the application may be used by minors.
  */
-const MAX_OUTPUT_TOKENS = 4096;
-const TEMPERATURE = 0.2;
-
 export interface WritingModelAudit {
   userId: string | null;
   writingResponseId: string | null;
@@ -42,10 +38,6 @@ export async function runWritingModel(params: {
   if (!isGroqChatConfigured()) {
     throw new Error("No AI provider configured for IELTS Writing scoring");
   }
-  const candidates = getIeltsScoringCandidates(
-    getIeltsWritingGroqModelName(),
-  );
-
   const result = await generateStructured({
     task: "ielts_writing_score",
     prompt: params.prompt,
@@ -61,11 +53,7 @@ export async function runWritingModel(params: {
       },
       metadata: { writingResponseId: params.audit.writingResponseId },
     },
-    policy: {
-      candidates,
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
-      temperature: TEMPERATURE,
-    },
+    policy: getIeltsWritingScoringPolicy("provisional"),
   });
 
   return {
@@ -100,13 +88,7 @@ export async function adjudicateWritingModel(params: {
       },
       metadata: { writingResponseId: params.audit.writingResponseId },
     },
-    policy: {
-      candidates: getIeltsScoringCandidates(
-        getIeltsWritingGroqModelName(),
-      ),
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
-      temperature: 0,
-    },
+    policy: getIeltsWritingScoringPolicy("adjudicated"),
   });
   return {
     output: result.output,

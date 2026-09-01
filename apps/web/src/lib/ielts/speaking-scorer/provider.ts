@@ -1,7 +1,6 @@
 import "server-only";
 
 import { generateStructured } from "@/lib/ai/core";
-import { getIeltsScoringCandidates } from "@/lib/ai/core/policies";
 import { isGroqChatConfigured } from "@/lib/ai/groq";
 import {
   ieltsSpeakingModelOutputSchema,
@@ -14,7 +13,7 @@ import {
 } from "./constants";
 import {
   IELTS_SPEAKING_GROQ_PROVIDER_LABEL,
-  getIeltsSpeakingGroqModelName,
+  getIeltsSpeakingScoringPolicy,
 } from "./provider-policy";
 
 /**
@@ -23,9 +22,6 @@ import {
  * provider audit to the AI core. Gemini is intentionally excluded because the
  * application may be used by minors.
  */
-const MAX_OUTPUT_TOKENS = 3072;
-const TEMPERATURE = 0.2;
-
 export interface SpeakingModelAudit {
   userId: string | null;
   speakingResponseId: string | null;
@@ -45,10 +41,6 @@ export async function runSpeakingModel(params: {
   if (!isGroqChatConfigured()) {
     throw new Error("No AI provider configured for IELTS Speaking scoring");
   }
-  const candidates = getIeltsScoringCandidates(
-    getIeltsSpeakingGroqModelName(),
-  );
-
   const result = await generateStructured({
     task: "ielts_speaking_score",
     prompt: params.prompt,
@@ -64,11 +56,7 @@ export async function runSpeakingModel(params: {
       },
       metadata: { speakingResponseId: params.audit.speakingResponseId },
     },
-    policy: {
-      candidates,
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
-      temperature: TEMPERATURE,
-    },
+    policy: getIeltsSpeakingScoringPolicy("provisional"),
   });
 
   return {
@@ -105,13 +93,7 @@ export async function adjudicateSpeakingModel(params: {
       },
       metadata: { speakingResponseId: params.audit.speakingResponseId },
     },
-    policy: {
-      candidates: getIeltsScoringCandidates(
-        getIeltsSpeakingGroqModelName(),
-      ),
-      maxOutputTokens: MAX_OUTPUT_TOKENS,
-      temperature: 0,
-    },
+    policy: getIeltsSpeakingScoringPolicy("adjudicated"),
   });
   return {
     output: result.output,

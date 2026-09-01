@@ -61,6 +61,45 @@ async function hmacSha256(secret: string, value: unknown): Promise<string> {
   ).join("");
 }
 
+async function benchmarkFailureAuditMetadata(params: {
+  context: AiExecutionContext & { traceId: string };
+  candidate: AiModelCandidate;
+  failureKind: AiAttempt["failureKind"];
+  responseStatus?: number;
+  requestInputSha256?: string;
+}) {
+  const metadata = params.context.metadata;
+  if (metadata?.benchmarkEvaluationRun !== true) return undefined;
+  const secret = process.env.AI_GRADING_BENCHMARK_ATTESTATION_SECRET?.trim();
+  if (!secret) throw new Error("Benchmark attestation secret is unavailable");
+  const payload = {
+    benchmarkKey: metadata.benchmarkKey,
+    graderVersion: metadata.graderVersion,
+    corpusVersion: metadata.corpusVersion,
+    evaluationRunKind: metadata.evaluationRunKind,
+    aiTask: params.context.task,
+    provider:
+      params.candidate.provider === "gemini"
+        ? "google"
+        : params.candidate.provider,
+    model: params.candidate.model,
+    benchmarkArtifactSha256: metadata.benchmarkArtifactSha256,
+    benchmarkBaseInputSha256: metadata.benchmarkBaseInputSha256,
+    benchmarkEvidenceSha256: metadata.benchmarkEvidenceSha256,
+    benchmarkPipelineVersion: metadata.benchmarkPipelineVersion,
+    benchmarkPipelineStage: metadata.benchmarkPipelineStage,
+    benchmarkClaimToken: metadata.benchmarkClaimToken,
+    benchmarkClaimAttempt: metadata.benchmarkClaimAttempt,
+    responseStatus: params.responseStatus ?? null,
+    failureKind: params.failureKind ?? "unknown",
+    requestInputSha256: params.requestInputSha256 ?? null,
+  };
+  return {
+    requestInputSha256: params.requestInputSha256 ?? null,
+    benchmarkFailureAttestationSignature: await hmacSha256(secret, payload),
+  };
+}
+
 function resolvePolicy(
   task: AiTextRequest["task"],
   override?: Partial<AiTaskPolicy>,
@@ -169,6 +208,7 @@ async function invoke(params: {
     params.policy.attemptTimeoutMs,
   );
   const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let requestInputSha256: string | undefined;
   try {
     if (params.context.metadata?.benchmarkEvaluationRun === true) {
       const metadata = params.context.metadata;
@@ -181,7 +221,21 @@ async function invoke(params: {
         (metadata.evaluationRunKind === "primary" ||
           metadata.evaluationRunKind === "repeat") &&
         typeof metadata.benchmarkArtifactSha256 === "string" &&
-        /^[a-f0-9]{64}$/.test(metadata.benchmarkArtifactSha256);
+        /^[a-f0-9]{64}$/.test(metadata.benchmarkArtifactSha256) &&
+        typeof metadata.benchmarkBaseInputSha256 === "string" &&
+        /^[a-f0-9]{64}$/.test(metadata.benchmarkBaseInputSha256) &&
+        metadata.benchmarkPipelineVersion === "evidence-adjudicated-v1" &&
+        (metadata.benchmarkPipelineStage === "provisional" ||
+          metadata.benchmarkPipelineStage === "adjudicated") &&
+        typeof metadata.benchmarkEvidenceSha256 === "string" &&
+        /^[a-f0-9]{64}$/.test(metadata.benchmarkEvidenceSha256) &&
+        typeof metadata.benchmarkClaimToken === "string" &&
+        /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(
+          metadata.benchmarkClaimToken,
+        ) &&
+        Number.isInteger(metadata.benchmarkClaimAttempt) &&
+        Number(metadata.benchmarkClaimAttempt) >= 1 &&
+        Number(metadata.benchmarkClaimAttempt) <= 3;
       if (!configured || !validMetadata) {
         const error = new Error(
           "AI grading benchmark attestation is not configured",
@@ -194,6 +248,10 @@ async function invoke(params: {
     // schema repair or fallback is a separate invocation and receives its own
     // durable-workflow cost observation.
     await countWorkflowProviderAttempt(params.context);
+    requestInputSha256 = await sha256({
+      task: params.context.task,
+      messages: params.messages,
+    });
     const request: AdapterRequest = {
       provider: params.candidate.provider,
       model: params.candidate.model,
@@ -214,10 +272,7 @@ async function invoke(params: {
     const latencyMs = Date.now() - startedAt;
     return {
       response,
-      requestInputSha256: await sha256({
-        task: params.context.task,
-        messages: params.messages,
-      }),
+      requestInputSha256,
       attempt: {
         provider: params.candidate.provider,
         model: params.candidate.model,
@@ -239,10 +294,18 @@ async function invoke(params: {
       status: "error",
       context: params.context,
       latencyMs,
+      responseStatus,
       errorCode: kind,
       errorMessage: error instanceof Error ? error.message : String(error),
       phase: params.phase,
       candidateIndex: params.candidateIndex,
+      extraMetadata: await benchmarkFailureAuditMetadata({
+        context: params.context,
+        candidate: params.candidate,
+        failureKind: kind,
+        responseStatus,
+        requestInputSha256,
+      }),
     }).catch(() => null);
     throw new AiExecutionError({
       message:
@@ -475,6 +538,18 @@ async function auditValidatedSuccess(params: {
             : params.candidate.provider,
         model: params.candidate.model,
         benchmarkArtifactSha256: benchmarkMetadata.benchmarkArtifactSha256,
+        benchmarkBaseInputSha256:
+          benchmarkMetadata.benchmarkBaseInputSha256 ?? null,
+        benchmarkPipelineVersion:
+          benchmarkMetadata.benchmarkPipelineVersion ?? null,
+        benchmarkPipelineStage:
+          benchmarkMetadata.benchmarkPipelineStage ?? null,
+        benchmarkProvisionalRequestId:
+          benchmarkMetadata.benchmarkProvisionalRequestId ?? null,
+        benchmarkProvisionalOutputSha256:
+          benchmarkMetadata.benchmarkProvisionalOutputSha256 ?? null,
+        benchmarkEvidenceSha256:
+          benchmarkMetadata.benchmarkEvidenceSha256 ?? null,
         requestInputSha256: params.invocation.requestInputSha256,
         validatedOutputSha256: outputSha256,
       }
@@ -508,14 +583,20 @@ async function auditValidatedSuccess(params: {
 }
 
 async function auditSchemaInvalid(params: {
-  invocation: { response: AdapterResponse; attempt: AiAttempt };
+  invocation: {
+    response: AdapterResponse;
+    attempt: AiAttempt;
+    requestInputSha256: string;
+  };
   candidate: AiModelCandidate;
   context: AiExecutionContext & { traceId: string };
   phase: "primary" | "schema_repair";
   candidateIndex: number;
   error: unknown;
 }) {
-  await auditProviderAttempt({
+  params.invocation.attempt.status = "error";
+  params.invocation.attempt.failureKind = "schema_invalid";
+  params.invocation.attempt.providerRequestId = await auditProviderAttempt({
     provider: params.candidate.provider,
     model: params.candidate.model,
     status: "error",
@@ -530,6 +611,13 @@ async function auditSchemaInvalid(params: {
         : String(params.error),
     phase: params.phase,
     candidateIndex: params.candidateIndex,
+    extraMetadata: await benchmarkFailureAuditMetadata({
+      context: params.context,
+      candidate: params.candidate,
+      failureKind: "schema_invalid",
+      responseStatus: params.invocation.response.responseStatus ?? undefined,
+      requestInputSha256: params.invocation.requestInputSha256,
+    }),
   }).catch(() => null);
 }
 

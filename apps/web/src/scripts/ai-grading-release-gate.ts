@@ -1,10 +1,13 @@
 import { createHash } from "node:crypto";
 
 import {
+  AI_GRADING_BENCHMARK_PRIVATE_BUCKET,
   parseGradingPrediction,
   parseOperationalSafetyEvidence,
   countInvalidStoredBenchmarkRows,
+  protectedBenchmarkInputSchema,
 } from "@/lib/ai/benchmarks/contracts";
+import { assertIeltsBenchmarkModelInputHash } from "@/lib/ai/benchmarks/request";
 import {
   evaluateBenchmark,
   evaluateDerivedReleaseGate,
@@ -79,15 +82,75 @@ interface UntypedReleaseClient {
 interface StorageObjectQuery {
   eq(column: string, value: string): StorageObjectQuery;
   maybeSingle(): PromiseLike<{
-    data: { version?: unknown; metadata?: unknown } | null;
+    data: {
+      id?: unknown;
+      public?: unknown;
+      version?: unknown;
+      metadata?: unknown;
+    } | null;
     error: { message: string } | null;
   }>;
 }
 
-function sha256(value: string | ArrayBuffer): string {
+type StorageMetadataClient = {
+  schema(name: "storage"): {
+    from(table: "objects" | "buckets"): {
+      select(columns: string): StorageObjectQuery;
+    };
+  };
+};
+
+async function assertPrivateBenchmarkBucket(client: StorageMetadataClient) {
+  const { data, error } = await client
+    .schema("storage")
+    .from("buckets")
+    .select("id,public")
+    .eq("id", AI_GRADING_BENCHMARK_PRIVATE_BUCKET)
+    .maybeSingle();
+  if (
+    error ||
+    !data ||
+    data.id !== AI_GRADING_BENCHMARK_PRIVATE_BUCKET ||
+    data.public !== false
+  ) {
+    throw new Error("benchmark private storage bucket is unavailable");
+  }
+}
+
+async function verifyAcousticAttestation(params: {
+  client: ReturnType<typeof createAdminClient>;
+  benchmarkKey: string;
+  input: ReturnType<typeof protectedBenchmarkInputSchema.parse>;
+}) {
+  const attestation = params.input.audioPreprocessing?.acousticAttestation;
+  if (!attestation) return;
+  const rpcClient = params.client as unknown as {
+    rpc(
+      name: string,
+      args: Record<string, unknown>,
+    ): PromiseLike<{ data: unknown; error: { message: string } | null }>;
+  };
+  const { data, error } = await rpcClient.rpc(
+    "verify_ai_grading_benchmark_acoustic_attestation",
+    {
+      p_benchmark_key: params.benchmarkKey,
+      p_envelope: attestation.envelope,
+      p_signature: attestation.signature,
+    },
+  );
+  if (error || data !== true) {
+    throw new Error("stored benchmark acoustic attestation verification failed");
+  }
+}
+
+function sha256(value: string | ArrayBuffer | Uint8Array): string {
   return createHash("sha256")
     .update(
-      typeof value === "string" ? Buffer.from(value, "utf8") : Buffer.from(value),
+      typeof value === "string"
+        ? Buffer.from(value, "utf8")
+        : value instanceof Uint8Array
+          ? Buffer.from(value)
+          : Buffer.from(value),
     )
     .digest("hex");
 }
@@ -95,30 +158,31 @@ function sha256(value: string | ArrayBuffer): string {
 async function verifyStoredArtifactBytes(params: {
   client: ReturnType<typeof createAdminClient>;
   rows: JsonRecord[];
-}) {
-  const storageMetadataClient = params.client as unknown as {
-    schema(name: "storage"): {
-      from(table: "objects"): { select(columns: string): StorageObjectQuery };
-    };
-  };
+}): Promise<Map<string, Uint8Array>> {
+  const audioReports = new Map<string, Uint8Array>();
+  const storageMetadataClient =
+    params.client as unknown as StorageMetadataClient;
+  await assertPrivateBenchmarkBucket(storageMetadataClient);
   for (const row of params.rows) {
-    const input = record(record(row.protected_label).input);
-    const expectedHash = String(input.artifactSha256 ?? "").toLowerCase();
-    if (typeof input.responseText === "string") {
+    const input = protectedBenchmarkInputSchema.parse(
+      record(row.protected_label).input,
+    );
+    await verifyAcousticAttestation({
+      client: params.client,
+      benchmarkKey: String(row.benchmark_key),
+      input,
+    });
+    const expectedHash = input.artifactSha256.toLowerCase();
+    if (input.responseText) {
       if (sha256(input.responseText) !== expectedHash) {
         throw new Error("stored benchmark text checksum mismatch");
       }
       continue;
     }
-    const storagePath =
-      typeof input.audioObjectPath === "string"
-        ? input.audioObjectPath
-        : typeof input.responseObjectPath === "string"
-          ? input.responseObjectPath
-          : "";
+    const storagePath = input.audioObjectPath ?? input.responseObjectPath ?? "";
     const [bucket, ...nameParts] = storagePath.split("/");
     const objectName = nameParts.join("/");
-    if (!bucket || !objectName) {
+    if (bucket !== AI_GRADING_BENCHMARK_PRIVATE_BUCKET || !objectName) {
       throw new Error("stored benchmark object path invalid");
     }
     const { data: objectRow, error: objectError } = await storageMetadataClient
@@ -149,6 +213,80 @@ async function verifyStoredArtifactBytes(params: {
     ) {
       throw new Error("stored benchmark object checksum mismatch");
     }
+    if (!input.audioObjectPath) continue;
+    const report = input.audioPreprocessing!.pronunciation;
+    const reportPath = report.reportObjectPath;
+    const [reportBucket, ...reportNameParts] = reportPath.split("/");
+    const reportName = reportNameParts.join("/");
+    if (
+      reportBucket !== AI_GRADING_BENCHMARK_PRIVATE_BUCKET ||
+      !reportName
+    ) {
+      throw new Error("stored benchmark Azure report path invalid");
+    }
+    const { data: reportRow, error: reportObjectError } =
+      await storageMetadataClient
+        .schema("storage")
+        .from("objects")
+        .select("version,metadata")
+        .eq("bucket_id", reportBucket)
+        .eq("name", reportName)
+        .maybeSingle();
+    const reportMetadata = record(reportRow?.metadata);
+    if (
+      reportObjectError ||
+      !reportRow ||
+      String(reportRow.version ?? "") !==
+        report.reportStorageVersion ||
+      String(reportMetadata.eTag ?? reportMetadata.etag ?? "") !==
+        report.reportEtag
+    ) {
+      throw new Error("stored benchmark Azure report version/ETag mismatch");
+    }
+    const { data: reportObject, error: reportDownloadError } =
+      await params.client.storage.from(reportBucket).download(reportName);
+    if (!reportObject || reportDownloadError) {
+      throw new Error("stored benchmark Azure report download failed");
+    }
+    const reportBytes = new Uint8Array(await reportObject.arrayBuffer());
+    if (
+      sha256(reportBytes) !== report.reportSha256.toLowerCase()
+    ) {
+      throw new Error("stored benchmark Azure report checksum mismatch");
+    }
+    audioReports.set(String(row.benchmark_key), reportBytes);
+  }
+  return audioReports;
+}
+
+function verifyStoredModelInputs(params: {
+  rows: JsonRecord[];
+  audioReports: Map<string, Uint8Array>;
+}) {
+  for (const row of params.rows) {
+    const protectedLabel = record(row.protected_label);
+    const input = protectedBenchmarkInputSchema.parse(protectedLabel.input);
+    const skill = row.skill;
+    if (skill !== "ielts_speaking" && skill !== "ielts_writing") {
+      throw new Error("stored benchmark skill invalid");
+    }
+    if (
+      typeof row.task_type !== "string" ||
+      typeof protectedLabel.rubricVersion !== "string"
+    ) {
+      throw new Error("stored benchmark scoring identity incomplete");
+    }
+    assertIeltsBenchmarkModelInputHash(
+      {
+        skill,
+        taskType: row.task_type,
+        rubricVersion: protectedLabel.rubricVersion,
+        input,
+      },
+      {
+        audioReportBytes: params.audioReports.get(String(row.benchmark_key)),
+      },
+    );
   }
 }
 
@@ -359,7 +497,13 @@ async function main() {
   if (error) throw new Error(`grading gate query failed: ${error.message}`);
 
   const benchmarkRows = (data ?? []).map(record);
-  await verifyStoredArtifactBytes({ client, rows: benchmarkRows });
+  const audioReports = await verifyStoredArtifactBytes({
+    client,
+    rows: benchmarkRows,
+  });
+  // A row cannot contribute coverage or accuracy until release independently
+  // re-verifies its exact model input and all protected acoustic provenance.
+  verifyStoredModelInputs({ rows: benchmarkRows, audioReports });
   const coverage = validateIeltsBenchmarkCoverage(
     benchmarkRows.flatMap(coverageFromRow),
   );

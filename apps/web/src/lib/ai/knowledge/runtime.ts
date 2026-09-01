@@ -33,6 +33,8 @@ export interface GenericKnowledgeSearchParams {
   supabase?: SupabaseClient;
   /** Used by ingestion/benchmarks to pin a published corpus version. */
   corpusVersion?: string | null;
+  /** Protected benchmarks log a hash and evidence ids, never response text. */
+  sensitiveQuery?: boolean;
 }
 
 export interface GenericKnowledgeItem {
@@ -61,6 +63,13 @@ function compact(value: string, max = MAX_HIGHLIGHT) {
   return normalized.length > max
     ? `${normalized.slice(0, max - 1)}…`
     : normalized;
+}
+
+export function knowledgeQueryPreview(params: {
+  query: string;
+  sensitiveQuery?: boolean;
+}): string | null {
+  return params.sensitiveQuery ? null : compact(params.query, 500);
 }
 
 function hash(value: unknown) {
@@ -420,7 +429,7 @@ async function logRetrieval(
         user_id: params.userId ?? null,
         source_route: params.sourceRoute,
         query_hash: hash(params.query),
-        query_preview: compact(params.query, 500),
+        query_preview: knowledgeQueryPreview(params),
         provider: getKnowledgeCollectionConfig(params.collection).provider,
         model: getKnowledgeCollectionConfig(params.collection).model,
         dimensions: 1024,

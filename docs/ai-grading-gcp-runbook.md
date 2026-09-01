@@ -90,6 +90,69 @@ gcloud pubsub subscriptions create ai-grading-jobs-cloud-run \
 Create Cloud Scheduler to POST `/internal/reconcile` every five minutes with
 the Scheduler service account and the exact service URL as OIDC audience.
 
+## Protected IELTS benchmark Cloud Run Job
+
+The release benchmark reuses the worker image but runs as an offline Cloud Run
+Job. It does not expose an HTTP endpoint. After applying migration
+`20260901180000_ai_grading_benchmark_executor_claims.sql`, store the identical
+attestation value in Google Secret Manager and Supabase Vault (Vault name:
+`ai_grading_benchmark_attestation_secret`). Never put it in a command or build
+argument.
+
+Before import, each protected case must include the exact-question grounding
+used by production: reference/model answer (or explicit `null`), examiner
+notes, peer references, and Speaking Part 2 cue-card bullets. Speaking audio
+must also include Azure pronunciation, accuracy, fluency, and prosody signals,
+plus immutable audio, Azure config/report, and STT transcript provenance. A
+missing Azure completeness score is valid for unscripted continuous
+assessment only when its limitation reason is recorded. The importer verifies
+the stored artifact and transcript checksums, the canonical production Azure
+configuration, and the private report object's storage version, ETag, and raw
+SHA-256. The release executor independently downloads that same report,
+re-derives every score and flagged word through the production parser, and
+recomputes the prompt hash. Transcript-only Speaking cases fail closed. Do not
+substitute synthetic provenance or run live Azure during benchmark import.
+All protected response, audio, and Azure report objects must be stored in the
+dedicated `ai-grading-benchmarks-private` bucket. Migration `1800` forces that
+bucket private and prevents rename, publicization, or deletion; no learner or
+authenticated-user object policy is created.
+Before import, the trusted preprocessing job must sign the versioned acoustic
+envelope with the benchmark attestation secret. The envelope binds benchmark
+and capture IDs, object paths, all four hashes, and the Azure runtime identity.
+The importer never receives this secret: it calls the Vault-backed verification
+RPC, as do the executor and release gate. Reused report paths, hashes, or
+envelopes are rejected.
+
+Create or update the job with the reviewed immutable image digest:
+
+```bash
+gcloud run jobs deploy ai-grading-ielts-benchmark \
+  --project=thinkfy-debatelab-prod \
+  --region=asia-southeast1 \
+  --image="$AI_GRADING_IMAGE" \
+  --service-account=debatelab-ai-grading-worker@thinkfy-debatelab-prod.iam.gserviceaccount.com \
+  --command=npm \
+  --args=run,benchmark,-w,@thinkfy/ai-grading-worker \
+  --max-retries=0 --task-timeout=3600 \
+  --set-env-vars=AI_GRADING_GATE_CORPUS_VERSION="$CORPUS_VERSION",AI_GRADING_BENCHMARK_SPLIT=holdout \
+  --set-secrets=NEXT_PUBLIC_SUPABASE_URL=debatelab-supabase-url:latest,SUPABASE_SERVICE_ROLE_KEY=debatelab-supabase-service-role:latest,GROQ_API_KEY=debatelab-groq-api-key:latest,VOYAGE_API_KEY=debatelab-voyage-api-key:latest,AI_GRADING_BENCHMARK_ATTESTATION_SECRET=debatelab-ai-grading-benchmark-attestation:latest
+```
+
+Execute it manually for a reviewed release. A separate database claim for each
+provisional/adjudication stage is the spend authority; Cloud Run retries stay
+disabled. Preflight and retrieval finish before the matching stage starts, and
+a verified provisional checkpoint is reused after a later crash. The grader is locked to
+`evidence-adjudicated-v1`, all retrieval is pinned to the requested published
+corpus version, and the job prints counts only. A stale provider-started claim
+becomes `PROVIDER_OUTCOME_UNKNOWN` and requires a Vault-HMAC-verified provider
+audit to recover; it is never automatically charged again. A definite HTTP or
+schema-invalid failure is released only after Supabase verifies every linked
+error audit and is capped at three attempts. Provider preflight checks the key
+and every selected model before any claim; extend the verified model set with
+`GROQ_IELTS_SUPPORTED_MODELS` only after qualification.
+Definite-failure audit signatures also bind the exact claim token and attempt;
+replaying a prior attempt's valid audit cannot unlock current spend authority.
+
 ## Vercel WIF publisher
 
 Use the existing `vercel` workload identity pool/provider and production
@@ -107,7 +170,7 @@ The web app needs `@vercel/oidc`; it does not need a GCP private key.
 
 Before setting the web environment to `gcp`:
 
-1. Apply migrations through `20260901170000` in preview and verify all new RPCs
+1. Apply migrations through `20260901180000` in preview and verify all new RPCs
    reject `anon` and `authenticated` while service role succeeds.
 2. Submit one practice, Writing, and Speaking job. Confirm the Pub/Sub payload
    contains no learner content and each produces one checkpoint/run.
@@ -143,7 +206,7 @@ Before setting the web environment to `gcp`:
     the dedicated smoke revision sets `AI_GRADING_OPERATIONAL_ATTESTATION_ENABLED=true`;
     ordinary grading avoids the extra transition RPCs.
 11. Inspect DLQ alerts, latency, provider attempt count, workflow failures, and
-   Cloud Run instance/cost dashboards.
+    Cloud Run instance/cost dashboards.
 
 ## Rollback
 

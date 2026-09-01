@@ -198,7 +198,146 @@ test("operational runtime identity fails closed without a real revision and dige
   } finally {
     if (previousRevision === undefined) delete process.env.K_REVISION;
     else process.env.K_REVISION = previousRevision;
-    if (previousDigest === undefined) delete process.env.AI_GRADING_IMAGE_DIGEST;
+    if (previousDigest === undefined)
+      delete process.env.AI_GRADING_IMAGE_DIGEST;
     else process.env.AI_GRADING_IMAGE_DIGEST = previousDigest;
   }
+});
+
+test("the offline benchmark uses a Vault-verified atomic spend fence", () => {
+  const migration = read(
+    "supabase/migrations/20260901180000_ai_grading_benchmark_executor_claims.sql",
+  );
+  const executor = read("services/ai-grading-worker/src/benchmark-executor.ts");
+  const coreExecute = read("apps/web/src/lib/ai/core/execute.ts");
+  const workerPackage = JSON.parse(
+    read("services/ai-grading-worker/package.json"),
+  ) as { scripts: Record<string, string> };
+  assert.match(migration, /ai_grading_benchmark_run_claims/);
+  assert.match(
+    migration,
+    /'ai-grading-benchmarks-private',[\s\S]*false,[\s\S]*104857600/,
+  );
+  assert.match(migration, /protect_ai_grading_benchmark_bucket/);
+  assert.match(migration, /Protected benchmark bucket cannot be deleted/);
+  assert.match(
+    migration,
+    /new\.public is distinct from false/,
+  );
+  assert.ok(
+    migration.indexOf("create trigger protect_ai_grading_benchmark_bucket") <
+      migration.indexOf("insert into storage.buckets"),
+    "private-bucket DDL must precede storage DML in the migration transaction",
+  );
+  assert.match(migration, /claim_ai_grading_benchmark_run/);
+  assert.match(migration, /status = 'outcome_unknown'/);
+  assert.match(migration, /PROVIDER_OUTCOME_UNKNOWN/);
+  assert.match(migration, /fail_ai_grading_benchmark_provider/);
+  assert.match(migration, /v_request\.response_status is not null/);
+  assert.match(
+    migration,
+    /coalesce\(v_request\.error_code, ''\) = 'schema_invalid'/,
+  );
+  assert.match(migration, /v_claim\.claim_attempt_count >= 3/);
+  assert.match(migration, /DEFINITE_PROVIDER_FAILURE_EXHAUSTED/);
+  assert.match(migration, /benchmarkFailureAttestationSignature/);
+  assert.match(
+    migration,
+    /benchmarkClaimToken'[\s\S]*p_claim_token/,
+  );
+  assert.match(
+    migration,
+    /benchmarkClaimAttempt'[\s\S]*v_claim\.claim_attempt_count/,
+  );
+  assert.match(migration, /Benchmark failure audit HMAC verification failed/);
+  assert.doesNotMatch(
+    migration,
+    /grant select on public\.ai_grading_benchmark_run_claims to service_role/,
+  );
+  assert.match(
+    migration,
+    /verify_ai_grading_benchmark_acoustic_attestation/,
+  );
+  assert.match(migration, /Benchmark acoustic attestation HMAC verification failed/);
+  assert.match(migration, /active_report_path_uidx/);
+  assert.match(migration, /active_report_hash_uidx/);
+  assert.match(migration, /active_acoustic_envelope_uidx/);
+  assert.match(migration, /vault\.decrypted_secrets/);
+  assert.match(migration, /extensions\.hmac/);
+  assert.match(migration, /benchmarkPipelineStage/);
+  assert.match(migration, /'adjudicated'/);
+  assert.match(migration, /pipeline_stage text not null/);
+  assert.match(migration, /provisional_provider_request_id uuid references/);
+  assert.match(migration, /scrub_benchmark_knowledge_query_preview/);
+  assert.match(migration, /new\.query_preview := null/);
+  assert.match(migration, /prevent_benchmark_claim_link_mutation/);
+  assert.match(migration, /claim\.provisional_provider_request_id = old\.id/);
+  assert.match(
+    migration,
+    /Benchmark provisional\/final release proof is incomplete/,
+  );
+  assert.doesNotMatch(
+    executor,
+    /benchmarkAttestationSignature[\s\S]*\^\[a-f0-9\]/,
+  );
+  assert.match(executor, /verify_ai_grading_benchmark_provider_request/);
+  assert.match(executor, /buildWritingAdjudicationPrompt/);
+  assert.match(executor, /buildSpeakingAdjudicationPrompt/);
+  assert.match(executor, /sensitiveQuery: true/);
+  assert.match(executor, /pipelineStage: "provisional"/);
+  assert.match(executor, /pipelineStage: "adjudicated"/);
+  assert.match(executor, /loadAudioReport/);
+  assert.match(executor, /reportStorageVersion/);
+  assert.match(executor, /reportEtag/);
+  assert.match(executor, /audioReportBytes/);
+  assert.match(executor, /\.from\("buckets"\)/);
+  assert.match(executor, /privateBucket\.public !== false/);
+  assert.match(executor, /assertBenchmarkProviderConfiguration/);
+  assert.match(executor, /benchmarkClaimToken/);
+  assert.match(executor, /benchmarkClaimAttempt/);
+  assert.match(coreExecute, /benchmarkFailureAttestationSignature/);
+  assert.match(coreExecute, /benchmarkClaimToken/);
+  assert.match(coreExecute, /benchmarkClaimAttempt/);
+  assert.match(coreExecute, /requestInputSha256/);
+  assert.match(workerPackage.scripts.benchmark, /benchmark-cli\.ts/);
+});
+
+test("benchmark failure retries reject forged or replayed claim audits", () => {
+  const migration = read(
+    "supabase/migrations/20260901180000_ai_grading_benchmark_executor_claims.sql",
+  );
+  assert.match(
+    migration,
+    /v_claim\.claim_token is distinct from p_claim_token/,
+  );
+  assert.match(
+    migration,
+    /benchmarkClaimToken'[\s\S]*is distinct from p_claim_token::text/,
+  );
+  assert.match(
+    migration,
+    /benchmarkClaimAttempt'[\s\S]*is distinct from v_claim\.claim_attempt_count::text/,
+  );
+  assert.match(migration, /extensions\.hmac/);
+  assert.match(migration, /benchmarkFailureAttestationSignature/);
+  assert.match(migration, /claim_attempt_count >= 3/);
+  assert.match(migration, /status = 'exhausted'/);
+  assert.match(migration, /status = 'reserved'/);
+});
+
+test("acoustic evidence is Vault-attested and cannot be reused", () => {
+  const migration = read(
+    "supabase/migrations/20260901180000_ai_grading_benchmark_executor_claims.sql",
+  );
+  assert.match(
+    migration,
+    /verify_ai_grading_benchmark_acoustic_attestation/,
+  );
+  assert.match(migration, /p_envelope ->> 'audioArtifactSha256'/);
+  assert.match(migration, /p_envelope ->> 'transcriptSha256'/);
+  assert.match(migration, /p_envelope ->> 'configSha256'/);
+  assert.match(migration, /p_envelope ->> 'reportSha256'/);
+  assert.match(migration, /active_report_path_uidx/);
+  assert.match(migration, /active_report_hash_uidx/);
+  assert.match(migration, /active_acoustic_envelope_uidx/);
 });
