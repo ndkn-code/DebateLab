@@ -31,15 +31,23 @@ Vercel Workflow, Vercel Queues, or a Vercel grading cron.
   used. One Task 2 result can no longer complete a two-task simulation.
 - [x] A Groq rate limit on the primary IELTS scorer advances inside the same
   fenced provider phase to `openai/gpt-oss-20b`, a fast Groq-only fallback.
+- [x] A Groq JSON-mode validation rejection receives one bounded repair inside
+  the existing fenced provider phase before fallback. Transport and timeout
+  failures still skip repair and move to the next declared candidate.
 - [x] Simulation Writing messages are published in deterministic task order and
   remain independently idempotent.
 - [x] Complete repository validation: all 75 test suites pass, TypeScript passes,
   and the production build generates 189 pages.
-- [ ] Deploy the reviewed web commit and private worker image, then repeat one
-  two-task Writing smoke test and confirm one result per task with no duplicate
-  provider calls.
-- [ ] Rehearse `AI_GRADING_BACKEND=legacy` and the prior Cloud Run revision as
-  separate web-dispatch and worker rollback controls.
+- [x] Production commit `84a107c1` and private Cloud Run revision
+  `ai-grading-worker-00007-g9v` passed a full Academic simulation on
+  2026-09-01. Both Writing tasks scored in one durable run and one delivery
+  each; Task 1 used one provider attempt and Task 2 succeeded on its bounded
+  second JSON attempt. The attempt completed only after both scores landed.
+- [x] Non-disruptive rollback readiness is verified: the
+  `AI_GRADING_BACKEND=legacy` kill switch exists, the previous production web
+  deployment is Ready, and prior private Cloud Run revisions remain Ready.
+- [ ] Perform an authorized traffic-switch rehearsal of the web-dispatch and
+  Cloud Run rollback controls during a maintenance window.
 
 ## Content and accuracy gates
 
