@@ -50,6 +50,13 @@ const teacherWorkspaceRollout = readFileSync(
   ),
   "utf8",
 );
+const coachMockBankV2 = readFileSync(
+  resolve(
+    process.cwd(),
+    "../../supabase/migrations/20260901083000_ielts_coach_mock_question_bank_v2.sql",
+  ),
+  "utf8",
+);
 
 test("AI telemetry constraint preserves every runtime output type", () => {
   for (const outputType of [
@@ -201,4 +208,39 @@ test("teacher workspace rollout is IELTS-class scoped and preserves explicit fla
   assert.match(teacherWorkspaceRollout, /do nothing/);
   assert.doesNotMatch(teacherWorkspaceRollout, /class_id\s*,\s*null/);
   assert.match(teacherWorkspaceRollout, /from public, anon, authenticated/);
+});
+
+test("IELTS Coach mock bank v2 covers every productive task without answer material", () => {
+  for (const questionType of [
+    "writing_task1_academic",
+    "writing_task1_general",
+    "writing_task2_essay",
+    "speaking_part1",
+    "speaking_part2_cuecard",
+    "speaking_part3",
+  ]) {
+    assert.match(coachMockBankV2, new RegExp(`'${questionType}'`));
+  }
+  assert.match(coachMockBankV2, /'academic'/);
+  assert.match(coachMockBankV2, /'general_training'/);
+  assert.match(coachMockBankV2, /'coach_recommendable', true/);
+  assert.match(coachMockBankV2, /'answer_key_available', false/);
+  assert.match(coachMockBankV2, /'not_official_ielts', true/);
+  assert.match(coachMockBankV2, /on conflict \(id\) do update/);
+  assert.doesNotMatch(
+    coachMockBankV2,
+    /ielts_question_keys|model_answer|protected_label/,
+  );
+  assert.equal(
+    (coachMockBankV2.match(/\('writing-academic-v2', \d+/g) ?? []).length,
+    10,
+  );
+  assert.equal(
+    (coachMockBankV2.match(/\('writing-general-v2', \d+/g) ?? []).length,
+    10,
+  );
+  assert.equal(
+    (coachMockBankV2.match(/\('speaking-v2', \d+/g) ?? []).length,
+    15,
+  );
 });

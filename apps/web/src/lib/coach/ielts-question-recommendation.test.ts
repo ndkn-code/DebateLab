@@ -160,3 +160,42 @@ test("an explicit Writing task and module outrank lexical overlap", async () => 
   });
   assert.equal(result?.questionType, "writing_task1_general");
 });
+
+test("General Training Task 2 outranks an Academic Task 2 with the same criterion", async () => {
+  const rows = [
+    {
+      id: "55555555-5555-4555-8555-555555555555",
+      test_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+      question_type: "writing_task2_essay",
+      prompt: "Discuss public transport investment in large cities.",
+      metadata: { coach_criteria: ["task_response"] },
+      ielts_tests: {
+        slug: "academic-writing-practice",
+        title: "Academic Writing practice",
+        module: "academic",
+        status: "published",
+      },
+    },
+    {
+      id: "66666666-6666-4666-8666-666666666666",
+      test_id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd",
+      question_type: "writing_task2_essay",
+      prompt: "Should local councils provide more public transport?",
+      metadata: { coach_criteria: ["task_response"] },
+      ielts_tests: {
+        slug: "general-writing-practice",
+        title: "General Training Writing practice",
+        module: "general_training",
+        status: "published",
+      },
+    },
+  ];
+  const result = await findIeltsQuestionRecommendation({
+    supabase: fakeClient(rows),
+    skill: "writing",
+    criterion: "task_response",
+    message: "Cho tôi bài General Training Writing Task 2 về giao thông.",
+  });
+  assert.equal(result?.testSlug, "general-writing-practice");
+  assert.equal(result?.module, "general_training");
+});

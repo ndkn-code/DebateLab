@@ -11,6 +11,7 @@ export interface IeltsQuestionRecommendation {
   testSlug: string;
   skill: IeltsSkill;
   questionType: string;
+  module: "academic" | "general_training" | null;
   title: string;
   prompt: string;
   criteria: string[];
@@ -50,6 +51,7 @@ function normalizedIntentText(value: string) {
 function requestedQuestionTypeScore(params: {
   skill: IeltsSkill;
   questionType: string;
+  module: IeltsQuestionRecommendation["module"];
   message: string;
 }) {
   const message = normalizedIntentText(params.message);
@@ -91,19 +93,9 @@ function requestedQuestionTypeScore(params: {
       message,
     );
     if (requestsAcademic) {
-      score +=
-        type === "writing_task1_academic"
-          ? 40
-          : type.includes("general")
-            ? -40
-            : 0;
+      score += params.module === "academic" ? 40 : -40;
     } else if (requestsGeneral) {
-      score +=
-        type === "writing_task1_general"
-          ? 40
-          : type.includes("academic")
-            ? -40
-            : 0;
+      score += params.module === "general_training" ? 40 : -40;
     }
     return score;
   }
@@ -129,6 +121,10 @@ function normalizeCandidate(
   const prompt = typeof row.prompt === "string" ? row.prompt.trim() : "";
   const questionType =
     typeof row.question_type === "string" ? row.question_type : "";
+  const module =
+    test.module === "academic" || test.module === "general_training"
+      ? test.module
+      : null;
   if (!questionId || !testId || !testSlug || !prompt || !questionType) {
     return null;
   }
@@ -142,6 +138,7 @@ function normalizeCandidate(
     testSlug,
     skill,
     questionType,
+    module,
     title:
       typeof test.title === "string"
         ? test.title
@@ -165,6 +162,7 @@ function scoreCandidate(params: {
   score += requestedQuestionTypeScore({
     skill: params.item.skill,
     questionType: params.item.questionType,
+    module: params.item.module,
     message: params.message,
   });
   for (const word of queryWords) if (candidateWords.has(word)) score += 1;
@@ -186,7 +184,7 @@ export async function findIeltsQuestionRecommendation(params: {
     const result = await params.supabase
       .from("ielts_questions")
       .select(
-        "id, test_id, skill, question_type, prompt, metadata, ielts_tests!inner(id, slug, title, status, assessment_mode)",
+        "id, test_id, skill, question_type, prompt, metadata, ielts_tests!inner(id, slug, title, module, status, assessment_mode)",
       )
       .eq("skill", params.skill)
       .contains("metadata", { coach_recommendable: true })
