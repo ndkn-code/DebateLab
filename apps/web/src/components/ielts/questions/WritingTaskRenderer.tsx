@@ -12,6 +12,8 @@ import { useLocale, useTranslations } from "next-intl";
 import type { IeltsRendererProps } from "../question-renderer-registry";
 import type { WritingResponseView } from "@/lib/api/ielts/writing-responses-repository";
 import { showToast } from "@/components/shared/toast";
+import { GradingConfidenceNote } from "@/components/ielts/learner/GradingConfidenceNote";
+import { gradingPresentationFromResult } from "@/components/ielts/learner/GradingResultDetails";
 import {
   CaptureRequestError,
   pollWritingResponse,
@@ -32,6 +34,10 @@ import {
 } from "./CaptureBandResult";
 import { QuestionVisual } from "./QuestionVisual";
 import { useScoringPoll } from "./useScoringPoll";
+import {
+  canStartPaidScoring,
+  getCaptureActionState,
+} from "./capture-action-state";
 
 function WordCount({ words, minWords }: { words: number; minWords: number }) {
   const t = useTranslations("ielts.player");
@@ -47,6 +53,7 @@ function WordCount({ words, minWords }: { words: number; minWords: number }) {
 function WritingScoreCard({ view }: { view: WritingResponseView }) {
   const t = useTranslations("ielts.player");
   const locale = useLocale();
+  const grading = gradingPresentationFromResult(view);
   const rows: CaptureBandRow[] = [
     {
       key: "tr",
@@ -81,7 +88,96 @@ function WritingScoreCard({ view }: { view: WritingResponseView }) {
           {view.modelAnswer}
         </CaptureDetails>
       ) : null}
+      {grading ? (
+        <GradingConfidenceNote metadata={grading.metadata} locale={locale} />
+      ) : null}
     </CaptureBandResult>
+  );
+}
+
+function WritingEditor({
+  essay,
+  minWords,
+  disabled,
+  isSimulation,
+  actionState,
+  canSubmit,
+  onEssay,
+  onSubmit,
+}: {
+  essay: string;
+  minWords: number;
+  disabled: boolean;
+  isSimulation: boolean;
+  actionState: ReturnType<typeof getCaptureActionState>;
+  canSubmit: boolean;
+  onEssay: (text: string) => void;
+  onSubmit: () => void;
+}) {
+  const t = useTranslations("ielts.player");
+  return (
+    <div className="flex min-w-0 flex-col gap-3">
+      <textarea
+        value={essay}
+        disabled={disabled}
+        onChange={(event) => onEssay(event.target.value)}
+        placeholder={t("writing.placeholder")}
+        className="min-h-[40vh] w-full resize-y rounded-xl border border-outline-variant bg-surface px-4 py-3 type-body-sm leading-relaxed text-on-surface outline-none placeholder:text-on-surface-variant focus-visible:ring-2 focus-visible:ring-primary/45 disabled:opacity-60"
+      />
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <WordCount words={countWords(essay)} minWords={minWords} />
+        {isSimulation ? (
+          <span className="type-caption font-medium text-on-surface-variant">
+            {t("writing.simulationAutosave")}
+          </span>
+        ) : canStartPaidScoring(actionState) ? (
+          <button
+            type="button"
+            onClick={onSubmit}
+            disabled={!canSubmit}
+            className="rounded-full bg-primary px-5 py-2 type-body-sm font-semibold text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 disabled:opacity-50"
+          >
+            {actionState === "retryable"
+              ? t("writing.retry")
+              : t("writing.submit")}
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
+function WritingStatus({
+  isSimulation,
+  errorKey,
+  failed,
+  working,
+  submitting,
+  scoredView,
+}: {
+  isSimulation: boolean;
+  errorKey: string | null;
+  failed: boolean;
+  working: boolean;
+  submitting: boolean;
+  scoredView: WritingResponseView | null;
+}) {
+  const t = useTranslations("ielts.player");
+  if (isSimulation) return null;
+  return (
+    <>
+      {errorKey ? <CaptureErrorNote message={t(errorKey)} /> : null}
+      {failed && !errorKey ? (
+        <CaptureErrorNote message={t("writing.failed")} />
+      ) : null}
+      {working ? (
+        <CaptureScoringNote
+          title={submitting ? t("writing.submitting") : t("writing.scoring")}
+          hint={t("writing.scoringHint")}
+        />
+      ) : null}
+      {scoredView ? <WritingScoreCard view={scoredView} /> : null}
+    </>
   );
 }
 
@@ -108,11 +204,17 @@ export function WritingTaskRenderer({
   const isSimulation = context?.assessmentMode === "simulation";
   const words = countWords(essay);
   const working = submitting || poll.pending;
+  const actionState = getCaptureActionState({
+    responseId: poll.responseId,
+    scored: poll.scored,
+    failed: poll.failed,
+    submitting,
+  });
   const canSubmit =
     !isSimulation &&
     Boolean(attemptId) &&
     !disabled &&
-    !submitting &&
+    canStartPaidScoring(actionState) &&
     words > 0;
 
   const handleEssay = (text: string) => {
@@ -146,35 +248,16 @@ export function WritingTaskRenderer({
   };
 
   const editor = (
-    <div className="flex min-w-0 flex-col gap-3">
-      <textarea
-        value={essay}
-        disabled={disabled || submitting}
-        onChange={(event) => handleEssay(event.target.value)}
-        placeholder={t("writing.placeholder")}
-        className="min-h-[40vh] w-full resize-y rounded-xl border border-outline-variant bg-surface px-4 py-3 type-body-sm leading-relaxed text-on-surface placeholder:text-on-surface-variant disabled:opacity-60"
-      />
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <WordCount
-          words={words}
-          minWords={recommendedMinWords(question.questionType)}
-        />
-        {isSimulation ? (
-          <span className="type-caption font-medium text-on-surface-variant">
-            {t("writing.simulationAutosave")}
-          </span>
-        ) : (
-          <button
-            type="button"
-            onClick={handleSubmit}
-            disabled={!canSubmit}
-            className="rounded-full bg-primary px-5 py-2 type-body-sm font-semibold text-on-primary disabled:opacity-50"
-          >
-            {poll.responseId ? t("writing.resubmit") : t("writing.submit")}
-          </button>
-        )}
-      </div>
-    </div>
+    <WritingEditor
+      essay={essay}
+      minWords={recommendedMinWords(question.questionType)}
+      disabled={disabled || submitting || actionState === "complete"}
+      isSimulation={isSimulation}
+      actionState={actionState}
+      canSubmit={canSubmit}
+      onEssay={handleEssay}
+      onSubmit={handleSubmit}
+    />
   );
 
   return (
@@ -191,18 +274,14 @@ export function WritingTaskRenderer({
         editor
       )}
 
-      {!isSimulation && errorKey ? (
-        <CaptureErrorNote message={t(errorKey)} />
-      ) : null}
-      {!isSimulation && working ? (
-        <CaptureScoringNote
-          title={submitting ? t("writing.submitting") : t("writing.scoring")}
-          hint={t("writing.scoringHint")}
-        />
-      ) : null}
-      {!isSimulation && poll.scored && poll.view ? (
-        <WritingScoreCard view={poll.view} />
-      ) : null}
+      <WritingStatus
+        isSimulation={isSimulation}
+        errorKey={errorKey}
+        failed={poll.failed}
+        working={working}
+        submitting={submitting}
+        scoredView={poll.scored ? poll.view : null}
+      />
     </div>
   );
 }

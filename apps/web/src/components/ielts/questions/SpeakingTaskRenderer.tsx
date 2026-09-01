@@ -13,6 +13,8 @@ import { useLocale, useTranslations } from "next-intl";
 import type { IeltsRendererProps } from "../question-renderer-registry";
 import type { SpeakingResponseView } from "@/lib/api/ielts/speaking-responses-repository";
 import { showToast } from "@/components/shared/toast";
+import { GradingConfidenceNote } from "@/components/ielts/learner/GradingConfidenceNote";
+import { gradingPresentationFromResult } from "@/components/ielts/learner/GradingResultDetails";
 import {
   CaptureRequestError,
   pollSpeakingResponse,
@@ -37,6 +39,11 @@ import {
   type CaptureBandRow,
 } from "./CaptureBandResult";
 import { useScoringPoll } from "./useScoringPoll";
+import {
+  canStartPaidScoring,
+  getCaptureActionState,
+  type CaptureActionState,
+} from "./capture-action-state";
 
 const RECORDER_ERROR_KEYS: Record<RecorderErrorCode, string> = {
   mic_denied: "speaking.micDenied",
@@ -44,7 +51,8 @@ const RECORDER_ERROR_KEYS: Record<RecorderErrorCode, string> = {
   encode_failed: "speaking.failed",
 };
 
-const PILL = "rounded-full px-5 py-2 type-body-sm font-semibold disabled:opacity-50";
+const PILL =
+  "rounded-full px-5 py-2 type-body-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 disabled:opacity-50";
 
 function speakingGuidanceKey(questionType: string): string {
   if (questionType === "speaking_part1") return "speaking.part1Hint";
@@ -58,7 +66,7 @@ function SpeakingCapture({
   disabled,
   submitting,
   canSubmit,
-  submitted,
+  actionState,
   onSubmit,
   onRecordAgain,
 }: {
@@ -66,7 +74,7 @@ function SpeakingCapture({
   disabled: boolean;
   submitting: boolean;
   canSubmit: boolean;
-  submitted: boolean;
+  actionState: CaptureActionState;
   onSubmit: () => void;
   onRecordAgain: () => void;
 }) {
@@ -76,10 +84,17 @@ function SpeakingCapture({
     return (
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-outline-variant bg-surface-container px-4 py-3">
         <span className="flex items-center gap-2 type-body-sm font-medium text-on-surface">
-          <span className="size-2.5 animate-pulse rounded-full bg-error" aria-hidden="true" />
+          <span
+            className="size-2.5 animate-pulse rounded-full bg-error"
+            aria-hidden="true"
+          />
           {t("speaking.recording")} · {recorder.elapsedSeconds}s
         </span>
-        <button type="button" onClick={recorder.stop} className={`${PILL} bg-primary text-on-primary`}>
+        <button
+          type="button"
+          onClick={recorder.stop}
+          className={`${PILL} bg-primary text-on-primary`}
+        >
           {t("speaking.stop")}
         </button>
       </div>
@@ -91,44 +106,59 @@ function SpeakingCapture({
   }
 
   if (recorder.result) {
+    const actionsAvailable = canStartPaidScoring(actionState);
     return (
       <div className="flex flex-col gap-2 rounded-xl border border-outline-variant bg-surface-container px-4 py-3">
         <span className="type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
           {t("speaking.yourRecording")}
         </span>
-        <audio controls src={recorder.result.playbackUrl} className="w-full" />
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={onRecordAgain}
-            disabled={disabled || submitting}
-            className={`${PILL} bg-surface-container-high text-on-surface`}
-          >
-            {t("speaking.rerecord")}
-          </button>
-          {submitted ? null : (
+        <audio
+          controls
+          src={recorder.result.playbackUrl}
+          aria-label={t("speaking.yourRecording")}
+          className="w-full"
+        />
+        {actionsAvailable ? (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={onRecordAgain}
+              disabled={disabled || submitting}
+              className={`${PILL} bg-surface-container-high text-on-surface`}
+            >
+              {t("speaking.rerecord")}
+            </button>
             <button
               type="button"
               onClick={onSubmit}
               disabled={submitting || !canSubmit}
               className={`${PILL} bg-primary text-on-primary`}
             >
-              {submitting ? t("speaking.submitting") : t("speaking.submit")}
+              {submitting
+                ? t("speaking.submitting")
+                : actionState === "retryable"
+                  ? t("speaking.retry")
+                  : t("speaking.submit")}
             </button>
-          )}
-        </div>
+          </div>
+        ) : null}
       </div>
     );
   }
 
+  if (!canStartPaidScoring(actionState)) return null;
+
   return (
     <button
       type="button"
-      onClick={() => void recorder.start()}
+      onClick={() => {
+        if (actionState === "retryable") onRecordAgain();
+        void recorder.start();
+      }}
       disabled={disabled}
       className={`${PILL} self-start bg-primary text-on-primary`}
     >
-      {t("speaking.record")}
+      {t(actionState === "retryable" ? "speaking.rerecord" : "speaking.record")}
     </button>
   );
 }
@@ -136,11 +166,28 @@ function SpeakingCapture({
 function SpeakingScoreCard({ view }: { view: SpeakingResponseView }) {
   const t = useTranslations("ielts.player");
   const locale = useLocale();
+  const grading = gradingPresentationFromResult(view);
   const rows: CaptureBandRow[] = [
-    { key: "fc", label: t("bands.fluencyCoherence"), band: view.bands.fluencyCoherence },
-    { key: "lr", label: t("bands.lexicalResource"), band: view.bands.lexicalResource },
-    { key: "gr", label: t("bands.grammaticalRangeAccuracy"), band: view.bands.grammaticalRangeAccuracy },
-    { key: "pr", label: t("bands.pronunciation"), band: view.bands.pronunciation },
+    {
+      key: "fc",
+      label: t("bands.fluencyCoherence"),
+      band: view.bands.fluencyCoherence,
+    },
+    {
+      key: "lr",
+      label: t("bands.lexicalResource"),
+      band: view.bands.lexicalResource,
+    },
+    {
+      key: "gr",
+      label: t("bands.grammaticalRangeAccuracy"),
+      band: view.bands.grammaticalRangeAccuracy,
+    },
+    {
+      key: "pr",
+      label: t("bands.pronunciation"),
+      band: view.bands.pronunciation,
+    },
   ];
   return (
     <CaptureBandResult
@@ -158,6 +205,9 @@ function SpeakingScoreCard({ view }: { view: SpeakingResponseView }) {
         <p className="type-caption text-on-surface-variant">
           {t("speaking.pronunciationDetail")}
         </p>
+      ) : null}
+      {grading ? (
+        <GradingConfidenceNote metadata={grading.metadata} locale={locale} />
       ) : null}
     </CaptureBandResult>
   );
@@ -184,10 +234,19 @@ export function SpeakingTaskRenderer({
 
   const attemptId = context?.attemptId ?? null;
   const working = submitting || poll.pending;
-  const recorderErrorKey = recorder.error ? RECORDER_ERROR_KEYS[recorder.error] : null;
+  const actionState = getCaptureActionState({
+    responseId: poll.responseId,
+    scored: poll.scored,
+    failed: poll.failed,
+    submitting,
+  });
+  const recorderErrorKey = recorder.error
+    ? RECORDER_ERROR_KEYS[recorder.error]
+    : null;
   const guidanceKey = speakingGuidanceKey(question.questionType);
 
   const handleRecordAgain = () => {
+    if (!canStartPaidScoring(actionState)) return;
     recorder.reset();
     poll.clear();
     setErrorKey(null);
@@ -196,7 +255,13 @@ export function SpeakingTaskRenderer({
 
   const handleSubmit = async () => {
     const result = recorder.result;
-    if (!attemptId || submitting || !result) return;
+    if (
+      !attemptId ||
+      submitting ||
+      !result ||
+      !canStartPaidScoring(actionState)
+    )
+      return;
     setSubmitting(true);
     setErrorKey(null);
     try {
@@ -213,10 +278,14 @@ export function SpeakingTaskRenderer({
         feedbackLanguage: locale === "vi" ? "vi" : "en",
       });
       poll.begin(submitted.speakingResponseId);
-      onChange({ speakingResponseId: submitted.speakingResponseId, audioStoragePath });
+      onChange({
+        speakingResponseId: submitted.speakingResponseId,
+        audioStoragePath,
+      });
       showToast(t("speaking.toastSubmitted"), "success");
     } catch (error) {
-      const limit = error instanceof CaptureRequestError && error.status === 402;
+      const limit =
+        error instanceof CaptureRequestError && error.status === 402;
       const key = limit ? "speaking.limitReached" : "speaking.failed";
       setErrorKey(key);
       showToast(t(key), "error");
@@ -233,14 +302,21 @@ export function SpeakingTaskRenderer({
         recorder={recorder}
         disabled={disabled}
         submitting={submitting}
-        canSubmit={Boolean(attemptId) && !disabled}
-        submitted={Boolean(poll.responseId)}
+        canSubmit={
+          Boolean(attemptId) && !disabled && canStartPaidScoring(actionState)
+        }
+        actionState={actionState}
         onSubmit={handleSubmit}
         onRecordAgain={handleRecordAgain}
       />
 
-      {recorderErrorKey ? <CaptureErrorNote message={t(recorderErrorKey)} /> : null}
+      {recorderErrorKey ? (
+        <CaptureErrorNote message={t(recorderErrorKey)} />
+      ) : null}
       {errorKey ? <CaptureErrorNote message={t(errorKey)} /> : null}
+      {poll.failed && !errorKey ? (
+        <CaptureErrorNote message={t("speaking.failed")} />
+      ) : null}
       {working ? (
         <CaptureScoringNote
           title={submitting ? t("speaking.submitting") : t("speaking.scoring")}
