@@ -1,190 +1,184 @@
-# DebateLab Design System
+# Thinkfy Design System
 
-## Purpose
-This document defines the next visual direction for DebateLab based on the provided color profile.
+Authority for product surfaces — everything behind sign-in, both Debate and IELTS. Public
+marketing pages are governed by `design-marketing.md`, which layers on top of this one.
 
-The target feeling is:
-- clean
-- modern
-- trustworthy
-- light and airy
-- calm, intelligent, and confident
+This document is descriptive, not aspirational: it records what the system *is*. When it and
+the code disagree, the code is right and this file is a bug — fix it in the same change.
 
-This should become the visual source of truth before we roll the palette into the app.
+## Posture
 
-## Design Intent
-DebateLab should feel:
-- more credible than playful
+Thinkfy's product style is the **calm SaaS canvas**: a neutral cool-grey field, near-black
+ink, one saturated accent, Inter throughout, and hierarchy built from contrast and spacing
+rather than from color, borders, or ornament. The nearest public reference is
+[arcade.software](https://www.arcade.software) — same typeface, same neutral-plus-one-accent
+structure, same 6/8/12/16/24 radius family, same 13–16px core type.
+
+Take from that family its **typography, grey ramp, contrast discipline, radius ramp, and
+single saturated accent**. Do not take its marketing composition — full-bleed dark bands,
+oversized display type, and gradient washes belong to a landing page, not to a gradebook.
+
+Logged-in surfaces are **warm in behavior, restrained in appearance**. The warmth is earned at
+the moment it lands — a result, a streak, a completion — and is carried by the accent and the
+reward role, not by ambient decoration. Marketing surfaces drop the warmth entirely for
+editorial restraint (`design-marketing.md`). Do not mix the two registers on one surface.
+
+Thinkfy should feel:
+- more credible than playful, but never cold
 - more polished than flashy
 - more structured than decorative
+- calm, intelligent, and confident
 
-The palette is centered on calm blues, soft neutrals, and very light surfaces. That means:
-- blue should carry action and emphasis
-- neutrals should carry readability and structure
-- semantic colors should be used sparingly and functionally
-- gradients should feel soft and premium, not loud
+### Contrast is the dial
+Most of what separates a screen that looks designed from one that looks unfinished is
+contrast discipline, not taste. These are floors, not targets:
 
-## Core Palette
+- Ink on canvas: **≥ 12:1**. Aim nearer 16:1.
+- Any accent used as a CTA fill under white text: **≥ 4.5:1**.
+- Any color used as body or link text: **≥ 4.5:1** on its actual background.
+- Muted text on canvas: **≥ 4.5:1**.
 
-### Primary
-- `Primary Dark`: `#0788A0`
-- `Primary`: `#00B8D9`
-- `Primary Light`: `#8BE8F7`
+A "nice" accent that cannot carry white text is a decorative tint, not an action color. Give
+it a darker step of the same hue for actions and keep the bright one for fills.
 
-### Surface
-- `Background`: `#F3FCFE`
-- `Surface`: `#FFFFFF`
-- `Surface Alt`: `#E5F8FC`
-- `Border / Divider`: `#CDECF3`
+## Surface Modes
 
-## Neutral / Grayscale
-- `Heading`: `#102936`
-- `Text Strong`: `#102936`
-- `Text`: `#657B84`
-- `Text Muted`: `#657B84`
-- `Muted`: `#8A96A8`
-- `Placeholder`: `#BCC6D3`
-- `Border Soft`: `#D9E5F4`
-- `Disabled`: `#E5F8FC`
+One visual system, two densities. Every product surface declares which it is; the mode
+decides spacing, type scale, and how much explanation is allowed.
 
-## Semantic Colors
-- `Success`: `#34C759`
-- `Info`: `#00B8D9`
-- `Warning`: `#F5B942`
-- `Error`: `#EF6A6A`
+**Workbench** — teaching calendar, gradebook, review queue, question bank, mock player,
+attendance, admin tables, materials.
+- Data-first and scannable. Rows over cards. Metadata over prose.
+- Compact padding, stable row heights, one-line labels at 13-inch widths in both locales.
+- The repeating unit never truncates its most important field. If it does, the density is
+  wrong — fix the column math, not the font size.
+- Celebration does not belong here.
 
-## Chart Colors
-Use these for analytics, history charts, and progress visuals:
-- `#00B8D9`
-- `#8BE8F7`
-- `#34C759`
-- `#F5B942`
-- `#7B61FF`
-- `#00B8D9`
-- `#FF7A59`
+**Momentum** — home and today, results, study plan, onboarding, completion and streak moments.
+- One dominant action in the first viewport, and room around it.
+- Generous spacing, larger type steps, the accent and reward roles doing real work.
+- Warmth lands here, at the moment it is earned.
 
-Rules:
-- start charts with blue first
-- use green for improvement / positive performance
-- use amber for caution
-- use red-orange for drop-off / risk only when meaningfully negative
+Full-attention flows — live debate practice, the speaking recorder, the mock exam shell —
+are neither. They currently follow §Live Practice Flow; whether they become a formal third
+mode is open (`docs/teacher-calendar-polish.md`).
 
-## Gradients
+## Color System
 
-### Primary Gradient
-- `#8BE8F7` -> `#00B8D9`
-- Use for hero accents, key CTA emphasis, selected states, and premium-feeling highlights.
+Color is tokenized. App code names a **role**; it never names a value. The source of truth is
+`packages/shared/src/design-system/tokens.ts` (`ThinkfyColorRole`), mirrored into Tailwind
+utilities by the `@theme inline` block in `apps/web/src/app/globals.css`.
 
-### Hero Gradient
-- `#F3FCFE` -> `#E5F8FC`
-- Use for large page backgrounds, landing hero sections, dashboard spotlight containers.
+> **Values are mid-migration.** The style is settled (§Posture) but the palette has not
+> landed yet: cool neutrals, deeper ink, and a saturated blue accent replacing both the
+> near-black CTA and the current flat blue. Target values and the migration plan are in
+> `docs/design-system-followups.md`. Until it lands, the roles below are correct and the
+> values behind them are not.
 
-### Soft Blue Gradient
-- `#FFFFFF` -> `#E5F8FC`
-- Use for section backgrounds, information panels, and subtle card emphasis.
+### The token API
+Use these role names. If the role you need does not exist, add it to the token source first —
+never inline a value, and never alias an existing role under a new name.
 
-### Card Gradient
-- `#FFFFFF` -> `#F3FCFE`
-- Use for elevated panels, large dashboard cards, and soft shells.
+- **Brand** — `primary`, `primary-dim`, `primary-depth`, `primary-container`, `primary-fixed`,
+  `on-primary`, `on-primary-container`, `secondary`, `secondary-dim`, `secondary-container`,
+  `tertiary`, `tertiary-container`, `inverse-primary`
+- **Surfaces** — `background`, `surface`, `surface-dim`, `surface-container`,
+  `surface-container-low` / `-lowest` / `-high` / `-highest`, `inverse-surface`
+- **Text and lines** — `foreground`, `on-surface`, `on-surface-variant`, `inverse-on-surface`,
+  `muted`, `placeholder`, `outline`, `outline-variant`
+- **Status** — `success`, `warning`, `error`, `info`, each with its `*-container` and `on-*` partners
+- **Product** — `reward`, `reward-dim`, `reward-container`, `on-reward`, `course-accent`
+- **Data** — `chart-1` … `chart-7`, `chart-grid`, `chart-axis`, `chart-tooltip-bg`,
+  `chart-tooltip-text`, `chart-crosshair`
 
-## Color Role Mapping
+### Tokens are dual-source
+Every value exists twice: in `tokens.ts`, emitted as inline critical CSS by
+`ThinkfyThemeVariables` and authoritative at runtime for `var()`; and in the `@theme inline`
+block of `globals.css`, which Tailwind uses to generate utilities and to bake literals.
+Change one without the other and they diverge silently — the runtime looks correct while
+every baked literal keeps the stale value.
 
-### Primary
-Use for:
-- primary buttons
-- active tabs
-- links
-- key icons
-- progress indicators
-- selected states
+Two consequences, both non-negotiable:
 
-Do not use primary blue as a full-page heavy fill.
+- A token change edits **both** files, in the same commit.
+- **Never** put an opacity modifier on a theme token (`text-on-surface/70`). It bakes the
+  light-mode literal and breaks dark mode. Use a solid token, or `opacity-*` on the element.
 
-### Primary Light
-Use for:
-- hover states
-- soft selected backgrounds
-- icon containers
-- subtle callout backgrounds
+### Role meaning
+- **Primary is the accent.** It fills the one dominant action on a surface, and carries
+  selected states, links, focus, and progress. Never a full-page heavy fill. Near-black is
+  *ink*, not an action color — a near-black CTA reads as a professional tool, which is the
+  wrong register for a learner surface.
+- **Neutral button variants** exist for dense workbench surfaces where a saturated CTA in
+  every row would be noise. One accent CTA per surface still applies.
+- **Secondary** is a supporting accent — used sparingly, and never as a second CTA.
+- **Reward** is XP, streaks, level-ups, badges, and celebratory CTAs. Nothing else.
+- **Success** is correctness and completion. **Warning** and **error** are functional states,
+  never decorative brand accents.
+- **Info** and the chart roles serve data and explanation surfaces. Charts do not borrow CTA
+  colors without a reason.
 
-### Surface Alt
-Use for:
-- grouped panels
-- dashboard sections
-- muted content blocks
-- cards inside larger white surfaces
+Rough balance on a product surface: ~70% surface and neutral, ~20% brand, ~10% semantic and
+accent. When a screen feels loud, the brand share is usually why.
 
-### Border
-Use for:
-- dividers
-- input borders
-- card outlines
-- segmented controls
+### Chart colors
+`chart-1` … `chart-7`, defined for both themes. Intent beats index order: `chart-3` is
+positive, `chart-4` is caution, `chart-7` is negative. Start a series at `chart-1`. Never a
+raw hex, and never an opacity modifier on a chart token.
 
-### Heading
-Use for:
-- page titles
-- major section titles
-- card titles
-- critical content
-
-### Text
-Use for:
-- body text
-- labels
-- paragraph copy
-
-### Text Muted / Muted
-Use for:
-- supporting copy
-- timestamps
-- helper text
-- empty state descriptions
-
-### Disabled
-Use for:
-- disabled buttons
-- inactive controls
-- unavailable states
+### Contrast and non-color signals
+- Verify contrast for headings and body copy in **both** themes; AA is the floor.
+- Do not place muted text on a tinted surface without measuring it.
+- Semantic color is never the only signal — pair it with a label, an icon, or state text.
 
 ## Typography
 
-Typography is tokenized the same way color is: a fixed set of families and a semantic
-scale, applied through utilities and primitives — never ad-hoc `text-[…]`/`tracking-[…]`.
+One family does all UI work. The scale is tokenized the same way color is — a fixed set of
+steps applied through utilities and primitives, never ad-hoc `text-[…]`/`tracking-[…]`.
 
 ### Font families
-All four are open-source and cover Vietnamese (including stacked tone + dot-below marks
-like `Ậ Ự Ợ Ệ Ộ`). We do **not** use Apple's SF fonts — they are licensed for Apple
-platforms only.
+Three faces, loaded once via `next/font` in `apps/web/src/app/layout.tsx`. The `vietnamese`
+subset is explicitly enabled on both faces that carry product copy, so stacked tone +
+dot-below marks (`Ậ Ự Ợ Ệ Ộ`) render correctly. We do **not** use Apple's SF fonts — they are
+licensed for Apple platforms only.
 
-- **Display — Nunito.** Rounded, friendly headline face for marketing/brand moments (the Duolingo "characterful display" role).
-- **Body / UI — Be Vietnam Pro.** Clean neo-grotesque designed by Vietnamese designers; the global default and the workhorse for all product UI.
-- **Serif — Noto Serif.** Editorial/long-form reading (transcripts). Chosen over Lora, which has a Google Fonts bug that breaks Vietnamese dot-below stacks.
-- **Mono — Geist Mono.** Codes, transcripts, timestamps, ids.
+- **Inter** (`--font-inter`, weights 400/500/600/700) — display *and* all product UI. One
+  family from hero headline to helper text; hierarchy comes from size and weight, never from
+  switching face.
+- **Noto Serif** (`--font-noto-serif`) — editorial and long-form reading (transcripts).
+  Chosen over Lora, which has a Google Fonts bug that breaks Vietnamese dot-below stacks.
+- **Geist Mono** (`--font-geist-mono`) — codes, timestamps, ids. Latin subset only; never set
+  Vietnamese product copy in it.
 
-Loaded once via `next/font` in `apps/web/src/app/layout.tsx` (`--font-nunito`,
-`--font-be-vietnam`, `--font-noto-serif`, `--font-geist-mono`) and mapped to
-`--font-display/sans/serif/mono` in `globals.css`.
+The `type-*` utilities reference these `--font-*` variables directly. The `@theme inline`
+`--font-*` tokens are **not** emitted as runtime custom properties, so `var(--font-sans)`
+will not resolve — always go through a utility or primitive.
 
 ### Scale
-Defined as Tailwind v4 `@utility type-*` rules in `apps/web/src/app/globals.css`
-(documented in `packages/shared` as `thinkfyTypography`). Each step bundles
-family + size + line-height + weight + tracking. Color is intentionally separate —
-compose with the color tokens (e.g. `type-heading-lg text-on-surface`).
+Sizes are px at a 16px root. Each step bundles family + size + line-height + weight +
+tracking. Color is deliberately excluded so steps compose with the color tokens
+(`type-heading-lg text-on-surface`). Defined as Tailwind v4 `@utility` rules in
+`apps/web/src/app/globals.css`; mirrored in `packages/shared` as `thinkfyTypography`.
 
 | Step | Family | Size | Weight | Use |
 |---|---|---|---|---|
-| `type-display-xl/lg/md/sm` | Nunito | fluid (clamp) → 72 / 56 / 44 / 36 max | 800/700 | hero & marketing headlines |
-| `type-heading-xl` | Be Vietnam Pro | 30 | 700 | page title (h1) |
-| `type-heading-lg` | Be Vietnam Pro | 24 | 700 | section (h2) |
-| `type-heading-md` | Be Vietnam Pro | 20 | 600 | sub-section (h3) |
-| `type-title` | Be Vietnam Pro | 17 | 600 | card title (h4) |
-| `type-body-lg` / `type-body` / `type-body-sm` | Be Vietnam Pro | 18 / 16 / 14 | 400 | lead / paragraphs / dense copy |
-| `type-caption` | Be Vietnam Pro | 12 | 500 | meta, helper text |
-| `type-label` | Be Vietnam Pro | 13 | 600 | form labels |
-| `type-eyebrow` | Be Vietnam Pro | 12 | 700 | uppercase kicker |
-| `type-code` | Geist Mono | 14 | 400 | codes, timestamps |
+| `type-display-xl/lg/md/sm` | Inter | fluid (clamp) → 72 / 56 / 44 / 36 max | 800 / 700 | hero & marketing headlines |
+| `type-heading-xl` | Inter | 30 | 700 | page title (h1) |
+| `type-heading-lg` | Inter | 24 | 700 | section (h2) |
+| `type-heading-md` | Inter | 20 | 600 | sub-section (h3) |
+| `type-title` | Inter | 16 / 20 lh | 500 | card and panel titles (h4) |
+| `type-body` | Inter | 14 | 400 | default UI copy |
+| `type-body-lg` | Inter | 18 | 400 | lede, marketing paragraphs |
+| `type-body-sm` | Inter | 14 | 400 | readable paragraphs (looser leading) |
+| `type-label` | Inter | 13 / 16 lh | 500 | form labels, dense metadata |
+| `type-caption` | Inter | 12 | 500 | helper text, timestamps |
+| `type-eyebrow` | Inter | 12 | 700 | uppercase kicker (0.14em tracking) |
+| `type-code` | Geist Mono | 14 | 400 | codes, ids, timestamps |
 | `type-prose` | Noto Serif | 16 | 400 | transcripts, long-form |
+
+`type-body` and `type-body-sm` are the same size and differ only in line-height — 1.43 for
+dense UI, 1.55 for paragraphs meant to be read. Reach for `type-body-lg` when copy needs to
+breathe; do not bump a size to create emphasis.
 
 ### Primitives
 `apps/web/src/components/ui/typography.tsx` — `<Display>`, `<Heading level={1..4}>`,
@@ -198,7 +192,102 @@ No arbitrary `text-[…]`, `tracking-[…]`, `leading-[…]`, `font-[…]`, or h
 `font-family` in app code (emails are exempt — they need web-safe fonts). Enforced by the
 typography pass in `scripts/design-system-audit.ts`, mirroring the color guard.
 
+## Component Sourcing
+
+Most of what we need already exists, made better than we would make it under time pressure.
+Build order:
+
+1. An existing internal primitive — `components/ui`, `components/data-viz`, `components/charts`.
+2. An approved external source below, **copied exactly**.
+3. Something new. Last resort; say in the PR why 1 and 2 did not fit.
+
+### Approved sources
+
+| Source | Use it for |
+|---|---|
+| [magicui](https://magicui.design/docs/components) | decorative and animated primitives — beams, grid patterns, bento grids. Already vendored in `components/magicui/`. |
+| [Rare UI](https://www.rareui.com) | distinctive interaction components — sidebars, pickers, activity grids. shadcn CLI, one file per component. |
+| [Beautiful UI](https://www.beautifului.dev) | AI-native interface primitives — thinking and loading states, streaming text, approval cards, chat composer, diff and record views. MIT. The natural source for coach, grading, and review surfaces. |
+| [amicro](https://amicro.vercel.app) | React micro-transitions and interaction polish. Confirm its licence before vendoring. |
+
+Anything outside this list gets a line in this document before it enters the repo.
+
+### Copy exactly. Do not reinterpret.
+
+This is the rule that matters, because the failure mode is consistent: the source gets
+opened, the idea gets understood, and a weaker version gets written from memory. That is
+more work for a worse component. Vendoring is not a starting point for your own version.
+
+- Copy the upstream file **verbatim** into `components/<source>/`. Do not retype it, do not
+  simplify it, do not "take inspiration from" it, do not rebuild it out of our primitives.
+- Record the upstream URL and commit SHA in a header comment so the copy can be diffed
+  against its source later.
+- Adapt only through the component's **documented props**. Never edit its internals to fit a
+  surface — wrap it instead.
+- Map its colors to semantic tokens through the props it exposes. Where it exposes none,
+  leave the upstream values intact and add the vendored path to the allowlist in
+  `scripts/design-system-audit.ts` with a comment saying the source is deliberately untouched.
+- Upstream typography inside a vendored component stays upstream. Our `type-*` utilities
+  apply to the wrapper, not to the component's internals.
+
+### Adoption QA
+Before calling a vendored component done, capture the upstream demo and our integration at
+the same viewport and device scale factor, and compare them side by side. Then verify
+interaction, keyboard behavior, reduced motion, both themes, and both locales.
+
+Upstream components often carry English-only or domain-specific semantics — a GitHub-style
+activity grid means nothing to a learner. Keep the visual, hide it from assistive technology,
+and pair it with a localized text equivalent rather than redrawing it.
+
 ## Component Guidance
+
+### Control geometry
+One control rhythm across the product. These are the shipped values; treat them as the
+system, not as per-component choices.
+
+| | Height | Radius |
+|---|---|---|
+| Button (default) | 32px | 10px |
+| Button `xs` / `sm` / `lg` | 24 / 28 / 36px | 8px |
+| Badge | 20px | 6px |
+| Data row | 40px | — |
+| List / store row | 44px | — |
+
+Radius scale: `sm` 6px · `md` 8px · `lg` 16px · `xl` 24px, plus a 10px control radius.
+Do not invent a radius per component. (The control radius moves 10px → 12px with the palette
+migration, closing the ramp to 6/8/12/16/24 — see `docs/design-system-followups.md`.) Letter-spacing is `0` by default; mild negative
+tracking is reserved for large headings.
+
+### Buttons
+- Geometry is fixed: `32px` height, `10px` radius (`h-8 rounded-[10px]`). Sizes `xs`/`sm`/`lg` step to `24`/`28`/`36px`; icon-only buttons stay square.
+- Primary button: `primary` fill, `on-primary` text. Secondary: `surface` with an `outline-variant` border.
+- Text and link buttons carry color only — no fill.
+- One dominant CTA per surface. `primary` for it (`default` is a legacy alias), `outline` for
+  secondary actions, `ghost` for quiet utilities, `reward` only for XP and celebration, and
+  `destructive` only for destruction.
+- Icon-only buttons must use a stable square size and a tooltip or accessible label when the action is not obvious.
+- Do not hand-roll new button styles unless the shared `Button` variants cannot express the required state.
+
+### Cards
+- Default card: `surface`. Grouped or recessed card: `surface-container-low` / `-high`.
+- Border: `outline-variant`. Radius stays soft and consistent — do not invent a new one per card.
+- Shadows are subtle and cool-toned, never muddy. Prefer a border or a surface step over a shadow.
+- Never nest a card inside a card.
+
+### Inputs
+- Background `surface`, border `outline-variant`, placeholder `placeholder`.
+- Focus ring is tokenized (`ring`) — custom focus colors are not allowed.
+
+### Navigation
+- Active row: `on-surface` text on a `surface-container-high` fill. Weight and fill carry the
+  active state; icon tone is a secondary signal at most.
+- Inactive row: `on-surface-variant`.
+- Dividers and tab rails stay very subtle — `outline-variant` at most.
+
+### Status
+- `success` for confirmed positive states only. `warning` for caution, never for failure.
+  `error` for errors and destruction. `info` for neutral notice.
+- Status is never carried by color alone — pair it with a label, icon, or state text.
 
 ## Icon System
 
@@ -252,22 +341,9 @@ Icons should support the interface, not compete with it.
 - if extra detail is added, it must improve recognition, not ornament
 - icons should still read clearly at small dashboard sizes
 
-### Color Rules
-- default icon colors should come from the approved palette only
-- primary icon color: `#00B8D9`
-- darker emphasis / stroke: `#0788A0`
-- supporting light fill: `#8BE8F7`
-- optional neutral support: `#CDECF3` or `#E5F8FC`
-
-Do not:
-- use unapproved saturated colors
-- use purple-first icon styling
-- use gradient fills
-- use white-on-white shapes with weak contrast
-
 ### Background and Contrast
 - icons must work on white and near-white surfaces
-- shapes should maintain enough contrast against `#FFFFFF`, `#F3FCFE`, and `#E5F8FC`
+- shapes must hold contrast against `surface`, `background`, and `surface-container-high`
 - if a shape disappears on light surfaces, darken the fill or stroke rather than adding decorative effects
 
 ### Product Usage
@@ -293,129 +369,51 @@ They should not feel:
 - over-rendered
 - like mini illustrations dropped into UI
 
-### Buttons
-- Primary button: `#00B8D9` background, white text
-- Primary hover: slightly darker blue or subtle gradient depth
-- Secondary button: white background, `#CDECF3` border, primary text
-- Text button / link: primary text with no heavy fill
-- Use one dominant primary CTA per surface.
-- Use `default` only for the primary action, `outline` for secondary actions, `ghost` for quiet utilities, and `destructive` only for destructive actions.
-- Icon-only buttons must use a stable square size and a tooltip or accessible label when the action is not obvious.
-- Do not hand-roll new button styles unless the shared `Button` variants cannot express the required state.
-
-### Cards
-- Default card background: `#FFFFFF`
-- Secondary card background: `#F3FCFE` or `#E5F8FC`
-- Border: `#CDECF3`
-- Radius should stay soft and modern
-- Shadows should be subtle and cool-toned, not muddy
-
-### Inputs
-- Background: white
-- Border: `#CDECF3`
-- Placeholder: `#BCC6D3`
-- Focus ring: derived from `#8BE8F7` / `#00B8D9`
-
-### Navigation
-- Active item: blue text on very light blue background
-- Inactive item: text or muted text
-- Dividers and tab rails should remain very subtle
-
-### Status
-- Success: green only for confirmed positive states
-- Warning: amber for caution, not failure
-- Error: red only for errors or destructive actions
-- Info: primary blue
-
 ## Dashboard Direction
 When we apply this palette to the app, the dashboard should follow these rules:
 - one dominant action area
 - light background with white or near-white cards
-- blue used for hierarchy and action, not everywhere
+- the accent carries hierarchy and action, not everywhere
 - metrics should feel calm and readable, not gamified
 - gradients should be soft and reserved
 
 Recommended balance:
 - 70% surface / neutral
-- 20% blue family
+- 20% brand and accent
 - 10% semantic and accent color
 
-## Accessibility Notes
-- maintain strong contrast for headings and body text
-- avoid placing muted text on tinted blue surfaces unless contrast is verified
-- do not use `Primary Light` as text color on white for important content
-- semantic colors must not be the only signal; pair with label, icon, or state text
+## Reject These Defaults
 
-## Implementation Notes
-When we roll this into the project, we should map these values into:
-- global CSS variables
-- semantic tokens, not raw hex usage
-- component-level variants for buttons, cards, tabs, badges, and inputs
+Draft — cut what you disagree with. These are the reflexes that show up when a surface is
+generated rather than designed. Naming them makes them a decision instead of a default.
 
-Recommended token structure:
+- A card around every block. Cards nested inside cards. Borders used to repair weak hierarchy.
+- Title, subtitle, card title, card description, and helper text all in one viewport. Remove a
+  layer. A subtitle that explains what the visible controls already say is the first to go.
+- A metric box for a number we did not measure, or four repeated metric boxes where one
+  composed relationship would read faster.
+- A badge, pill, or capsule for ordinary metadata.
+- Icons in tinted tiles as decoration, oversized icons, or mixed icon weights in one view.
+- Celebration for routine actions. Spending `reward` on ordinary completion devalues it for
+  the moments that have earned it.
+- Decorative gradients, glows, blobs, mesh backgrounds, glass, textures, ornamental shadows,
+  fake depth.
+- A generic card-grid skeleton that does not match the surface it is loading — or a skeleton
+  with no resolution, no empty state, and no retryable error.
+- Tiny muted copy used to make density fit. Cut content before shrinking type.
+- Motivational paragraphs where a metadata chip would do.
+- Coming-soon items, roadmap promises, or decorative cards inside a list of today's actions.
+- Color as the only signal for a state.
+- Em dashes in product copy.
 
-```css
---color-background: #F3FCFE;
---color-surface: #FFFFFF;
---color-surface-alt: #E5F8FC;
---color-border: #CDECF3;
-
---color-primary: #00B8D9;
---color-primary-light: #8BE8F7;
---color-primary-dark: #0788A0;
-
---color-heading: #102936;
---color-text-strong: #102936;
---color-text: #657B84;
---color-text-muted: #657B84;
---color-muted: #8A96A8;
---color-placeholder: #BCC6D3;
---color-disabled: #E5F8FC;
-
---color-success: #34C759;
---color-info: #00B8D9;
---color-warning: #F5B942;
---color-error: #EF6A6A;
-```
-
-## Adoption Plan
-Recommended rollout order:
-1. define global color tokens
-2. update surfaces, borders, and typography colors
-3. update buttons, tabs, badges, and inputs
-4. update dashboard and course cards
-5. update charts and status states
-6. clean up any remaining hardcoded colors
-
-## Non-Goals
-This palette should not push the product toward:
-- neon gradients
-- dark-heavy UI
-- overly playful gamification
-- saturated multi-color surfaces
-- purple-first branding
-
-The visual direction should stay blue-led, editorial, and trustworthy.
+Do not overcorrect into sterility. Restraint here means precise hierarchy, real evidence, and
+celebration that is earned — not the removal of all warmth. Thinkfy product surfaces are
+allowed to feel good; they are not allowed to feel unearned.
 
 ## In-App Feedback Popups
 
 ### Purpose
 Feedback popups collect immediate product feedback without interrupting core practice work. They should feel like a respectful intercept: short, clear, localized, and easy to dismiss.
-
-### Color Profile
-- `Primary`: `#00B8D9`
-- `Primary Dark`: `#0788A0`
-- `Primary Light`: `#8BE8F7`
-- `Background`: `#F3FCFE`
-- `Surface`: `#FFFFFF`
-- `Surface Alt`: `#E5F8FC`
-- `Border`: `#CDECF3`
-- `Heading`: `#102936`
-- `Text`: `#657B84`
-- `Muted`: `#657B84`
-- `Success`: `#34C759`
-- `Warning`: `#F5B942`
-- `Error`: `#EF6A6A`
 
 ### Interaction Rules
 - Show feedback popups only on safe protected pages, never during auth, onboarding, administration, or live practice sessions.
@@ -431,7 +429,7 @@ Feedback popups collect immediate product feedback without interrupting core pra
 - Mobile layouts must keep rating scales, choices, and text inputs inside the modal width without horizontal scrolling.
 
 ### Admin Control Panel
-- Admin pages use the same light-blue surface system as the rest of Administration.
+- Admin pages use the same surface system as the rest of Administration.
 - Builder previews should show English and Vietnamese side by side on desktop and stacked on mobile.
 - Campaign status, delivery mode, response counts, average rating, and send-now actions must be visible without opening a detail page.
 
@@ -449,14 +447,14 @@ Smart popups should feel like a Duolingo-style product nudge: compact, celebrato
 
 ### Visual System
 - Top decoration is a small celebration cluster only: target, check, star, chart, gift, clock, book, chat, or flame symbols.
-- Eyebrow text is plain blue text, not a pill.
+- Eyebrow text is plain accent-colored text, not a pill.
 - Title is action-first and preferably one line: `Drill rebuttal for 10 minutes.`
 - Body is one sentence max and explains why now.
 - Show `1` to `2` fact chips/rows, such as `Weakest skill`, `63/100`, `10 min`, or `+50 Credits`.
-- Fact chips use quiet blue-tinted surfaces, compact icons, and truncation-safe labels.
+- Fact chips use quiet tinted surfaces, compact icons, and truncation-safe labels.
 
 ### Actions
-- Primary CTA is full-width, blue-filled, and tactile: light top, darker bottom shadow, strong active press state.
+- Primary CTA is full-width, `primary`-filled, and tactile: light top, darker bottom shadow, strong active press state.
 - Secondary action is quiet outline text such as `Later`.
 - Suppression action is link-weight text such as `Don't show again`; it must be visually quieter than the primary and secondary actions.
 - CTA labels should name the next action: `Start rebuttal drill`, `Share feedback`, `Continue course`.
@@ -481,7 +479,7 @@ Smart popups should feel like a Duolingo-style product nudge: compact, celebrato
 ## Product Proportion System
 
 ### Purpose
-DebateLab product UI should feel disciplined at 13-inch laptop sizes first. The reference rhythm is OnePrep's proportion system: a compact fixed sidebar, restrained content width, modest typography, and internal scrolling panes. Keep DebateLab's blue-led brand and Plus Jakarta Sans; copy the layout discipline, not OnePrep's palette.
+DebateLab product UI should feel disciplined at 13-inch laptop sizes first. The reference rhythm is OnePrep's proportion system: a compact fixed sidebar, restrained content width, modest typography, and internal scrolling panes. Copy the layout discipline only — not its palette or type.
 
 ### App Shell
 - Protected app shells use `h-dvh w-screen overflow-hidden`; the main pane is `min-w-0 flex-1 overflow-y-auto overflow-x-hidden`.
@@ -506,10 +504,11 @@ DebateLab product UI should feel disciplined at 13-inch laptop sizes first. The 
 - Remove ad hoc `max-w-[1400px]` style defaults unless the page is a real data-table surface.
 
 ### Type Scale
-- Keep Plus Jakarta Sans.
-- Body and dense UI copy: `14px` to `16px`.
-- Card titles and compact panel titles: `14px` to `16px`.
-- Page titles: `24px` to `32px`.
+Use the `type-*` steps from §Typography; the ranges below are what they resolve to at
+product density.
+- Body and dense UI copy: `14px` (`type-body`).
+- Card and compact panel titles: `16px` (`type-title`).
+- Page titles: `24px` to `30px` (`type-heading-lg` / `type-heading-xl`).
 - Stats and hero numerals may use `30px` to `36px`.
 - Letter spacing should be `0` by default; use only mild negative tracking for large headings.
 
@@ -593,46 +592,33 @@ DebateLab product UI should feel calm, sparse, and action-led. The OnePrep lesso
 
 ## Design System Hardening Contract
 
-### Token Layers
-- Primitive colors live only in `@thinkfy/shared/design-system`.
-- App surfaces consume semantic roles, not raw hex values: `primary`, `onPrimary`, `surface`, `onSurface`, `outline`, `reward`, `success`, `warning`, `error`, `info`, `chart`, and `courseAccent`.
-- Components consume component tokens: button background/text/shadow, card background/border/shadow, input border/focus ring, badge tone pairs, and progress fills.
-- Web variables are emitted by `ThinkfyThemeVariables`; mobile colors derive from `getThinkfyTheme(mode)`.
-- `globals.css` may keep fallback values for Tailwind class generation, but the shared token source is the product contract.
+### Layers
+- Primitive values live only in `@thinkfy/shared/design-system`. See §Color System for the
+  role API and the dual-source rule.
+- Components consume **component tokens** — button background/text/shadow, card
+  background/border/shadow, input border and focus ring, badge tone pairs, progress fills —
+  rather than reaching for raw roles.
+- Web variables are emitted by `ThinkfyThemeVariables`; mobile derives from `getThinkfyTheme(mode)`.
 
-### Product Meaning
-- Primary is for habit-building CTAs, selected states, and the one dominant action on a surface.
-- Reward is for XP, streaks, level-up moments, badges, and celebratory CTAs.
-- Success is for correctness, completion, and healthy status.
-- Warning and error are functional states only; do not use them as decorative brand accents.
-- Info and chart colors support data visualization and coach/explanation surfaces; charts should not steal CTA colors without a reason.
+### Component rules
+- `Badge` tones carry product meaning; never a hardcoded pill color.
+- Progress bars use `primary`, `reward`, or `success` — never an arbitrary fill.
+- Inputs use the tokenized border, focus border, and focus ring.
+- Do not hand-roll a variant the shared component already expresses.
 
-### Component Rules
-- Use `<Button variant="primary" />` or `<Button variant="default" />` for dominant CTAs. `default` remains an alias for compatibility.
-- Use `<Button variant="reward" />` only for XP/streak/celebration actions.
-- Use `Badge` tones for product meaning instead of hardcoded pill colors.
-- Inputs use tokenized border, focus border, and focus ring; custom focus colors are not allowed.
-- Progress bars use `primary`, `reward`, or `success` tones instead of arbitrary fills.
+### Literal-color exceptions
+`scripts/design-system-audit.ts` holds the authoritative allowlist. Treat it as a **debt
+ledger, not a design decision**: all but one category on it is a surface that has not been
+migrated yet. Adding a path requires a comment saying why, and when it goes away. Vendored
+third-party components (§Component Sourcing) are the one permanent category.
 
-### Allowed Literal Color Exceptions
-- Shared design-token source.
-- Generated theme variable bridge.
-- Tailwind fallback variables in `globals.css`.
-- Email templates and unsubscribe HTML.
-- Chart/data-viz palettes.
-- Course artwork palette modules.
-- Dashboard, debate, and feedback visualization palettes.
-- Landing, onboarding, practice, and profile visualization palettes.
-- Profile banner presets and Supabase-stored `banner_color` defaults.
-- Static SVG/bitmap assets.
-
-### Palette Swap Workflow
-1. Update only `@thinkfy/shared/design-system`.
-2. Run `npm run test:design-system` and `npm run audit:design-system`.
-3. Run web/mobile typechecks and lint.
-4. Use Browser QA on landing, auth, dashboard, courses, practice, feedback/history, chat/coach, leaderboards, profile/social, settings, admin, and dev QA pages.
-5. Capture screenshots for changed surfaces and compare against the approved imagegen reference board.
-6. Any visible legacy primary color outside the approved exceptions is a failure.
+### Changing a token value
+1. Edit `tokens.ts` **and** the `@theme inline` block in `globals.css` in the same commit.
+   Editing one alone is how light and dark drift apart.
+2. `npm run test:design-system && npm run audit:design-system`, then lint and typecheck.
+3. Browser QA in **both themes** across landing, auth, dashboard, courses, practice,
+   feedback/history, coach, profile, settings, and admin.
+4. Any visible legacy color outside the allowlist is a failure.
 
 ## Chart System
 - **Tokens:** the §Chart Colors palette is promoted to `--color-chart-1..7` (light + dark), plus `--color-chart-grid/axis/tooltip-bg/tooltip-text/crosshair`. Source of truth: `@thinkfy/shared/design-system` (mirrored in `globals.css`). Semantic intent over index order: `chart-3` = positive, `chart-4` = caution, `chart-7` = negative.

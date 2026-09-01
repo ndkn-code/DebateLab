@@ -13,7 +13,7 @@ const DISPLAY_SIZES = {
 
 type DisplaySize = keyof typeof DISPLAY_SIZES;
 
-/** Brand/marketing headline. Nunito display font. Defaults to <h1>. */
+/** Brand/marketing headline. Inter, display scale. Defaults to <h1>. */
 function Display({
   size = "xl",
   as,

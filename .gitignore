@@ -49,7 +49,9 @@ next-env.d.ts
 /tmp/
 /qa-artifacts/
 /design-artifacts/
-/.codex/
+# Codex session state is generated; the agent definitions are deliberate config.
+/.codex/*
+!/.codex/agents/
 /.codex-audits/
 /outputs/
 /design-qa.md
