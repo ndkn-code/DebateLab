@@ -107,3 +107,135 @@ export function parseOperationalSafetyEvidence(
   const parsed = operationalSafetyEvidenceSchema.safeParse(value);
   return parsed.success ? parsed.data : null;
 }
+
+const approvedBenchmarkSourceSchema = z.object({
+  canonicalUrl: z.string().url(),
+  publisher: z.string().min(1).max(300),
+  title: z.string().min(1).max(500),
+  authorityTier: z.enum(["official", "qualified_examiner_or_adjudicator"]),
+  rightsStatus: z.enum([
+    "approved_for_derived_use",
+    "approved_for_excerpt",
+    "public_domain",
+  ]),
+  checksum: z.string().min(16).max(256),
+  reviewedBy: z.string().min(1).max(200),
+  reviewedAt: z.string().datetime({ offset: true }),
+  reviewNotes: z.string().min(1).max(2_000),
+});
+
+const protectedCriterionLabelSchema = z.object({
+  band: finiteBandSchema.refine((value) => Number.isInteger(value * 2), {
+    message: "Criterion bands must use whole- or half-band increments",
+  }),
+  labelLocator: z.string().min(1).max(500),
+  examinerRationale: z.string().min(1).max(8_000).optional(),
+});
+
+const protectedBenchmarkLabelSchema = z.object({
+  criteria: z.record(z.string(), protectedCriterionLabelSchema),
+  /** Protected input is service-role only and never returned to learners/admin UI. */
+  input: z
+    .object({
+      prompt: z.string().min(1).max(20_000),
+      responseText: z.string().min(1).max(100_000).optional(),
+      audioObjectPath: z.string().min(1).max(1_000).optional(),
+      responseLocator: z.string().min(1).max(500),
+    })
+    .refine(
+      (input) => Boolean(input.responseText || input.audioObjectPath),
+      "A benchmark input needs responseText or audioObjectPath",
+    ),
+  rubricVersion: z.string().min(1).max(200),
+  labelAuthority: z.enum(["official_examiner", "qualified_examiner"]),
+});
+
+const benchmarkCaseSchema = z.object({
+  benchmarkKey: z.string().min(1).max(300),
+  collectionSlug: z.enum(["ielts.speaking", "ielts.writing"]),
+  sourceUrl: z.string().url(),
+  skill: z.enum(["ielts_speaking", "ielts_writing"]),
+  taskType: z.string().min(1).max(200),
+  bandOrScoreRange: z.string().min(1).max(100),
+  accentGroup: z.string().min(1).max(100).nullable().default(null),
+  split: z.enum(["development", "evaluation", "holdout"]),
+  protectedLabel: protectedBenchmarkLabelSchema,
+  metadata: z.record(z.string(), z.unknown()).default({}),
+});
+
+export const gradingBenchmarkImportFileSchema = z.object({
+  manifestVersion: z.literal(1),
+  createdAt: z.string().datetime({ offset: true }),
+  sources: z.array(approvedBenchmarkSourceSchema).min(1).max(10_000),
+  benchmarks: z.array(benchmarkCaseSchema).min(1).max(100_000),
+});
+
+export type GradingBenchmarkImportFile = z.infer<
+  typeof gradingBenchmarkImportFileSchema
+>;
+
+/**
+ * Fails closed unless every benchmark has approved provenance, an exact
+ * productive-skill criterion set, a valid task family, and source-separated
+ * splits. It deliberately returns protected labels only to the offline
+ * service-role importer.
+ */
+export function parseGradingBenchmarkImport(
+  value: unknown,
+): GradingBenchmarkImportFile {
+  const parsed = gradingBenchmarkImportFileSchema.parse(value);
+  const sourceUrls = new Set(
+    parsed.sources.map((source) => source.canonicalUrl),
+  );
+  if (sourceUrls.size !== parsed.sources.length) {
+    throw new Error("Duplicate canonicalUrl in benchmark source manifest");
+  }
+  const keys = new Set<string>();
+  const splitBySource = new Map<string, string>();
+  for (const benchmark of parsed.benchmarks) {
+    if (keys.has(benchmark.benchmarkKey)) {
+      throw new Error(`Duplicate benchmarkKey: ${benchmark.benchmarkKey}`);
+    }
+    keys.add(benchmark.benchmarkKey);
+    if (!sourceUrls.has(benchmark.sourceUrl)) {
+      throw new Error(
+        `Benchmark source is missing from approved manifest: ${benchmark.sourceUrl}`,
+      );
+    }
+    const expectedCollection =
+      benchmark.skill === "ielts_speaking" ? "ielts.speaking" : "ielts.writing";
+    if (benchmark.collectionSlug !== expectedCollection) {
+      throw new Error(
+        `Collection/skill mismatch for ${benchmark.benchmarkKey}`,
+      );
+    }
+    const requirements = IELTS_BENCHMARK_REQUIREMENTS[benchmark.skill];
+    if (!requirements.taskTypes.includes(benchmark.taskType)) {
+      throw new Error(
+        `Unsupported taskType for ${benchmark.benchmarkKey}: ${benchmark.taskType}`,
+      );
+    }
+    const suppliedCriteria = Object.keys(benchmark.protectedLabel.criteria)
+      .map(normalizeIeltsCriterion)
+      .sort();
+    const requiredCriteria = [...requirements.criteria].sort();
+    if (
+      suppliedCriteria.length !== requiredCriteria.length ||
+      suppliedCriteria.some(
+        (criterion, index) => criterion !== requiredCriteria[index],
+      )
+    ) {
+      throw new Error(
+        `Incomplete or unknown criterion labels for ${benchmark.benchmarkKey}`,
+      );
+    }
+    const previousSplit = splitBySource.get(benchmark.sourceUrl);
+    if (previousSplit && previousSplit !== benchmark.split) {
+      throw new Error(
+        `Source leakage across benchmark splits: ${benchmark.sourceUrl}`,
+      );
+    }
+    splitBySource.set(benchmark.sourceUrl, benchmark.split);
+  }
+  return parsed;
+}

@@ -96,6 +96,22 @@ claiming examiner-equivalent precision.
 
 ## Grading benchmark gate
 
+Prepare a protected, human-reviewed benchmark manifest first. Every source must
+have approved rights, an official or qualified-examiner authority tier, exact
+response and label locators, all four criterion labels, and a single split per
+source. The importer is append-only by contract: an existing benchmark key may
+be replayed only when its immutable label and provenance match exactly.
+
+```bash
+AI_GRADING_BENCHMARKS_FILE=/absolute/path/to/reviewed-benchmarks.json \
+npm run ai:import-grading-benchmarks -w @thinkfy/web
+```
+
+The manifest and protected response material must not be committed. The
+service-role importer emits counts only; learner/admin APIs never receive gold
+labels. Retrieval-source/benchmark-source separation is also enforced in the
+database.
+
 Pin the exact grader and corpus versions, then run:
 
 ```bash
