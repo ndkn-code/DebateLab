@@ -3,7 +3,9 @@ import { createHash } from "node:crypto";
 import test from "node:test";
 
 import {
+  benchmarkTranscriptReviewSha256,
   protectedBenchmarkInputSchema,
+  type BenchmarkTranscriptReview,
   type ProtectedBenchmarkInput,
 } from "@/lib/ai/benchmarks/contracts";
 import {
@@ -101,6 +103,11 @@ function acousticAttestation(params: {
   configSha256: string;
   reportObjectPath: string;
   reportSha256: string;
+  transcriptReview: BenchmarkTranscriptReview;
+  audioStorageVersion: string;
+  audioEtag: string;
+  reportStorageVersion: string;
+  reportEtag: string;
 }) {
   return {
     envelope: {
@@ -111,14 +118,32 @@ function acousticAttestation(params: {
       reportObjectPath: params.reportObjectPath,
       audioArtifactSha256: params.audioSha256,
       transcriptSha256: params.transcriptSha256,
+      transcriptReviewSha256: benchmarkTranscriptReviewSha256(
+        params.transcriptReview,
+      ),
       configSha256: params.configSha256,
       reportSha256: params.reportSha256,
+      audioStorageVersion: params.audioStorageVersion,
+      audioEtag: params.audioEtag,
+      reportStorageVersion: params.reportStorageVersion,
+      reportEtag: params.reportEtag,
       provider: "azure" as const,
       model: "pronunciation-assessment" as const,
       apiVersion: "speech-sdk/1.51.0" as const,
       assessmentMode: "unscripted" as const,
     },
     signature: "c".repeat(64),
+  };
+}
+
+function reviewedTranscript(transcript: string): BenchmarkTranscriptReview {
+  return {
+    reviewVersion: 1,
+    reviewerKey: "transcript-reviewer-001",
+    reviewedAt: "2026-09-01T12:00:00.000Z",
+    status: "verified_against_audio",
+    transcriptVersion: 1,
+    transcriptSha256: sha256(transcript),
   };
 }
 
@@ -351,6 +376,7 @@ test("a Speaking request binds and carries locked acoustic evidence into preflig
         model: "nova-3",
         transcriptSha256: sha256(transcript),
       },
+      transcriptReview: reviewedTranscript(transcript),
       pronunciation: {
         ...azureConfigIdentity,
         configSha256: ieltsBenchmarkAzureConfigSha256(azureConfigIdentity),
@@ -372,6 +398,11 @@ test("a Speaking request binds and carries locked acoustic evidence into preflig
         reportObjectPath:
           "ai-grading-benchmarks-private/azure/report-001.json",
         reportSha256: sha256(azureReportBytes),
+        transcriptReview: reviewedTranscript(transcript),
+        audioStorageVersion: "audio-v1",
+        audioEtag: "audio-etag-v1",
+        reportStorageVersion: "report-v1",
+        reportEtag: "report-etag-v1",
       }),
     },
     artifactSha256: "b".repeat(64),
@@ -492,6 +523,7 @@ test("Speaking request rejects audio and transcript provenance mismatches", () =
         model: "nova-3",
         transcriptSha256: sha256(transcript),
       },
+      transcriptReview: reviewedTranscript(transcript),
       pronunciation: {
         ...azureConfigIdentity,
         configSha256: ieltsBenchmarkAzureConfigSha256(azureConfigIdentity),
@@ -512,6 +544,11 @@ test("Speaking request rejects audio and transcript provenance mismatches", () =
         reportObjectPath:
           "ai-grading-benchmarks-private/azure/report-001.json",
         reportSha256: sha256(azureReportBytes),
+        transcriptReview: reviewedTranscript(transcript),
+        audioStorageVersion: "v1",
+        audioEtag: "etag",
+        reportStorageVersion: "report-v1",
+        reportEtag: "report-etag-v1",
       }),
     },
     artifactSha256: "b".repeat(64),
@@ -605,6 +642,7 @@ test("Speaking request rejects Azure config, report, and derived-score tampering
         model: "nova-3",
         transcriptSha256: sha256(transcript),
       },
+      transcriptReview: reviewedTranscript(transcript),
       pronunciation,
       acousticAttestation: acousticAttestation({
         benchmarkKey: "protected-speaking-holdout-001",
@@ -615,6 +653,11 @@ test("Speaking request rejects Azure config, report, and derived-score tampering
         configSha256: pronunciation.configSha256,
         reportObjectPath: pronunciation.reportObjectPath,
         reportSha256: pronunciation.reportSha256,
+        transcriptReview: reviewedTranscript(transcript),
+        audioStorageVersion: "audio-v1",
+        audioEtag: "audio-etag-v1",
+        reportStorageVersion: pronunciation.reportStorageVersion,
+        reportEtag: pronunciation.reportEtag,
       }),
     },
     artifactSha256: "b".repeat(64),

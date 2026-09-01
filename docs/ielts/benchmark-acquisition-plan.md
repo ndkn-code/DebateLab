@@ -78,7 +78,7 @@ labels, but it counts once per cell regardless of repeated imports.
   re-identification risk, storage/processing jurisdictions, retention, deletion,
   and future versioned re-evaluation.
 - Prefer adults. Minors require guardian consent, learner assent, safeguarding
-  review, and shorter retention.
+  review, and at most one year of retention before renewed consent.
 - Pseudonymize before rater access; encrypt audio/text; log access; execute DPAs
   with the study lead, examiner supplier, transcription/acoustic providers, and
   model providers.
@@ -98,3 +98,105 @@ labels, but it counts once per cell regardless of repeated imports.
 The new grader stays disabled until the acquired holdout passes the repository's
 release gate. Public official examples may inform methodology or preliminary
 research but cannot prove examiner-equivalent accuracy by themselves.
+
+## Examiner-team start packet
+
+The checked-in files are synthetic schemas, not participant material:
+
+- `apps/web/src/scripts/manifests/ielts-benchmark-study-design.v1.json` is the
+  versioned task, band, accent, L1, audio-quality, and minimum-cell design.
+- `ielts-benchmark-study-manifest.template.json` is a redacted end-to-end
+  example. Copy it outside the repository; never commit a completed manifest.
+- `ielts-benchmark-study-rater-marks.template.csv` and
+  `ielts-benchmark-study-adjudication.template.csv` are collection sheets. They
+  are staging formats only; the protected JSON contract remains authoritative.
+
+Before storage upload or database import, validate the assembled manifest
+offline. This command reads one local file, makes no network, database, or model
+call, and prints counts and recruitment deficits only. Release validation is
+the default and exits non-zero if any required stratum is incomplete. Use
+`--draft` only while recruiting or assembling a batch; draft success is never a
+release result:
+
+```bash
+NODE_OPTIONS='--conditions=react-server' npx tsx \
+  --tsconfig apps/web/tsconfig.json \
+  apps/web/src/scripts/ai-grading-benchmark-study-validate.ts \
+  --manifest=/absolute/path/to/protected-manifest.json
+```
+
+### Data dictionary
+
+All `*Key` values are lowercase pseudonymous study identifiers. They must not
+contain a name, email, phone number, account ID, or test-centre candidate number.
+
+- `candidateKey` groups every artifact from one participant.
+- `promptFamilyKey` groups equivalent or reused prompts before splitting.
+- `sourceGroupKey` groups one recruitment/licensing cohort.
+- `captureSessionKey` groups a full recording or writing sitting and all parts
+  derived from it. None of these four groups may cross a split.
+- Every group key has a separately verified receipt hash. The study lead signs
+  an Ed25519 envelope that binds those receipts, all four keys, the immutable
+  response/audio hash, consent receipt, examiner credential proof hashes, and a
+  capture-identity receipt. Relabeling a caller-supplied group makes the
+  signature invalid instead of silently moving a case between splits.
+- `raterKey` and `adjudicatorKey` are pseudonyms assigned by the study lead.
+  Credential evidence is represented by its SHA-256 proof, verification time,
+  and a separate verifier key; the credential document never enters the
+  manifest.
+- `criteria` on each rater record are the untouched blind marks. `overallBand`
+  must equal the half-up rounded mean of the four criterion marks.
+- `declaredBoundaryCrossing` records a preregistered consequential boundary
+  even when numeric disagreement is no more than 0.5.
+- `consent.scopes.modelTraining` is separate from commercial evaluation.
+  Evaluation consent never implies training consent.
+- `retentionUntil` is the approved destruction/re-consent deadline. A later
+  withdrawal uses the controlled database withdrawal action; gold labels are
+  not edited in place.
+
+Speaking uses the controlled accent and L1 codes from the study-design file.
+`other_documented` requires a protected study note but prevents spelling
+variants from silently creating a new statistical slice.
+
+### Blind marking and adjudication SOP
+
+1. The study lead assigns the split and all four grouping keys before any rater
+   receives an artifact. Examiners never see AI predictions, another examiner's
+   mark, learner identity, or split name.
+2. Two different credential-verified examiners independently mark all four
+   criteria using the exact locked rubric version. Record their untouched marks,
+   computed overall, timestamp, and protected mark-sheet locator.
+3. Adjudication is mandatory when any criterion or computed overall differs by
+   more than 0.5, or when `declaredBoundaryCrossing=true`. The adjudicator must
+   be different from both original raters and records the trigger, final four
+   bands, computed overall, rationale, and locator. The trigger list must equal
+   the observed triggers exactly. Adjudication is rejected when no trigger
+   exists.
+4. Without adjudication, each final criterion is the half-up rounded mean of the
+   two independent marks. With adjudication, the final labels must exactly match
+   the adjudication record. The importer rejects any inconsistency.
+5. Check the withdrawal registry immediately before manifest assembly. The
+   signed release envelope expires no later than 24 hours after that check and
+   never after `retentionUntil`; import and release both fail closed on stale or
+   expired evidence. Adults
+   have no guardian/assent receipts. A minor requires both guardian consent and
+   learner assent. Speaking additionally requires voice-processing consent.
+6. A different person verifies source rights and examiner credentials. Directly
+   consented study material uses `approved_for_benchmark_evaluation`; this does
+   not make the source eligible for learner-facing retrieval or model training.
+7. Run the offline validator after every batch. Resolve unknown strata, split
+   leakage, consent errors, rater disagreement, and coverage deficits before the
+   service-role import is requested.
+
+### Withdrawal and immutability
+
+Migration `20260901190000_ielts_benchmark_study_integrity.sql` makes protected
+labels and study identity immutable at the database boundary. Concurrent
+inserts take transaction-scoped advisory locks per source and grouping key, so
+two imports cannot race the split check. A database operator first records a
+verified withdrawal receipt in the registry that is inaccessible to the
+service role. `withdraw_ai_grading_benchmark` accepts only that receipt ID; it
+cannot accept a caller-asserted actor or hash. The action is idempotent, writes
+an immutable receipt hash/reason/actor audit, and only deactivates the case. It never rewrites
+historical labels or reactivates a withdrawn case. Artifact deletion and legal
+retention execution remain an operator procedure governed by the study DPA.

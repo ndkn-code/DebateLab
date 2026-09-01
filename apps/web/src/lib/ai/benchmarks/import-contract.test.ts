@@ -1,13 +1,20 @@
 import assert from "node:assert/strict";
-import { createHash } from "node:crypto";
+import {
+  createHash,
+  generateKeyPairSync,
+  sign as signPayload,
+} from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import {
+  benchmarkTranscriptReviewSha256,
+  benchmarkReleaseAttestationPayload,
   countInvalidStoredBenchmarkRows,
   isReleaseEligibleStoredBenchmark,
   parseOperationalSafetyEvidence,
   parseGradingBenchmarkImport,
+  verifyBenchmarkReleaseAttestation,
 } from "./contracts";
 
 const sha256 = (value: string) =>
@@ -18,11 +25,157 @@ const source = {
   publisher: "Official test publisher",
   title: "Reviewed examiner-scored holdout",
   authorityTier: "official" as const,
-  rightsStatus: "approved_for_derived_use" as const,
+  rightsStatus: "approved_for_benchmark_evaluation" as const,
   checksum: "a".repeat(64),
   reviewedBy: "rights-reviewer@example.org",
   reviewedAt: "2026-08-31T12:00:00.000Z",
   reviewNotes: "Approved for protected offline evaluation only.",
+};
+
+const consent = {
+  receiptKey: "consent-00000001",
+  receiptSha256: "1".repeat(64),
+  consentVersion: "benchmark-consent-v1",
+  consentedAt: "2026-08-01T10:00:00.000Z",
+  participantAgeGroup: "adult" as const,
+  scopes: {
+    commercialAiEvaluation: true as const,
+    humanExaminerReview: true as const,
+    modelTraining: false,
+    futureVersionedReevaluation: true,
+    voiceProcessing: false,
+  },
+  guardianConsentReceiptSha256: null,
+  learnerAssentReceiptSha256: null,
+  retentionUntil: "2028-08-01T10:00:00.000Z",
+  withdrawal: {
+    status: "not_withdrawn" as const,
+    checkedAt: "2026-08-31T10:00:00.000Z",
+    registryReceiptSha256: "2".repeat(64),
+  },
+};
+
+function examinerMark(params: {
+  raterKey: string;
+  criteria: Record<string, number>;
+  overallBand: number;
+  rubricVersion: string;
+}) {
+  return {
+    raterKey: params.raterKey,
+    authority: "official_examiner" as const,
+    credential: {
+      proofSha256: sha256(`credential:${params.raterKey}`),
+      verifiedAt: "2026-07-01T10:00:00.000Z",
+      verifiedByKey: "credential-reviewer-01",
+    },
+    rubricVersion: params.rubricVersion,
+    markedAt: "2026-08-20T10:00:00.000Z",
+    blindIndependentMark: true as const,
+    criteria: params.criteria,
+    overallBand: params.overallBand,
+    markLocator: `mark-sheet-${params.raterKey}`,
+  };
+}
+
+const writingCriteria = {
+  taskResponse: 6.5,
+  coherenceCohesion: 6,
+  lexicalResource: 6.5,
+  grammaticalRangeAccuracy: 6,
+};
+
+const writingProvenance = {
+  independentlyMarked: true as const,
+  raterRecords: [
+    examinerMark({
+      raterKey: "examiner-writing-01",
+      criteria: writingCriteria,
+      overallBand: 6.5,
+      rubricVersion: "ielts-writing-rubric-v1",
+    }),
+    examinerMark({
+      raterKey: "examiner-writing-02",
+      criteria: writingCriteria,
+      overallBand: 6.5,
+      rubricVersion: "ielts-writing-rubric-v1",
+    }),
+  ],
+  declaredBoundaryCrossing: false,
+  adjudication: null,
+};
+
+function releaseAttestationFor(params: {
+  benchmarkKey: string;
+  artifactSha256: string;
+  consent: {
+    receiptSha256: string;
+    retentionUntil: string;
+    withdrawal: { registryReceiptSha256: string; checkedAt: string };
+  };
+  provenance: {
+    raterRecords: Array<{ credential: { proofSha256: string } }>;
+  };
+  metadata: {
+    candidateKey: string;
+    promptFamilyKey: string;
+    sourceGroupKey: string;
+    captureSessionKey: string;
+  };
+}) {
+  return {
+    keyId: "study-lead-signing-01",
+    envelope: {
+      envelopeVersion: 1 as const,
+      benchmarkKey: params.benchmarkKey,
+      artifactSha256: params.artifactSha256,
+      consentReceiptSha256: params.consent.receiptSha256,
+      consentRetentionUntil: params.consent.retentionUntil,
+      withdrawalRegistryReceiptSha256:
+        params.consent.withdrawal.registryReceiptSha256,
+      withdrawalCheckedAt: params.consent.withdrawal.checkedAt,
+      grouping: {
+        candidateKey: params.metadata.candidateKey,
+        promptFamilyKey: params.metadata.promptFamilyKey,
+        sourceGroupKey: params.metadata.sourceGroupKey,
+        captureSessionKey: params.metadata.captureSessionKey,
+      },
+      groupingReceipts: {
+        candidateReceiptSha256: "8".repeat(64),
+        promptFamilyReceiptSha256: "9".repeat(64),
+        sourceGroupReceiptSha256: "a".repeat(64),
+        captureSessionReceiptSha256: "b".repeat(64),
+      },
+      captureIdentityReceiptSha256: "c".repeat(64),
+      examinerCredentialProofsSha256:
+        params.provenance.raterRecords.map((rater) =>
+          rater.credential.proofSha256,
+        ),
+      verifiedAt: "2026-08-31T10:30:00.000Z",
+      expiresAt: "2026-09-01T09:59:00.000Z",
+    },
+    signatureBase64: `${"A".repeat(86)}==`,
+  };
+}
+
+function refreshReleaseAttestation(benchmark: any) {
+  benchmark.releaseAttestation = releaseAttestationFor({
+    benchmarkKey: benchmark.benchmarkKey,
+    artifactSha256: benchmark.protectedLabel.input.artifactSha256,
+    consent: benchmark.protectedLabel.consent,
+    provenance: benchmark.protectedLabel.provenance,
+    metadata: benchmark.metadata,
+  });
+}
+
+const writingMetadata = {
+  candidateKey: "candidate-writing-0001",
+  promptFamilyKey: "prompt-family-task2-0001",
+  sourceGroupKey: "source-group-study-0001",
+  captureSessionKey: "capture-writing-0001",
+  studyDesignId: "debatelab-ielts-examiner-study" as const,
+  studyDesignVersion: 1 as const,
+  protectedOfflineEvaluationOnly: true,
 };
 
 const writingBenchmark = {
@@ -32,7 +185,7 @@ const writingBenchmark = {
   skill: "ielts_writing" as const,
   taskType: "writing_task2_essay",
   bandOrScoreRange: "6.5",
-  accentGroup: "vi",
+  accentGroup: null,
   split: "holdout" as const,
   protectedLabel: {
     criteria: {
@@ -41,6 +194,7 @@ const writingBenchmark = {
       lexicalResource: { band: 6.5, labelLocator: "page 3" },
       grammaticalRangeAccuracy: { band: 6, labelLocator: "page 3" },
     },
+    overallBand: 6.5,
     input: {
       prompt: "Protected benchmark prompt",
       responseText: "Protected benchmark response",
@@ -56,22 +210,25 @@ const writingBenchmark = {
     },
     rubricVersion: "ielts-writing-rubric-v1",
     labelAuthority: "official_examiner" as const,
-    provenance: {
-      raterCount: 2,
-      independentlyMarked: true as const,
-      raterAuthorities: [
-        "official_examiner" as const,
-        "official_examiner" as const,
-      ],
-      adjudicationMethod: "official_published_adjudication" as const,
-      adjudicationLocator: "page 3",
-    },
+    provenance: writingProvenance,
+    consent,
   },
-  metadata: { protectedOfflineEvaluationOnly: true },
+  releaseAttestation: releaseAttestationFor({
+    benchmarkKey: "official-writing-task2-holdout-001",
+    artifactSha256: "e".repeat(64),
+    consent,
+    provenance: writingProvenance,
+    metadata: writingMetadata,
+  }),
+  metadata: writingMetadata,
 };
 
 const validManifest = {
   manifestVersion: 1 as const,
+  studyDesign: {
+    id: "debatelab-ielts-examiner-study" as const,
+    version: 1 as const,
+  },
   createdAt: "2026-08-31T12:00:00.000Z",
   sources: [source],
   benchmarks: [writingBenchmark],
@@ -81,6 +238,11 @@ assert.equal(
   parseGradingBenchmarkImport(validManifest).benchmarks[0]?.benchmarkKey,
   writingBenchmark.benchmarkKey,
 );
+
+const duplicateWritingArtifact: any = structuredClone(writingBenchmark);
+duplicateWritingArtifact.benchmarkKey =
+  "official-writing-task2-holdout-duplicate-artifact";
+refreshReleaseAttestation(duplicateWritingArtifact);
 
 assert.throws(
   () =>
@@ -98,7 +260,7 @@ assert.throws(
         },
       ],
     }),
-  /Incomplete or unknown criterion labels/,
+  /Examiner mark criteria must match|Incomplete or unknown criterion labels/,
 );
 
 assert.throws(
@@ -110,29 +272,24 @@ assert.throws(
   /Invalid enum value|Invalid option/,
 );
 
+const crossSourceSplitBenchmark: any = structuredClone(writingBenchmark);
+crossSourceSplitBenchmark.benchmarkKey =
+  "official-writing-task2-development-001";
+crossSourceSplitBenchmark.split = "development";
+crossSourceSplitBenchmark.protectedLabel.input.responseText =
+  "A different protected development response.";
+crossSourceSplitBenchmark.protectedLabel.input.responseLocator =
+  "examiner packet page 4";
+crossSourceSplitBenchmark.protectedLabel.input.artifactSha256 = "9".repeat(64);
+refreshReleaseAttestation(crossSourceSplitBenchmark);
+
 assert.throws(
   () =>
     parseGradingBenchmarkImport({
       ...validManifest,
-      benchmarks: [
-        writingBenchmark,
-        {
-          ...writingBenchmark,
-          benchmarkKey: "official-writing-task2-development-001",
-          split: "development",
-          protectedLabel: {
-            ...writingBenchmark.protectedLabel,
-            input: {
-              ...writingBenchmark.protectedLabel.input,
-              responseText: "A different protected development response.",
-              responseLocator: "examiner packet page 4",
-              artifactSha256: "9".repeat(64),
-            },
-          },
-        },
-      ],
+      benchmarks: [writingBenchmark, crossSourceSplitBenchmark],
     }),
-  /Source leakage across benchmark splits/,
+  /sourceUrl leakage across benchmark splits/,
 );
 
 assert.throws(
@@ -164,6 +321,13 @@ const scannedWritingBenchmark = {
       responseLocator: "PDF page 1",
     },
   },
+  releaseAttestation: releaseAttestationFor({
+    benchmarkKey: "qualified-writing-scan-holdout-001",
+    artifactSha256: "b".repeat(64),
+    consent,
+    provenance: writingProvenance,
+    metadata: writingMetadata,
+  }),
 };
 
 assert.equal(
@@ -194,29 +358,25 @@ assert.throws(
   /must be stored in ai-grading-benchmarks-private/,
 );
 
+const duplicateScannedBenchmark: any = structuredClone(
+  scannedWritingBenchmark,
+);
+duplicateScannedBenchmark.benchmarkKey =
+  "qualified-writing-scan-holdout-002";
+duplicateScannedBenchmark.protectedLabel.input.responseObjectPath =
+  "ai-grading-benchmarks-private/writing/scan-copy.pdf";
+duplicateScannedBenchmark.protectedLabel.input.responseLocator = "PDF page 2";
+duplicateScannedBenchmark.protectedLabel.input.artifactSha256 = "B".repeat(64);
+duplicateScannedBenchmark.protectedLabel.input.artifactStorageVersion =
+  "storage-version-copy";
+duplicateScannedBenchmark.protectedLabel.input.artifactEtag = "etag-scan-copy";
+refreshReleaseAttestation(duplicateScannedBenchmark);
+
 assert.throws(
   () =>
     parseGradingBenchmarkImport({
       ...validManifest,
-      benchmarks: [
-        scannedWritingBenchmark,
-        {
-          ...scannedWritingBenchmark,
-          benchmarkKey: "qualified-writing-scan-holdout-002",
-          protectedLabel: {
-            ...scannedWritingBenchmark.protectedLabel,
-            input: {
-              ...scannedWritingBenchmark.protectedLabel.input,
-              responseObjectPath:
-                "ai-grading-benchmarks-private/writing/scan-copy.pdf",
-              responseLocator: "PDF page 2",
-              artifactSha256: "B".repeat(64),
-              artifactStorageVersion: "storage-version-copy",
-              artifactEtag: "etag-scan-copy",
-            },
-          },
-        },
-      ],
+      benchmarks: [scannedWritingBenchmark, duplicateScannedBenchmark],
     }),
   /Duplicate benchmark artifact/,
 );
@@ -275,14 +435,285 @@ assert.throws(
             ...writingBenchmark.protectedLabel,
             provenance: {
               ...writingBenchmark.protectedLabel.provenance,
-              raterCount: 3,
+              raterRecords: [
+                writingBenchmark.protectedLabel.provenance.raterRecords[0],
+                writingBenchmark.protectedLabel.provenance.raterRecords[0],
+              ],
             },
           },
         },
       ],
     }),
-  /Rater authority count must equal raterCount/,
+  /rater keys must be distinct/,
 );
+
+const disputedWriting = structuredClone(writingBenchmark);
+disputedWriting.protectedLabel.provenance.raterRecords[1]!.criteria = {
+  ...disputedWriting.protectedLabel.provenance.raterRecords[1]!.criteria,
+  taskResponse: 7.5,
+};
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [disputedWriting],
+    }),
+  /requires adjudication/,
+);
+
+const unnecessaryAdjudication: any = structuredClone(writingBenchmark);
+unnecessaryAdjudication.protectedLabel.provenance.adjudication = {
+  adjudicatorKey: "examiner-adjudicator-01",
+  authority: "official_examiner",
+  credential: {
+    proofSha256: sha256("credential:examiner-adjudicator-01"),
+    verifiedAt: "2026-07-01T10:00:00.000Z",
+    verifiedByKey: "credential-reviewer-01",
+  },
+  rubricVersion: "ielts-writing-rubric-v1",
+  adjudicatedAt: "2026-08-21T10:00:00.000Z",
+  method: "third_examiner",
+  triggerReasons: ["declared_boundary_crossing"],
+  criteria: writingCriteria,
+  overallBand: 6.5,
+  rationale: "No trigger exists, so this record must be rejected.",
+  adjudicationLocator: "adjudication-sheet-01",
+};
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [unnecessaryAdjudication],
+    }),
+  /must be absent when no adjudication trigger exists/,
+);
+
+const adjudicationWithExtraReason: any = structuredClone(disputedWriting);
+adjudicationWithExtraReason.protectedLabel.provenance.adjudication = {
+  ...unnecessaryAdjudication.protectedLabel.provenance.adjudication,
+  triggerReasons: [
+    "criterion_disagreement_over_half",
+    "overall_disagreement_over_half",
+  ],
+};
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [adjudicationWithExtraReason],
+    }),
+  /trigger reasons must exactly match/,
+);
+
+const expiredRetention: any = structuredClone(writingBenchmark);
+expiredRetention.protectedLabel.consent.retentionUntil =
+  "2026-08-31T11:00:00.000Z";
+refreshReleaseAttestation(expiredRetention);
+expiredRetention.releaseAttestation.envelope.expiresAt =
+  "2026-08-31T10:45:00.000Z";
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [expiredRetention],
+    }),
+  /Consent retention expires before import/,
+);
+
+const staleWithdrawalSnapshot: any = structuredClone(writingBenchmark);
+staleWithdrawalSnapshot.protectedLabel.consent.withdrawal.checkedAt =
+  "2026-08-20T10:00:00.000Z";
+refreshReleaseAttestation(staleWithdrawalSnapshot);
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [staleWithdrawalSnapshot],
+    }),
+  /Withdrawal registry snapshot is older than 24 hours|Withdrawal registry check is not fresh/,
+);
+
+const { privateKey: studyLeadPrivateKey, publicKey: studyLeadPublicKey } =
+  generateKeyPairSync("ed25519");
+const signedAttestation = structuredClone(writingBenchmark.releaseAttestation);
+signedAttestation.signatureBase64 = signPayload(
+  null,
+  benchmarkReleaseAttestationPayload(signedAttestation.envelope),
+  studyLeadPrivateKey,
+).toString("base64");
+assert.equal(
+  verifyBenchmarkReleaseAttestation({
+    attestation: signedAttestation,
+    publicKeyPem: studyLeadPublicKey.export({
+      type: "spki",
+      format: "pem",
+    }) as string,
+    now: new Date("2026-09-01T09:00:00.000Z"),
+  }).envelope.benchmarkKey,
+  writingBenchmark.benchmarkKey,
+);
+signedAttestation.envelope.grouping.candidateKey = "candidate-relabelled-01";
+assert.throws(
+  () =>
+    verifyBenchmarkReleaseAttestation({
+      attestation: signedAttestation,
+      publicKeyPem: studyLeadPublicKey.export({
+        type: "spki",
+        format: "pem",
+      }) as string,
+      now: new Date("2026-09-01T09:00:00.000Z"),
+    }),
+  /signature is invalid/,
+);
+
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [
+        {
+          ...writingBenchmark,
+          protectedLabel: {
+            ...writingBenchmark.protectedLabel,
+            criteria: {
+              ...writingBenchmark.protectedLabel.criteria,
+              taskResponse: { band: 7, labelLocator: "wrong-final" },
+            },
+          },
+        },
+      ],
+    }),
+  /differs from the independent-mark mean/,
+);
+
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [
+        {
+          ...writingBenchmark,
+          protectedLabel: {
+            ...writingBenchmark.protectedLabel,
+            consent: {
+              ...writingBenchmark.protectedLabel.consent,
+              participantAgeGroup: "minor",
+            },
+          },
+        },
+      ],
+    }),
+  /Minor participants require guardian consent and learner assent/,
+);
+
+const overRetainedMinor: any = structuredClone(writingBenchmark);
+overRetainedMinor.protectedLabel.consent = {
+  ...overRetainedMinor.protectedLabel.consent,
+  participantAgeGroup: "minor",
+  guardianConsentReceiptSha256: "7".repeat(64),
+  learnerAssentReceiptSha256: "8".repeat(64),
+};
+refreshReleaseAttestation(overRetainedMinor);
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [overRetainedMinor],
+    }),
+  /Minor participant retention cannot exceed one year/,
+);
+
+const secondSource = {
+  ...source,
+  canonicalUrl: "https://example.org/independent-study-source-2",
+  checksum: "9".repeat(64),
+};
+for (const groupKey of [
+  "candidateKey",
+  "promptFamilyKey",
+  "sourceGroupKey",
+  "captureSessionKey",
+] as const) {
+  const crossSplit: any = structuredClone(writingBenchmark);
+  crossSplit.benchmarkKey = `cross-split-${groupKey}`;
+  crossSplit.sourceUrl = secondSource.canonicalUrl;
+  crossSplit.split = "development";
+  crossSplit.protectedLabel.input.responseText = `Distinct ${groupKey} response`;
+  crossSplit.protectedLabel.input.artifactSha256 = sha256(
+    crossSplit.protectedLabel.input.responseText,
+  );
+  crossSplit.protectedLabel.input.responseLocator = `locator-${groupKey}`;
+  crossSplit.metadata = {
+    ...crossSplit.metadata,
+    candidateKey: "candidate-cross-split-02",
+    promptFamilyKey: "prompt-family-cross-split-02",
+    sourceGroupKey: "source-group-cross-split-02",
+    captureSessionKey: "capture-cross-split-02",
+    [groupKey]: writingBenchmark.metadata[groupKey],
+  };
+  refreshReleaseAttestation(crossSplit);
+  assert.throws(
+    () =>
+      parseGradingBenchmarkImport({
+        ...validManifest,
+        sources: [source, secondSource],
+        benchmarks: [writingBenchmark, crossSplit],
+      }),
+    new RegExp(`${groupKey} leakage across benchmark splits`),
+  );
+}
+
+const speakingCriteria = {
+  fluencyCoherence: 6.5,
+  lexicalResource: 6.5,
+  grammaticalRangeAccuracy: 6,
+  pronunciation: 6,
+};
+const speakingProvenance = {
+  independentlyMarked: true as const,
+  raterRecords: [
+    examinerMark({
+      raterKey: "examiner-speaking-01",
+      criteria: speakingCriteria,
+      overallBand: 6.5,
+      rubricVersion: "ielts-speaking-rubric-v1",
+    }),
+    examinerMark({
+      raterKey: "examiner-speaking-02",
+      criteria: speakingCriteria,
+      overallBand: 6.5,
+      rubricVersion: "ielts-speaking-rubric-v1",
+    }),
+  ],
+  declaredBoundaryCrossing: false,
+  adjudication: null,
+};
+const speakingConsent = {
+  ...consent,
+  receiptKey: "consent-00000002",
+  scopes: { ...consent.scopes, voiceProcessing: true },
+};
+const transcriptReview = {
+  reviewVersion: 1 as const,
+  reviewerKey: "transcript-reviewer-01",
+  reviewedAt: "2026-08-25T10:00:00.000Z",
+  status: "verified_against_audio" as const,
+  transcriptVersion: 1,
+  transcriptSha256: sha256(
+    "I would like to describe a teacher who changed how I learn.",
+  ),
+};
+
+const speakingMetadata = {
+  candidateKey: "candidate-speaking-0001",
+  promptFamilyKey: "prompt-family-speaking-0001",
+  sourceGroupKey: "source-group-study-0001",
+  captureSessionKey: "capture-speaking-0001",
+  studyDesignId: "debatelab-ielts-examiner-study" as const,
+  studyDesignVersion: 1 as const,
+  l1Group: "vi",
+  audioQualityGroup: "typical_device" as const,
+};
 
 const speakingBenchmark = {
   ...writingBenchmark,
@@ -290,7 +721,7 @@ const speakingBenchmark = {
   collectionSlug: "ielts.speaking" as const,
   skill: "ielts_speaking" as const,
   taskType: "speaking_part2_cuecard",
-  accentGroup: "vi",
+  accentGroup: "vi_general",
   protectedLabel: {
     ...writingBenchmark.protectedLabel,
     criteria: {
@@ -299,6 +730,9 @@ const speakingBenchmark = {
       grammaticalRangeAccuracy: { band: 6, labelLocator: "mark sheet" },
       pronunciation: { band: 6, labelLocator: "mark sheet" },
     },
+    overallBand: 6.5,
+    provenance: speakingProvenance,
+    consent: speakingConsent,
     input: {
       prompt: "Protected speaking prompt",
       audioObjectPath:
@@ -335,6 +769,7 @@ const speakingBenchmark = {
             "I would like to describe a teacher who changed how I learn.",
           ),
         },
+        transcriptReview,
         pronunciation: {
           provider: "azure" as const,
           model: "pronunciation-assessment" as const,
@@ -379,8 +814,14 @@ const speakingBenchmark = {
             transcriptSha256: sha256(
               "I would like to describe a teacher who changed how I learn.",
             ),
+            transcriptReviewSha256:
+              benchmarkTranscriptReviewSha256(transcriptReview),
             configSha256: "4".repeat(64),
             reportSha256: "5".repeat(64),
+            audioStorageVersion: "storage-version-2",
+            audioEtag: "etag-audio-001",
+            reportStorageVersion: "report-storage-v1",
+            reportEtag: "report-etag-v1",
             provider: "azure" as const,
             model: "pronunciation-assessment" as const,
             apiVersion: "speech-sdk/1.51.0" as const,
@@ -398,7 +839,14 @@ const speakingBenchmark = {
     },
     rubricVersion: "ielts-speaking-rubric-v1",
   },
-  metadata: { l1Group: "Vietnamese", audioQualityGroup: "typical_device" },
+  releaseAttestation: releaseAttestationFor({
+    benchmarkKey: "official-speaking-part2-holdout-001",
+    artifactSha256: "d".repeat(64),
+    consent: speakingConsent,
+    provenance: speakingProvenance,
+    metadata: speakingMetadata,
+  }),
+  metadata: speakingMetadata,
 };
 
 assert.equal(
@@ -440,6 +888,33 @@ assert.throws(
   /Acoustic attestation must bind/,
 );
 
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      benchmarks: [
+        {
+          ...speakingBenchmark,
+          protectedLabel: {
+            ...speakingBenchmark.protectedLabel,
+            input: {
+              ...speakingBenchmark.protectedLabel.input,
+              audioPreprocessing: {
+                ...speakingBenchmark.protectedLabel.input.audioPreprocessing,
+                transcriptReview: {
+                  ...speakingBenchmark.protectedLabel.input.audioPreprocessing
+                    .transcriptReview,
+                  reviewerKey: "transcript-reviewer-tampered",
+                },
+              },
+            },
+          },
+        },
+      ],
+    }),
+  /Acoustic attestation must bind/,
+);
+
 const reusedReportSpeaking = structuredClone(speakingBenchmark);
 reusedReportSpeaking.benchmarkKey = "official-speaking-part2-holdout-002";
 reusedReportSpeaking.protectedLabel.input.scoringResponseText =
@@ -447,12 +922,21 @@ reusedReportSpeaking.protectedLabel.input.scoringResponseText =
 reusedReportSpeaking.protectedLabel.input.audioObjectPath =
   "ai-grading-benchmarks-private/speaking/vi-002.wav";
 reusedReportSpeaking.protectedLabel.input.artifactSha256 = "7".repeat(64);
+reusedReportSpeaking.protectedLabel.input.artifactStorageVersion =
+  "storage-version-3";
+reusedReportSpeaking.protectedLabel.input.artifactEtag = "etag-audio-002";
 reusedReportSpeaking.protectedLabel.input.responseLocator =
   "second full recording";
 reusedReportSpeaking.protectedLabel.input.audioPreprocessing.audioArtifactSha256 =
   "7".repeat(64);
 reusedReportSpeaking.protectedLabel.input.audioPreprocessing.stt.transcriptSha256 =
   sha256("A distinct second protected speaking response.");
+reusedReportSpeaking.protectedLabel.input.audioPreprocessing.transcriptReview = {
+  ...reusedReportSpeaking.protectedLabel.input.audioPreprocessing.transcriptReview,
+  transcriptSha256:
+    reusedReportSpeaking.protectedLabel.input.audioPreprocessing.stt
+      .transcriptSha256,
+};
 const reusedEnvelope =
   reusedReportSpeaking.protectedLabel.input.audioPreprocessing
     .acousticAttestation.envelope;
@@ -463,6 +947,12 @@ reusedEnvelope.audioObjectPath =
 reusedEnvelope.audioArtifactSha256 = "7".repeat(64);
 reusedEnvelope.transcriptSha256 =
   reusedReportSpeaking.protectedLabel.input.audioPreprocessing.stt.transcriptSha256;
+reusedEnvelope.transcriptReviewSha256 = benchmarkTranscriptReviewSha256(
+  reusedReportSpeaking.protectedLabel.input.audioPreprocessing.transcriptReview,
+);
+reusedEnvelope.audioStorageVersion = "storage-version-3";
+reusedEnvelope.audioEtag = "etag-audio-002";
+refreshReleaseAttestation(reusedReportSpeaking);
 assert.throws(
   () =>
     parseGradingBenchmarkImport({
@@ -506,7 +996,10 @@ assert.throws(
       benchmarks: [
         {
           ...speakingBenchmark,
-          metadata: { l1Group: "Vietnamese" },
+          metadata: {
+            ...speakingBenchmark.metadata,
+            audioQualityGroup: undefined,
+          },
         },
       ],
     }),
@@ -517,13 +1010,7 @@ assert.throws(
   () =>
     parseGradingBenchmarkImport({
       ...validManifest,
-      benchmarks: [
-        writingBenchmark,
-        {
-          ...writingBenchmark,
-          benchmarkKey: "official-writing-task2-holdout-duplicate-artifact",
-        },
-      ],
+      benchmarks: [writingBenchmark, duplicateWritingArtifact],
     }),
   /Duplicate benchmark artifact/,
 );
@@ -543,6 +1030,7 @@ const storedWritingBenchmark = {
   taskType: writingBenchmark.taskType,
   accentGroup: writingBenchmark.accentGroup,
   protectedLabel: writingBenchmark.protectedLabel,
+  releaseAttestation: writingBenchmark.releaseAttestation,
   metadata: writingBenchmark.metadata,
   source: storedSource,
 };
@@ -552,6 +1040,7 @@ const storedSpeakingBenchmark = {
   taskType: speakingBenchmark.taskType,
   accentGroup: speakingBenchmark.accentGroup,
   protectedLabel: speakingBenchmark.protectedLabel,
+  releaseAttestation: speakingBenchmark.releaseAttestation,
   metadata: speakingBenchmark.metadata,
   source: storedSource,
 };
@@ -611,6 +1100,7 @@ assert.match(importer, /ieltsBenchmarkModelInputSha256/);
 assert.match(importer, /.from\("buckets"\)/);
 assert.match(importer, /data\.public !== false/);
 assert.match(importer, /AI_GRADING_BENCHMARK_PRIVATE_BUCKET/);
+assert.match(importer, /ai_grading_benchmark_release_attestations/);
 assert.match(
   importer,
   /verify_ai_grading_benchmark_acoustic_attestation/,
@@ -622,6 +1112,37 @@ assert.match(
   /must be registered and independently approved before label import/,
 );
 assert.doesNotMatch(importer, /\.from\("ai_knowledge_sources"\)\s*\.insert/);
+
+const studyMigration = readFileSync(
+  resolve(
+    process.cwd(),
+    "../../supabase/migrations/20260901190000_ielts_benchmark_study_integrity.sql",
+  ),
+  "utf8",
+);
+assert.match(studyMigration, /approved_for_benchmark_evaluation/);
+assert.match(
+  studyMigration,
+  /candidateKey[\s\S]*promptFamilyKey[\s\S]*sourceGroupKey/,
+);
+assert.match(studyMigration, /captureSessionKey/);
+assert.match(studyMigration, /Protected benchmark labels and study identity are immutable/);
+assert.match(studyMigration, /Benchmark deactivation requires a withdrawal audit/);
+assert.match(studyMigration, /withdraw_ai_grading_benchmark/);
+assert.match(studyMigration, /ai_grading_verified_withdrawal_receipts/);
+assert.match(studyMigration, /p_verified_receipt_id uuid/);
+assert.doesNotMatch(studyMigration, /p_withdrawn_by uuid/);
+assert.match(studyMigration, /pg_advisory_xact_lock/);
+assert.match(studyMigration, /ai-benchmark-source:/);
+assert.match(studyMigration, /ai-benchmark-group:/);
+assert.match(
+  studyMigration,
+  /ai_grading_benchmark_release_attestations_deny_browser/,
+);
+assert.match(
+  studyMigration,
+  /revoke all on public\.ai_grading_benchmark_withdrawals\s+from public, anon, authenticated, service_role/,
+);
 
 const releaseGate = readFileSync(
   resolve(process.cwd(), "src/scripts/ai-grading-release-gate.ts"),
@@ -637,9 +1158,16 @@ assert.match(releaseGate, /audioReportBytes/);
 assert.match(releaseGate, /\.from\("buckets"\)/);
 assert.match(releaseGate, /data\.public !== false/);
 assert.match(releaseGate, /AI_GRADING_BENCHMARK_PRIVATE_BUCKET/);
+assert.match(releaseGate, /verifyStudyLeadReleaseAttestations/);
+assert.match(releaseGate, /AI_GRADING_BENCHMARK_ATTESTATION_PUBLIC_KEY_BASE64/);
 assert.match(
   releaseGate,
   /verify_ai_grading_benchmark_acoustic_attestation/,
+);
+assert.ok(
+  releaseGate.indexOf("verifyStudyLeadReleaseAttestations({") <
+    releaseGate.indexOf("const coverage = validateIeltsBenchmarkCoverage"),
+  "release must verify study-lead provenance before counting benchmark coverage",
 );
 assert.ok(
   releaseGate.indexOf("verifyStoredModelInputs({ rows") <

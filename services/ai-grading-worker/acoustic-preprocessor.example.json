@@ -1,0 +1,25 @@
+{
+  "benchmarkKey": "speaking-vietnamese-band7-001",
+  "captureId": "00000000-0000-4000-8000-000000000001",
+  "locale": "en-US",
+  "audioFile": "/protected/input/response.wav",
+  "reportOutputFile": "/protected/output/azure-report.json",
+  "assessmentReceiptOutputFile": "/protected/output/azure-assessment-receipt.json",
+  "audioObjectPath": "ai-grading-benchmarks-private/audio/speaking-vietnamese-band7-001.wav",
+  "audioStorageVersion": "replace-after-upload",
+  "audioEtag": "replace-after-upload",
+  "transcriptFile": "/protected/input/reviewed-transcript.txt",
+  "sttProvider": "deepgram",
+  "sttModel": "replace-with-locked-model",
+  "transcriptReview": {
+    "reviewerKey": "pseudonymous-reviewer-key",
+    "reviewedAt": "2026-09-01T12:00:00.000Z",
+    "transcriptVersion": 1
+  },
+  "reportFile": "/protected/input/azure-report.json",
+  "assessmentReceiptFile": "/protected/input/azure-assessment-receipt.json",
+  "reportObjectPath": "ai-grading-benchmarks-private/azure/speaking-vietnamese-band7-001.json",
+  "reportStorageVersion": "replace-after-upload",
+  "reportEtag": "replace-after-upload",
+  "outputFile": "/protected/output/acoustic-evidence.json"
+}

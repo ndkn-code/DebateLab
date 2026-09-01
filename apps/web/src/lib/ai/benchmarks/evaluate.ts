@@ -101,10 +101,14 @@ export interface BenchmarkMetrics {
 }
 
 export interface ReleaseGateInputs {
+  /** Aggregate criterion-level accuracy across all productive-skill outputs. */
   metrics: BenchmarkMetrics;
+  /** Deterministic mean-of-four task bands, evaluated separately from criteria. */
+  overallMetrics: BenchmarkMetrics;
   criterionKappas: Record<string, number>;
   coverage?: BenchmarkCoverageResult;
   repeatWithinHalfBandRate: number;
+  overallRepeatWithinHalfBandRate: number;
   schemaSuccessRate: number;
   invalidAuthoritativeCitationCount: number;
   duplicatePaidScoringCount: number;
@@ -114,6 +118,7 @@ export interface ReleaseGateInputs {
 
 export interface DerivedReleaseGateInputs {
   observations: BenchmarkObservation[];
+  overallObservations: BenchmarkObservation[];
   coverage: BenchmarkCoverageResult;
   /** Every active holdout benchmark expected to have an evaluation. */
   expectedEvaluationCount: number;
@@ -124,8 +129,13 @@ export interface DerivedReleaseGateInputs {
     first: BenchmarkObservation;
     second: BenchmarkObservation;
   }>;
+  overallRepeatPairs: Array<{
+    first: BenchmarkObservation;
+    second: BenchmarkObservation;
+  }>;
   /** One paired repeat is required for every predicted criterion observation. */
   expectedRepeatPairCount: number;
+  expectedOverallRepeatPairCount: number;
   /** Operational checks must be supplied by a fault-injection/reconciliation run. */
   invalidAuthoritativeCitationCount: number;
   duplicatePaidScoringCount: number;
@@ -140,6 +150,17 @@ export interface ReleaseGateResult {
 
 function snapBand(value: number): number {
   return Math.min(9, Math.max(0, Math.round(value * 2) / 2));
+}
+
+/** Matches production task-band math: mean four criteria, round-half-up. */
+export function deriveIeltsTaskBand(values: readonly number[]): number | null {
+  if (
+    values.length !== 4 ||
+    values.some((value) => !Number.isFinite(value) || value < 0 || value > 9)
+  ) {
+    return null;
+  }
+  return snapBand(values.reduce((sum, value) => sum + value, 0) / 4);
 }
 
 function mean(values: number[]): number {
@@ -378,15 +399,25 @@ export function evaluateReleaseGate(
   }
   if (input.metrics.withinHalfBandRate < 0.9)
     failures.push("within_half_band_below_90pct");
+  if (input.overallMetrics.observationCount === 0)
+    failures.push("overall_benchmark_empty");
+  if (input.overallMetrics.withinHalfBandRate < 0.9)
+    failures.push("overall_within_half_band_below_90pct");
   if (input.metrics.quadraticWeightedKappa < 0.8)
     failures.push("overall_kappa_below_0_80");
+  if (input.overallMetrics.quadraticWeightedKappa < 0.8)
+    failures.push("task_band_kappa_below_0_80");
   for (const [criterion, kappa] of Object.entries(input.criterionKappas)) {
     if (kappa < 0.75) failures.push(`criterion_kappa_below_0_75:${criterion}`);
   }
   if (input.metrics.maxAbsoluteGroupBias >= 0.25)
     failures.push("group_bias_not_below_0_25");
+  if (input.overallMetrics.maxAbsoluteGroupBias >= 0.25)
+    failures.push("overall_group_bias_not_below_0_25");
   if (input.repeatWithinHalfBandRate < 0.95)
     failures.push("repeat_consistency_below_95pct");
+  if (input.overallRepeatWithinHalfBandRate < 0.95)
+    failures.push("overall_repeat_consistency_below_95pct");
   if (input.schemaSuccessRate < 0.995)
     failures.push("schema_success_below_99_5pct");
   if (input.invalidAuthoritativeCitationCount > 0)
@@ -431,6 +462,7 @@ export function evaluateDerivedReleaseGate(
   input: DerivedReleaseGateInputs,
 ): ReleaseGateResult {
   const metrics = evaluateBenchmark(input.observations);
+  const overallMetrics = evaluateBenchmark(input.overallObservations);
   const accuracyByCell = new Map<string, boolean[]>();
   for (const observation of input.observations) {
     const key = cellKey({
@@ -517,11 +549,49 @@ export function evaluateDerivedReleaseGate(
               snapBand(first.predictedBand) - snapBand(second.predictedBand),
             ) <= 0.5,
         ).length / oneRepeatPerObservation.length;
+  const overallRepeatKey = (observation: BenchmarkObservation) =>
+    observation.benchmarkId;
+  const expectedOverallRepeatKeys = new Set(
+    input.overallObservations.map(overallRepeatKey),
+  );
+  const overallPairsByKey = new Map<
+    string,
+    Array<(typeof input.overallRepeatPairs)[number]>
+  >();
+  for (const pair of input.overallRepeatPairs) {
+    const firstKey = overallRepeatKey(pair.first);
+    const secondKey = overallRepeatKey(pair.second);
+    if (firstKey !== secondKey) continue;
+    overallPairsByKey.set(firstKey, [
+      ...(overallPairsByKey.get(firstKey) ?? []),
+      pair,
+    ]);
+  }
+  const overallRepeatCoverageComplete =
+    input.expectedOverallRepeatPairCount === expectedOverallRepeatKeys.size &&
+    expectedOverallRepeatKeys.size > 0 &&
+    [...expectedOverallRepeatKeys].every(
+      (key) => overallPairsByKey.get(key)?.length === 1,
+    );
+  const oneOverallRepeatPerObservation = [...expectedOverallRepeatKeys].flatMap(
+    (key) => overallPairsByKey.get(key)?.slice(0, 1) ?? [],
+  );
+  const overallRepeatWithinHalfBandRate =
+    oneOverallRepeatPerObservation.length === 0
+      ? 0
+      : oneOverallRepeatPerObservation.filter(
+          ({ first, second }) =>
+            Math.abs(
+              snapBand(first.predictedBand) - snapBand(second.predictedBand),
+            ) <= 0.5,
+        ).length / oneOverallRepeatPerObservation.length;
   const result = evaluateReleaseGate({
     metrics,
+    overallMetrics,
     criterionKappas: criterionKappasFromObservations(input.observations),
     coverage: input.coverage,
     repeatWithinHalfBandRate,
+    overallRepeatWithinHalfBandRate,
     schemaSuccessRate:
       input.expectedEvaluationCount <= 0
         ? 0
@@ -540,6 +610,7 @@ export function evaluateDerivedReleaseGate(
   ];
   if (
     repeatCoverageComplete &&
+    overallRepeatCoverageComplete &&
     cellFailures.length === 0 &&
     sliceFailures.length === 0
   ) {
@@ -552,6 +623,9 @@ export function evaluateDerivedReleaseGate(
       ...cellFailures,
       ...sliceFailures,
       ...(repeatCoverageComplete ? [] : ["repeat_measurement_incomplete"]),
+      ...(overallRepeatCoverageComplete
+        ? []
+        : ["overall_repeat_measurement_incomplete"]),
     ],
   };
 }

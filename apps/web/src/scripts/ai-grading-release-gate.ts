@@ -6,9 +6,11 @@ import {
   parseOperationalSafetyEvidence,
   countInvalidStoredBenchmarkRows,
   protectedBenchmarkInputSchema,
+  verifyBenchmarkReleaseAttestation,
 } from "@/lib/ai/benchmarks/contracts";
 import { assertIeltsBenchmarkModelInputHash } from "@/lib/ai/benchmarks/request";
 import {
+  deriveIeltsTaskBand,
   evaluateBenchmark,
   evaluateDerivedReleaseGate,
   normalizeIeltsCriterion,
@@ -41,12 +43,18 @@ function firstRecord(value: unknown): JsonRecord {
 
 function storedReleaseBenchmark(row: JsonRecord) {
   const source = firstRecord(row.source);
+  const releaseAttestation = firstRecord(row.release_attestation);
   return {
     benchmarkKey: row.benchmark_key,
     skill: row.skill,
     taskType: row.task_type,
     accentGroup: row.accent_group,
     protectedLabel: row.protected_label,
+    releaseAttestation: {
+      keyId: releaseAttestation.key_id,
+      envelope: releaseAttestation.envelope,
+      signatureBase64: releaseAttestation.signature_base64,
+    },
     metadata: row.metadata,
     source: {
       canonicalUrl: source.canonical_url,
@@ -58,6 +66,33 @@ function storedReleaseBenchmark(row: JsonRecord) {
       reviewedBy: source.reviewed_by,
     },
   };
+}
+
+function ed25519PublicKeyPem(base64Der: string): string {
+  if (!/^[A-Za-z0-9+/]+={0,2}$/.test(base64Der)) {
+    throw new Error("AI_GRADING_BENCHMARK_ATTESTATION_PUBLIC_KEY_BASE64 is invalid");
+  }
+  const body = base64Der.match(/.{1,64}/g)?.join("\n") ?? base64Der;
+  return `-----BEGIN PUBLIC KEY-----\n${body}\n-----END PUBLIC KEY-----\n`;
+}
+
+function verifyStudyLeadReleaseAttestations(params: {
+  rows: JsonRecord[];
+  keyId: string;
+  publicKeyPem: string;
+  now: Date;
+}) {
+  for (const row of params.rows) {
+    const stored = storedReleaseBenchmark(row);
+    if (stored.releaseAttestation.keyId !== params.keyId) {
+      throw new Error("benchmark release attestation key ID is not trusted");
+    }
+    verifyBenchmarkReleaseAttestation({
+      attestation: stored.releaseAttestation,
+      publicKeyPem: params.publicKeyPem,
+      now: params.now,
+    });
+  }
 }
 
 type UntypedQueryResult = {
@@ -447,6 +482,40 @@ function observationsFromPrediction(params: {
   });
 }
 
+function overallObservationFromPrediction(params: {
+  row: JsonRecord;
+  prediction: unknown;
+}): BenchmarkObservation | null {
+  const skill = typeof params.row.skill === "string" ? params.row.skill : "";
+  const parsed = parseGradingPrediction(skill, params.prediction);
+  if (!parsed) return null;
+  const expectedLabel = record(params.row.protected_label);
+  const expectedBand = numericBand(expectedLabel.overallBand);
+  const predictedBand = deriveIeltsTaskBand(Object.values(parsed.criteria));
+  if (expectedBand === null || predictedBand === null) return null;
+  return {
+    benchmarkId: String(params.row.id),
+    skill,
+    criterion: "overall",
+    expectedBand,
+    predictedBand,
+    taskType:
+      typeof params.row.task_type === "string" ? params.row.task_type : "",
+    accentGroup:
+      typeof params.row.accent_group === "string"
+        ? params.row.accent_group
+        : null,
+    l1Group:
+      typeof record(params.row.metadata).l1Group === "string"
+        ? String(record(params.row.metadata).l1Group)
+        : null,
+    audioQualityGroup:
+      typeof record(params.row.metadata).audioQualityGroup === "string"
+        ? String(record(params.row.metadata).audioQualityGroup)
+        : null,
+  };
+}
+
 function matchingRepeatPairs(params: {
   row: JsonRecord;
   primary: BenchmarkObservation[];
@@ -471,6 +540,10 @@ async function main() {
   const environment = process.env.AI_GRADING_GATE_ENVIRONMENT;
   const deploymentId = process.env.AI_GRADING_GATE_DEPLOYMENT_ID;
   const imageDigest = process.env.AI_GRADING_GATE_IMAGE_DIGEST;
+  const studyLeadKeyId =
+    process.env.AI_GRADING_BENCHMARK_ATTESTATION_KEY_ID;
+  const studyLeadPublicKeyBase64 =
+    process.env.AI_GRADING_BENCHMARK_ATTESTATION_PUBLIC_KEY_BASE64;
   if (
     !graderVersion ||
     !Number.isInteger(corpusVersion) ||
@@ -478,10 +551,12 @@ async function main() {
     (environment !== "preview" && environment !== "staging") ||
     !deploymentId ||
     !imageDigest ||
+    !studyLeadKeyId ||
+    !studyLeadPublicKeyBase64 ||
     !/^sha256:[a-f0-9]{64}$/.test(imageDigest)
   ) {
     throw new Error(
-      "AI_GRADING_GATE_VERSION, a positive AI_GRADING_GATE_CORPUS_VERSION, AI_GRADING_GATE_ENVIRONMENT=preview|staging, AI_GRADING_GATE_DEPLOYMENT_ID, and AI_GRADING_GATE_IMAGE_DIGEST=sha256:<digest> are required",
+      "AI_GRADING_GATE_VERSION, a positive AI_GRADING_GATE_CORPUS_VERSION, AI_GRADING_GATE_ENVIRONMENT=preview|staging, AI_GRADING_GATE_DEPLOYMENT_ID, AI_GRADING_GATE_IMAGE_DIGEST=sha256:<digest>, AI_GRADING_BENCHMARK_ATTESTATION_KEY_ID, and AI_GRADING_BENCHMARK_ATTESTATION_PUBLIC_KEY_BASE64 are required",
     );
   }
   const client = createAdminClient();
@@ -490,13 +565,19 @@ async function main() {
   const { data, error } = await client
     .from("ai_grading_benchmarks")
     .select(
-      "id, benchmark_key, skill, task_type, accent_group, protected_label, metadata, source:ai_knowledge_sources!ai_grading_benchmarks_source_id_fkey(canonical_url, authority_tier, rights_status, review_status, checksum, submitted_by, reviewed_by), ai_grading_evaluations(id,grader_version,corpus_version,runs:ai_grading_evaluation_runs(run_kind,prediction,provider_request_id,trace_id,started_at,completed_at))",
+      "id, benchmark_key, skill, task_type, accent_group, protected_label, metadata, release_attestation:ai_grading_benchmark_release_attestations!ai_grading_benchmark_release_attestations_benchmark_id_fkey(key_id,envelope,signature_base64,verified_at,expires_at), source:ai_knowledge_sources!ai_grading_benchmarks_source_id_fkey(canonical_url, authority_tier, rights_status, review_status, checksum, submitted_by, reviewed_by), ai_grading_evaluations(id,grader_version,corpus_version,runs:ai_grading_evaluation_runs(run_kind,prediction,provider_request_id,trace_id,started_at,completed_at))",
     )
     .eq("split", "holdout")
     .eq("is_active", true);
   if (error) throw new Error(`grading gate query failed: ${error.message}`);
 
   const benchmarkRows = (data ?? []).map(record);
+  verifyStudyLeadReleaseAttestations({
+    rows: benchmarkRows,
+    keyId: studyLeadKeyId,
+    publicKeyPem: ed25519PublicKeyPem(studyLeadPublicKeyBase64),
+    now: new Date(),
+  });
   const audioReports = await verifyStoredArtifactBytes({
     client,
     rows: benchmarkRows,
@@ -508,7 +589,12 @@ async function main() {
     benchmarkRows.flatMap(coverageFromRow),
   );
   const observations: BenchmarkObservation[] = [];
+  const overallObservations: BenchmarkObservation[] = [];
   const repeats: Array<{
+    first: BenchmarkObservation;
+    second: BenchmarkObservation;
+  }> = [];
+  const overallRepeats: Array<{
     first: BenchmarkObservation;
     second: BenchmarkObservation;
   }> = [];
@@ -535,6 +621,18 @@ async function main() {
       schemaValidPredictionCount += 1;
     }
     observations.push(...primary);
+    const primaryOverall = overallObservationFromPrediction({
+      row,
+      prediction: primaryRun.prediction,
+    });
+    const repeatOverall = overallObservationFromPrediction({
+      row,
+      prediction: repeatRun.prediction,
+    });
+    if (primaryOverall) overallObservations.push(primaryOverall);
+    if (primaryOverall && repeatOverall) {
+      overallRepeats.push({ first: primaryOverall, second: repeatOverall });
+    }
     repeats.push(
       ...matchingRepeatPairs({
         row,
@@ -575,11 +673,14 @@ async function main() {
       : 1;
   const base = evaluateDerivedReleaseGate({
     observations,
+    overallObservations,
     coverage,
     expectedEvaluationCount: benchmarkRows.length,
     schemaValidPredictionCount,
     repeatPairs: repeats,
+    overallRepeatPairs: overallRepeats,
     expectedRepeatPairCount: observations.length,
+    expectedOverallRepeatPairCount: overallObservations.length,
     invalidAuthoritativeCitationCount,
     duplicatePaidScoringCount,
     strandedWorkflowCount,
@@ -597,12 +698,14 @@ async function main() {
         ],
       };
   const metrics = evaluateBenchmark(observations);
+  const overallMetrics = evaluateBenchmark(overallObservations);
   process.stdout.write(
     `${JSON.stringify(
       {
         graderVersion,
         corpusVersion,
         metrics,
+        overallMetrics,
         coverage: {
           passed: coverage.passed,
           requiredCellCount: coverage.requiredCellCount,
@@ -615,6 +718,7 @@ async function main() {
         evaluationCount: benchmarkRows.length,
         schemaValidPredictionCount,
         repeatPairCount: repeats.length,
+        overallRepeatPairCount: overallRepeats.length,
         ...result,
       },
       null,

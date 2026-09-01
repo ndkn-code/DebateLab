@@ -5,6 +5,7 @@ import {
   IELTS_BENCHMARK_MIN_CASES_PER_CELL,
   IELTS_BENCHMARK_REQUIREMENTS,
   criterionKappasFromObservations,
+  deriveIeltsTaskBand,
   evaluateDerivedReleaseGate,
   evaluateBenchmark,
   evaluateReleaseGate,
@@ -18,6 +19,8 @@ import {
 
 assert.equal(quadraticWeightedKappa([4, 5, 6, 7], [4, 5, 6, 7]), 1);
 assert.ok(quadraticWeightedKappa([4, 5, 6, 7], [7, 6, 5, 4]) < 0);
+assert.equal(deriveIeltsTaskBand([6, 6.5, 7, 7.5]), 7);
+assert.equal(deriveIeltsTaskBand([6, 6.5, 7]), null);
 
 const metrics = evaluateBenchmark([
   {
@@ -50,8 +53,15 @@ const gate = evaluateReleaseGate({
     quadraticWeightedKappa: 0.9,
     maxAbsoluteGroupBias: 0.1,
   },
+  overallMetrics: {
+    ...metrics,
+    observationCount: 25,
+    quadraticWeightedKappa: 0.9,
+    maxAbsoluteGroupBias: 0.1,
+  },
   criterionKappas: { lexical: 0.8, grammar: 0.81 },
   repeatWithinHalfBandRate: 0.96,
+  overallRepeatWithinHalfBandRate: 0.96,
   schemaSuccessRate: 0.999,
   invalidAuthoritativeCitationCount: 0,
   duplicatePaidScoringCount: 0,
@@ -83,6 +93,15 @@ const coverage = validateIeltsBenchmarkCoverage(completeCoverage);
 assert.equal(coverage.passed, true);
 assert.equal(coverage.missingCells.length, 0);
 assert.equal(coverage.underfilledCells.length, 0);
+
+const perfectOverallObservations = completeCoverage.map((item) => ({
+  ...item,
+  criterion: "overall",
+  predictedBand: item.expectedBand,
+}));
+const perfectOverallRepeatPairs = perfectOverallObservations.map(
+  (observation) => ({ first: observation, second: observation }),
+);
 
 const underfilledCoverage = validateIeltsBenchmarkCoverage(
   completeCoverage.filter(
@@ -200,6 +219,7 @@ const derived = evaluateDerivedReleaseGate({
     ...item,
     predictedBand: item.expectedBand,
   })),
+  overallObservations: perfectOverallObservations,
   coverage,
   expectedEvaluationCount: completeCoverage.length,
   schemaValidPredictionCount: completeCoverage.length,
@@ -207,7 +227,9 @@ const derived = evaluateDerivedReleaseGate({
     const observation = { ...item, predictedBand: item.expectedBand };
     return { first: observation, second: observation };
   }),
+  overallRepeatPairs: perfectOverallRepeatPairs,
   expectedRepeatPairCount: completeCoverage.length,
+  expectedOverallRepeatPairCount: perfectOverallObservations.length,
   invalidAuthoritativeCitationCount: 0,
   duplicatePaidScoringCount: 0,
   strandedWorkflowCount: 0,
@@ -227,6 +249,7 @@ const cellCorruptedObservations = completeCoverage.map((item) => ({
 }));
 const cellCorrupted = evaluateDerivedReleaseGate({
   observations: cellCorruptedObservations,
+  overallObservations: perfectOverallObservations,
   coverage,
   expectedEvaluationCount: completeCoverage.length,
   schemaValidPredictionCount: completeCoverage.length,
@@ -234,7 +257,9 @@ const cellCorrupted = evaluateDerivedReleaseGate({
     first: observation,
     second: observation,
   })),
+  overallRepeatPairs: perfectOverallRepeatPairs,
   expectedRepeatPairCount: completeCoverage.length,
+  expectedOverallRepeatPairCount: perfectOverallObservations.length,
   invalidAuthoritativeCitationCount: 0,
   duplicatePaidScoringCount: 0,
   strandedWorkflowCount: 0,
@@ -262,6 +287,7 @@ const sparseBadSliceObservations = completeCoverage.map((item) => {
 });
 const sparseBadSlice = evaluateDerivedReleaseGate({
   observations: sparseBadSliceObservations,
+  overallObservations: perfectOverallObservations,
   coverage,
   expectedEvaluationCount: completeCoverage.length,
   schemaValidPredictionCount: completeCoverage.length,
@@ -269,7 +295,9 @@ const sparseBadSlice = evaluateDerivedReleaseGate({
     first: observation,
     second: observation,
   })),
+  overallRepeatPairs: perfectOverallRepeatPairs,
   expectedRepeatPairCount: completeCoverage.length,
+  expectedOverallRepeatPairCount: perfectOverallObservations.length,
   invalidAuthoritativeCitationCount: 0,
   duplicatePaidScoringCount: 0,
   strandedWorkflowCount: 0,
@@ -290,6 +318,7 @@ const concentratedRepeats = evaluateDerivedReleaseGate({
     ...item,
     predictedBand: item.expectedBand,
   })),
+  overallObservations: perfectOverallObservations,
   coverage,
   expectedEvaluationCount: completeCoverage.length,
   schemaValidPredictionCount: completeCoverage.length,
@@ -297,7 +326,9 @@ const concentratedRepeats = evaluateDerivedReleaseGate({
     first: firstObservation,
     second: firstObservation,
   })),
+  overallRepeatPairs: perfectOverallRepeatPairs,
   expectedRepeatPairCount: completeCoverage.length,
+  expectedOverallRepeatPairCount: perfectOverallObservations.length,
   invalidAuthoritativeCitationCount: 0,
   duplicatePaidScoringCount: 0,
   strandedWorkflowCount: 0,

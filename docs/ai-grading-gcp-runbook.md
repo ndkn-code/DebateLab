@@ -123,6 +123,36 @@ The importer never receives this secret: it calls the Vault-backed verification
 RPC, as do the executor and release gate. Reused report paths, hashes, or
 envelopes are rejected.
 
+Examiner credentials, consent, withdrawal freshness, and study grouping use a
+second, independent trust boundary. The study lead holds an offline Ed25519
+private key; import and release processes receive only its public key. A signed
+release envelope binds the artifact, consent/retention, a withdrawal-registry
+snapshot, examiner credential proof hashes, and the four grouping receipts. It
+expires within 24 hours of the withdrawal check. Configure
+`AI_GRADING_BENCHMARK_ATTESTATION_KEY_ID` and
+`AI_GRADING_BENCHMARK_ATTESTATION_PUBLIC_KEY_BASE64` (SPKI DER, base64) for the
+release gate. Never give the study-lead private key to the importer, worker, or
+service-role environment.
+
+Run acoustic preparation as a separate private Cloud Run Job using the same
+reviewed worker image. It is deliberately two-stage:
+
+1. `AI_GRADING_ACOUSTIC_MODE=assess` validates the exact recorder WAV format
+   and creates a normalized unscripted Azure report. It never uses the learner
+   transcript as reference text.
+2. After the audio/report objects are uploaded and a separate human verifies
+   the STT transcript against the recording,
+   `AI_GRADING_ACOUSTIC_MODE=attest` reopens all three artifacts, re-derives the
+   production signal, and signs their hashes, object versions/ETags, Azure
+   identity, and transcript-review receipt. Output is a new mode-0600 file;
+   existing output is never overwritten.
+
+The job command is `npm run acoustic:preprocess -w
+@thinkfy/ai-grading-worker`. Bind Azure credentials only to the `assess` job;
+bind `AI_GRADING_BENCHMARK_ATTESTATION_SECRET` only to the `attest` job. Do not
+grant either job public ingress and do not reuse the importer identity as the
+attestation signer.
+
 Create or update the job with the reviewed immutable image digest:
 
 ```bash

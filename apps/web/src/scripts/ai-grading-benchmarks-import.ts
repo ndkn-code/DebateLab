@@ -63,6 +63,15 @@ interface StorageObjectQuery {
   }>;
 }
 
+interface UntypedMutationClient {
+  from(table: string): {
+    upsert(
+      rows: Record<string, unknown>[],
+      options: { onConflict: string },
+    ): PromiseLike<{ error: { message: string } | null }>;
+  };
+}
+
 type StorageMetadataClient = {
   schema(name: "storage"): {
     from(table: "objects" | "buckets"): {
@@ -420,11 +429,50 @@ async function main() {
       .insert(insertRows);
     if (error) throw new Error(`Benchmark insert failed: ${error.message}`);
   }
+  const { data: persistedBenchmarkData, error: persistedLookupError } =
+    await client
+      .from("ai_grading_benchmarks")
+      .select("id,benchmark_key")
+      .in("benchmark_key", benchmarkKeys);
+  if (persistedLookupError) {
+    throw new Error(
+      `Persisted benchmark lookup failed: ${persistedLookupError.message}`,
+    );
+  }
+  const persistedIdByKey = new Map(
+    (persistedBenchmarkData ?? []).map((row) => [
+      String(row.benchmark_key),
+      String(row.id),
+    ]),
+  );
+  if (persistedIdByKey.size !== manifest.benchmarks.length) {
+    throw new Error("One or more benchmark IDs could not be resolved");
+  }
+  const releaseAttestationRows = manifest.benchmarks.map((benchmark) => ({
+    benchmark_id: persistedIdByKey.get(benchmark.benchmarkKey)!,
+    key_id: benchmark.releaseAttestation.keyId,
+    envelope: benchmark.releaseAttestation.envelope,
+    signature_base64: benchmark.releaseAttestation.signatureBase64,
+    verified_at: benchmark.releaseAttestation.envelope.verifiedAt,
+    expires_at: benchmark.releaseAttestation.envelope.expiresAt,
+    updated_at: new Date().toISOString(),
+  }));
+  const { error: attestationError } = await (
+    client as unknown as UntypedMutationClient
+  )
+    .from("ai_grading_benchmark_release_attestations")
+    .upsert(releaseAttestationRows, { onConflict: "benchmark_id" });
+  if (attestationError) {
+    throw new Error(
+      `Benchmark release attestation upsert failed: ${attestationError.message}`,
+    );
+  }
   process.stdout.write(
     `${JSON.stringify({
       sourcesInserted: 0,
       benchmarksInserted: insertRows.length,
       benchmarksUnchanged: manifest.benchmarks.length - insertRows.length,
+      releaseAttestationsStored: releaseAttestationRows.length,
     })}\n`,
   );
 }

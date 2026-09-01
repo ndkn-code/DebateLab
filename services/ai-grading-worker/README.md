@@ -58,6 +58,32 @@ signature through a Vault-backed RPC; the importer has no signing secret or
 signing code path. Active cases cannot reuse a report path, report hash, or
 attestation envelope.
 
+The trusted preprocessing boundary is executable rather than a manual JSON
+editing convention:
+
+```sh
+npm run acoustic:preprocess -w @thinkfy/ai-grading-worker
+```
+
+Set `AI_GRADING_ACOUSTIC_MODE=assess` with
+`AI_GRADING_ACOUSTIC_INPUT_FILE` pointing to a protected JSON instruction file
+to validate a 16 kHz, mono, 16-bit PCM WAV and create the normalized Azure
+report plus a signed assessment receipt. The receipt cryptographically binds
+the report bytes to the exact WAV bytes, benchmark/capture identity, and locale;
+the later attestation refuses a report assessed from any other audio. Keep the
+receipt protected with the report. Upload the WAV and report to the private
+benchmark bucket, record their immutable storage versions and ETags, and have a
+second person verify the STT transcript against the audio. Then run
+`AI_GRADING_ACOUSTIC_MODE=attest` with the same input variable and the
+Secret Manager-bound
+`AI_GRADING_BENCHMARK_ATTESTATION_SECRET`. The command refuses unreviewed
+transcripts, scripted reports, unsupported WAV files, non-private object paths,
+future review timestamps, invalid object identities, mismatched assessment
+receipts, and existing output files.
+It writes the protected result with mode `0600` and emits only a status/path
+summary to stdout. The signed envelope binds the transcript-review receipt and
+both objects' storage versions/ETags in addition to their hashes.
+
 Both live and benchmark scoring use the same skill-specific policy builders:
 Speaking allows 3,072 output tokens, Writing 4,096, provisional temperature is
 0.2, and adjudication temperature is 0. The configured primary and bounded

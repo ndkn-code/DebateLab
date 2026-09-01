@@ -1,0 +1,167 @@
+{
+  "manifestVersion": 1,
+  "studyDesign": {
+    "id": "debatelab-ielts-examiner-study",
+    "version": 1
+  },
+  "createdAt": "2026-09-01T12:00:00.000Z",
+  "sources": [
+    {
+      "canonicalUrl": "https://example.invalid/debatelab-study/source-group-0001",
+      "publisher": "DebateLab examiner study",
+      "title": "Synthetic study source — replace before use",
+      "authorityTier": "qualified_examiner_or_adjudicator",
+      "rightsStatus": "approved_for_benchmark_evaluation",
+      "checksum": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "reviewedBy": "independent-rights-reviewer-01",
+      "reviewedAt": "2026-09-01T11:00:00.000Z",
+      "reviewNotes": "Synthetic template only. Replace with the independently reviewed source record."
+    }
+  ],
+  "benchmarks": [
+    {
+      "benchmarkKey": "synthetic-writing-task2-holdout-0001",
+      "collectionSlug": "ielts.writing",
+      "sourceUrl": "https://example.invalid/debatelab-study/source-group-0001",
+      "skill": "ielts_writing",
+      "taskType": "writing_task2_essay",
+      "bandOrScoreRange": "6.5",
+      "accentGroup": null,
+      "split": "holdout",
+      "protectedLabel": {
+        "criteria": {
+          "taskResponse": { "band": 6.5, "labelLocator": "synthetic-mark-sheet:final" },
+          "coherenceCohesion": { "band": 6.5, "labelLocator": "synthetic-mark-sheet:final" },
+          "lexicalResource": { "band": 6.5, "labelLocator": "synthetic-mark-sheet:final" },
+          "grammaticalRangeAccuracy": { "band": 6.5, "labelLocator": "synthetic-mark-sheet:final" }
+        },
+        "overallBand": 6.5,
+        "input": {
+          "prompt": "DebateLab-authored synthetic prompt. Replace with the consented study prompt.",
+          "responseText": "Synthetic response used only to demonstrate the manifest shape.",
+          "grounding": {
+            "questionReferenceAnswer": null,
+            "examinerNotes": [],
+            "peerReferenceAnswers": []
+          },
+          "cueCardBullets": [],
+          "artifactSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "modelInputSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+          "responseLocator": "synthetic-response-0001"
+        },
+        "rubricVersion": "ielts-writing-rubric-v1",
+        "labelAuthority": "qualified_examiner",
+        "provenance": {
+          "independentlyMarked": true,
+          "raterRecords": [
+            {
+              "raterKey": "examiner-synthetic-01",
+              "authority": "qualified_examiner",
+              "credential": {
+                "proofSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                "verifiedAt": "2026-08-01T10:00:00.000Z",
+                "verifiedByKey": "credential-reviewer-01"
+              },
+              "rubricVersion": "ielts-writing-rubric-v1",
+              "markedAt": "2026-08-30T10:00:00.000Z",
+              "blindIndependentMark": true,
+              "criteria": {
+                "taskResponse": 6.5,
+                "coherenceCohesion": 6.5,
+                "lexicalResource": 6.5,
+                "grammaticalRangeAccuracy": 6.5
+              },
+              "overallBand": 6.5,
+              "markLocator": "synthetic-mark-sheet:rater-1"
+            },
+            {
+              "raterKey": "examiner-synthetic-02",
+              "authority": "qualified_examiner",
+              "credential": {
+                "proofSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+                "verifiedAt": "2026-08-01T10:00:00.000Z",
+                "verifiedByKey": "credential-reviewer-01"
+              },
+              "rubricVersion": "ielts-writing-rubric-v1",
+              "markedAt": "2026-08-30T11:00:00.000Z",
+              "blindIndependentMark": true,
+              "criteria": {
+                "taskResponse": 6.5,
+                "coherenceCohesion": 6.5,
+                "lexicalResource": 6.5,
+                "grammaticalRangeAccuracy": 6.5
+              },
+              "overallBand": 6.5,
+              "markLocator": "synthetic-mark-sheet:rater-2"
+            }
+          ],
+          "declaredBoundaryCrossing": false,
+          "adjudication": null
+        },
+        "consent": {
+          "receiptKey": "consent-synthetic-0001",
+          "receiptSha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "consentVersion": "benchmark-consent-v1",
+          "consentedAt": "2026-08-01T09:00:00.000Z",
+          "participantAgeGroup": "adult",
+          "scopes": {
+            "commercialAiEvaluation": true,
+            "humanExaminerReview": true,
+            "modelTraining": false,
+            "futureVersionedReevaluation": true,
+            "voiceProcessing": false
+          },
+          "guardianConsentReceiptSha256": null,
+          "learnerAssentReceiptSha256": null,
+          "retentionUntil": "2028-08-01T09:00:00.000Z",
+          "withdrawal": {
+            "status": "not_withdrawn",
+            "checkedAt": "2026-09-01T10:00:00.000Z",
+            "registryReceiptSha256": "1111111111111111111111111111111111111111111111111111111111111111"
+          }
+        }
+      },
+      "releaseAttestation": {
+        "keyId": "study-lead-signing-01",
+        "envelope": {
+          "envelopeVersion": 1,
+          "benchmarkKey": "synthetic-writing-task2-holdout-0001",
+          "artifactSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "consentReceiptSha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "consentRetentionUntil": "2028-08-01T09:00:00.000Z",
+          "withdrawalRegistryReceiptSha256": "1111111111111111111111111111111111111111111111111111111111111111",
+          "withdrawalCheckedAt": "2026-09-01T10:00:00.000Z",
+          "grouping": {
+            "candidateKey": "candidate-synthetic-0001",
+            "promptFamilyKey": "prompt-family-synthetic-0001",
+            "sourceGroupKey": "source-group-synthetic-0001",
+            "captureSessionKey": "capture-synthetic-0001"
+          },
+          "groupingReceipts": {
+            "candidateReceiptSha256": "2222222222222222222222222222222222222222222222222222222222222222",
+            "promptFamilyReceiptSha256": "3333333333333333333333333333333333333333333333333333333333333333",
+            "sourceGroupReceiptSha256": "4444444444444444444444444444444444444444444444444444444444444444",
+            "captureSessionReceiptSha256": "5555555555555555555555555555555555555555555555555555555555555555"
+          },
+          "captureIdentityReceiptSha256": "6666666666666666666666666666666666666666666666666666666666666666",
+          "examinerCredentialProofsSha256": [
+            "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+            "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+          ],
+          "verifiedAt": "2026-09-01T10:30:00.000Z",
+          "expiresAt": "2026-09-02T09:59:00.000Z"
+        },
+        "signatureBase64": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+      },
+      "metadata": {
+        "candidateKey": "candidate-synthetic-0001",
+        "promptFamilyKey": "prompt-family-synthetic-0001",
+        "sourceGroupKey": "source-group-synthetic-0001",
+        "captureSessionKey": "capture-synthetic-0001",
+        "studyDesignId": "debatelab-ielts-examiner-study",
+        "studyDesignVersion": 1,
+        "protectedOfflineEvaluationOnly": true
+      }
+    }
+  ]
+}

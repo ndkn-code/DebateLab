@@ -1,3 +1,5 @@
+import { createHash, createPublicKey, verify as verifySignature } from "node:crypto";
+
 import { z } from "zod";
 
 import {
@@ -5,6 +7,10 @@ import {
   normalizeIeltsCriterion,
   type IeltsBenchmarkSkill,
 } from "./evaluate";
+import {
+  IELTS_BENCHMARK_STUDY_DESIGN_V1,
+  assertBenchmarkStudyDesignIdentity,
+} from "./study-design";
 
 const finiteBandSchema = z.number().finite().min(0).max(9);
 const criterionBandSchema = z.union([
@@ -242,6 +248,7 @@ const approvedBenchmarkSourceSchema = z.object({
   title: z.string().min(1).max(500),
   authorityTier: z.enum(["official", "qualified_examiner_or_adjudicator"]),
   rightsStatus: z.enum([
+    "approved_for_benchmark_evaluation",
     "approved_for_derived_use",
     "approved_for_excerpt",
     "public_domain",
@@ -252,39 +259,320 @@ const approvedBenchmarkSourceSchema = z.object({
   reviewNotes: z.string().min(1).max(2_000),
 });
 
+const halfBandSchema = finiteBandSchema.refine(
+  (value) => Number.isInteger(value * 2),
+  { message: "Bands must use whole- or half-band increments" },
+);
+
+const sha256Schema = z
+  .string()
+  .regex(/^[a-f0-9]{64}$/i, "Value must be a SHA-256 hex digest");
+
+const studyKeySchema = z
+  .string()
+  .min(8)
+  .max(128)
+  .regex(
+    /^[a-z0-9][a-z0-9._-]+$/,
+    "Study keys must be pseudonymous lowercase identifiers",
+  );
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, entry]) => `${JSON.stringify(key)}:${canonicalJson(entry)}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function valueSha256(value: unknown): string {
+  return createHash("sha256").update(canonicalJson(value), "utf8").digest("hex");
+}
+
+function numericCriteria(value: Record<string, number>): Record<string, number> {
+  return Object.fromEntries(
+    Object.entries(value).map(([criterion, band]) => [
+      normalizeIeltsCriterion(criterion),
+      band,
+    ]),
+  );
+}
+
+function snapHalfBand(value: number): number {
+  return Math.min(9, Math.max(0, Math.round(value * 2) / 2));
+}
+
+export function computeBenchmarkOverallBand(
+  criteria: Record<string, number>,
+): number {
+  const bands = Object.values(criteria);
+  if (bands.length !== 4 || bands.some((band) => !Number.isFinite(band))) {
+    throw new Error("Exactly four finite criterion bands are required");
+  }
+  return snapHalfBand(
+    bands.reduce((sum, band) => sum + band, 0) / bands.length,
+  );
+}
+
 const protectedCriterionLabelSchema = z.object({
-  band: finiteBandSchema.refine((value) => Number.isInteger(value * 2), {
-    message: "Criterion bands must use whole- or half-band increments",
-  }),
+  band: halfBandSchema,
   labelLocator: z.string().min(1).max(500),
   examinerRationale: z.string().min(1).max(8_000).optional(),
 });
 
-const benchmarkLabelProvenanceSchema = z
+const examinerAuthoritySchema = z.enum([
+  "official_examiner",
+  "qualified_examiner",
+]);
+
+const examinerCredentialSchema = z.object({
+  proofSha256: z.string().regex(/^[a-f0-9]{64}$/i),
+  verifiedAt: z.string().datetime({ offset: true }),
+  verifiedByKey: studyKeySchema,
+});
+
+const examinerMarkSchema = z.object({
+  raterKey: studyKeySchema,
+  authority: examinerAuthoritySchema,
+  credential: examinerCredentialSchema,
+  rubricVersion: z.string().min(1).max(200),
+  markedAt: z.string().datetime({ offset: true }),
+  blindIndependentMark: z.literal(true),
+  criteria: z.record(z.string(), halfBandSchema),
+  overallBand: halfBandSchema,
+  markLocator: z.string().min(1).max(500),
+});
+
+const adjudicationRecordSchema = z.object({
+  adjudicatorKey: studyKeySchema,
+  authority: examinerAuthoritySchema,
+  credential: examinerCredentialSchema,
+  rubricVersion: z.string().min(1).max(200),
+  adjudicatedAt: z.string().datetime({ offset: true }),
+  method: z.enum(["third_examiner", "documented_consensus"]),
+  triggerReasons: z
+    .array(
+      z.enum([
+        "criterion_disagreement_over_half",
+        "overall_disagreement_over_half",
+        "declared_boundary_crossing",
+      ]),
+    )
+    .min(1)
+    .max(3)
+    .refine((reasons) => new Set(reasons).size === reasons.length, {
+      message: "Adjudication trigger reasons must be unique",
+    }),
+  criteria: z.record(z.string(), halfBandSchema),
+  overallBand: halfBandSchema,
+  rationale: z.string().min(1).max(8_000),
+  adjudicationLocator: z.string().min(1).max(500),
+});
+
+const benchmarkLabelProvenanceSchema = z.object({
+  independentlyMarked: z.literal(true),
+  raterRecords: z.array(examinerMarkSchema).min(2).max(20),
+  declaredBoundaryCrossing: z.boolean(),
+  adjudication: adjudicationRecordSchema.nullable(),
+});
+
+const protectedConsentReceiptSchema = z
   .object({
-    /** Release labels require two independently produced examiner marks. */
-    raterCount: z.number().int().min(2).max(20),
-    independentlyMarked: z.literal(true),
-    raterAuthorities: z
-      .array(z.enum(["official_examiner", "qualified_examiner"]))
-      .min(2)
-      .max(20),
-    adjudicationMethod: z.enum([
-      "third_examiner",
-      "documented_consensus",
-      "official_published_adjudication",
-    ]),
-    adjudicationLocator: z.string().min(1).max(500),
+    receiptKey: studyKeySchema,
+    receiptSha256: z.string().regex(/^[a-f0-9]{64}$/i),
+    consentVersion: z.string().min(1).max(100),
+    consentedAt: z.string().datetime({ offset: true }),
+    participantAgeGroup: z.enum(["adult", "minor"]),
+    scopes: z.object({
+      commercialAiEvaluation: z.literal(true),
+      humanExaminerReview: z.literal(true),
+      modelTraining: z.boolean(),
+      futureVersionedReevaluation: z.boolean(),
+      voiceProcessing: z.boolean(),
+    }),
+    guardianConsentReceiptSha256: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/i)
+      .nullable(),
+    learnerAssentReceiptSha256: z
+      .string()
+      .regex(/^[a-f0-9]{64}$/i)
+      .nullable(),
+    retentionUntil: z.string().datetime({ offset: true }),
+    withdrawal: z.object({
+      status: z.literal("not_withdrawn"),
+      checkedAt: z.string().datetime({ offset: true }),
+      registryReceiptSha256: z.string().regex(/^[a-f0-9]{64}$/i),
+    }),
   })
-  .superRefine((value, context) => {
-    if (value.raterAuthorities.length !== value.raterCount) {
+  .superRefine((consent, context) => {
+    const isMinor = consent.participantAgeGroup === "minor";
+    const consentedAt = new Date(consent.consentedAt);
+    const retentionUntil = new Date(consent.retentionUntil);
+    if (
+      isMinor !== Boolean(consent.guardianConsentReceiptSha256) ||
+      isMinor !== Boolean(consent.learnerAssentReceiptSha256)
+    ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
-        path: ["raterAuthorities"],
-        message: "Rater authority count must equal raterCount",
+        path: ["participantAgeGroup"],
+        message:
+          "Minor participants require guardian consent and learner assent; adults require neither",
+      });
+    }
+    if (retentionUntil <= consentedAt) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["retentionUntil"],
+        message: "Consent retention must end after consent was recorded",
+      });
+    }
+    const minorRetentionLimit = new Date(consentedAt);
+    minorRetentionLimit.setUTCFullYear(minorRetentionLimit.getUTCFullYear() + 1);
+    if (isMinor && retentionUntil > minorRetentionLimit) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["retentionUntil"],
+        message:
+          "Minor participant retention cannot exceed one year without renewed consent",
+      });
+    }
+    if (new Date(consent.withdrawal.checkedAt) < new Date(consent.consentedAt)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["withdrawal", "checkedAt"],
+        message: "Withdrawal registry check predates consent",
       });
     }
   });
+
+const benchmarkStudyGroupingSchema = z.object({
+  candidateKey: studyKeySchema,
+  promptFamilyKey: studyKeySchema,
+  sourceGroupKey: studyKeySchema,
+  captureSessionKey: studyKeySchema,
+});
+
+const benchmarkStudyGroupingReceiptSchema = z.object({
+  candidateReceiptSha256: sha256Schema,
+  promptFamilyReceiptSha256: sha256Schema,
+  sourceGroupReceiptSha256: sha256Schema,
+  captureSessionReceiptSha256: sha256Schema,
+});
+
+/**
+ * Signed by the study lead's offline Ed25519 key. The importer and release
+ * runner receive only the public key, so service-role access cannot manufacture
+ * examiner credentials, consent, withdrawal status, or split identities.
+ */
+export const benchmarkReleaseAttestationEnvelopeSchema = z
+  .object({
+    envelopeVersion: z.literal(1),
+    benchmarkKey: z.string().min(1).max(300),
+    artifactSha256: sha256Schema,
+    consentReceiptSha256: sha256Schema,
+    consentRetentionUntil: z.string().datetime({ offset: true }),
+    withdrawalRegistryReceiptSha256: sha256Schema,
+    withdrawalCheckedAt: z.string().datetime({ offset: true }),
+    grouping: benchmarkStudyGroupingSchema,
+    groupingReceipts: benchmarkStudyGroupingReceiptSchema,
+    captureIdentityReceiptSha256: sha256Schema,
+    examinerCredentialProofsSha256: z
+      .array(sha256Schema)
+      .min(2)
+      .max(20)
+      .refine(
+        (proofs) =>
+          new Set(proofs.map((proof) => proof.toLowerCase())).size ===
+          proofs.length,
+        { message: "Examiner credential proofs must be distinct" },
+      ),
+    verifiedAt: z.string().datetime({ offset: true }),
+    expiresAt: z.string().datetime({ offset: true }),
+  })
+  .superRefine((envelope, context) => {
+    const verifiedAt = new Date(envelope.verifiedAt).getTime();
+    const checkedAt = new Date(envelope.withdrawalCheckedAt).getTime();
+    const expiresAt = new Date(envelope.expiresAt).getTime();
+    const retentionUntil = new Date(envelope.consentRetentionUntil).getTime();
+    if (checkedAt > verifiedAt) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["withdrawalCheckedAt"],
+        message: "Withdrawal status must be checked before study-lead verification",
+      });
+    }
+    if (verifiedAt - checkedAt > 24 * 60 * 60 * 1_000) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["withdrawalCheckedAt"],
+        message: "Withdrawal registry snapshot is older than 24 hours",
+      });
+    }
+    if (
+      expiresAt <= verifiedAt ||
+      expiresAt > retentionUntil ||
+      expiresAt - checkedAt > 24 * 60 * 60 * 1_000
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["expiresAt"],
+        message:
+          "Release attestation must expire after verification, within 24 hours of the withdrawal check, and before retention ends",
+      });
+    }
+  });
+
+export const benchmarkReleaseAttestationSchema = z.object({
+  keyId: studyKeySchema,
+  envelope: benchmarkReleaseAttestationEnvelopeSchema,
+  signatureBase64: z
+    .string()
+    .min(80)
+    .max(200)
+    .regex(/^[A-Za-z0-9+/]+={0,2}$/, "Expected a base64 Ed25519 signature"),
+});
+
+export type BenchmarkReleaseAttestation = z.infer<
+  typeof benchmarkReleaseAttestationSchema
+>;
+
+export function benchmarkReleaseAttestationPayload(
+  envelope: z.infer<typeof benchmarkReleaseAttestationEnvelopeSchema>,
+): Buffer {
+  return Buffer.from(canonicalJson(envelope), "utf8");
+}
+
+export function verifyBenchmarkReleaseAttestation(params: {
+  attestation: unknown;
+  publicKeyPem: string;
+  now?: Date;
+}): BenchmarkReleaseAttestation {
+  const attestation = benchmarkReleaseAttestationSchema.parse(
+    params.attestation,
+  );
+  const now = (params.now ?? new Date()).getTime();
+  if (
+    now < new Date(attestation.envelope.verifiedAt).getTime() ||
+    now >= new Date(attestation.envelope.expiresAt).getTime() ||
+    now >= new Date(attestation.envelope.consentRetentionUntil).getTime()
+  ) {
+    throw new Error("Benchmark release attestation is not currently valid");
+  }
+  const verified = verifySignature(
+    null,
+    benchmarkReleaseAttestationPayload(attestation.envelope),
+    createPublicKey(params.publicKeyPem),
+    Buffer.from(attestation.signatureBase64, "base64"),
+  );
+  if (!verified) {
+    throw new Error("Benchmark release attestation signature is invalid");
+  }
+  return attestation;
+}
 
 const benchmarkPronunciationSignalSchema = z.object({
   pronunciationScore: z.number().finite().min(0).max(100),
@@ -294,10 +582,6 @@ const benchmarkPronunciationSignalSchema = z.object({
   prosodyScore: z.number().finite().min(0).max(100),
   mispronouncedWords: z.array(z.string().min(1).max(200)).max(25),
 });
-
-const sha256Schema = z
-  .string()
-  .regex(/^[a-f0-9]{64}$/i, "Value must be a SHA-256 hex digest");
 
 const EMPTY_TEXT_SHA256 =
   "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
@@ -323,7 +607,7 @@ const benchmarkGroundingSchema = z.object({
   peerReferenceAnswers: z.array(z.string().min(1).max(100_000)).max(50),
 });
 
-const benchmarkAcousticAttestationEnvelopeSchema = z.object({
+export const benchmarkAcousticAttestationEnvelopeSchema = z.object({
   envelopeVersion: z.literal(1),
   benchmarkKey: z.string().min(1).max(300),
   captureId: z.string().uuid(),
@@ -331,13 +615,41 @@ const benchmarkAcousticAttestationEnvelopeSchema = z.object({
   reportObjectPath: protectedBenchmarkObjectPathSchema,
   audioArtifactSha256: sha256Schema,
   transcriptSha256: sha256Schema,
+  transcriptReviewSha256: sha256Schema,
   configSha256: sha256Schema,
   reportSha256: sha256Schema,
+  audioStorageVersion: z.string().min(1).max(500),
+  audioEtag: z.string().min(1).max(500),
+  reportStorageVersion: z.string().min(1).max(500),
+  reportEtag: z.string().min(1).max(500),
   provider: z.literal("azure"),
   model: z.literal("pronunciation-assessment"),
   apiVersion: z.literal("speech-sdk/1.51.0"),
   assessmentMode: z.literal("unscripted"),
 });
+
+export type BenchmarkAcousticAttestationEnvelope = z.infer<
+  typeof benchmarkAcousticAttestationEnvelopeSchema
+>;
+
+export const benchmarkTranscriptReviewSchema = z.object({
+  reviewVersion: z.literal(1),
+  reviewerKey: studyKeySchema,
+  reviewedAt: z.string().datetime({ offset: true }),
+  status: z.literal("verified_against_audio"),
+  transcriptVersion: z.number().int().positive(),
+  transcriptSha256: sha256Schema,
+});
+
+export type BenchmarkTranscriptReview = z.infer<
+  typeof benchmarkTranscriptReviewSchema
+>;
+
+export function benchmarkTranscriptReviewSha256(
+  review: BenchmarkTranscriptReview,
+): string {
+  return valueSha256(benchmarkTranscriptReviewSchema.parse(review));
+}
 
 const benchmarkAudioPreprocessingSchema = z.object({
   audioArtifactSha256: sha256Schema,
@@ -346,6 +658,7 @@ const benchmarkAudioPreprocessingSchema = z.object({
     model: z.string().min(1).max(200),
     transcriptSha256: sha256Schema,
   }),
+  transcriptReview: benchmarkTranscriptReviewSchema,
   pronunciation: z.object({
     provider: z.literal("azure"),
     model: z.literal("pronunciation-assessment"),
@@ -514,10 +827,18 @@ export const protectedBenchmarkInputSchema = z
             preprocessing.audioArtifactSha256.toLowerCase() ||
           envelope.transcriptSha256.toLowerCase() !==
             preprocessing.stt.transcriptSha256.toLowerCase() ||
+          envelope.transcriptReviewSha256.toLowerCase() !==
+            benchmarkTranscriptReviewSha256(preprocessing.transcriptReview) ||
+          preprocessing.transcriptReview.transcriptSha256.toLowerCase() !==
+            preprocessing.stt.transcriptSha256.toLowerCase() ||
           envelope.configSha256.toLowerCase() !==
             pronunciation.configSha256.toLowerCase() ||
           envelope.reportSha256.toLowerCase() !==
             pronunciation.reportSha256.toLowerCase() ||
+          envelope.audioStorageVersion !== input.artifactStorageVersion ||
+          envelope.audioEtag !== input.artifactEtag ||
+          envelope.reportStorageVersion !== pronunciation.reportStorageVersion ||
+          envelope.reportEtag !== pronunciation.reportEtag ||
           envelope.provider !== pronunciation.provider ||
           envelope.model !== pronunciation.model ||
           envelope.apiVersion !== pronunciation.apiVersion ||
@@ -538,14 +859,188 @@ export type ProtectedBenchmarkInput = z.infer<
   typeof protectedBenchmarkInputSchema
 >;
 
-const protectedBenchmarkLabelSchema = z.object({
-  criteria: z.record(z.string(), protectedCriterionLabelSchema),
-  /** Protected input is service-role only and never returned to learners/admin UI. */
-  input: protectedBenchmarkInputSchema,
-  rubricVersion: z.string().min(1).max(200),
-  labelAuthority: z.enum(["official_examiner", "qualified_examiner"]),
-  provenance: benchmarkLabelProvenanceSchema,
-});
+const protectedBenchmarkLabelSchema = z
+  .object({
+    criteria: z.record(z.string(), protectedCriterionLabelSchema),
+    overallBand: halfBandSchema,
+    /** Protected input is service-role only and never returned to learners/admin UI. */
+    input: protectedBenchmarkInputSchema,
+    rubricVersion: z.string().min(1).max(200),
+    labelAuthority: z.enum(["official_examiner", "qualified_examiner"]),
+    provenance: benchmarkLabelProvenanceSchema,
+    consent: protectedConsentReceiptSchema,
+  })
+  .superRefine((label, context) => {
+    const finalCriteria = numericCriteria(
+      Object.fromEntries(
+        Object.entries(label.criteria).map(([criterion, value]) => [
+          criterion,
+          value.band,
+        ]),
+      ),
+    );
+    const finalCriterionKeys = Object.keys(finalCriteria).sort();
+    const raterKeys = new Set<string>();
+    for (const [index, rater] of label.provenance.raterRecords.entries()) {
+      if (raterKeys.has(rater.raterKey)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["provenance", "raterRecords", index, "raterKey"],
+          message: "Independent examiner rater keys must be distinct",
+        });
+      }
+      raterKeys.add(rater.raterKey);
+      const criteria = numericCriteria(rater.criteria);
+      if (
+        Object.keys(criteria).sort().join("|") !== finalCriterionKeys.join("|")
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["provenance", "raterRecords", index, "criteria"],
+          message: "Examiner mark criteria must match the final criterion set",
+        });
+      }
+      if (rater.rubricVersion !== label.rubricVersion) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["provenance", "raterRecords", index, "rubricVersion"],
+          message: "Examiner mark rubric version differs from the locked rubric",
+        });
+      }
+      if (
+        Object.keys(criteria).length === 4 &&
+        computeBenchmarkOverallBand(criteria) !== rater.overallBand
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["provenance", "raterRecords", index, "overallBand"],
+          message: "Examiner overall band is inconsistent with criterion marks",
+        });
+      }
+    }
+
+    const criterionDisagreement = finalCriterionKeys.some((criterion) => {
+      const values = label.provenance.raterRecords
+        .map((rater) => numericCriteria(rater.criteria)[criterion])
+        .filter((band): band is number => typeof band === "number");
+      return values.length >= 2 && Math.max(...values) - Math.min(...values) > 0.5;
+    });
+    const overallValues = label.provenance.raterRecords.map(
+      (rater) => rater.overallBand,
+    );
+    const overallDisagreement =
+      Math.max(...overallValues) - Math.min(...overallValues) > 0.5;
+    const requiredReasons = [
+      ...(criterionDisagreement
+        ? (["criterion_disagreement_over_half"] as const)
+        : []),
+      ...(overallDisagreement
+        ? (["overall_disagreement_over_half"] as const)
+        : []),
+      ...(label.provenance.declaredBoundaryCrossing
+        ? (["declared_boundary_crossing"] as const)
+        : []),
+    ];
+    const adjudication = label.provenance.adjudication;
+    if (requiredReasons.length > 0 && !adjudication) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["provenance", "adjudication"],
+        message:
+          "Examiner disagreement or a declared boundary crossing requires adjudication",
+      });
+      return;
+    }
+
+    if (requiredReasons.length === 0 && adjudication) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["provenance", "adjudication"],
+        message: "Adjudication must be absent when no adjudication trigger exists",
+      });
+      return;
+    }
+
+    if (adjudication) {
+      const adjudicatedCriteria = numericCriteria(adjudication.criteria);
+      if (raterKeys.has(adjudication.adjudicatorKey)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["provenance", "adjudication", "adjudicatorKey"],
+          message: "The adjudicator must be distinct from independent raters",
+        });
+      }
+      if (adjudication.rubricVersion !== label.rubricVersion) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["provenance", "adjudication", "rubricVersion"],
+          message: "Adjudication rubric version differs from the locked rubric",
+        });
+      }
+      const actualReasons = [...adjudication.triggerReasons].sort();
+      const expectedReasons = [...requiredReasons].sort();
+      if (actualReasons.join("|") !== expectedReasons.join("|")) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["provenance", "adjudication", "triggerReasons"],
+          message: "Adjudication trigger reasons must exactly match the observed triggers",
+        });
+      }
+      if (
+        Object.keys(adjudicatedCriteria).sort().join("|") !==
+          finalCriterionKeys.join("|") ||
+        finalCriterionKeys.some(
+          (criterion) =>
+            adjudicatedCriteria[criterion] !== finalCriteria[criterion],
+        )
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["criteria"],
+          message: "Final criterion labels differ from adjudicated labels",
+        });
+      }
+      if (
+        Object.keys(adjudicatedCriteria).length === 4 &&
+        (computeBenchmarkOverallBand(adjudicatedCriteria) !==
+          adjudication.overallBand ||
+          adjudication.overallBand !== label.overallBand)
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["overallBand"],
+          message: "Final overall band differs from adjudicated criterion marks",
+        });
+      }
+      return;
+    }
+
+    for (const criterion of finalCriterionKeys) {
+      const values = label.provenance.raterRecords.map(
+        (rater) => numericCriteria(rater.criteria)[criterion]!,
+      );
+      const expected = snapHalfBand(
+        values.reduce((sum, band) => sum + band, 0) / values.length,
+      );
+      if (finalCriteria[criterion] !== expected) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["criteria", criterion, "band"],
+          message: "Final criterion label differs from the independent-mark mean",
+        });
+      }
+    }
+    if (
+      finalCriterionKeys.length === 4 &&
+      computeBenchmarkOverallBand(finalCriteria) !== label.overallBand
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["overallBand"],
+        message: "Final overall band is inconsistent with final criterion labels",
+      });
+    }
+  });
 
 const benchmarkCaseSchema = z
   .object({
@@ -558,18 +1053,72 @@ const benchmarkCaseSchema = z
   accentGroup: z.string().min(1).max(100).nullable().default(null),
   split: z.enum(["development", "evaluation", "holdout"]),
   protectedLabel: protectedBenchmarkLabelSchema,
+  releaseAttestation: benchmarkReleaseAttestationSchema,
   metadata: z
     .object({
+      candidateKey: studyKeySchema,
+      promptFamilyKey: studyKeySchema,
+      sourceGroupKey: studyKeySchema,
+      captureSessionKey: studyKeySchema,
+      studyDesignId: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_V1.id),
+      studyDesignVersion: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_V1.version),
       /** Required for Speaking slice analysis and accent-bias checks. */
       l1Group: z.string().min(1).max(100).optional(),
       audioQualityGroup: z
         .enum(["studio", "quiet_room", "typical_device", "degraded"])
         .optional(),
     })
-    .catchall(z.unknown())
-    .default({}),
+    .catchall(z.unknown()),
   })
   .superRefine((benchmark, context) => {
+    const attestation = benchmark.releaseAttestation.envelope;
+    const credentialProofs = benchmark.protectedLabel.provenance.raterRecords
+      .map((rater) => rater.credential.proofSha256.toLowerCase())
+      .sort();
+    const attestedCredentialProofs = attestation.examinerCredentialProofsSha256
+      .map((proof) => proof.toLowerCase())
+      .sort();
+    const bindingMismatch =
+      attestation.benchmarkKey !== benchmark.benchmarkKey ||
+      attestation.artifactSha256.toLowerCase() !==
+        benchmark.protectedLabel.input.artifactSha256.toLowerCase() ||
+      attestation.consentReceiptSha256.toLowerCase() !==
+        benchmark.protectedLabel.consent.receiptSha256.toLowerCase() ||
+      attestation.consentRetentionUntil !==
+        benchmark.protectedLabel.consent.retentionUntil ||
+      attestation.grouping.candidateKey !== benchmark.metadata.candidateKey ||
+      attestation.grouping.promptFamilyKey !== benchmark.metadata.promptFamilyKey ||
+      attestation.grouping.sourceGroupKey !== benchmark.metadata.sourceGroupKey ||
+      attestation.grouping.captureSessionKey !== benchmark.metadata.captureSessionKey ||
+      credentialProofs.join("|") !== attestedCredentialProofs.join("|");
+    if (bindingMismatch) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["releaseAttestation"],
+        message:
+          "Study-lead attestation does not bind the benchmark artifact, consent, credentials, and grouping identity",
+      });
+    }
+    if (
+      benchmark.split !== "development" &&
+      !benchmark.protectedLabel.consent.scopes.futureVersionedReevaluation
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["protectedLabel", "consent", "scopes", "futureVersionedReevaluation"],
+        message: "Evaluation and holdout cases require future re-evaluation consent",
+      });
+    }
+    if (
+      benchmark.skill === "ielts_speaking" &&
+      !benchmark.protectedLabel.consent.scopes.voiceProcessing
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["protectedLabel", "consent", "scopes", "voiceProcessing"],
+        message: "Speaking benchmarks require voice-processing consent",
+      });
+    }
     const envelope =
       benchmark.protectedLabel.input.audioPreprocessing?.acousticAttestation
         .envelope;
@@ -596,11 +1145,13 @@ const storedBenchmarkReleaseSchema = z
     taskType: z.string().min(1).max(200),
     accentGroup: z.string().min(1).max(100).nullable().default(null),
     protectedLabel: protectedBenchmarkLabelSchema,
+    releaseAttestation: benchmarkReleaseAttestationSchema,
     metadata: benchmarkCaseSchema.shape.metadata,
     source: z.object({
       canonicalUrl: z.string().url(),
       authorityTier: z.enum(["official", "qualified_examiner_or_adjudicator"]),
       rightsStatus: z.enum([
+        "approved_for_benchmark_evaluation",
         "approved_for_derived_use",
         "approved_for_excerpt",
         "public_domain",
@@ -612,6 +1163,33 @@ const storedBenchmarkReleaseSchema = z
     }),
   })
   .superRefine((benchmark, context) => {
+    const attestation = benchmark.releaseAttestation.envelope;
+    const credentialProofs = benchmark.protectedLabel.provenance.raterRecords
+      .map((rater) => rater.credential.proofSha256.toLowerCase())
+      .sort();
+    const attestedCredentialProofs = attestation.examinerCredentialProofsSha256
+      .map((proof) => proof.toLowerCase())
+      .sort();
+    if (
+      attestation.benchmarkKey !== benchmark.benchmarkKey ||
+      attestation.artifactSha256.toLowerCase() !==
+        benchmark.protectedLabel.input.artifactSha256.toLowerCase() ||
+      attestation.consentReceiptSha256.toLowerCase() !==
+        benchmark.protectedLabel.consent.receiptSha256.toLowerCase() ||
+      attestation.consentRetentionUntil !==
+        benchmark.protectedLabel.consent.retentionUntil ||
+      attestation.grouping.candidateKey !== benchmark.metadata.candidateKey ||
+      attestation.grouping.promptFamilyKey !== benchmark.metadata.promptFamilyKey ||
+      attestation.grouping.sourceGroupKey !== benchmark.metadata.sourceGroupKey ||
+      attestation.grouping.captureSessionKey !== benchmark.metadata.captureSessionKey ||
+      credentialProofs.join("|") !== attestedCredentialProofs.join("|")
+    ) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["releaseAttestation"],
+        message: "Stored benchmark study-lead attestation binding is invalid",
+      });
+    }
     if (benchmark.source.submittedBy === benchmark.source.reviewedBy) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
@@ -739,6 +1317,10 @@ export function countInvalidStoredBenchmarkRows(values: unknown[]): number {
 
 export const gradingBenchmarkImportFileSchema = z.object({
   manifestVersion: z.literal(1),
+  studyDesign: z.object({
+    id: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_V1.id),
+    version: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_V1.version),
+  }),
   createdAt: z.string().datetime({ offset: true }),
   sources: z.array(approvedBenchmarkSourceSchema).min(1).max(10_000),
   benchmarks: z.array(benchmarkCaseSchema).min(1).max(100_000),
@@ -758,6 +1340,37 @@ export function parseGradingBenchmarkImport(
   value: unknown,
 ): GradingBenchmarkImportFile {
   const parsed = gradingBenchmarkImportFileSchema.parse(value);
+  assertBenchmarkStudyDesignIdentity(parsed.studyDesign);
+  const manifestCreatedAt = new Date(parsed.createdAt).getTime();
+  for (const benchmark of parsed.benchmarks) {
+    const consent = benchmark.protectedLabel.consent;
+    const withdrawalCheckedAt = new Date(
+      benchmark.releaseAttestation.envelope.withdrawalCheckedAt,
+    ).getTime();
+    const retentionUntil = new Date(consent.retentionUntil).getTime();
+    const attestation = benchmark.releaseAttestation.envelope;
+    if (retentionUntil <= manifestCreatedAt) {
+      throw new Error(
+        `Consent retention expires before import: ${benchmark.benchmarkKey}`,
+      );
+    }
+    if (
+      withdrawalCheckedAt > manifestCreatedAt ||
+      manifestCreatedAt - withdrawalCheckedAt > 24 * 60 * 60 * 1_000
+    ) {
+      throw new Error(
+        `Withdrawal registry check is not fresh for import: ${benchmark.benchmarkKey}`,
+      );
+    }
+    if (
+      manifestCreatedAt < new Date(attestation.verifiedAt).getTime() ||
+      manifestCreatedAt >= new Date(attestation.expiresAt).getTime()
+    ) {
+      throw new Error(
+        `Study-lead release attestation is not valid at import: ${benchmark.benchmarkKey}`,
+      );
+    }
+  }
   const sourceUrls = new Set(
     parsed.sources.map((source) => source.canonicalUrl),
   );
@@ -771,7 +1384,13 @@ export function parseGradingBenchmarkImport(
   const acousticReportPaths = new Set<string>();
   const acousticReportHashes = new Set<string>();
   const acousticEnvelopes = new Set<string>();
-  const splitBySource = new Map<string, string>();
+  const splitByGroup = {
+    sourceUrl: new Map<string, string>(),
+    candidateKey: new Map<string, string>(),
+    promptFamilyKey: new Map<string, string>(),
+    sourceGroupKey: new Map<string, string>(),
+    captureSessionKey: new Map<string, string>(),
+  };
   for (const benchmark of parsed.benchmarks) {
     if (keys.has(benchmark.benchmarkKey)) {
       throw new Error(`Duplicate benchmarkKey: ${benchmark.benchmarkKey}`);
@@ -866,13 +1485,73 @@ export function parseGradingBenchmarkImport(
         `Incomplete or unknown criterion labels for ${benchmark.benchmarkKey}`,
       );
     }
-    const previousSplit = splitBySource.get(benchmark.sourceUrl);
-    if (previousSplit && previousSplit !== benchmark.split) {
+    for (const [index, rater] of benchmark.protectedLabel.provenance.raterRecords.entries()) {
+      const raterCriteria = Object.keys(rater.criteria)
+        .map(normalizeIeltsCriterion)
+        .sort();
+      if (
+        raterCriteria.length !== requiredCriteria.length ||
+        raterCriteria.some(
+          (criterion, criterionIndex) =>
+            criterion !== requiredCriteria[criterionIndex],
+        )
+      ) {
+        throw new Error(
+          `Incomplete examiner ${index + 1} criterion marks for ${benchmark.benchmarkKey}`,
+        );
+      }
+    }
+    const adjudication = benchmark.protectedLabel.provenance.adjudication;
+    if (adjudication) {
+      const adjudicatedCriteria = Object.keys(adjudication.criteria)
+        .map(normalizeIeltsCriterion)
+        .sort();
+      if (
+        adjudicatedCriteria.length !== requiredCriteria.length ||
+        adjudicatedCriteria.some(
+          (criterion, index) => criterion !== requiredCriteria[index],
+        )
+      ) {
+        throw new Error(
+          `Incomplete adjudicated criterion marks for ${benchmark.benchmarkKey}`,
+        );
+      }
+    }
+    const groups = {
+      sourceUrl: benchmark.sourceUrl,
+      candidateKey: benchmark.metadata.candidateKey,
+      promptFamilyKey: benchmark.metadata.promptFamilyKey,
+      sourceGroupKey: benchmark.metadata.sourceGroupKey,
+      captureSessionKey: benchmark.metadata.captureSessionKey,
+    };
+    for (const [kind, key] of Object.entries(groups)) {
+      const map = splitByGroup[kind as keyof typeof splitByGroup];
+      const previousSplit = map.get(key);
+      if (previousSplit && previousSplit !== benchmark.split) {
+        throw new Error(`${kind} leakage across benchmark splits: ${key}`);
+      }
+      map.set(key, benchmark.split);
+    }
+    if (
+      benchmark.accentGroup &&
+      !IELTS_BENCHMARK_STUDY_DESIGN_V1.strata.accentGroups.includes(
+        benchmark.accentGroup as never,
+      )
+    ) {
       throw new Error(
-        `Source leakage across benchmark splits: ${benchmark.sourceUrl}`,
+        `Unknown controlled accent group: ${benchmark.accentGroup}`,
       );
     }
-    splitBySource.set(benchmark.sourceUrl, benchmark.split);
+    if (
+      benchmark.metadata.l1Group &&
+      !IELTS_BENCHMARK_STUDY_DESIGN_V1.strata.l1Groups.includes(
+        benchmark.metadata.l1Group as never,
+      )
+    ) {
+      throw new Error(
+        `Unknown controlled L1 group: ${benchmark.metadata.l1Group}`,
+      );
+    }
   }
   return parsed;
 }
