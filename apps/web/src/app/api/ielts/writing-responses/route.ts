@@ -7,6 +7,7 @@ import {
   WritingScoreLimitError,
   submitWritingResponseForScoring,
 } from "@/lib/ielts/writing-scorer/service";
+import { IeltsSubmissionConflictError } from "@/lib/ielts/submission-replay";
 
 /**
  * POST /api/ielts/writing-responses — submit an essay for async AI band scoring
@@ -40,6 +41,9 @@ export async function POST(request: NextRequest) {
     }
     if (error instanceof WritingScoreLimitError) {
       return NextResponse.json({ error: error.message }, { status: 402 });
+    }
+    if (error instanceof IeltsSubmissionConflictError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
     }
     console.error("IELTS writing submit failed", error);
     return NextResponse.json(

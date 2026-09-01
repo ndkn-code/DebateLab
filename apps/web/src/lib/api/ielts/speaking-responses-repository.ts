@@ -24,6 +24,10 @@ import {
   sanitizeLearnerGradingMetadata,
   type LearnerGradingMetadata,
 } from "@/lib/ielts/scoring-adjudication";
+import {
+  decideIeltsSubmissionReplay,
+  IeltsSubmissionConflictError,
+} from "@/lib/ielts/submission-replay";
 
 /**
  * Canonical data access for `speaking_responses` (WS-3.2).
@@ -31,7 +35,8 @@ import {
  * `speaking_responses`/`ielts_question_keys` are admin-write only under RLS, so
  * every write here uses the service-role admin client and enforces ownership in
  * code (the authed user must own the attempt). One canonical create path
- * (data-access §3/§8): a (re)submission upserts on `(attempt_id, question_id)`.
+ * (data-access §3/§8): an exact network replay reuses the immutable row at
+ * `(attempt_id, question_id)`; a changed recording must use a new attempt.
  * Mirrors the Writing responses repository.
  */
 type TypedAdminClient = ReturnType<typeof createTypedAdminClient>;
@@ -66,22 +71,53 @@ export async function createSpeakingResponse(
     throw new SpeakingResponseAccessError("IELTS attempt not found.");
   }
   if (attempt.status !== "in_progress") {
-    throw new SpeakingResponseAccessError("IELTS attempt is no longer accepting responses.");
+    throw new SpeakingResponseAccessError(
+      "IELTS attempt is no longer accepting responses.",
+    );
   }
+
+  const { data: existing, error: existingError } = await admin
+    .from("speaking_responses")
+    .select("*")
+    .eq("attempt_id", input.attemptId)
+    .eq("question_id", input.questionId)
+    .maybeSingle();
+  if (existingError) {
+    throw new Error(
+      `load existing Speaking response: ${existingError.message}`,
+    );
+  }
+  const replay = decideIeltsSubmissionReplay({
+    hasExisting: Boolean(existing),
+    samePayload:
+      Boolean(existing) &&
+      existing?.audio_storage_path === input.audioStoragePath &&
+      existing?.feedback_language === input.feedbackLanguage,
+    terminal:
+      existing?.status === "scored" || existing?.status === "overridden",
+  });
+  if (replay === "conflict") throw new IeltsSubmissionConflictError();
+  if (replay === "resume" || replay === "terminal") return existing!;
 
   const { data: question } = await admin
     .from("ielts_questions")
     .select("id, test_id, skill, question_type")
     .eq("id", input.questionId)
     .maybeSingle();
-  if (!question || question.test_id !== attempt.test_id || question.skill !== "speaking") {
+  if (
+    !question ||
+    question.test_id !== attempt.test_id ||
+    question.skill !== "speaking"
+  ) {
     throw new SpeakingResponseAccessError("Question is not a speaking task.");
   }
 
   if (attempt.blueprint_frozen_at) {
     const expectedPath = `${userId}/${input.attemptId}/speaking-${input.questionId}.wav`;
     if (input.audioStoragePath !== expectedPath) {
-      throw new SpeakingResponseAccessError("Audio path is not bound to this IELTS task.");
+      throw new SpeakingResponseAccessError(
+        "Audio path is not bound to this IELTS task.",
+      );
     }
     const { data: blueprint } = await admin
       .from("ielts_attempt_question_blueprints")
@@ -91,12 +127,16 @@ export async function createSpeakingResponse(
       .eq("skill", "speaking")
       .maybeSingle();
     if (!blueprint) {
-      throw new SpeakingResponseAccessError("Speaking task is not part of this attempt.");
+      throw new SpeakingResponseAccessError(
+        "Speaking task is not part of this attempt.",
+      );
     }
   } else if (!input.audioStoragePath.startsWith(`${userId}/`)) {
     // Compatibility for legacy attempts: preserve their broader path format,
     // but never permit a path outside the authenticated user's folder.
-    throw new SpeakingResponseAccessError("Audio path is not owned by this user.");
+    throw new SpeakingResponseAccessError(
+      "Audio path is not owned by this user.",
+    );
   }
 
   const { data, error } = await admin
@@ -130,6 +170,24 @@ export async function getSpeakingResponseForUser(
     .eq("id", speakingResponseId)
     .eq("user_id", userId)
     .maybeSingle();
+  return data ?? null;
+}
+
+export async function getSpeakingResponseForSubmission(params: {
+  attemptId: string;
+  questionId: string;
+  userId: string;
+}): Promise<SpeakingResponseRow | null> {
+  const { data, error } = await createTypedAdminClient()
+    .from("speaking_responses")
+    .select("*")
+    .eq("attempt_id", params.attemptId)
+    .eq("question_id", params.questionId)
+    .eq("user_id", params.userId)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`load Speaking submission replay: ${error.message}`);
+  }
   return data ?? null;
 }
 

@@ -7,6 +7,7 @@ import {
   SpeakingScoreLimitError,
   submitSpeakingResponseForScoring,
 } from "@/lib/ielts/speaking-scorer/service";
+import { IeltsSubmissionConflictError } from "@/lib/ielts/submission-replay";
 
 /**
  * POST /api/ielts/speaking-responses — submit a recording for async AI band
@@ -41,6 +42,9 @@ export async function POST(request: NextRequest) {
     }
     if (error instanceof SpeakingScoreLimitError) {
       return NextResponse.json({ error: error.message }, { status: 402 });
+    }
+    if (error instanceof IeltsSubmissionConflictError) {
+      return NextResponse.json({ error: error.message }, { status: 409 });
     }
     console.error("IELTS speaking submit failed", error);
     return NextResponse.json(

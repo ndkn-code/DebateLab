@@ -27,14 +27,13 @@ import { maybeReplanAfterEvidence } from "@/lib/api/ielts/replan-hook";
 import {
   claimSpeakingResponseForScoring,
   createSpeakingResponse,
+  getSpeakingResponseForSubmission,
   loadSpeakingScoringContext,
   markSpeakingScoringFailed,
   persistSpeakingScore,
 } from "@/lib/api/ielts/speaking-responses-repository";
 import { enqueueIeltsSpeakingScoring } from "@/lib/queues/ielts-speaking";
-import {
-  ensureAiWorkflowRun,
-} from "@/lib/ai/workflow-runs";
+import { ensureAiWorkflowRun } from "@/lib/ai/workflow-runs";
 import { isGcpAiGradingEnabled } from "@/lib/ai/grading/backend";
 import {
   IELTS_SPEAKING_AUDIO_BUCKET,
@@ -52,6 +51,7 @@ import {
   speakingBands,
 } from "@/lib/ielts/scoring-adjudication";
 import { buildSpeakingRunCriterionEvidence } from "@/lib/ielts/criterion-evidence-contract";
+import { IeltsSubmissionConflictError } from "@/lib/ielts/submission-replay";
 import {
   claimableSpeakingStatuses,
   decideSpeakingScoringAction,
@@ -87,6 +87,16 @@ export async function submitSpeakingResponseForScoring(params: {
   // Reject a malformed body before consuming a metered unit (the canonical
   // create path re-validates + owns the authoritative parse + insert).
   const input = parseInput(CreateSpeakingResponseSchema, params.raw);
+  const existing = await getSpeakingResponseForSubmission({
+    attemptId: input.attemptId,
+    questionId: input.questionId,
+    userId: params.userId,
+  });
+  const samePayload =
+    Boolean(existing) &&
+    existing?.audio_storage_path === input.audioStoragePath &&
+    existing?.feedback_language === input.feedbackLanguage;
+  if (existing && !samePayload) throw new IeltsSubmissionConflictError();
 
   const entitlement = await getUserEntitlement(params.supabase, params.userId);
   const usage = await meterFeature(
@@ -95,11 +105,20 @@ export async function submitSpeakingResponseForScoring(params: {
     entitlement.planType,
     METERED_FEATURES.aiSpeakingScore,
     new Date(),
+    existing ? 0 : 1,
   );
   if (!usage.allowed) {
     throw new SpeakingScoreLimitError(
       `Monthly AI speaking-score limit reached (${usage.usedCount}/${usage.limitCount ?? "unlimited"}).`,
     );
+  }
+
+  if (existing && isTerminalSpeakingStatus(existing.status)) {
+    return {
+      speakingResponseId: existing.id,
+      status: existing.status,
+      usage: { used: usage.usedCount, limit: usage.limitCount },
+    };
   }
 
   const response = await createSpeakingResponse(params.raw, params.userId);

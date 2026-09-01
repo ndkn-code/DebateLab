@@ -19,6 +19,19 @@ async function main() {
   assert.equal(denied.allowed, false);
   assert.equal(denied.usedCount, 3);
 
+  // An idempotent network replay reports the current usage without charging
+  // another unit, even when the learner is already at the plan limit.
+  const replay = await meterFeature(
+    repo,
+    "u1",
+    "free",
+    METERED_FEATURES.aiWritingScore,
+    now,
+    0,
+  );
+  assert.equal(replay.allowed, true);
+  assert.equal(replay.usedCount, 3);
+
   // Premium: unlimited -> never denied, no cap reported.
   for (let i = 0; i < 10; i++) {
     const r = await meterFeature(repo, "u2", "premium", METERED_FEATURES.aiWritingScore, now);

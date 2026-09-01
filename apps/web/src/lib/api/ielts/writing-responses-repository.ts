@@ -24,6 +24,10 @@ import {
   sanitizeLearnerGradingMetadata,
   type LearnerGradingMetadata,
 } from "@/lib/ielts/scoring-adjudication";
+import {
+  decideIeltsSubmissionReplay,
+  IeltsSubmissionConflictError,
+} from "@/lib/ielts/submission-replay";
 
 /**
  * Canonical data access for `writing_responses` (WS-3.1).
@@ -31,7 +35,8 @@ import {
  * `writing_responses`/`ielts_question_keys` are admin-write only under RLS, so
  * every write here uses the service-role admin client and enforces ownership in
  * code (the authed user must own the attempt). One canonical create path
- * (data-access §3/§8): a (re)submission upserts on `(attempt_id, question_id)`.
+ * (data-access §3/§8): an exact network replay reuses the immutable row at
+ * `(attempt_id, question_id)`; a changed answer must use a new attempt.
  */
 type TypedAdminClient = ReturnType<typeof createTypedAdminClient>;
 export type WritingResponseRow = Tables<"writing_responses">;
@@ -85,6 +90,27 @@ export async function createWritingResponse(
     );
   }
 
+  const { data: existing, error: existingError } = await admin
+    .from("writing_responses")
+    .select("*")
+    .eq("attempt_id", input.attemptId)
+    .eq("question_id", input.questionId)
+    .maybeSingle();
+  if (existingError) {
+    throw new Error(`load existing Writing response: ${existingError.message}`);
+  }
+  const replay = decideIeltsSubmissionReplay({
+    hasExisting: Boolean(existing),
+    samePayload:
+      Boolean(existing) &&
+      existing?.essay === input.essay &&
+      existing?.feedback_language === input.feedbackLanguage,
+    terminal:
+      existing?.status === "scored" || existing?.status === "overridden",
+  });
+  if (replay === "conflict") throw new IeltsSubmissionConflictError();
+  if (replay === "resume" || replay === "terminal") return existing!;
+
   const { data: blueprint } = await admin
     .from("ielts_attempt_question_blueprints")
     .select("question_id, test_id, skill, question_type")
@@ -123,12 +149,6 @@ export async function createWritingResponse(
   }
 
   if (attempt.assessment_mode === "simulation") {
-    const { data: existing } = await admin
-      .from("writing_responses")
-      .select("*")
-      .eq("attempt_id", input.attemptId)
-      .eq("question_id", input.questionId)
-      .maybeSingle();
     // Finalization and queue delivery are retryable. Once captured, a
     // Simulation essay is immutable and repeated submissions reuse the row.
     if (existing) return existing;
@@ -170,6 +190,24 @@ export async function getWritingResponseForUser(
     .eq("id", writingResponseId)
     .eq("user_id", userId)
     .maybeSingle();
+  return data ?? null;
+}
+
+export async function getWritingResponseForSubmission(params: {
+  attemptId: string;
+  questionId: string;
+  userId: string;
+}): Promise<WritingResponseRow | null> {
+  const { data, error } = await createTypedAdminClient()
+    .from("writing_responses")
+    .select("*")
+    .eq("attempt_id", params.attemptId)
+    .eq("question_id", params.questionId)
+    .eq("user_id", params.userId)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`load Writing submission replay: ${error.message}`);
+  }
   return data ?? null;
 }
 

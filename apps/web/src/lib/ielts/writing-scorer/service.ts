@@ -22,14 +22,13 @@ import { writingTaskNumberForQuestionType } from "@/lib/api/ielts/schema";
 import {
   claimWritingResponseForScoring,
   createWritingResponse,
+  getWritingResponseForSubmission,
   loadWritingScoringContext,
   markWritingScoringFailed,
   persistWritingScore,
 } from "@/lib/api/ielts/writing-responses-repository";
 import { enqueueIeltsWritingScoring } from "@/lib/queues/ielts-writing";
-import {
-  ensureAiWorkflowRun,
-} from "@/lib/ai/workflow-runs";
+import { ensureAiWorkflowRun } from "@/lib/ai/workflow-runs";
 import { isGcpAiGradingEnabled } from "@/lib/ai/grading/backend";
 import type { IeltsWritingQueueMessage } from "./constants";
 import { buildWritingScorerPrompt } from "./prompt";
@@ -46,6 +45,7 @@ import {
   buildWritingCriterionEvidence,
   IELTS_PROVISIONAL_EVIDENCE_VERSION,
 } from "@/lib/ielts/criterion-evidence-contract";
+import { IeltsSubmissionConflictError } from "@/lib/ielts/submission-replay";
 import { getIeltsWritingGroqModelName } from "./provider-policy";
 import {
   claimableWritingStatuses,
@@ -104,7 +104,19 @@ export async function submitWritingResponseForScoring(params: {
 }): Promise<SubmitWritingResponseResult> {
   // Reject a malformed body before consuming a metered unit (the canonical
   // create path re-validates + owns the authoritative parse + insert).
-  parseInput(CreateWritingResponseSchema, params.raw);
+  const input = parseInput(CreateWritingResponseSchema, params.raw);
+  const existing = await getWritingResponseForSubmission({
+    attemptId: input.attemptId,
+    questionId: input.questionId,
+    userId: params.userId,
+  });
+  const samePayload =
+    Boolean(existing) &&
+    existing?.essay === input.essay &&
+    existing?.feedback_language === input.feedbackLanguage;
+  if (existing && !samePayload) {
+    throw new IeltsSubmissionConflictError();
+  }
 
   const entitlement = await getUserEntitlement(params.supabase, params.userId);
   const usage = await meterFeature(
@@ -113,11 +125,20 @@ export async function submitWritingResponseForScoring(params: {
     entitlement.planType,
     METERED_FEATURES.aiWritingScore,
     new Date(),
+    existing ? 0 : 1,
   );
   if (!usage.allowed) {
     throw new WritingScoreLimitError(
       `Monthly AI writing-score limit reached (${usage.usedCount}/${usage.limitCount ?? "unlimited"}).`,
     );
+  }
+
+  if (existing && isTerminalWritingStatus(existing.status)) {
+    return {
+      writingResponseId: existing.id,
+      status: existing.status,
+      usage: { used: usage.usedCount, limit: usage.limitCount },
+    };
   }
 
   const queued = await enqueueWritingResponseForScoring({
