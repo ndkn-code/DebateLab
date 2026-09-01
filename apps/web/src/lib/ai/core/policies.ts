@@ -131,7 +131,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
       return {
         candidates: getIeltsCoachCandidates(),
         attemptTimeoutMs: 6_000,
-        schemaRepairAttempts: 1,
+        schemaRepairAttempts: 0,
         maxOutputTokens: 1_400,
         temperature: 0.25,
         criticality: "best_effort",
@@ -140,7 +140,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
       return {
         candidates: getIeltsCoachCandidates(),
         attemptTimeoutMs: 6_000,
-        schemaRepairAttempts: 1,
+        schemaRepairAttempts: 0,
         maxOutputTokens: 1_200,
         temperature: 0.1,
         criticality: "best_effort",

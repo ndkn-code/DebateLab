@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { streamText } from "./stream";
 import {
   getCoachChatCandidates,
+  getAiTaskPolicy,
   getGeminiCoachModel,
   getGroqCoachFallbackModel,
   getIeltsCoachCandidates,
@@ -60,6 +61,8 @@ async function run() {
     getIeltsCoachCandidates(false)[1]?.model,
     "openai/gpt-oss-20b",
   );
+  assert.equal(getAiTaskPolicy("ielts_coach_chat").attemptTimeoutMs, 6_000);
+  assert.equal(getAiTaskPolicy("ielts_coach_chat").schemaRepairAttempts, 0);
 
   process.env.GEMINI_API_KEY = "gemini-test-key";
   process.env.GROQ_API_KEY = "groq-test-key";

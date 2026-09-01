@@ -327,8 +327,8 @@ async function run() {
   assert.equal(ieltsSchemaFallback.fallbackUsed, true);
   assert.equal(
     calls,
-    3,
-    "a JSON-mode validation rejection during repair must advance to fallback",
+    2,
+    "front-facing IELTS Coach must skip repair and advance to fallback",
   );
 
   let strictResponseFormat: unknown;
