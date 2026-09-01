@@ -60,7 +60,7 @@ export function BeautifulFollowUps({
             type="button"
             onClick={() => onSelect(item)}
             disabled={disabled}
-            className="min-h-8 rounded-[10px] border border-outline-variant bg-surface px-3 py-1.5 text-left type-label font-medium text-on-surface transition-[border-color,background-color,transform] duration-150 hover:border-primary/30 hover:bg-primary/5 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="min-h-8 rounded-control border border-outline-variant bg-surface px-3 py-1.5 text-left type-label font-medium text-on-surface transition-[border-color,background-color,transform] duration-150 hover:border-primary/30 hover:bg-primary/5 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             {item.label}
           </button>

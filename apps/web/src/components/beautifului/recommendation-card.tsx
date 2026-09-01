@@ -95,7 +95,7 @@ export function BeautifulRecommendationCard({
                 type="button"
                 onClick={secondaryAction.onClick}
                 disabled={secondaryAction.disabled}
-                className="h-8 rounded-[10px] border border-outline-variant bg-surface px-3 type-label font-medium text-on-surface transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="h-8 rounded-control border border-outline-variant bg-surface px-3 type-label font-medium text-on-surface transition-colors hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {secondaryAction.label}
               </button>
@@ -105,7 +105,7 @@ export function BeautifulRecommendationCard({
                 type="button"
                 onClick={primaryAction.onClick}
                 disabled={primaryAction.disabled}
-                className="inline-flex h-8 items-center gap-1.5 rounded-[10px] bg-primary px-3 type-label font-medium text-on-primary transition-[background-color,transform] hover:bg-primary-dim active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+                className="inline-flex h-8 items-center gap-1.5 rounded-control bg-primary px-3 type-label font-medium text-on-primary transition-[background-color,transform] hover:bg-primary-dim active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
               >
                 {primaryAction.label}
                 <ArrowRight className="size-3.5" aria-hidden="true" />

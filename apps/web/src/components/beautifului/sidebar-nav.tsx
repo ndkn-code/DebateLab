@@ -140,7 +140,7 @@ export function BeautifulSidebarRow({
   return (
     <div
       className={cn(
-        "group flex min-h-10 min-w-0 items-center rounded-[10px] transition-[background-color,color,transform] duration-150 active:scale-[0.99]",
+        "group flex min-h-10 min-w-0 items-center rounded-control transition-[background-color,color,transform] duration-150 active:scale-[0.99]",
         active
           ? "bg-primary/8 text-on-surface"
           : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
@@ -152,7 +152,7 @@ export function BeautifulSidebarRow({
         aria-current={active ? "page" : undefined}
         title={collapsed ? label : undefined}
         className={cn(
-          "flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-[10px] px-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
+          "flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-control px-2 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring",
           collapsed && "justify-center",
         )}
       >

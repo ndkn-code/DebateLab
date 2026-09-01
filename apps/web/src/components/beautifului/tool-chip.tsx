@@ -64,7 +64,7 @@ export function BeautifulToolChip({
         ) : null}
       </button>
       {canExpand && expanded ? (
-        <div className="mt-1.5 rounded-[10px] border border-outline-variant bg-surface px-3 py-2 type-caption text-on-surface-variant">
+        <div className="mt-1.5 rounded-control border border-outline-variant bg-surface px-3 py-2 type-caption text-on-surface-variant">
           {detail}
         </div>
       ) : null}

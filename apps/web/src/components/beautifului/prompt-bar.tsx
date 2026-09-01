@@ -95,7 +95,7 @@ export function BeautifulPromptBar({
           }}
           disabled={!canSubmit}
           aria-label={submitLabel}
-          className="flex size-8 shrink-0 items-center justify-center rounded-[10px] bg-primary text-on-primary transition-[background-color,transform,opacity] duration-150 hover:bg-primary-dim active:scale-[0.96] disabled:cursor-not-allowed disabled:bg-surface-container-high disabled:text-on-surface-variant disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+          className="flex size-8 shrink-0 items-center justify-center rounded-control bg-primary text-on-primary transition-[background-color,transform,opacity] duration-150 hover:bg-primary-dim active:scale-[0.96] disabled:cursor-not-allowed disabled:bg-surface-container-high disabled:text-on-surface-variant disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
         >
           <Send className="size-4" aria-hidden="true" />
         </button>

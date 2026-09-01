@@ -1240,7 +1240,7 @@ export function IeltsTeacherWorkbench({
                   </div>
                   <div
                     className={cn(
-                      "mt-4 flex flex-wrap items-center justify-between gap-3 rounded-[10px] border px-3 py-2.5",
+                      "mt-4 flex flex-wrap items-center justify-between gap-3 rounded-control border px-3 py-2.5",
                       selectedReview.target.scoringStatus === "failed"
                         ? "border-error/25 bg-error-container/35"
                         : "border-outline-variant bg-surface-container-low",
@@ -1266,7 +1266,7 @@ export function IeltsTeacherWorkbench({
                         type="button"
                         disabled={isPending}
                         onClick={handleRetryScoring}
-                        className="inline-flex h-8 items-center gap-2 rounded-[10px] border border-outline-variant bg-surface px-3 type-label font-medium text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                        className="inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant bg-surface px-3 type-label font-medium text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         <RotateCcw className="h-4 w-4" />
                         {isPending ? t.saving : t.retryScoring}

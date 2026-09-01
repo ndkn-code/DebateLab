@@ -71,7 +71,7 @@ export function GradingConfidenceNote({
       role="note"
       aria-label={presentation.label}
       className={cn(
-        "rounded-[10px] border px-3 py-2.5",
+        "rounded-control border px-3 py-2.5",
         presentation.limitations.length > 0
           ? "border-warning/30 bg-warning-container text-on-warning-container"
           : "border-outline-variant bg-surface text-on-surface",
