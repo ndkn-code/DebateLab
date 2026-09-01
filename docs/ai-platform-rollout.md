@@ -123,6 +123,17 @@ Record every candidate source and rejection reason in
 `docs/ielts/benchmark-source-review.md`; a source description that claims labels
 which are absent from the downloaded archive is not eligible.
 
+Before asking an independent administrator to publish a mock-question version,
+run the learner-safe preflight for each collection. It reports counts and stable
+blocker codes without exposing prompts or answer material:
+
+```bash
+npm run ai:knowledge-release-preflight -w @thinkfy/web -- \
+  --collection ielts.writing --version 2
+npm run ai:knowledge-release-preflight -w @thinkfy/web -- \
+  --collection ielts.speaking --version 2
+```
+
 Pin the exact grader and corpus versions, then run:
 
 ```bash
