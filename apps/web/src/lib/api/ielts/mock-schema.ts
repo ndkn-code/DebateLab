@@ -9,8 +9,20 @@ import type { Tables } from "@/types/supabase";
 import type { IeltsQuestionView } from "@/lib/ielts/question-contract";
 import { parseQuestionView } from "@/lib/ielts/question-types";
 
+// PostgreSQL's `uuid` type accepts every canonical 128-bit representation.
+// DebateLab's first-party mock bank includes deterministic MD5-derived IDs,
+// which do not always carry RFC version/variant bits. The database and RLS are
+// still authoritative for existence and ownership; this boundary only rejects
+// values that are not canonical UUID strings.
+const PostgresUuidSchema = z
+  .string()
+  .regex(
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i,
+    "Invalid UUID",
+  );
+
 export const StartMockAttemptSchema = z.object({
-  testId: z.string().uuid(),
+  testId: PostgresUuidSchema,
 });
 export type StartMockAttemptInput = z.infer<typeof StartMockAttemptSchema>;
 
@@ -26,7 +38,7 @@ const MAX_RESPONSE_BYTES = 64 * 1024;
 export const SaveResponseSchema = z.object({
   attemptId: z.string().uuid(),
   sectionId: z.string().uuid(),
-  questionId: z.string().uuid(),
+  questionId: PostgresUuidSchema,
   response: z
     .unknown()
     .refine(
