@@ -39,6 +39,78 @@ function words(value: string) {
   );
 }
 
+function normalizedIntentText(value: string) {
+  return value
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .normalize("NFKC")
+    .toLowerCase();
+}
+
+function requestedQuestionTypeScore(params: {
+  skill: IeltsSkill;
+  questionType: string;
+  message: string;
+}) {
+  const message = normalizedIntentText(params.message);
+  const type = params.questionType.toLowerCase();
+
+  if (params.skill === "speaking") {
+    const requestedPart = /\b(?:part|phan)\s*(?:1|one)\b/.test(message)
+      ? 1
+      : /\b(?:part|phan)\s*(?:2|two)\b|\bcue\s*card\b|\blong\s*turn\b/.test(
+            message,
+          )
+        ? 2
+        : /\b(?:part|phan)\s*(?:3|three)\b/.test(message)
+          ? 3
+          : null;
+    if (requestedPart === null) return 0;
+    const matches =
+      (requestedPart === 1 && type === "speaking_part1") ||
+      (requestedPart === 2 && type === "speaking_part2_cuecard") ||
+      (requestedPart === 3 && type === "speaking_part3");
+    return matches ? 100 : -100;
+  }
+
+  if (params.skill === "writing") {
+    const requestedTask = /\b(?:task|bai)\s*(?:1|one)\b/.test(message)
+      ? 1
+      : /\b(?:task|bai)\s*(?:2|two)\b/.test(message)
+        ? 2
+        : null;
+    let score = 0;
+    if (requestedTask !== null) {
+      const matches =
+        (requestedTask === 1 && type.startsWith("writing_task1_")) ||
+        (requestedTask === 2 && type === "writing_task2_essay");
+      score += matches ? 100 : -100;
+    }
+    const requestsAcademic = /\bacademic\b|\bhoc thuat\b/.test(message);
+    const requestsGeneral = /\bgeneral(?:\s+training)?\b|\btong quat\b/.test(
+      message,
+    );
+    if (requestsAcademic) {
+      score +=
+        type === "writing_task1_academic"
+          ? 40
+          : type.includes("general")
+            ? -40
+            : 0;
+    } else if (requestsGeneral) {
+      score +=
+        type === "writing_task1_general"
+          ? 40
+          : type.includes("academic")
+            ? -40
+            : 0;
+    }
+    return score;
+  }
+
+  return 0;
+}
+
 function normalizeTest(value: unknown): Row {
   if (Array.isArray(value)) return record(value[0]);
   return record(value);
@@ -90,6 +162,11 @@ function scoreCandidate(params: {
     `${params.item.questionType} ${params.item.criteria.join(" ")} ${params.item.prompt}`,
   );
   let score = params.item.criteria.includes(params.criterion) ? 20 : 0;
+  score += requestedQuestionTypeScore({
+    skill: params.item.skill,
+    questionType: params.item.questionType,
+    message: params.message,
+  });
   for (const word of queryWords) if (candidateWords.has(word)) score += 1;
   return score;
 }
