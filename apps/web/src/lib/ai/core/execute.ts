@@ -433,6 +433,19 @@ export async function generateStructured<T>(request: AiStructuredRequest<T>): Pr
         const executionError = error as AiExecutionError;
         attempts.push(...executionError.attempts);
         finalError = executionError;
+        // Groq can reject a JSON-mode completion at the API boundary when the
+        // generated payload is not valid JSON. That is a known-invalid output,
+        // not an ambiguous transport failure, so the bounded schema-repair
+        // prompt is safe and materially improves grading reliability. Network,
+        // timeout, rate-limit, and provider failures still move directly to the
+        // next candidate without spending a repair call.
+        if (
+          executionError.kind === "schema_invalid" &&
+          repair < policy.schemaRepairAttempts
+        ) {
+          prompt = `${request.prompt}\n\nThe previous response was rejected because it was not valid JSON. Return only one valid JSON object matching the required schema exactly. ${request.repairInstruction || "Do not add markdown or prose."}`;
+          continue;
+        }
         // A repair prompt is only valid after a provider returned malformed JSON.
         // Transport/provider failures move directly to the next declared candidate.
         break;

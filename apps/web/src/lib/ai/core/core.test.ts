@@ -134,6 +134,48 @@ async function run() {
   recordGeminiKeySuccess(0);
 
   calls = 0;
+  globalThis.fetch = (async () => {
+    calls += 1;
+    if (calls === 1) {
+      return new Response(
+        JSON.stringify({
+          error: {
+            message:
+              "Failed to validate JSON. Please adjust your prompt. See 'failed_generation' for more details.",
+          },
+        }),
+        { status: 400 },
+      );
+    }
+    return new Response(
+      JSON.stringify({
+        choices: [
+          { message: { content: '{"value":"provider-repaired"}' } },
+        ],
+        usage: {},
+      }),
+      { status: 200 },
+    );
+  }) as typeof fetch;
+  const providerSchemaRepair = await generateStructured({
+    task: "onboarding_feedback",
+    prompt: "return json",
+    schema: z.object({ value: z.string() }),
+    context: {
+      task: "onboarding_feedback",
+      sourceRoute: "core-test",
+      outputType: "test",
+    },
+  });
+  assert.equal(providerSchemaRepair.output.value, "provider-repaired");
+  assert.equal(providerSchemaRepair.fallbackUsed, false);
+  assert.equal(
+    calls,
+    2,
+    "a provider JSON-validation rejection must receive one bounded repair",
+  );
+
+  calls = 0;
   globalThis.fetch = (async (input) => {
     calls += 1;
     const url = String(input);
