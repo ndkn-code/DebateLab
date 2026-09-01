@@ -5,8 +5,13 @@ export interface IeltsCoachActionDestination {
   external: boolean;
 }
 
+// Supabase/Postgres accepts every canonical 128-bit UUID representation. Some
+// of DebateLab's deterministic, server-authored fixture IDs are MD5-derived,
+// so they do not necessarily carry an RFC version/variant nibble even though
+// they are valid `uuid` values. Keep the route closed to arbitrary strings,
+// while accepting the same canonical UUID domain as the database.
 const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /** Resolves only server-authorized resource identities to known product routes. */

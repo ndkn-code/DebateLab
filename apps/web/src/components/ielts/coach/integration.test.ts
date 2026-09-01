@@ -83,6 +83,22 @@ test("authorized coach actions resolve only to deterministic IELTS destinations"
     "/en/ielts/mock/coach-writing-task-2-v1?source=ielts-coach&focusQuestion=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
   );
 
+  const deterministicSpeaking = resolveIeltsCoachActionDestination({
+    locale: "en",
+    action: {
+      kind: "start_practice",
+      resourceId:
+        "ielts-practice:speaking:fluency_and_coherence:coach-speaking-v1:f9fadc68-2b59-150e-759b-e866be5f38e5",
+      skill: "speaking",
+      criterion: "fluency_and_coherence",
+      label: "Start recommended drill",
+    },
+  });
+  assert.equal(
+    deterministicSpeaking?.href,
+    "/en/ielts/mock/coach-speaking-v1?source=ielts-coach&focusQuestion=f9fadc68-2b59-150e-759b-e866be5f38e5&experience=speaking_rehearsal",
+  );
+
   const plan = resolveIeltsCoachActionDestination({
     locale: "en",
     action: {
