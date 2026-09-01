@@ -13,6 +13,7 @@
  */
 import { z } from "zod";
 import type { TablesInsert, TablesUpdate } from "@/types/supabase";
+import { PostgresUuidSchema } from "@/lib/api/postgres-uuid";
 import { JsonSchema } from "./json";
 
 export const IELTS_SKILLS = [
@@ -166,7 +167,7 @@ export function countEssayWords(essay: string): number {
 /** Create-input for a learner's Writing submission (WS-3.1). */
 export const CreateWritingResponseSchema = z.object({
   attemptId: z.string().uuid(),
-  questionId: z.string().uuid(),
+  questionId: PostgresUuidSchema,
   // A learner may legitimately leave an exam task blank. Practice UI still
   // requires text before an explicit AI-coaching request, while Simulation
   // records the frozen blank response so completion cannot silently skip it.
@@ -224,7 +225,7 @@ export function speakingPartNumberForQuestionType(
 /** Create-input for a learner's Speaking submission (WS-3.2). */
 export const CreateSpeakingResponseSchema = z.object({
   attemptId: z.string().uuid(),
-  questionId: z.string().uuid(),
+  questionId: PostgresUuidSchema,
   /** Storage path of the uploaded audio recording (capture is out of scope). */
   audioStoragePath: z.string().min(1).max(1024),
   /** Audio duration in seconds, when the recorder reported it. */

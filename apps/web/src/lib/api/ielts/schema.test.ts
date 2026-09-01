@@ -106,6 +106,19 @@ assert.equal(writingTaskNumberForQuestionType("writing_task1_general"), 1);
   assert.equal(row.user_id, "u-1");
 }
 
+// First-party seeded questions use canonical Postgres UUIDs that may not carry
+// RFC version/variant bits; they must remain submittable through the same path.
+{
+  const deterministicQuestionId =
+    "f9fadc68-2b59-150e-759b-e866be5f38e5";
+  const input = parseInput(CreateWritingResponseSchema, {
+    attemptId: "11111111-1111-4111-8111-111111111111",
+    questionId: deterministicQuestionId,
+    essay: "A safe synthetic response.",
+  });
+  assert.equal(input.questionId, deterministicQuestionId);
+}
+
 // invalid: non-uuid attempt id is rejected
 assert.throws(() =>
   parseInput(CreateWritingResponseSchema, {
@@ -154,6 +167,17 @@ assert.equal(speakingPartNumberForQuestionType("speaking_part3"), 3);
   assert.deepEqual(row.feedback, {});
   assert.deepEqual(row.phoneme_report, {});
   assert.equal(row.user_id, "u-1");
+}
+
+{
+  const deterministicQuestionId =
+    "f9fadc68-2b59-150e-759b-e866be5f38e5";
+  const input = parseInput(CreateSpeakingResponseSchema, {
+    attemptId: "11111111-1111-4111-8111-111111111111",
+    questionId: deterministicQuestionId,
+    audioStoragePath: "ielts/u-1/deterministic-part1.webm",
+  });
+  assert.equal(input.questionId, deterministicQuestionId);
 }
 
 // invalid: missing audio storage path is rejected
