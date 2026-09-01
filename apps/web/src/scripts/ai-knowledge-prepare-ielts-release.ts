@@ -12,12 +12,12 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const ArgsSchema = z.object({
-  collectionVersion: z.number().int().min(3),
+  collectionVersion: z.number().int().min(4),
 });
 
 function readArgs(argv: string[]) {
   const versionIndex = argv.indexOf("--collection-version");
-  const rawVersion = versionIndex >= 0 ? argv[versionIndex + 1] : "3";
+  const rawVersion = versionIndex >= 0 ? argv[versionIndex + 1] : "4";
   return ArgsSchema.parse({ collectionVersion: Number(rawVersion) });
 }
 

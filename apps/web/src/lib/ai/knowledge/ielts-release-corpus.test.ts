@@ -13,8 +13,8 @@ test("official IELTS calibration covers Bands 4-9 by criterion and stays review-
   const writing = buildOfficialIeltsKnowledgeRecords("ielts.writing");
   const speaking = buildOfficialIeltsKnowledgeRecords("ielts.speaking");
 
-  assert.equal(writing.items.length, 72);
-  assert.equal(speaking.items.length, 24);
+  assert.equal(writing.items.length, 78);
+  assert.equal(speaking.items.length, 35);
   for (const records of [writing, speaking]) {
     for (const source of records.sources) {
       assert.equal(new URL(source.canonicalUrl).hostname, "ielts.org");
@@ -22,7 +22,9 @@ test("official IELTS calibration covers Bands 4-9 by criterion and stays review-
       assert.equal(source.rightsStatus, "requires_review");
       assert.equal(source.reviewStatus, "candidate");
     }
-    for (const item of records.items) {
+    for (const item of records.items.filter(
+      (candidate) => candidate.itemType === "rubric_descriptor_candidate",
+    )) {
       assert.equal(item.reviewStatus, "needs_review");
       assert.deepEqual(item.usableFor, ["grading", "coaching"]);
       assert.equal(item.permittedExcerpt, undefined);
@@ -58,6 +60,35 @@ test("official IELTS calibration covers Bands 4-9 by criterion and stays review-
         assert.ok(writingCoverage.has(`${taskType}:${criterion}:${band}`));
       }
     }
+  }
+});
+
+test("official scored-example locators are coaching-only and cannot become benchmark truth", () => {
+  const writing = buildOfficialIeltsKnowledgeRecords("ielts.writing");
+  const speaking = buildOfficialIeltsKnowledgeRecords("ielts.speaking");
+  const examples = [...writing.items, ...speaking.items].filter(
+    (item) => item.itemType === "scored_example_locator_candidate",
+  );
+
+  assert.equal(examples.length, 17);
+  assert.deepEqual(
+    new Set(examples.map((item) => item.bandMin)),
+    new Set([4, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9]),
+  );
+  for (const item of examples) {
+    assert.equal(item.reviewStatus, "needs_review");
+    assert.deepEqual(item.usableFor, ["coaching", "explanation"]);
+    assert.equal(item.criterion, "overall_performance");
+    assert.equal(item.permittedExcerpt, undefined);
+    assert.equal(item.metadata?.fullResponseStored, false);
+    assert.equal(item.metadata?.transcriptStored, false);
+    assert.equal(item.metadata?.criterionScoresPublished, false);
+    assert.equal(item.metadata?.benchmarkEligible, false);
+    assert.equal(
+      item.metadata?.retrievalClassification,
+      "coaching_example_locator",
+    );
+    assert.ok(item.sourceLocator);
   }
 });
 
@@ -105,7 +136,7 @@ test("combined release plans validate without copying official response text", (
     items: official.items,
   });
 
-  assert.equal(plan.items.length, 24);
+  assert.equal(plan.items.length, 35);
   assert.ok(plan.importKey.length > 32);
   assert.equal(
     IELTS_OFFICIAL_SOURCE_URLS.speakingDescriptors.startsWith(

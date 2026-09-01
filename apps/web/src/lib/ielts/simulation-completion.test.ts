@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 
-import { evaluateSimulationCompletion } from "./simulation-completion";
+import {
+  areRequiredWritingTasksReady,
+  evaluateSimulationCompletion,
+  resolveRequiredWritingCompletion,
+} from "./simulation-completion";
 
 const base = {
   listeningBand: 7,
@@ -53,5 +57,90 @@ const writingNotInTest = evaluateSimulationCompletion({
   writingRequired: false,
 });
 assert.equal(writingNotInTest.attemptComplete, true);
+
+const task1 = {
+  id: "response-task-1",
+  questionId: "writing-task-1",
+  taskNumber: 1,
+  revision: 0,
+  status: "scored",
+  taskBand: 6.5,
+};
+const task2Failed = {
+  id: "response-task-2",
+  questionId: "writing-task-2",
+  taskNumber: 2,
+  revision: 0,
+  status: "failed",
+  taskBand: null,
+};
+
+assert.equal(
+  areRequiredWritingTasksReady({
+    requiredQuestionIds: ["writing-task-1", "writing-task-2"],
+    responses: [task1, task2Failed],
+    publishedReviews: [],
+  }),
+  false,
+  "one scored Writing task must never complete a two-task simulation",
+);
+
+assert.deepEqual(
+  resolveRequiredWritingCompletion({
+    requiredQuestionIds: ["writing-task-1", "writing-task-2"],
+    responses: [task1, { ...task2Failed, status: "scored", taskBand: 7.5 }],
+    publishedReviews: [
+      {
+        writingResponseId: task1.id,
+        revision: task1.revision,
+        taskBand: 7,
+      },
+    ],
+  }),
+  { ready: true, writingBand: 7.5 },
+  "the teacher-published task score overrides AI in the weighted Writing band",
+);
+
+assert.equal(
+  areRequiredWritingTasksReady({
+    requiredQuestionIds: ["writing-task-1", "writing-task-2"],
+    responses: [task1, task2Failed],
+    publishedReviews: [
+      {
+        writingResponseId: task2Failed.id,
+        revision: task2Failed.revision,
+        taskBand: 7,
+      },
+    ],
+  }),
+  true,
+  "a published teacher band can authoritatively complete a failed AI task",
+);
+
+assert.equal(
+  areRequiredWritingTasksReady({
+    requiredQuestionIds: ["writing-task-1", "writing-task-2"],
+    responses: [task1, task2Failed],
+    publishedReviews: [
+      {
+        writingResponseId: task2Failed.id,
+        revision: 1,
+        taskBand: 7,
+      },
+    ],
+  }),
+  false,
+  "a stale teacher revision must not complete the current response",
+);
+
+assert.equal(
+  areRequiredWritingTasksReady({
+    requiredQuestionIds: ["writing-task-1", "writing-task-2"],
+    responses: [task1],
+    publishedReviews: [],
+  }),
+  false,
+  "a missing response must not complete a frozen Writing task",
+);
 
 console.log("IELTS simulation completion contract tests passed");

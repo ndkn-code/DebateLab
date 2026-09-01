@@ -217,22 +217,23 @@ async function enqueueFrozenSimulationWriting(params: {
   const responseByQuestion = new Map(
     (responses.data ?? []).map((row) => [row.question_id, row.response]),
   );
-  await Promise.all(
-    (blueprints.data ?? []).map((blueprint) => {
-      const capture = parseWritingCaptureValue(
-        responseByQuestion.get(blueprint.question_id),
-      );
-      return enqueueWritingResponseForScoring({
-        userId: params.userId,
-        raw: {
-          attemptId: params.attemptId,
-          questionId: blueprint.question_id,
-          essay: capture.essay,
-          feedbackLanguage: params.feedbackLanguage,
-        },
-      });
-    }),
-  );
+  // Publish in task order to avoid an avoidable submission burst. Workers may
+  // still overlap, so the centralized scoring policy also owns the independent
+  // fast-model fallback. Every enqueue remains independently idempotent.
+  for (const blueprint of blueprints.data ?? []) {
+    const capture = parseWritingCaptureValue(
+      responseByQuestion.get(blueprint.question_id),
+    );
+    await enqueueWritingResponseForScoring({
+      userId: params.userId,
+      raw: {
+        attemptId: params.attemptId,
+        questionId: blueprint.question_id,
+        essay: capture.essay,
+        feedbackLanguage: params.feedbackLanguage,
+      },
+    });
+  }
 }
 
 /**

@@ -19,7 +19,7 @@ async function run() {
   });
   assert.throws(() => extractJsonObject("not json"));
   assert.equal(getAiTaskPolicy("practice_judging").criticality, "critical");
-  assert.equal(getAiTaskPolicy("ielts_speaking_score").candidates.length, 1);
+  assert.equal(getAiTaskPolicy("ielts_speaking_score").candidates.length, 2);
   assert.equal(
     getAiTaskPolicy("ielts_speaking_score").candidates[0]?.provider,
     "groq",
@@ -31,6 +31,16 @@ async function run() {
   assert.equal(
     getAiTaskPolicy("ielts_speaking_adjudication").candidates[0]?.provider,
     "groq",
+  );
+  assert.equal(
+    getAiTaskPolicy("ielts_writing_score").candidates[1]?.model,
+    "openai/gpt-oss-20b",
+  );
+  assert.equal(
+    getAiTaskPolicy("ielts_writing_score").candidates.every(
+      (candidate) => candidate.provider === "groq",
+    ),
+    true,
   );
   const ieltsCoachPolicy = getAiTaskPolicy("ielts_coach_chat");
   assert.equal(ieltsCoachPolicy.candidates.length, 2);
@@ -195,6 +205,39 @@ async function run() {
   assert.equal(ieltsCoachFallback.output.value, "fast-fallback");
   assert.equal(ieltsCoachFallback.fallbackUsed, true);
   assert.equal(calls, 2);
+
+  calls = 0;
+  const ieltsWritingPolicy = getAiTaskPolicy("ielts_writing_score");
+  globalThis.fetch = (async (_input, init) => {
+    calls += 1;
+    const request = JSON.parse(String(init?.body)) as { model?: string };
+    if (request.model === ieltsWritingPolicy.candidates[0]?.model) {
+      return new Response(
+        JSON.stringify({ error: { message: "model rate limit reached" } }),
+        { status: 429, headers: { "retry-after": "1" } },
+      );
+    }
+    return new Response(
+      JSON.stringify({
+        choices: [{ message: { content: '{"value":"scoring-fallback"}' } }],
+        usage: {},
+      }),
+      { status: 200 },
+    );
+  }) as typeof fetch;
+  const ieltsScoringFallback = await generateStructured({
+    task: "ielts_writing_score",
+    prompt: "return json",
+    schema: z.object({ value: z.string() }),
+    context: {
+      task: "ielts_writing_score",
+      sourceRoute: "core-test",
+      outputType: "test",
+    },
+  });
+  assert.equal(ieltsScoringFallback.output.value, "scoring-fallback");
+  assert.equal(ieltsScoringFallback.fallbackUsed, true);
+  assert.equal(calls, 2, "a primary 429 must use the fast Groq fallback");
 
   calls = 0;
   globalThis.fetch = (async (_input, init) => {

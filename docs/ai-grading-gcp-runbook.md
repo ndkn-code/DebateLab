@@ -68,8 +68,10 @@ gcloud run deploy ai-grading-worker \
 Also set `AZURE_SPEECH_REGION`, `EMBEDDING_API_URL`,
 `GCP_PUBSUB_PUSH_SERVICE_ACCOUNT_EMAIL`,
 `GCP_SCHEDULER_SERVICE_ACCOUNT_EMAIL`, and `CLOUD_RUN_SERVICE_URL` as ordinary
-environment variables. Add Voyage only when the collection runtime is enabled;
-it is not required for the queue transport.
+environment variables. `GROQ_IELTS_SCORING_FALLBACK_MODEL` is optional and
+defaults to `openai/gpt-oss-20b`; it provides a fast, same-provider fallback
+inside the already-fenced logical provider phase. Add Voyage only when the
+collection runtime is enabled; it is not required for the queue transport.
 
 Create the push subscription with authenticated OIDC, exponential retry, and a
 dead-letter policy. Recommended values:

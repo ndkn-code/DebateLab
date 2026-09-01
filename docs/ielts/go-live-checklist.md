@@ -1,73 +1,80 @@
-# IELTS Go-Live Checklist
+# IELTS rollout checklist
 
-**Core principle — launch is a reversible flag flip.** `IELTS_ENABLED` is OFF in production today, so
-IELTS is admin-only and debate is byte-identical. Flipping `NEXT_PUBLIC_IELTS_ENABLED=true` exposes
-IELTS to all users; flipping it back is an **instant kill-switch with zero debate impact**. So launch
-is low-risk and rollback is one env change + redeploy.
+Last verified: 2026-09-01. IELTS is already learner- and teacher-visible in
+production. Durable grading runs on private Cloud Run + Pub/Sub; it does not use
+Vercel Workflow, Vercel Queues, or a Vercel grading cron.
 
-**Legend:** 🤖 Codex (repo + Supabase MCP + Vercel + browser/computer-use QA) · 👤 You (decisions,
-cloud secrets) · 🧑‍🏫 Co-founder (content). Current prod = `main` @ `5b767cc`.
+## Verified production paths
 
----
+- [x] Teacher IELTS workspace is class-scoped and accessible to an assigned
+  class manager.
+- [x] Teacher Writing review publishes separately versioned teacher rationale;
+  the learner sees the teacher-confirmed score while AI evidence is preserved.
+- [x] IELTS Coach is product-isolated, uses confirmed teacher scores ahead of
+  provisional AI scores, and launches a specific safe mock task.
+- [x] Speaking recording, upload, transcription, scoring, persistence, polling,
+  and learner feedback complete through the GCP worker. The verified run made
+  one provider call and produced one durable run.
+- [x] A full Academic simulation can submit Listening, Reading, and both frozen
+  Writing tasks. A partial overall band is not shown while a required skill is
+  pending.
+- [x] Duplicate delivery, stale claim, bounded retry, checkpoint replay,
+  unauthorized identity, and no-new-Vercel-function contracts are covered by
+  automated tests.
+- [x] Production mock questions are safe first-party content and carry no
+  grading-authoritative labels or learner-visible answer keys before submission.
 
-## Phase 0 — Pre-flight audit 🤖  *(run now; no launch actions)*
-- [ ] **Env gap report** — list Vercel **production** env var names (values hidden); flag missing vs
-      required: `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION` (Speaking pronunciation), the Google TTS
-      service account `GOOGLE_TTS_SERVICE_ACCOUNT_JSON` (AUS listening audio), `CRON_SECRET` (replan
-      cron), `NEXT_PUBLIC_IELTS_ENABLED` (should still be off/unset), and confirm the existing
-      AI (Gemini/Groq/Deepgram), Supabase, and payment keys.
-- [ ] **Deploy health** — confirm the latest `main` (`5b767cc`) production deploy on Vercel built +
-      deployed cleanly; capture warnings.
-- [ ] **Cron** — confirm `apps/web/vercel.json` registers `/api/cron/ielts-replan` and `CRON_SECRET`
-      is set; call the route with the secret and confirm a 200.
-- [ ] **DB advisors** — run Supabase security + performance advisors; report any RLS gaps,
-      SECURITY DEFINER issues, or missing indexes on the `ielts_*` / `activities` / club tables.
-- [ ] **Migration parity** — confirm every `supabase/migrations/*ielts*` (esp. the Wave-6.3 ones:
-      `skill_drill` plan kind + constraint, reading/writing activity types, review-rating
-      idempotency) is recorded as applied on prod.
+## Code gates for the next release
 
-## Phase 1 — Content floor 🧑‍🏫 + 🤖
-- [ ] 🧑‍🏫 Author the real item bank: **≥2 full Academic mocks** (L/R/W/S) with answer keys +
-      listening scripts (via the authoring UI / bulk import).
-- [ ] 🤖 **Listening audio** — run the WS-6.3e backfill so every `listening_sections.script` has an
-      audio asset (us/uk via Deepgram; AUS needs the Google key from Phase 0).
-- [ ] 🤖 **Content-readiness report** — count published mocks, questions per skill, audio coverage,
-      keys present. Floor = **≥1 full mock that plays end-to-end and scores all 4 skills**.
-- [ ] 👤 Decide whether to keep or wipe the `ielts-demo-v1` seed once real content exists
-      (cleanup block in `scripts/ielts/seed-demo.sql`).
+- [x] Completion now requires a current score for every frozen Writing task,
+  including a matching published teacher revision when teacher authority is
+  used. One Task 2 result can no longer complete a two-task simulation.
+- [x] A Groq rate limit on the primary IELTS scorer advances inside the same
+  fenced provider phase to `openai/gpt-oss-20b`, a fast Groq-only fallback.
+- [x] Simulation Writing messages are published in deterministic task order and
+  remain independently idempotent.
+- [x] Complete repository validation: all 75 test suites pass, TypeScript passes,
+  and the production build generates 189 pages.
+- [ ] Deploy the reviewed web commit and private worker image, then repeat one
+  two-task Writing smoke test and confirm one result per task with no duplicate
+  provider calls.
+- [ ] Rehearse `AI_GRADING_BACKEND=legacy` and the prior Cloud Run revision as
+  separate web-dispatch and worker rollback controls.
 
-## Phase 2 — End-to-end QA 🤖  *(browser + computer-use, on prod behind the admin gate — no flip yet)*
-- [ ] **B2C flow** as `ndkn.work`: onboarding → diagnostic → predicted band → study plan + Today →
-      skill drill → timed mock → results deep-dive → `/ielts/review` → home retention. Screenshot
-      each; check console + network. Confirm planner recommends **practice only** + `/ielts/learn`
-      is hidden with the upsell.
-- [ ] **Scoring runs**: submit a Writing task + a Speaking recording → AI bands + criterion feedback
-      return (and a phoneme report if Azure is set).
-- [ ] **Listening plays**: audio loads + plays in the mock player.
-- [ ] **B2B flow** as `contact.tuandat`: Learn/courses path renders → open + complete an activity →
-      XP/evidence/mastery update (verify in DB).
-- [ ] **Mobile QA**: home, mock player, Learn path on a phone viewport.
-- [ ] **Debate regression**: a normal non-admin account sees no IELTS; debate unchanged.
-- [ ] Compile a pass/fail QA report with screenshots + a severity-ranked defect list.
+## Content and accuracy gates
 
-## Phase 3 — Launch 👤 → 🤖
-- [ ] 👤 Give the go (content floor met + QA green + secrets provisioned).
-- [ ] 🤖 Set `NEXT_PUBLIC_IELTS_ENABLED=true` in Vercel **production**. It's a `NEXT_PUBLIC_` var →
-      **baked at build time → trigger a redeploy**, not just an env save.
-- [ ] 🤖 Confirm the redeploy succeeded and IELTS is now visible to a non-admin test account.
+- [ ] Have an independent reviewer approve and rights-clear the draft IELTS
+  collection version. The importer cannot approve its own work.
+- [ ] Publish the approved immutable collection version. Until then, runtime
+  retrieval stays on the safe legacy/local fallback.
+- [ ] Create a protected, source-separated benchmark containing all four human
+  criterion labels. Public official examples discovered so far publish useful
+  overall scores and examiner commentary but not four numeric criterion labels,
+  so they are coaching locators rather than benchmark ground truth.
+- [ ] Pass the locked grading thresholds in `docs/ai-platform-rollout.md` before
+  enabling `IELTS_EVIDENCE_ADJUDICATION_ENABLED`.
+- [ ] Configure Azure Speech in the Cloud Run runtime and verify acoustic
+  pronunciation evidence. Without it, Speaking remains usable but correctly
+  reports limited pronunciation confidence.
+- [ ] Confirm Voyage credentials before publishing the English collections.
+  Voyage is not required for the current safe fallback retrieval path.
 
-## Phase 4 — Post-launch verification + monitoring 🤖
-- [ ] **Real-user prod walkthrough**: a fresh non-admin account is offered IELTS and the full flow
-      works.
-- [ ] **Monitor (24–48h)**: Vercel logs / error rate, scoring queues processing, the nightly cron
-      firing.
-- [ ] **Rollback ready**: any breakage → set `NEXT_PUBLIC_IELTS_ENABLED=false` + redeploy →
-      instant kill-switch, debate untouched.
+## Kill switches and rollback
 
----
+- `AI_GRADING_BACKEND=legacy` stops new GCP grading dispatch without deleting
+  saved runs or checkpoints.
+- `IELTS_EVIDENCE_ADJUDICATION_ENABLED=false` keeps the uncalibrated
+  evidence-adjudication stage off.
+- Roll the private Cloud Run service back to its previous image if worker
+  behavior is unsafe. Do not roll back forward-only migrations or delete
+  immutable evidence.
+- If the IELTS product itself must be hidden, disable the existing IELTS product
+  flag and redeploy. Debate remains isolated.
 
-### Human-only prerequisites (👤 — Codex cannot create these)
-- An **Azure Speech** resource → `AZURE_SPEECH_KEY` + `AZURE_SPEECH_REGION` (pronunciation scoring).
-- A **Google Cloud TTS** service account → `GOOGLE_TTS_SERVICE_ACCOUNT_JSON` (AUS listening voices).
-- A **`CRON_SECRET`** value set in Vercel (any strong random string).
-- The **go decision** + the flag flip approval.
+## Human decisions still required
+
+- A second person must perform corpus rights/content approval.
+- A qualified human-labelled criterion benchmark is required to substantiate
+  examiner-quality accuracy. Document discovery alone cannot prove that claim.
+- Azure and Voyage accounts/secrets must be funded and configured by an account
+  owner if those optional quality layers are to be activated.

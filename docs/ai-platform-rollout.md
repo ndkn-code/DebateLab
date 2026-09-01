@@ -24,6 +24,8 @@ Pub/Sub. Dispatch is fail-closed unless `AI_GRADING_BACKEND` is explicitly
    - `CRON_SECRET`
    - `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
    - `GROQ_API_KEY` for live grading
+   - optional `GROQ_IELTS_SCORING_FALLBACK_MODEL`; it defaults to the fast
+     Groq `openai/gpt-oss-20b` model and never sends student data to Gemini
    - `VOYAGE_API_KEY` for the English debate and IELTS collections
    - `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION` for pronunciation evidence
    - the keyless WIF publisher variables in `.env.example`; never add a GCP

@@ -1,6 +1,7 @@
 import "server-only";
 
 import { generateStructured } from "@/lib/ai/core";
+import { getIeltsScoringCandidates } from "@/lib/ai/core/policies";
 import { isGroqChatConfigured } from "@/lib/ai/groq";
 import {
   ieltsSpeakingModelOutputSchema,
@@ -44,9 +45,9 @@ export async function runSpeakingModel(params: {
   if (!isGroqChatConfigured()) {
     throw new Error("No AI provider configured for IELTS Speaking scoring");
   }
-  const candidates = [
-    { provider: "groq" as const, model: getIeltsSpeakingGroqModelName() },
-  ];
+  const candidates = getIeltsScoringCandidates(
+    getIeltsSpeakingGroqModelName(),
+  );
 
   const result = await generateStructured({
     task: "ielts_speaking_score",
@@ -105,9 +106,9 @@ export async function adjudicateSpeakingModel(params: {
       metadata: { speakingResponseId: params.audit.speakingResponseId },
     },
     policy: {
-      candidates: [
-        { provider: "groq", model: getIeltsSpeakingGroqModelName() },
-      ],
+      candidates: getIeltsScoringCandidates(
+        getIeltsSpeakingGroqModelName(),
+      ),
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       temperature: 0,
     },

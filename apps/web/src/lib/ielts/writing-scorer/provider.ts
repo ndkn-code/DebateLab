@@ -1,6 +1,7 @@
 import "server-only";
 
 import { generateStructured } from "@/lib/ai/core";
+import { getIeltsScoringCandidates } from "@/lib/ai/core/policies";
 import { isGroqChatConfigured } from "@/lib/ai/groq";
 import {
   ieltsWritingModelOutputSchema,
@@ -41,9 +42,9 @@ export async function runWritingModel(params: {
   if (!isGroqChatConfigured()) {
     throw new Error("No AI provider configured for IELTS Writing scoring");
   }
-  const candidates = [
-    { provider: "groq" as const, model: getIeltsWritingGroqModelName() },
-  ];
+  const candidates = getIeltsScoringCandidates(
+    getIeltsWritingGroqModelName(),
+  );
 
   const result = await generateStructured({
     task: "ielts_writing_score",
@@ -100,7 +101,9 @@ export async function adjudicateWritingModel(params: {
       metadata: { writingResponseId: params.audit.writingResponseId },
     },
     policy: {
-      candidates: [{ provider: "groq", model: getIeltsWritingGroqModelName() }],
+      candidates: getIeltsScoringCandidates(
+        getIeltsWritingGroqModelName(),
+      ),
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       temperature: 0,
     },

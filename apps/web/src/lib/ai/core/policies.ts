@@ -1,6 +1,8 @@
 import type { AiTask, AiTaskPolicy } from "./contracts";
 
 const groqModel = () => process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b";
+export const getIeltsScoringFallbackModel = () =>
+  process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL || "openai/gpt-oss-20b";
 export const getGeminiCoachModel = () =>
   process.env.GEMINI_COACH_MODEL || "gemini-3.5-flash-lite";
 export const getGroqCoachFallbackModel = () =>
@@ -35,6 +37,17 @@ export function getIeltsCoachCandidates() {
   const primary = getIeltsCoachPrimaryModel();
   const fallback = getIeltsCoachFallbackModel();
   return [primary, fallback]
+    .filter((model, index, models) => models.indexOf(model) === index)
+    .map((model) => ({ provider: "groq" as const, model }));
+}
+
+/**
+ * Live IELTS grading stays on Groq, with a smaller fast model as the bounded
+ * fallback for a primary model rate limit or outage. Separate model quotas
+ * also prevent two Writing tasks from stranding the same simulation burst.
+ */
+export function getIeltsScoringCandidates(primaryModel = groqModel()) {
+  return [primaryModel, getIeltsScoringFallbackModel()]
     .filter((model, index, models) => models.indexOf(model) === index)
     .map((model) => ({ provider: "groq" as const, model }));
 }
@@ -83,7 +96,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
         // Student submissions may belong to minors. Gemini's current API terms
         // prohibit use in services directed to, or likely accessed by, minors,
         // so live grading deliberately has no Gemini candidate or fallback.
-        candidates: [{ provider: "groq", model: groqModel() }],
+        candidates: getIeltsScoringCandidates(),
         attemptTimeoutMs: 35_000,
         schemaRepairAttempts: 1,
         maxOutputTokens: 4_096,

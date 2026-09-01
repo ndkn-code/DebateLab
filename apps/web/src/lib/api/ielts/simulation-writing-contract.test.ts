@@ -36,6 +36,13 @@ assert.equal(
   "feature flags gate the helper definition and new starts, not active attempts",
 );
 assert.match(bandRepository, /\.in\("status", \["submitted", "scoring"\]\)/);
+assert.match(bandRepository, /from\("ielts_attempt_question_blueprints"\)/);
+assert.match(bandRepository, /areRequiredWritingTasksReady/);
+assert.match(
+  action,
+  /for \(const blueprint of blueprints\.data \?\? \[\]\)[\s\S]*await enqueueWritingResponseForScoring/,
+  "simulation Writing scoring must publish tasks sequentially",
+);
 
 // Simulation does not expose the interactive Practice scoring control.
 assert.match(renderer, /!isSimulation/);

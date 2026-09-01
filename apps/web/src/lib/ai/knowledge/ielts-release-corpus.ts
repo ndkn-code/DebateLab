@@ -30,6 +30,8 @@ type BandNote = {
 const BANDS = [4, 5, 6, 7, 8, 9] as const;
 
 export const IELTS_OFFICIAL_SOURCE_URLS = {
+  scoreSettingResources:
+    "https://ielts.org/organisations/ielts-for-organisations/understanding-ielts-scoring/resources-for-setting-your-ielts-scores",
   writingDescriptors:
     "https://ielts.org/cdn/ielts-guides/ielts-writing-band-descriptors.pdf",
   writingCriteria:
@@ -45,6 +47,87 @@ export const IELTS_OFFICIAL_SOURCE_URLS = {
   speakingTasks:
     "https://ielts.org/cdn/ielts-sample-tests/ielts-speaking-sample-tasks-2023.pdf",
 } as const;
+
+type OfficialScoredExample = {
+  externalKey: string;
+  taskType: string;
+  band: number;
+  locator: string;
+  sourceCanonicalUrl: string;
+  metadata: Record<string, unknown>;
+};
+
+const WRITING_SCORED_EXAMPLES: OfficialScoredExample[] = [
+  {
+    externalKey: "official-academic-writing-task-1-response-1-band-6",
+    taskType: "academic_task_1",
+    band: 6,
+    locator: "Sample Academic Writing Part 1, Candidate Response 1, Band 6",
+    sourceCanonicalUrl: IELTS_OFFICIAL_SOURCE_URLS.writingAcademicExamples,
+    metadata: { module: "academic", candidateLabel: "response_1" },
+  },
+  {
+    externalKey: "official-academic-writing-task-1-response-2-band-4",
+    taskType: "academic_task_1",
+    band: 4,
+    locator: "Sample Academic Writing Part 1, Candidate Response 2, Band 4",
+    sourceCanonicalUrl: IELTS_OFFICIAL_SOURCE_URLS.writingAcademicExamples,
+    metadata: { module: "academic", candidateLabel: "response_2" },
+  },
+  {
+    externalKey: "official-academic-writing-task-2-response-1-band-5-5",
+    taskType: "writing_task_2",
+    band: 5.5,
+    locator: "Sample Academic Writing Part 2, Candidate Response 1, Band 5.5",
+    sourceCanonicalUrl: IELTS_OFFICIAL_SOURCE_URLS.writingAcademicExamples,
+    metadata: { module: "academic", candidateLabel: "response_1" },
+  },
+  {
+    externalKey: "official-academic-writing-task-2-response-2-band-7-5",
+    taskType: "writing_task_2",
+    band: 7.5,
+    locator: "Sample Academic Writing Part 2, Candidate Response 2, Band 7.5",
+    sourceCanonicalUrl: IELTS_OFFICIAL_SOURCE_URLS.writingAcademicExamples,
+    metadata: { module: "academic", candidateLabel: "response_2" },
+  },
+  {
+    externalKey: "official-general-writing-task-1-script-a-band-5-5",
+    taskType: "general_training_task_1",
+    band: 5.5,
+    locator: "General Training Writing Sample Task 1, Sample Script A, Band 5.5",
+    sourceCanonicalUrl: IELTS_OFFICIAL_SOURCE_URLS.writingGeneralExamples,
+    metadata: { module: "general_training", candidateLabel: "script_a" },
+  },
+  {
+    externalKey: "official-general-writing-task-2-script-a-band-5",
+    taskType: "writing_task_2",
+    band: 5,
+    locator: "General Training Writing Sample Task 2, Sample Script A, Band 5",
+    sourceCanonicalUrl: IELTS_OFFICIAL_SOURCE_URLS.writingGeneralExamples,
+    metadata: { module: "general_training", candidateLabel: "script_a" },
+  },
+];
+
+const SPEAKING_SCORED_EXAMPLES: OfficialScoredExample[] = [
+  ["tina", "Vietnam", 5, "speaking_part_2", "Interests and hobbies"],
+  ["katsuharu", "Japan", 5, "speaking_part_3", "Hobbies"],
+  ["stephen", "China", 6, "speaking_part_3", "Hobbies"],
+  ["maxim", "Russia", 6, "speaking_part_3", "Hobbies"],
+  ["michal", "Poland", 6.5, "speaking_part_2", "A well-known person"],
+  ["hendrik", "Germany", 7, "speaking_part_3", "Famous people"],
+  ["aashish", "India", 7.5, "speaking_part_3", "Famous people"],
+  ["monika", "Germany", 8, "speaking_part_3", "Famous people"],
+  ["kopi", "Botswana", 8, "speaking_part_3", "Famous people"],
+  ["kenn", "Singapore", 8.5, "speaking_part_3", "Famous people"],
+  ["anuradha", "Malaysia", 9, "speaking_part_3", "Famous people"],
+].map(([candidate, country, band, taskType, topic]) => ({
+  externalKey: `official-speaking-${candidate}-band-${String(band).replace(".", "-")}`,
+  taskType: String(taskType),
+  band: Number(band),
+  locator: `Band ${band} | ${String(candidate).charAt(0).toUpperCase()}${String(candidate).slice(1)}, ${country}; ${String(taskType).replace("speaking_part_", "Part ")}: ${topic}`,
+  sourceCanonicalUrl: IELTS_OFFICIAL_SOURCE_URLS.scoreSettingResources,
+  metadata: { candidateLabel: candidate, country, topic },
+}));
 
 const writingCoherence: Record<Band, BandNote> = {
   4: {
@@ -691,6 +774,63 @@ function rubricItem(params: {
   };
 }
 
+function scoredExampleLocatorItem(params: {
+  collection: "ielts.writing" | "ielts.speaking";
+  example: OfficialScoredExample;
+}): KnowledgeManifestItemInput {
+  const skill = params.collection === "ielts.writing" ? "writing" : "speaking";
+  return {
+    collection: params.collection,
+    sourceCanonicalUrl: params.example.sourceCanonicalUrl,
+    itemType: "scored_example_locator_candidate",
+    criterion: "overall_performance",
+    bandMin: params.example.band,
+    bandMax: params.example.band,
+    taskType: params.example.taskType,
+    sourceLocator: params.example.locator,
+    reviewStatus: "needs_review",
+    usableFor: ["coaching", "explanation"],
+    insight: {
+      skill,
+      taskType: params.example.taskType,
+      criterion: "overall_performance",
+      assignedBand: params.example.band,
+      examinerRationale:
+        "The official source publishes a response or transcript with examiner commentary across the four assessment criteria. Its numeric score is an overall band, not four criterion-level labels.",
+      positiveEvidence: [],
+      limitingEvidence: [],
+      sourceAuthority: "official",
+    },
+    metadata: {
+      ...params.example.metadata,
+      externalKey: params.example.externalKey,
+      paraphrased: true,
+      derivedOnly: true,
+      fullResponseStored: false,
+      transcriptStored: false,
+      permittedExcerptStored: false,
+      rightsChecked: false,
+      overallBandOnly: true,
+      criterionScoresPublished: false,
+      benchmarkEligible: false,
+      retrievalClassification: "coaching_example_locator",
+      discoveredWith: "exa",
+    },
+  };
+}
+
+function buildWritingScoredExampleItems() {
+  return WRITING_SCORED_EXAMPLES.map((example) =>
+    scoredExampleLocatorItem({ collection: "ielts.writing", example }),
+  );
+}
+
+function buildSpeakingScoredExampleItems() {
+  return SPEAKING_SCORED_EXAMPLES.map((example) =>
+    scoredExampleLocatorItem({ collection: "ielts.speaking", example }),
+  );
+}
+
 function writingDescriptorPage(band: Band) {
   if (band >= 7) return 1;
   if (band >= 5) return 2;
@@ -813,7 +953,10 @@ export function buildOfficialIeltsKnowledgeRecords(
           captureKind: "official_scored_examples_reference",
         }),
       ],
-      items: buildWritingOfficialItems(),
+      items: [
+        ...buildWritingOfficialItems(),
+        ...buildWritingScoredExampleItems(),
+      ],
     };
   }
   return {
@@ -833,7 +976,15 @@ export function buildOfficialIeltsKnowledgeRecords(
         title: "IELTS Speaking Sample Tasks",
         captureKind: "official_task_format_reference",
       }),
+      officialSource({
+        canonicalUrl: IELTS_OFFICIAL_SOURCE_URLS.scoreSettingResources,
+        title: "Official IELTS Speaking scored samples and examiner comments",
+        captureKind: "official_scored_examples_reference",
+      }),
     ],
-    items: buildSpeakingOfficialItems(),
+    items: [
+      ...buildSpeakingOfficialItems(),
+      ...buildSpeakingScoredExampleItems(),
+    ],
   };
 }
