@@ -70,7 +70,7 @@ for (const mode of ["light", "dark"] as const) {
 
   const webTheme = getThinkfyWebTheme(mode);
   assert.equal(webTheme.geometry.buttonHeight, 32);
-  assert.equal(webTheme.geometry.buttonRadius, 10);
+  assert.equal(webTheme.geometry.buttonRadius, 12);
   assert.equal(webTheme.geometry.dataRowHeight, 40);
   assert.equal(webTheme.geometry.settingsRowHeight, 44);
   assert.equal(webTheme.geometry.badgeHeight, 20);
@@ -79,16 +79,19 @@ for (const mode of ["light", "dark"] as const) {
   assert.equal(webTheme.geometry.switchHeight, 14);
   assert.equal(webTheme.geometry.switchThumb, 10);
   assert.equal(webTheme.geometry.switchHitTarget, 32);
-  assert.equal(webTheme.geometry.cardRadius, 10);
-  const switchOnTrack = mode === "light" ? "#0077E6" : "#5AA9FF";
-  const switchOnThumb = mode === "light" ? "#FFFFFF" : "#242422";
-  const switchOffTrack = mode === "light" ? "#E2E2DE" : "#41413D";
-  const switchOffThumb = mode === "light" ? "#333333" : "#F5F5F2";
+  assert.equal(webTheme.geometry.cardRadius, 12);
+  // Assert derivation and contrast, never literal hex. Pinning values here just
+  // duplicates the palette in a second place, and every palette change then ends
+  // with someone updating the pins mechanically instead of checking the result.
+  const switchOnTrack = webTheme.colors.primary;
+  const switchOnThumb = webTheme.colors.onPrimary;
+  const switchOffTrack = webTheme.colors.outlineVariant;
+  const switchOffThumb = webTheme.colors.foreground;
   assertContrast(mode, switchOnThumb, switchOnTrack, "web switch on", 3);
   assertContrast(mode, switchOffThumb, switchOffTrack, "web switch off", 3);
-  assert.equal(webTheme.webCssVariables["--color-background"], mode === "light" ? "#F5F5F2" : "#000000");
-  assert.equal(webTheme.webCssVariables["--color-foreground"], mode === "light" ? "#333333" : "#F5F5F2");
-  assert.equal(webTheme.components.badge.success.background, mode === "light" ? "#CAFACE" : "#183D27");
+  assert.equal(webTheme.webCssVariables["--color-background"], webTheme.colors.background);
+  assert.equal(webTheme.webCssVariables["--color-foreground"], webTheme.colors.foreground);
+  assert.equal(webTheme.components.badge.success.background, webTheme.colors.successContainer);
   assert.equal(webTheme.components.badge.success.text, webTheme.colors.successDim);
   // The darker semantic token retains WCAG contrast on the fixed badge fill.
   assertContrast(mode, webTheme.colors.successDim, webTheme.colors.successContainer, "web success copy");
@@ -97,6 +100,11 @@ for (const mode of ["light", "dark"] as const) {
   assertContrast(mode, webTheme.colors.secondaryDim, webTheme.colors.surface, "web normal link text", 4.5);
   assertContrast(mode, webTheme.colors.successDim, webTheme.colors.surface, "web normal success text", 4.5);
   assertContrast(mode, webTheme.colors.secondaryDim, webTheme.colors.secondaryContainer, "web link container");
+  // The accent is the CTA fill (design.md §Role meaning), so it must clear AA
+  // both as a fill under its on-color and as text on the page surface.
+  assertContrast(mode, webTheme.colors.onPrimary, webTheme.colors.primary, "web primary CTA fill", 4.5);
+  assertContrast(mode, webTheme.colors.primary, webTheme.colors.surface, "web primary as text", 4.5);
+  assertContrast(mode, webTheme.colors.foreground, webTheme.colors.background, "web ink on canvas", 12);
 }
 
 console.log("Design-system token tests passed.");
