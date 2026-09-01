@@ -436,6 +436,7 @@ export function buildDeterministicIeltsCoachRecovery(params: {
   skill: IeltsSkill;
   evidence: LearnerEvidence[];
   weakness: IeltsCoachLearnerContext["weaknesses"][number] | undefined;
+  targetBand: number | null;
   actions: IeltsCoachActionResource[];
   learnerSources: ReadonlyMap<string, IeltsCoachOutput["sources"][number]>;
   approvedKnowledgeSources: ReadonlyMap<
@@ -461,9 +462,12 @@ export function buildDeterministicIeltsCoachRecovery(params: {
         item.evidenceId === params.weakness?.evidenceId && Boolean(item.score),
     ) ?? params.evidence.find((item) => Boolean(item.score));
   const current = scoredEvidence?.score ?? null;
-  const targetBand = current ? (params.weakness?.targetBand ?? null) : null;
+  const targetBand = current
+    ? (params.weakness?.targetBand ?? params.targetBand)
+    : null;
   const hasScoredGap = current !== null && targetBand !== null;
   const gapBands = hasScoredGap ? Math.max(0, targetBand - current.band) : null;
+  const targetMet = hasScoredGap && current.band >= targetBand;
   const criterion = criterionName(
     params.weakness?.criterion ?? selectedAction.criterion ?? params.skill,
     params.skill,
@@ -491,8 +495,12 @@ export function buildDeterministicIeltsCoachRecovery(params: {
     diagnosis: {
       summary: hasScoredGap
         ? vi
-          ? `Bằng chứng hiện có cho thấy ${criterion} là tiêu chí nên ưu tiên tiếp theo.`
-          : `Your authorized results indicate that ${criterion} is the next criterion to prioritize.`
+          ? targetMet
+            ? `Điểm đã được xác nhận hiện tại đạt hoặc vượt mục tiêu đã lưu; ${criterion} vẫn là tiêu chí hữu ích để luyện tiếp.`
+            : `Bằng chứng hiện có cho thấy ${criterion} là tiêu chí nên ưu tiên tiếp theo.`
+          : targetMet
+            ? `Your confirmed current score meets or exceeds the saved target; ${criterion} is still a useful next practice focus.`
+            : `Your authorized results indicate that ${criterion} is the next criterion to prioritize.`
         : vi
           ? `Chưa có đủ điểm số đã được phép để xác định khoảng cách band cho ${criterion}.`
           : `There is not enough authorized score evidence to state a band gap for ${criterion}.`,
@@ -745,7 +753,12 @@ export async function runIeltsCoachTurn(params: {
     context.goal?.targetSkillBands[skill] ??
     context.goal?.targetOverallBand ??
     null;
-  const currentBand = weakness?.currentBand ?? null;
+  const currentBand =
+    weakness?.currentBand ??
+    context.recentAttempts.find(
+      (attempt) => attempt.skill === skill && attempt.band !== null,
+    )?.band ??
+    null;
   const [rubricResult, examplesResult] = await Promise.all([
     skill === "writing" || skill === "speaking"
       ? getIeltsRubric({
@@ -982,6 +995,7 @@ export async function runIeltsCoachTurn(params: {
         skill,
         evidence,
         weakness,
+        targetBand,
         actions,
         learnerSources,
         approvedKnowledgeSources,

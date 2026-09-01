@@ -30,6 +30,9 @@ const COPY = {
     scored: "scored",
     pendingDetail: "Some skill scores are still being marked.",
     pending: "Pending",
+    practiceCompleteDetail:
+      "All included skills are scored. A four-skill overall band is not calculated for this practice.",
+    practiceComplete: "Practice complete",
     overall: "Overall band",
     target: "Target",
     academic: "Academic",
@@ -51,6 +54,9 @@ const COPY = {
     scored: "đã có điểm",
     pendingDetail: "Một số kỹ năng vẫn đang được chấm.",
     pending: "Đang chờ",
+    practiceCompleteDetail:
+      "Tất cả kỹ năng trong bài đã có điểm. Bài luyện này không tính band tổng bốn kỹ năng.",
+    practiceComplete: "Hoàn thành bài luyện",
     overall: "Band tổng",
     target: "Mục tiêu",
     academic: "Học thuật",
@@ -80,6 +86,10 @@ function OverallHero({
   const scoredCopy = `${overall.presentCount}/${overall.totalSkills} ${
     overall.totalSkills === 1 ? copy.skill : copy.skills
   } ${copy.scored}`;
+  const includedSkillsComplete =
+    overall.isProvisional &&
+    overall.totalSkills > 0 &&
+    overall.presentCount === overall.totalSkills;
 
   return (
     <BandGauge
@@ -88,11 +98,17 @@ function OverallHero({
         <span className="flex flex-col gap-2">
           <span>
             {scoredCopy}
-            {overall.isProvisional ? ` · ${copy.pendingDetail}` : ""}
+            {overall.isProvisional
+              ? ` · ${
+                  includedSkillsComplete
+                    ? copy.practiceCompleteDetail
+                    : copy.pendingDetail
+                }`
+              : ""}
           </span>
           {overall.isProvisional ? (
             <span className="inline-flex min-h-5 w-fit items-center rounded-md bg-surface-container-high px-2 type-caption font-semibold uppercase text-on-surface-variant">
-              {copy.pending}
+              {includedSkillsComplete ? copy.practiceComplete : copy.pending}
             </span>
           ) : null}
         </span>

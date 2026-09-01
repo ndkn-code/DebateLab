@@ -183,6 +183,7 @@ test("schema recovery returns an authorized actionable contract", () => {
     skill: "writing",
     evidence,
     weakness: CONTEXT.weaknesses[0],
+    targetBand: 7,
     actions: [action],
     learnerSources,
     approvedKnowledgeSources: new Map(),
@@ -228,6 +229,7 @@ test("schema recovery gives a new learner a drill without inventing a band", () 
     skill: "writing",
     evidence: [],
     weakness: undefined,
+    targetBand: 7,
     actions: [action],
     learnerSources: new Map(),
     approvedKnowledgeSources: new Map(),
@@ -272,6 +274,7 @@ test("schema recovery uses a Speaking criterion for a new Speaking learner", () 
     skill: "speaking",
     evidence: [],
     weakness: undefined,
+    targetBand: 7,
     actions: [action],
     learnerSources: new Map(),
     approvedKnowledgeSources: new Map(),
@@ -283,4 +286,82 @@ test("schema recovery uses a Speaking criterion for a new Speaking learner", () 
   assert.deepEqual(output.diagnosis.criteria, ["fluency_and_coherence"]);
   assert.equal(output.bandCriterionGap.criterion, "fluency_and_coherence");
   assert.equal(output.action.criterion, "fluency_and_coherence");
+});
+
+test("schema recovery uses a teacher-confirmed score even when the target is already met", () => {
+  const context: IeltsCoachLearnerContext = {
+    ...CONTEXT,
+    goal: {
+      ...CONTEXT.goal!,
+      targetSkillBands: { writing: 6.5 },
+    },
+    recentAttempts: [
+      {
+        ...CONTEXT.recentAttempts[0]!,
+        band: 7.5,
+        criteria: [],
+      },
+    ],
+    weaknesses: [],
+  };
+  const evidence = buildIeltsCoachLearnerEvidence({
+    context,
+    skill: "writing",
+  });
+  const learnerSources = new Map(
+    evidence.map((item) => [
+      item.evidenceId,
+      {
+        evidenceId: item.evidenceId,
+        sourceType: item.evidenceId.startsWith("teacher-review:")
+          ? ("teacher_published" as const)
+          : ("learner_record" as const),
+        sourceLocator: `learner-record/${item.evidenceId}`,
+        version: item.observedAt ?? context.version,
+      },
+    ]),
+  );
+  const action = {
+    id: "ielts-practice:writing:task_response",
+    kind: "start_practice" as const,
+    skill: "writing" as const,
+    criterion: "task_response" as const,
+    title: "Writing task response practice",
+    label: "Start practice",
+  };
+  const authorization: IeltsCoachServerAuthorization = {
+    learnerEvidence: new Map(evidence.map((item) => [item.evidenceId, item])),
+    learnerSources,
+    approvedKnowledgeSources: new Map(),
+    actions: new Map([
+      [
+        action.id,
+        {
+          kind: action.kind,
+          skill: action.skill,
+          criterion: action.criterion,
+        },
+      ],
+    ]),
+  };
+
+  const output = buildDeterministicIeltsCoachRecovery({
+    locale: "en",
+    skill: "writing",
+    evidence,
+    weakness: undefined,
+    targetBand: 6.5,
+    actions: [action],
+    learnerSources,
+    approvedKnowledgeSources: new Map(),
+    recommendation: null,
+    authorization,
+  });
+
+  assert.equal(output.outcome, "recommendation");
+  assert.equal(output.bandCriterionGap.current?.band, 7.5);
+  assert.equal(output.bandCriterionGap.current?.kind, "teacher_confirmed");
+  assert.equal(output.bandCriterionGap.targetBand, 6.5);
+  assert.equal(output.bandCriterionGap.gapBands, 0);
+  assert.match(output.diagnosis.summary, /meets or exceeds/i);
 });
