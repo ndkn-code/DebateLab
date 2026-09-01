@@ -57,6 +57,31 @@ type IeltsCoachActionResource = {
   label: string;
 };
 
+const DEFAULT_CRITERION_BY_SKILL: Record<IeltsSkill, IeltsCriterion> = {
+  listening: "listening",
+  reading: "reading",
+  writing: "task_response",
+  speaking: "fluency_and_coherence",
+};
+
+const CRITERIA_BY_SKILL: Record<IeltsSkill, ReadonlySet<IeltsCriterion>> = {
+  listening: new Set(["listening"]),
+  reading: new Set(["reading"]),
+  writing: new Set([
+    "task_achievement",
+    "task_response",
+    "coherence_and_cohesion",
+    "lexical_resource",
+    "grammatical_range_and_accuracy",
+  ]),
+  speaking: new Set([
+    "fluency_and_coherence",
+    "lexical_resource",
+    "grammatical_range_and_accuracy",
+    "pronunciation",
+  ]),
+};
+
 export class IeltsCoachRuntimeError extends Error {
   constructor(
     readonly code:
@@ -91,7 +116,10 @@ export interface IeltsCoachTurnResult {
   };
 }
 
-function criterionName(value: string | null): IeltsCriterion {
+function criterionName(
+  value: string | null,
+  fallbackSkill: IeltsSkill = "writing",
+): IeltsCriterion {
   const key = value?.toLowerCase().replace(/[\s-]+/g, "_") ?? "";
   const aliases: Record<string, IeltsCriterion> = {
     listening: "listening",
@@ -108,7 +136,14 @@ function criterionName(value: string | null): IeltsCriterion {
     fluency_and_coherence: "fluency_and_coherence",
     pronunciation: "pronunciation",
   };
-  return aliases[key] ?? "task_response";
+  const explicitSkill = (
+    ["listening", "reading", "writing", "speaking"] as const
+  ).find((skill) => skill === key);
+  const skill = explicitSkill ?? fallbackSkill;
+  const criterion = aliases[key];
+  return criterion && CRITERIA_BY_SKILL[skill].has(criterion)
+    ? criterion
+    : DEFAULT_CRITERION_BY_SKILL[skill];
 }
 
 function inferSkill(message: string, context: IeltsCoachLearnerContext) {
@@ -308,7 +343,7 @@ function actionResources(
 ): IeltsCoachActionResource[] {
   const vi = locale === "vi";
   const weakness = context.weaknesses.find((item) => item.skill === skill);
-  const criterion = criterionName(weakness?.criterion ?? skill);
+  const criterion = criterionName(weakness?.criterion ?? skill, skill);
   const publishedFeedback = context.teacherPublishedFeedback.find(
     (item) => item.skill === skill,
   );
@@ -319,7 +354,9 @@ function actionResources(
         id: item.assignmentId,
         kind: "start_assignment" as const,
         skill,
-        criterion: item.criterion ? criterionName(item.criterion) : undefined,
+        criterion: item.criterion
+          ? criterionName(item.criterion, skill)
+          : undefined,
         title: item.title,
         label: vi ? "Bắt đầu bài được giao" : "Start assignment",
       })),
@@ -331,7 +368,9 @@ function actionResources(
             skill,
             criterion,
             title: `Review published ${skill} feedback`,
-            label: vi ? "Xem phản hồi của giáo viên" : "Review teacher feedback",
+            label: vi
+              ? "Xem phản hồi của giáo viên"
+              : "Review teacher feedback",
           },
         ]
       : []),
@@ -424,11 +463,10 @@ export function buildDeterministicIeltsCoachRecovery(params: {
   const current = scoredEvidence?.score ?? null;
   const targetBand = current ? (params.weakness?.targetBand ?? null) : null;
   const hasScoredGap = current !== null && targetBand !== null;
-  const gapBands = hasScoredGap
-    ? Math.max(0, targetBand - current.band)
-    : null;
+  const gapBands = hasScoredGap ? Math.max(0, targetBand - current.band) : null;
   const criterion = criterionName(
     params.weakness?.criterion ?? selectedAction.criterion ?? params.skill,
+    params.skill,
   );
   const learnerEvidenceUsed = hasScoredGap
     ? params.evidence
@@ -532,7 +570,7 @@ function deterministicBoundaryOutput(params: {
   safety: boolean;
 }): IeltsCoachOutput {
   const vi = params.locale === "vi";
-  const criterion = criterionName(params.skill);
+  const criterion = criterionName(params.skill, params.skill);
   const taskId = params.safety ? "ielts-support" : "ielts-study-plan";
   return {
     contractVersion: "ielts-coach.v1",
@@ -780,10 +818,15 @@ export async function runIeltsCoachTurn(params: {
   const recommendation = await findIeltsQuestionRecommendation({
     supabase: params.supabase,
     skill,
-    criterion: criterionName(weakness?.criterion ?? skill),
+    criterion: criterionName(weakness?.criterion ?? skill, skill),
     message: initialBoundary.normalizedText,
   });
-  const actions = actionResources(context, skill, recommendation, params.locale);
+  const actions = actionResources(
+    context,
+    skill,
+    recommendation,
+    params.locale,
+  );
   const rubricIds = new Set(
     rubricResult?.evidence.map((item) => item.sourceId),
   );

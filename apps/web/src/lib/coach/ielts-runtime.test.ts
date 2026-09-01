@@ -146,10 +146,9 @@ test("schema recovery returns an authorized actionable contract", () => {
       item.evidenceId,
       {
         evidenceId: item.evidenceId,
-        sourceType:
-          item.evidenceId.startsWith("teacher-review:")
-            ? ("teacher_published" as const)
-            : ("learner_record" as const),
+        sourceType: item.evidenceId.startsWith("teacher-review:")
+          ? ("teacher_published" as const)
+          : ("learner_record" as const),
         sourceLocator: `learner-record/${item.evidenceId}`,
         version: item.observedAt ?? CONTEXT.version,
       },
@@ -164,9 +163,7 @@ test("schema recovery returns an authorized actionable contract", () => {
     label: "Start practice",
   };
   const authorization: IeltsCoachServerAuthorization = {
-    learnerEvidence: new Map(
-      evidence.map((item) => [item.evidenceId, item]),
-    ),
+    learnerEvidence: new Map(evidence.map((item) => [item.evidenceId, item])),
     learnerSources,
     approvedKnowledgeSources: new Map(),
     actions: new Map([
@@ -243,4 +240,47 @@ test("schema recovery gives a new learner a drill without inventing a band", () 
   assert.equal(output.bandCriterionGap.targetBand, null);
   assert.equal(output.scoreAuthority.effective, null);
   assert.equal(output.action.resourceId, action.id);
+});
+
+test("schema recovery uses a Speaking criterion for a new Speaking learner", () => {
+  const action = {
+    id: "ielts-practice:speaking:fluency_and_coherence",
+    kind: "start_practice" as const,
+    skill: "speaking" as const,
+    criterion: "fluency_and_coherence" as const,
+    title: "Speaking fluency and coherence practice",
+    label: "Start practice",
+  };
+  const authorization: IeltsCoachServerAuthorization = {
+    learnerEvidence: new Map(),
+    learnerSources: new Map(),
+    approvedKnowledgeSources: new Map(),
+    actions: new Map([
+      [
+        action.id,
+        {
+          kind: action.kind,
+          skill: action.skill,
+          criterion: action.criterion,
+        },
+      ],
+    ]),
+  };
+
+  const output = buildDeterministicIeltsCoachRecovery({
+    locale: "en",
+    skill: "speaking",
+    evidence: [],
+    weakness: undefined,
+    actions: [action],
+    learnerSources: new Map(),
+    approvedKnowledgeSources: new Map(),
+    recommendation: null,
+    authorization,
+  });
+
+  assert.equal(output.outcome, "needs_evidence");
+  assert.deepEqual(output.diagnosis.criteria, ["fluency_and_coherence"]);
+  assert.equal(output.bandCriterionGap.criterion, "fluency_and_coherence");
+  assert.equal(output.action.criterion, "fluency_and_coherence");
 });
