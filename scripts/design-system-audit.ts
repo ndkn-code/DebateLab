@@ -180,6 +180,58 @@ for (const file of allScannedFiles) {
   });
 }
 
+// Undefined-utility guard: a `type-*` class that globals.css never defines is a
+// silent no-op — the element just inherits ambient type and nobody notices. The
+// arbitrary-value guard above cannot catch this, because a misspelt or invented
+// utility name looks exactly like a real one. Only class strings are scanned, so
+// prose like "type-only import" in a comment does not trip it.
+const definedTypeUtilities = new Set(
+  [...readFileSync(path.join(repoRoot, "apps/web/src/app/globals.css"), "utf8")
+    .matchAll(/@utility (type-[a-z0-9-]+)/g)].map((m) => m[1]),
+);
+
+const undefinedTypeViolations: Violation[] = [];
+for (const file of allScannedFiles) {
+  const relative = path.relative(repoRoot, file);
+  if (!relative.split(path.sep).join("/").includes("apps/web/src")) continue;
+  if (relative.endsWith(".css")) continue;
+  const lines = readFileSync(file, "utf8").split(/\r?\n/);
+  lines.forEach((text, index) => {
+    for (const literal of text.matchAll(/"([^"]*)"|'([^']*)'|`([^`]*)`/g)) {
+      const body = literal[1] ?? literal[2] ?? literal[3] ?? "";
+      for (const token of body.split(/[\s]+/)) {
+        const bare = token.replace(/^[a-z-]+:/, "");
+        if (!/^type-[a-z0-9-]+$/.test(bare)) continue;
+        if (definedTypeUtilities.has(bare)) continue;
+        undefinedTypeViolations.push({
+          file: relative, line: index + 1, match: bare, text: text.trim(),
+        });
+      }
+    }
+  });
+}
+
+// Report-only: 53 pre-existing usages of 6 names that were never defined. Each
+// one needs a deliberate mapping to a real step, not a mechanical rename — see
+// docs/design-system-followups.md. Flip to a hard fail once they are mapped.
+const UNDEFINED_TYPE_HARD_FAIL = false;
+if (undefinedTypeViolations.length > 0) {
+  console.warn(
+    `\n[type-utility · ${UNDEFINED_TYPE_HARD_FAIL ? "error" : "report-only"}] ${undefinedTypeViolations.length} uses of \`type-*\` classes that globals.css does not define (they render as nothing).`,
+  );
+  const byName = new Map<string, number>();
+  for (const v of undefinedTypeViolations) byName.set(v.match, (byName.get(v.match) ?? 0) + 1);
+  for (const [name, count] of [...byName].sort((a, b) => b[1] - a[1])) {
+    console.warn(`  ${name} — ${count} usage(s)`);
+  }
+  if (UNDEFINED_TYPE_HARD_FAIL) {
+    console.error(`Design-system audit found ${undefinedTypeViolations.length} undefined type utilities.`);
+    process.exit(1);
+  }
+} else {
+  console.log("Type-utility audit passed: every type-* class in use is defined.");
+}
+
 // Report-only while the migration is in flight. Flip to process.exit(1) once
 // the long tail clears (see design.md §Typography).
 const TYPOGRAPHY_GUARD_HARD_FAIL = true;

@@ -134,3 +134,38 @@ assumed.
   clamp is vestigial or `--radius-md` was meant to be larger. Not urgent; it renders fine.
 - **Mobile palette untouched.** `@thinkfy/mobile` still runs the aqua palette. Web and mobile
   now diverge more than before. Worth a deliberate decision rather than drift.
+
+---
+
+## 4. Fifty-three uses of `type-*` classes that do not exist
+
+Found 2026-09-01. `globals.css` defines 16 `type-*` utilities. App code uses six more that were
+never defined, so those elements render with **no** typography rule at all and silently inherit
+whatever is ambient:
+
+| Class | Usages |
+|---|---|
+| `type-title-sm` | 27 |
+| `type-heading-sm` | 19 |
+| `type-page-title` | 3 |
+| `type-display` | 2 |
+| `type-headline` | 1 |
+| `type-label-sm` | 1 |
+
+The typography guard could not catch this — it flags *arbitrary* values (`text-[14px]`), and an
+invented utility name is indistinguishable from a real one by pattern. `scripts/design-system-audit.ts`
+now has a `type-utility` pass that resolves every `type-*` class in a class string against the
+`@utility` definitions. It is **report-only**; flip `UNDEFINED_TYPE_HARD_FAIL` once these are mapped.
+
+**Why this is not a mechanical rename.** Each name has to map to a real step, and the obvious
+guesses change how 20 files look:
+
+- `type-title-sm` — smaller than `type-title` (16/500). Nearest real steps are `type-label`
+  (13/500) or `type-caption` (12/500).
+- `type-heading-sm` — the heading scale stops at `type-heading-md` (20/600); "sm" implies
+  something below it, which is `type-title`.
+- `type-display` / `type-page-title` / `type-headline` — probably `type-display-md` and
+  `type-heading-xl`, but confirm against each call site.
+
+These elements currently inherit, so mapping them will visibly change type in those places —
+mostly for the better, but it is a design decision, not a find-and-replace.
