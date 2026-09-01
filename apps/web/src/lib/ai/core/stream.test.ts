@@ -53,8 +53,12 @@ async function run() {
     "gemini-3.5-flash-lite",
   );
   assert.equal(
-    getIeltsCoachCandidates(false)[1]?.model,
+    getIeltsCoachCandidates(false)[0]?.model,
     "qwen/qwen3.8-27b",
+  );
+  assert.equal(
+    getIeltsCoachCandidates(false)[1]?.model,
+    "openai/gpt-oss-20b",
   );
 
   process.env.GEMINI_API_KEY = "gemini-test-key";

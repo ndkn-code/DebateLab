@@ -36,8 +36,8 @@ Vercel Workflow, Vercel Queues, or a Vercel grading cron.
 - [x] Completion now requires a current score for every frozen Writing task,
   including a matching published teacher revision when teacher authority is
   used. One Task 2 result can no longer complete a two-task simulation.
-- [x] Front-facing IELTS Coach fallback uses `openai/gpt-oss-20b` first and
-  `qwen/qwen3.8-27b` second. The production check on commit `7d612313` recovered
+- [x] Front-facing IELTS Coach fallback uses `qwen/qwen3.8-27b` first and
+  `openai/gpt-oss-20b` second. The production check on commit `7d612313` recovered
   from a Gemini timeout and GPT-OSS schema rejection with a valid Qwen
   structured response in 3.3 seconds, then launched the exact Academic Task 1
   mock URL. IELTS grading remains on the separate Groq/GCP path.
