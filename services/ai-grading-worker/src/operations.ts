@@ -30,6 +30,7 @@ import {
   IELTS_PROVISIONAL_EVIDENCE_VERSION,
 } from "@/lib/ielts/criterion-evidence-contract";
 import {
+  createStagedGradingMetadata,
   IELTS_GRADING_VERSION,
   isIeltsEvidenceAdjudicationEnabled,
 } from "@/lib/ielts/scoring-adjudication";
@@ -211,7 +212,20 @@ export function createProductionOperations(): AiGradingOperations {
               baseCorpusVersion: value.baseCorpusVersion,
               acousticEvidenceAvailable: value.acousticEvidenceAvailable,
             })
-          : { ...provisional, gradingMetadata: undefined };
+          : {
+              ...provisional,
+              gradingMetadata: createStagedGradingMetadata({
+                evidence: value.baseEvidence,
+                gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+                runId: job.workflowRunId,
+                corpusVersion: value.baseCorpusVersion,
+                provisionalTraceId: provisional.traceId,
+                adjudicationTraceId: provisional.traceId,
+                acousticEvidenceAvailable: value.acousticEvidenceAvailable,
+                retrievalSkippedReason:
+                  "adjacent_band_adjudication_disabled",
+              }) as unknown as Json,
+            };
         const criterionEvidence = buildSpeakingCriterionEvidence({
           score: normalizeSpeakingScore(provisional.output),
           context: commonEvidenceContext({
@@ -270,7 +284,19 @@ export function createProductionOperations(): AiGradingOperations {
             baseEvidence: value.baseEvidence,
             baseCorpusVersion: value.baseCorpusVersion,
           })
-        : { ...provisional, gradingMetadata: undefined };
+        : {
+            ...provisional,
+            gradingMetadata: createStagedGradingMetadata({
+              evidence: value.baseEvidence,
+              gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+              runId: job.workflowRunId,
+              corpusVersion: value.baseCorpusVersion,
+              provisionalTraceId: provisional.traceId,
+              adjudicationTraceId: provisional.traceId,
+              retrievalSkippedReason:
+                "adjacent_band_adjudication_disabled",
+            }) as unknown as Json,
+          };
       const criterionEvidence = buildWritingCriterionEvidence({
         score: normalizeWritingScore(provisional.output),
         context: commonEvidenceContext({

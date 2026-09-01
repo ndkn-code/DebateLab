@@ -24,6 +24,7 @@ assert.deepEqual(adjacentBands([0, 9]), [0, 0.5, 8.5, 9]);
 
 const limited = createStagedGradingMetadata({
   evidence: [],
+  gradingVersion: "provisional-v1",
   runId: "run-1",
   provisionalTraceId: "p",
   adjudicationTraceId: "a",
@@ -31,6 +32,7 @@ const limited = createStagedGradingMetadata({
   retrievalSkippedReason: "rpc_unavailable",
 });
 assert.equal(limited.confidence, "limited");
+assert.equal(limited.gradingVersion, "provisional-v1");
 assert.deepEqual(limited.limitations, [
   "no_approved_adjacent_band_evidence",
   "retrieval:rpc_unavailable",

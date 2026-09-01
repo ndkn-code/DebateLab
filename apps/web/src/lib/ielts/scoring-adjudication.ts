@@ -175,6 +175,7 @@ export function buildWritingAdjudicationPrompt(params: {
 
 export function createStagedGradingMetadata(params: {
   evidence: GradingEvidenceReference[];
+  gradingVersion?: string;
   corpusVersion?: string | null;
   runId: string;
   provisionalTraceId: string;
@@ -192,7 +193,7 @@ export function createStagedGradingMetadata(params: {
     limitations.push("pronunciation_acoustic_evidence_unavailable");
   }
   return {
-    gradingVersion: IELTS_GRADING_VERSION,
+    gradingVersion: params.gradingVersion ?? IELTS_GRADING_VERSION,
     corpusVersion: params.corpusVersion ?? null,
     confidence:
       limitations.length > 0
