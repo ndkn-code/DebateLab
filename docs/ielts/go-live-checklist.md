@@ -12,6 +12,13 @@ Vercel Workflow, Vercel Queues, or a Vercel grading cron.
   the learner sees the teacher-confirmed score while AI evidence is preserved.
 - [x] IELTS Coach is product-isolated, uses confirmed teacher scores ahead of
   provisional AI scores, and launches a specific safe mock task.
+- [x] The Coach question bank contains 48 published, first-party,
+  answer-key-free prompts (13 original plus 35 module/part-specific additions).
+  Production routing distinguishes Academic and General Training Writing and
+  Speaking Parts 1-3.
+- [x] The one-time Google AI consent is shared across Debate and IELTS Coach on
+  the current device. With consent, IELTS Coach tries Gemini 3.5 Flash-Lite
+  first; without consent it remains Groq-only.
 - [x] Speaking recording, upload, transcription, scoring, persistence, polling,
   and learner feedback complete through the GCP worker. The verified run made
   one provider call and produced one durable run.
@@ -29,8 +36,11 @@ Vercel Workflow, Vercel Queues, or a Vercel grading cron.
 - [x] Completion now requires a current score for every frozen Writing task,
   including a matching published teacher revision when teacher authority is
   used. One Task 2 result can no longer complete a two-task simulation.
-- [x] A Groq rate limit on the primary IELTS scorer advances inside the same
-  fenced provider phase to `openai/gpt-oss-20b`, a fast Groq-only fallback.
+- [x] Front-facing IELTS Coach fallback uses `openai/gpt-oss-20b` first and
+  `qwen/qwen3.8-27b` second. The production check on commit `7d612313` recovered
+  from a Gemini timeout and GPT-OSS schema rejection with a valid Qwen
+  structured response in 3.3 seconds, then launched the exact Academic Task 1
+  mock URL. IELTS grading remains on the separate Groq/GCP path.
 - [x] A Groq JSON-mode validation rejection receives one bounded repair inside
   the existing fenced provider phase before fallback. Transport and timeout
   failures still skip repair and move to the next declared candidate.
