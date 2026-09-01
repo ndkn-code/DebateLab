@@ -2,6 +2,10 @@
   --calendar-gutter: 4.5rem;
   --calendar-hour: 64px;
   --calendar-days: 7;
+  /* Floor per day column, sized so five weekday columns still fit without
+     panel scroll at 1024px. Wider viewports let 1fr take over (~216px at
+     1440px), which is what stops the event block truncating its start time. */
+  --calendar-column-min: 132px;
   border: 1px solid var(--color-outline-variant);
   border-radius: 12px;
   background: var(--color-surface);
@@ -15,7 +19,9 @@
 }
 
 .calendarCanvas {
-  min-width: 940px;
+  min-width: calc(
+    var(--calendar-gutter) + var(--calendar-days) * var(--calendar-column-min)
+  );
 }
 
 .dayCanvas {
@@ -26,7 +32,7 @@
   display: grid;
   grid-template-columns: var(--calendar-gutter) repeat(
       var(--calendar-days),
-      minmax(118px, 1fr)
+      minmax(var(--calendar-column-min), 1fr)
     );
 }
 
@@ -34,15 +40,20 @@
   position: sticky;
   top: 0;
   z-index: 18;
-  min-height: 58px;
+  min-height: 50px;
   border-bottom: 1px solid var(--color-outline-variant);
   background: var(--color-surface);
 }
 
+/* Keep the hour scale in place when the weekend columns force panel scroll. */
 .timezoneCell {
+  position: sticky;
+  left: 0;
+  z-index: 2;
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  background: var(--color-surface);
   padding: 0 0.35rem 0.65rem;
   color: var(--color-on-surface-variant);
   font-size: 0.6875rem;
@@ -50,41 +61,56 @@
 }
 
 .dayHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
   min-width: 0;
-  padding: 0.55rem 0.55rem 0.5rem;
+  padding: 0.4rem 0.55rem;
   border-left: 1px solid var(--color-outline-variant);
   text-align: left;
 }
 
-.dayHeader[data-today="true"] {
-  background: color-mix(
-    in srgb,
-    var(--color-primary-container) 46%,
-    transparent
-  );
+.dayNumeral {
+  display: grid;
+  flex: none;
+  place-items: center;
+  min-width: 1.75rem;
+  height: 1.75rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  color: var(--color-on-surface);
+  font-size: 1.0625rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
 }
 
-.dayHeaderTop {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.35rem;
+.dayHeader[data-today="true"] .dayNumeral {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.dayWeekday {
+  min-width: 0;
+  overflow: hidden;
   color: var(--color-on-surface-variant);
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: 0.055em;
+  line-height: 1.1;
+  text-overflow: ellipsis;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.dayNumber {
-  margin-top: 0.15rem;
-  color: var(--color-on-surface);
-  font-size: 1rem;
-  font-weight: 700;
-}
-
-.dayHeader[data-today="true"] .dayNumber {
-  color: var(--color-primary);
+.dayCount {
+  flex: none;
+  margin-left: auto;
+  color: var(--color-on-surface-variant);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
 }
 
 .bodyGrid {
@@ -98,6 +124,9 @@
 }
 
 .timeGutter {
+  position: sticky;
+  left: 0;
+  z-index: 6;
   background: var(--color-surface-container-lowest);
 }
 
@@ -148,14 +177,18 @@
 .eventButton {
   position: absolute;
   z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
   min-height: 26px;
   overflow: hidden;
+  container-type: size;
   border: 1px solid var(--event-border);
   border-left-width: 4px;
   border-radius: 8px;
   background: var(--event-bg);
   color: var(--event-fg);
-  padding: 0.28rem 0.38rem;
+  padding: 0.25rem 0.4rem;
   text-align: left;
   transition:
     filter 120ms ease,
@@ -183,37 +216,51 @@
   border-style: double;
 }
 
+/* Two lines only: time + title, then the muted class line. The time is
+   flex: none so it is the last thing that could ever clip. */
+.eventHeadline {
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
 .eventTime {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  flex: none;
   color: inherit;
   font-size: 0.6875rem;
-  font-weight: 700;
-  line-height: 1.2;
+  font-weight: 400;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
   white-space: nowrap;
 }
 
 .eventTitle {
-  display: -webkit-box;
+  min-width: 0;
   overflow: hidden;
-  margin-top: 0.15rem;
   font-size: 0.75rem;
-  font-weight: 700;
-  line-height: 1.2;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  font-weight: 600;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .eventMeta {
   display: block;
   overflow: hidden;
-  margin-top: 0.15rem;
   color: color-mix(in srgb, var(--event-fg) 78%, transparent);
-  font-size: 0.65rem;
-  line-height: 1.2;
+  font-size: 0.6875rem;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* A 30-minute block cannot show two lines; drop the muted one rather than
+   clipping it mid-glyph. */
+@container (max-height: 42px) {
+  .eventMeta {
+    display: none;
+  }
 }
 
 .currentTime {
@@ -277,6 +324,17 @@
   display: none;
 }
 
+/* Toolbar controls that only make sense next to the time grid. Same 900px
+   boundary as .desktopCalendar / .mobileFallback below, kept here so there is
+   one source of truth for it. */
+.desktopOnly {
+  display: inline-flex;
+}
+
+.compactOnly {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .desktopCalendar {
     display: none;
@@ -284,6 +342,14 @@
 
   .mobileFallback {
     display: block;
+  }
+
+  .desktopOnly {
+    display: none;
+  }
+
+  .compactOnly {
+    display: inline-flex;
   }
 
   .agendaDay {

@@ -634,7 +634,7 @@ function AssignmentsSurface({ data }: { data: TeacherWorkspacePresentation }) {
       />
       {composerOpen ? (
         <form
-          className="mt-3 grid gap-3 rounded-control border border-primary/30 bg-primary-container/20 p-4 sm:grid-cols-2"
+          className="mt-3 grid gap-3 rounded-control border border-outline-variant bg-primary-container p-4 sm:grid-cols-2"
           onSubmit={(event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();
             if (!isDemo) return;
@@ -1077,7 +1077,7 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
       />
       {composerOpen ? (
         <form
-          className="mt-3 grid gap-3 rounded-control border border-primary/30 bg-primary-container/20 p-4 sm:grid-cols-2"
+          className="mt-3 grid gap-3 rounded-control border border-outline-variant bg-primary-container p-4 sm:grid-cols-2"
           onSubmit={(event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();
             const form = new FormData(event.currentTarget);
@@ -1242,7 +1242,7 @@ function AnnouncementsSurface({
       />
       {composerOpen ? (
         <form
-          className="mt-3 grid gap-3 rounded-control border border-primary/30 bg-primary-container/20 p-4"
+          className="mt-3 grid gap-3 rounded-control border border-outline-variant bg-primary-container p-4"
           onSubmit={(event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();
             if (!isDemo) return;
@@ -1627,23 +1627,24 @@ export function TeacherWorkspaceScreen({
     <ProductPageShell>
       <PageContainer size="data" className="py-4 lg:py-5">
         {data.source === "explicit_demo" ? (
-          <div className="mb-3 flex items-start gap-2 rounded-control border border-primary/25 bg-primary-container/30 px-3 py-2.5">
+          /* A necessary disclosure, not a headline: one quiet line so the
+             workspace itself owns the top of the page. */
+          <div className="mb-3 flex items-center gap-2 rounded-control border border-outline-variant bg-surface-container-low px-3 py-1.5">
             <Shield
-              className="mt-0.5 size-4 shrink-0 text-primary"
+              className="size-3.5 shrink-0 text-on-surface-variant"
               aria-hidden="true"
             />
-            <div>
-              <p className="type-label font-semibold text-on-surface">
+            <p className="type-caption text-on-surface-variant">
+              <span className="font-semibold text-on-surface">
                 {data.locale === "vi"
                   ? "Bản xem trước giáo viên"
                   : "Teacher presentation preview"}
-              </p>
-              <p className="type-caption text-on-surface-variant">
-                {data.locale === "vi"
-                  ? "Dữ liệu minh họa chỉ được bật rõ ràng trong môi trường không phải production."
-                  : "Rich presentation data is explicitly enabled and never activates in production."}
-              </p>
-            </div>
+              </span>
+              {" — "}
+              {data.locale === "vi"
+                ? "dữ liệu minh họa chỉ bật ngoài production."
+                : "demo data, never active in production."}
+            </p>
           </div>
         ) : null}
         {data.surface === "calendar" ? <TeacherCalendar data={data} /> : null}

@@ -8,24 +8,42 @@ import {
   useSyncExternalStore,
   type CSSProperties,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
 import { useSearchParams } from "next/navigation";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import {
+  BookOpen,
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CircleDashed,
   ClipboardList,
   Clock3,
-  Filter,
+  Highlighter,
   MapPin,
   Megaphone,
   RefreshCw,
+  Sun,
   Users,
   X,
+  type LucideIcon,
 } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -71,6 +89,35 @@ function subscribeToCompactCalendar(callback: () => void) {
 
 function compactCalendarSnapshot() {
   return window.matchMedia(COMPACT_CALENDAR_QUERY).matches;
+}
+
+const WEEKEND_STORAGE_KEY = "thinkfy.teacher.calendar.weekend.v1";
+const weekendListeners = new Set<() => void>();
+
+function subscribeToWeekendPreference(callback: () => void) {
+  weekendListeners.add(callback);
+  window.addEventListener("storage", callback);
+  return () => {
+    weekendListeners.delete(callback);
+    window.removeEventListener("storage", callback);
+  };
+}
+
+function weekendPreferenceSnapshot() {
+  try {
+    return window.localStorage.getItem(WEEKEND_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function writeWeekendPreference(next: boolean) {
+  try {
+    window.localStorage.setItem(WEEKEND_STORAGE_KEY, String(next));
+  } catch {
+    // Weekdays-only stays the default when storage is unavailable.
+  }
+  for (const listener of weekendListeners) listener();
 }
 
 const CLASS_COLORS: Record<
@@ -133,6 +180,14 @@ function startOfMonth(value: string) {
 function shiftMonth(value: string, amount: number) {
   const { year, month } = dateParts(value);
   return new Date(Date.UTC(year, month - 1 + amount, 1))
+    .toISOString()
+    .slice(0, 10);
+}
+
+function shiftMonthKeepingDay(value: string, amount: number) {
+  const { year, month, day } = dateParts(value);
+  const lastDay = new Date(Date.UTC(year, month + amount, 0)).getUTCDate();
+  return new Date(Date.UTC(year, month - 1 + amount, Math.min(day, lastDay)))
     .toISOString()
     .slice(0, 10);
 }
@@ -234,8 +289,14 @@ function materialKindLabel(value: string, vi: boolean) {
   );
 }
 
+function lessonCountLabel(count: number, vi: boolean) {
+  if (vi) return `${count} buổi học`;
+  return `${count} ${count === 1 ? "lesson" : "lessons"}`;
+}
+
 function viewLabel(view: TeacherCalendarView, vi: boolean) {
-  if (!vi) return view;
+  if (!vi)
+    return { day: "Day", week: "Week", month: "Month", agenda: "Agenda" }[view];
   return {
     day: "Ngày",
     week: "Tuần",
@@ -244,7 +305,12 @@ function viewLabel(view: TeacherCalendarView, vi: boolean) {
   }[view];
 }
 
-function rangeTitle(view: TeacherCalendarView, anchor: string, locale: string) {
+function rangeTitle(
+  view: TeacherCalendarView,
+  anchor: string,
+  locale: string,
+  weekLength = 7,
+) {
   if (view === "day") {
     return formatDate(anchor, locale, {
       weekday: "long",
@@ -256,7 +322,7 @@ function rangeTitle(view: TeacherCalendarView, anchor: string, locale: string) {
   if (view === "month")
     return formatDate(anchor, locale, { month: "long", year: "numeric" });
   const start = startOfWeek(anchor);
-  const end = addDays(start, 6);
+  const end = addDays(start, weekLength - 1);
   return `${formatDate(start, locale, { month: "short", day: "numeric" })} – ${formatDate(end, locale, { month: "short", day: "numeric", year: "numeric" })}`;
 }
 
@@ -267,6 +333,367 @@ function eventStyle(colorToken: TeacherClassColorToken): CSSProperties {
     "--event-fg": color.foreground,
     "--event-border": color.border,
   } as CSSProperties;
+}
+
+const CLASS_COLOR_LABELS: Record<
+  TeacherClassColorToken,
+  { en: string; vi: string }
+> = {
+  blue: { en: "Blue", vi: "Xanh dương" },
+  teal: { en: "Teal", vi: "Xanh ngọc" },
+  amber: { en: "Amber", vi: "Hổ phách" },
+  coral: { en: "Coral", vi: "San hô" },
+  violet: { en: "Violet", vi: "Tím" },
+  pink: { en: "Pink", vi: "Hồng" },
+  slate: { en: "Slate", vi: "Xám" },
+};
+
+const PILL_CLASS =
+  "inline-flex h-8 max-w-56 items-center gap-1.5 rounded-full border border-outline-variant bg-surface pl-2.5 pr-2 type-label font-medium text-on-surface transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary data-[popup-open]:bg-surface-container";
+
+type CalendarSelectOption = {
+  value: string;
+  label: string;
+  dot?: string;
+};
+
+/** Pill filter control: leading icon, current label, trailing chevron. */
+function CalendarSelect({
+  icon: Icon,
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  icon: LucideIcon;
+  label: string;
+  value: string;
+  options: CalendarSelectOption[];
+  onChange: (value: string) => void;
+}) {
+  const current = options.find((option) => option.value === value) ?? options[0];
+  if (!current) return null;
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        className={PILL_CLASS}
+        aria-label={`${label}: ${current.label}`}
+      >
+        {current.dot ? (
+          <span
+            className="size-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: current.dot }}
+            aria-hidden="true"
+          />
+        ) : (
+          <Icon
+            className="size-4 shrink-0 text-on-surface-variant"
+            aria-hidden="true"
+          />
+        )}
+        <span className="truncate">{current.label}</span>
+        <ChevronDown
+          className="size-3.5 shrink-0 text-on-surface-variant"
+          aria-hidden="true"
+        />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent className="w-auto min-w-52 max-w-72">
+        <DropdownMenuRadioGroup
+          value={value}
+          onValueChange={(next) => onChange(String(next))}
+        >
+          {options.map((option) => (
+            <DropdownMenuRadioItem
+              key={option.value}
+              value={option.value}
+              closeOnClick
+              className="type-label py-1.5"
+            >
+              {option.dot ? (
+                <span
+                  className="size-2.5 shrink-0 rounded-full"
+                  style={{ backgroundColor: option.dot }}
+                  aria-hidden="true"
+                />
+              ) : null}
+              <span className="truncate">{option.label}</span>
+            </DropdownMenuRadioItem>
+          ))}
+        </DropdownMenuRadioGroup>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
+/** Month grid inside a popover, replacing the browser-drawn date input. */
+function CalendarDatePicker({
+  value,
+  locale,
+  timezone,
+  onChange,
+}: {
+  value: string;
+  locale: string;
+  timezone: string;
+  onChange: (value: string) => void;
+}) {
+  const vi = locale === "vi";
+  const [open, setOpen] = useState(false);
+  const [month, setMonth] = useState(() => startOfMonth(value));
+  const [focusDate, setFocusDate] = useState(value);
+  const [focusRequest, setFocusRequest] = useState<{
+    date: string;
+    tick: number;
+  } | null>(null);
+  const handledTickRef = useRef(0);
+  const today = dateInTimezone(new Date(), timezone);
+  const monthLabelId = `teacher-calendar-datepicker-${value}`;
+
+  const gridStart = addDays(month, -((new Date(`${month}T12:00:00Z`).getUTCDay() + 6) % 7));
+  const weeks = Array.from({ length: 6 }, (_, week) =>
+    Array.from({ length: 7 }, (_, day) => addDays(gridStart, week * 7 + day)),
+  );
+  const weekdayHeads = Array.from({ length: 7 }, (_, index) =>
+    addDays("2026-08-31", index),
+  );
+
+  function moveFocus(next: string) {
+    setFocusDate(next);
+    setMonth(startOfMonth(next));
+    setFocusRequest((current) => ({
+      date: next,
+      tick: (current?.tick ?? 0) + 1,
+    }));
+  }
+
+  /** Header arrows: keep the roving tab target inside the visible month. */
+  function changeMonth(amount: number) {
+    setMonth(shiftMonth(month, amount));
+    setFocusDate(shiftMonthKeepingDay(focusDate, amount));
+  }
+
+  function handleKeyDown(keyEvent: ReactKeyboardEvent<HTMLDivElement>) {
+    const steps: Record<string, number> = {
+      ArrowLeft: -1,
+      ArrowRight: 1,
+      ArrowUp: -7,
+      ArrowDown: 7,
+    };
+    const step = steps[keyEvent.key];
+    if (step !== undefined) {
+      keyEvent.preventDefault();
+      moveFocus(addDays(focusDate, step));
+      return;
+    }
+    if (keyEvent.key === "Home") {
+      keyEvent.preventDefault();
+      moveFocus(startOfWeek(focusDate));
+      return;
+    }
+    if (keyEvent.key === "End") {
+      keyEvent.preventDefault();
+      moveFocus(addDays(startOfWeek(focusDate), 6));
+      return;
+    }
+    if (keyEvent.key === "PageUp" || keyEvent.key === "PageDown") {
+      keyEvent.preventDefault();
+      moveFocus(shiftMonthKeepingDay(focusDate, keyEvent.key === "PageUp" ? -1 : 1));
+    }
+  }
+
+  return (
+    <Popover
+      open={open}
+      onOpenChange={(next) => {
+        if (next) {
+          setMonth(startOfMonth(value));
+          setFocusDate(value);
+          setFocusRequest((current) => ({
+            date: value,
+            tick: (current?.tick ?? 0) + 1,
+          }));
+        }
+        setOpen(next);
+      }}
+    >
+      <PopoverTrigger
+        className={PILL_CLASS}
+        aria-label={`${vi ? "Chuyển đến ngày" : "Jump to date"}: ${formatDate(
+          value,
+          locale,
+          { day: "numeric", month: "long", year: "numeric" },
+        )}`}
+      >
+        <CalendarDays
+          className="size-4 shrink-0 text-on-surface-variant"
+          aria-hidden="true"
+        />
+        <span className="truncate tabular-nums">
+          {formatDate(value, locale, {
+            day: "numeric",
+            month: "short",
+            year: "numeric",
+          })}
+        </span>
+        <ChevronDown
+          className="size-3.5 shrink-0 text-on-surface-variant"
+          aria-hidden="true"
+        />
+      </PopoverTrigger>
+      <PopoverContent
+        align="start"
+        showArrow={false}
+        className="w-auto p-3"
+      >
+        <div className="flex items-center justify-between gap-2">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => changeMonth(-1)}
+            aria-label={vi ? "Tháng trước" : "Previous month"}
+          >
+            <ChevronLeft />
+          </Button>
+          <span
+            id={monthLabelId}
+            aria-live="polite"
+            className="type-label font-semibold text-on-surface"
+          >
+            {formatDate(month, locale, { month: "long", year: "numeric" })}
+          </span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => changeMonth(1)}
+            aria-label={vi ? "Tháng sau" : "Next month"}
+          >
+            <ChevronRight />
+          </Button>
+        </div>
+        <div
+          role="grid"
+          aria-labelledby={monthLabelId}
+          onKeyDown={handleKeyDown}
+          className="mt-2"
+        >
+          <div role="row" className="grid grid-cols-7">
+            {weekdayHeads.map((day) => (
+              <span
+                key={day}
+                role="columnheader"
+                aria-label={formatDate(day, locale, { weekday: "long" })}
+                className="grid h-7 place-items-center type-caption font-semibold uppercase text-on-surface-variant"
+              >
+                {formatDate(day, locale, { weekday: "narrow" })}
+              </span>
+            ))}
+          </div>
+          {weeks.map((week) => (
+            <div key={week[0]} role="row" className="grid grid-cols-7">
+              {week.map((day) => {
+                const selected = day === value;
+                const outside = dateParts(day).month !== dateParts(month).month;
+                return (
+                  <button
+                    key={day}
+                    // The popup mounts asynchronously and a month change
+                    // remounts every cell, so focus is placed at attach time
+                    // rather than from an effect. Month arrows leave the
+                    // request untouched and so keep their own focus.
+                    ref={(node) => {
+                      if (
+                        node &&
+                        focusRequest?.date === day &&
+                        focusRequest.tick !== handledTickRef.current
+                      ) {
+                        handledTickRef.current = focusRequest.tick;
+                        node.focus();
+                      }
+                    }}
+                    type="button"
+                    role="gridcell"
+                    data-day={day}
+                    aria-selected={selected}
+                    aria-current={day === today ? "date" : undefined}
+                    aria-label={formatDate(day, locale, {
+                      weekday: "long",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                    tabIndex={day === focusDate ? 0 : -1}
+                    onClick={() => {
+                      onChange(day);
+                      setOpen(false);
+                    }}
+                    className={cn(
+                      "m-0.5 grid size-8 place-items-center rounded-full type-label tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                      outside
+                        ? "text-on-surface-variant opacity-60"
+                        : "text-on-surface",
+                      !selected && "hover:bg-surface-container-high",
+                      day === today && !selected && "font-semibold text-primary",
+                      selected && "bg-primary font-semibold text-on-primary",
+                    )}
+                  >
+                    {formatDate(day, locale, { day: "numeric" })}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+/** One grouped control with a single filled selection. */
+function CalendarViewSwitcher({
+  value,
+  options,
+  label,
+  vi,
+  onChange,
+  className,
+}: {
+  value: TeacherCalendarView;
+  options: readonly TeacherCalendarView[];
+  label: string;
+  vi: boolean;
+  onChange: (value: TeacherCalendarView) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={label}
+      className={cn(
+        "items-center gap-0.5 rounded-control border border-outline-variant bg-surface-container p-0.5",
+        className,
+      )}
+    >
+      {options.map((option) => {
+        const active = value === option;
+        return (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onChange(option)}
+            aria-pressed={active}
+            className={cn(
+              "h-7 rounded-md px-2.5 type-label transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+              active
+                ? "bg-primary font-semibold text-on-primary"
+                : "text-on-surface-variant hover:text-on-surface",
+            )}
+          >
+            {viewLabel(option, vi)}
+          </button>
+        );
+      })}
+    </div>
+  );
 }
 
 function EmptyCalendar({ vi }: { vi: boolean }) {
@@ -429,13 +856,18 @@ function TimeGrid({
                 data-today={day === today}
                 data-calendar-day-header={day}
               >
-                <div className={styles.dayHeaderTop}>
-                  <span>{formatDate(day, locale, { weekday: "short" })}</span>
-                  <span>{dayEvents.length}</span>
-                </div>
-                <div className={styles.dayNumber}>
-                  {formatDate(day, locale, { month: "short", day: "numeric" })}
-                </div>
+                <span className={styles.dayNumeral}>
+                  {formatDate(day, locale, { day: "numeric" })}
+                </span>
+                <span className={styles.dayWeekday}>
+                  {formatDate(day, locale, { weekday: "short" })}
+                </span>
+                <span className={styles.dayCount}>
+                  <span aria-hidden="true">{dayEvents.length}</span>
+                  <span className="sr-only">
+                    {lessonCountLabel(dayEvents.length, vi)}
+                  </span>
+                </span>
               </div>
             );
           })}
@@ -518,12 +950,13 @@ function TimeGrid({
                       }}
                       aria-label={`${entry.event.classTitle}, ${entry.event.title}, ${formatTime(entry.event.startsAt, locale, timezone)} to ${formatTime(entry.event.endsAt, locale, timezone)}, ${statusLabel(entry.event.status, vi)}`}
                     >
-                      <span className={styles.eventTime}>
-                        {formatTime(entry.event.startsAt, locale, timezone)}–
-                        {formatTime(entry.event.endsAt, locale, timezone)}
-                      </span>
-                      <span className={styles.eventTitle}>
-                        {entry.event.title}
+                      <span className={styles.eventHeadline}>
+                        <span className={styles.eventTime}>
+                          {formatTime(entry.event.startsAt, locale, timezone)}
+                        </span>
+                        <span className={styles.eventTitle}>
+                          {entry.event.title}
+                        </span>
                       </span>
                       <span className={styles.eventMeta}>
                         {entry.event.classTitle} ·{" "}
@@ -1286,6 +1719,11 @@ export function TeacherCalendar({
       return {};
     }
   });
+  const showWeekend = useSyncExternalStore(
+    subscribeToWeekendPreference,
+    weekendPreferenceSnapshot,
+    () => false,
+  );
   const isCompactCalendar = useSyncExternalStore(
     subscribeToCompactCalendar,
     compactCalendarSnapshot,
@@ -1397,9 +1835,16 @@ export function TeacherCalendar({
     } catch {}
   }
 
-  const weekDays = Array.from({ length: 7 }, (_, index) =>
+  const weekDays = Array.from({ length: showWeekend ? 7 : 5 }, (_, index) =>
     addDays(startOfWeek(anchor), index),
   );
+  const weekendDays = [
+    addDays(startOfWeek(anchor), 5),
+    addDays(startOfWeek(anchor), 6),
+  ];
+  const weekendEventCount = events.filter((event) =>
+    weekendDays.includes(event.date),
+  ).length;
   const dayEvents = events.filter((event) => event.date === anchor);
   const displayEvents = view === "day" ? dayEvents : events;
   const mobileView: TeacherCalendarView = view === "day" ? "day" : "agenda";
@@ -1431,7 +1876,7 @@ export function TeacherCalendar({
             {vi ? "Lịch giảng dạy" : "Teaching Calendar"}
           </h1>
           <p className="mt-0.5 type-body-sm text-on-surface-variant">
-            {rangeTitle(view, anchor, data.locale)}
+            {rangeTitle(view, anchor, data.locale, weekDays.length)}
           </p>
         </div>
         <div
@@ -1467,54 +1912,54 @@ export function TeacherCalendar({
               <ChevronRight />
             </Button>
           </div>
-          <label className="sr-only" htmlFor="teacher-calendar-date">
-            {vi ? "Chuyển đến ngày" : "Jump to date"}
-          </label>
-          <input
-            id="teacher-calendar-date"
-            type="date"
+          <CalendarDatePicker
             value={anchor}
-            onChange={(event) => navigate({ date: event.target.value })}
-            className="h-8 rounded-control border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
+            locale={data.locale}
+            timezone={data.calendar.range.timezone}
+            onChange={(next) => navigate({ date: next })}
           />
-          <div
-            className="hidden items-center rounded-control border border-outline-variant bg-surface-container p-[3px] md:flex"
-            aria-label={vi ? "Chế độ xem" : "Calendar view"}
-          >
-            {(["day", "week", "month", "agenda"] as const).map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setView(item)}
-                aria-pressed={view === item}
-                className={cn(
-                  "h-7 rounded-[7px] px-3 type-label font-semibold capitalize text-on-surface-variant",
-                  view === item && "bg-surface text-on-surface shadow-sm",
-                )}
-              >
-                {viewLabel(item, vi)}
-              </button>
-            ))}
-          </div>
-          <div
-            className="flex items-center rounded-control border border-outline-variant bg-surface-container p-[3px] md:hidden"
-            aria-label={vi ? "Chế độ xem di động" : "Mobile calendar view"}
-          >
-            {(["day", "agenda"] as const).map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setView(item)}
-                aria-pressed={mobileView === item}
-                className={cn(
-                  "h-7 rounded-[7px] px-3 type-label font-semibold capitalize text-on-surface-variant",
-                  mobileView === item && "bg-surface text-on-surface shadow-sm",
-                )}
-              >
-                {viewLabel(item, vi)}
-              </button>
-            ))}
-          </div>
+          <CalendarViewSwitcher
+            className={styles.desktopOnly}
+            label={vi ? "Chế độ xem" : "Calendar view"}
+            options={["day", "week", "month", "agenda"]}
+            value={view}
+            vi={vi}
+            onChange={setView}
+          />
+          <CalendarViewSwitcher
+            className={styles.compactOnly}
+            label={vi ? "Chế độ xem di động" : "Mobile calendar view"}
+            options={["day", "agenda"]}
+            value={mobileView}
+            vi={vi}
+            onChange={setView}
+          />
+          {view === "week" ? (
+            <button
+              type="button"
+              onClick={() => writeWeekendPreference(!showWeekend)}
+              aria-pressed={showWeekend}
+              aria-label={`${vi ? "Cuối tuần" : "Weekend"}: ${lessonCountLabel(
+                weekendEventCount,
+                vi,
+              )}`}
+              className={cn(
+                styles.desktopOnly,
+                "h-8 items-center gap-1.5 rounded-full border px-2.5 type-label font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
+                showWeekend
+                  ? "border-primary bg-primary-container text-on-primary-container"
+                  : "border-outline-variant bg-surface text-on-surface hover:bg-surface-container",
+              )}
+            >
+              <Sun className="size-4 shrink-0" aria-hidden="true" />
+              {vi ? "Cuối tuần" : "Weekend"}
+              {!showWeekend && weekendEventCount > 0 ? (
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-surface-container-high px-1 type-caption font-semibold tabular-nums text-on-surface-variant">
+                  {weekendEventCount}
+                </span>
+              ) : null}
+            </button>
+          ) : null}
         </div>
       </div>
 
@@ -1522,85 +1967,80 @@ export function TeacherCalendar({
         className="mt-3 flex flex-wrap items-center gap-2"
         data-calendar-filters
       >
-        <span className="inline-flex h-8 items-center gap-1.5 type-label font-semibold text-on-surface-variant">
-          <Filter className="size-4" aria-hidden="true" />
-          {vi ? "Bộ lọc" : "Filters"}
-        </span>
-        <select
-          aria-label={vi ? "Lọc theo lớp" : "Filter by class"}
+        <CalendarSelect
+          icon={Users}
+          label={vi ? "Lọc theo lớp" : "Filter by class"}
           value={selectedClass}
-          onChange={(event) =>
-            navigate({ classId: event.target.value || null })
-          }
-          className="h-8 rounded-control border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
-        >
-          <option value="">{vi ? "Tất cả lớp" : "All classes"}</option>
-          {data.classes.map((item) => (
-            <option key={item.id} value={item.id}>
-              {item.title}
-            </option>
-          ))}
-        </select>
-        <select
-          aria-label={vi ? "Lọc theo môn" : "Filter by subject"}
+          onChange={(next) => navigate({ classId: next || null })}
+          options={[
+            { value: "", label: vi ? "Tất cả lớp" : "All classes" },
+            ...data.classes.map((item) => ({
+              value: item.id,
+              label: item.title,
+            })),
+          ]}
+        />
+        <CalendarSelect
+          icon={BookOpen}
+          label={vi ? "Lọc theo môn" : "Filter by subject"}
           value={selectedProgram}
-          onChange={(event) =>
-            navigate({ program: event.target.value || null })
-          }
-          className="h-8 rounded-control border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
-        >
-          <option value="">{vi ? "Tất cả môn" : "All subjects"}</option>
-          <option value="ielts">IELTS</option>
-          <option value="debate">Debate</option>
-          <option value="public_speaking">Public speaking</option>
-        </select>
-        <select
-          aria-label={vi ? "Lọc theo trạng thái" : "Filter by status"}
+          onChange={(next) => navigate({ program: next || null })}
+          options={[
+            { value: "", label: vi ? "Tất cả môn" : "All subjects" },
+            { value: "ielts", label: "IELTS" },
+            { value: "debate", label: vi ? "Tranh biện" : "Debate" },
+            {
+              value: "public_speaking",
+              label: vi ? "Thuyết trình" : "Public speaking",
+            },
+          ]}
+        />
+        <CalendarSelect
+          icon={CircleDashed}
+          label={vi ? "Lọc theo trạng thái" : "Filter by status"}
           value={selectedStatus}
-          onChange={(event) => navigate({ status: event.target.value || null })}
-          className="h-8 rounded-control border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface"
-        >
-          <option value="">{vi ? "Tất cả trạng thái" : "All statuses"}</option>
-          <option value="scheduled">{vi ? "Đã lên lịch" : "Scheduled"}</option>
-          <option value="completed">{vi ? "Hoàn tất" : "Completed"}</option>
-          <option value="cancelled">{vi ? "Đã hủy" : "Cancelled"}</option>
-        </select>
+          onChange={(next) => navigate({ status: next || null })}
+          options={[
+            { value: "", label: vi ? "Tất cả trạng thái" : "All statuses" },
+            { value: "scheduled", label: statusLabel("scheduled", vi) },
+            { value: "completed", label: statusLabel("completed", vi) },
+            { value: "cancelled", label: statusLabel("cancelled", vi) },
+          ]}
+        />
         {selectedClass ? (
-          <label className="inline-flex h-8 items-center gap-2 rounded-control border border-outline-variant bg-surface px-2 type-caption font-semibold text-on-surface-variant">
-            {vi ? "Màu lớp" : "Class color"}
-            <select
-              aria-label={vi ? "Chọn màu lớp" : "Choose class color"}
-              value={
-                classColors[selectedClass] ??
-                data.classes.find((item) => item.id === selectedClass)
-                  ?.colorToken ??
-                "blue"
-              }
-              onChange={(event) =>
-                setColor(
-                  selectedClass,
-                  event.target.value as TeacherClassColorToken,
-                )
-              }
-              className="bg-transparent text-on-surface"
-            >
-              {Object.keys(CLASS_COLORS).map((color) => (
-                <option key={color} value={color}>
-                  {color}
-                </option>
-              ))}
-            </select>
-          </label>
+          <CalendarSelect
+            icon={Highlighter}
+            label={vi ? "Chọn màu lớp" : "Choose class color"}
+            value={
+              classColors[selectedClass] ??
+              data.classes.find((item) => item.id === selectedClass)
+                ?.colorToken ??
+              "blue"
+            }
+            onChange={(next) =>
+              setColor(selectedClass, next as TeacherClassColorToken)
+            }
+            options={(
+              Object.keys(CLASS_COLORS) as TeacherClassColorToken[]
+            ).map((color) => ({
+              value: color,
+              label: vi
+                ? CLASS_COLOR_LABELS[color].vi
+                : CLASS_COLOR_LABELS[color].en,
+              dot: CLASS_COLORS[color].border,
+            }))}
+          />
         ) : null}
         {selectedClass || selectedProgram || selectedStatus ? (
           <Button
             variant="ghost"
+            className="rounded-full"
             onClick={() =>
               navigate({ classId: null, program: null, status: null })
             }
           >
             <RefreshCw />
-            {vi ? "Xóa" : "Clear"}
+            {vi ? "Xóa bộ lọc" : "Clear filters"}
           </Button>
         ) : null}
       </div>
