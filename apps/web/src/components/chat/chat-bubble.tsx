@@ -539,11 +539,11 @@ function CoachOpeningBlueprint({
   if (steps.length < 3 || steps.length > 4) return null;
 
   return (
-    <section className="overflow-hidden rounded-xl border border-outline-variant bg-surface">
+    <section className="overflow-hidden rounded-control border border-outline-variant bg-surface">
       <div className="border-b border-outline-variant/12 bg-primary/5 px-4 py-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary">
               <OpeningBlueprintIcon className="h-[19px] w-[19px]" />
             </div>
             <div className="min-w-0">
@@ -566,7 +566,7 @@ function CoachOpeningBlueprint({
             return (
               <div
                 key={`${formulaBlock.id}-step-${index}`}
-                className="flex min-h-[66px] gap-3 rounded-xl border border-outline-variant/12 bg-surface-container p-3"
+                className="flex min-h-[66px] gap-3 rounded-control border border-outline-variant/12 bg-surface-container p-3"
               >
                 <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary type-caption font-bold text-on-primary shadow-token-primary">
                   {index + 1}
@@ -589,7 +589,7 @@ function CoachOpeningBlueprint({
 
         <div className="space-y-3">
           {templateBlock && (
-            <div className="rounded-xl border border-primary/16 bg-primary/5 p-3">
+            <div className="rounded-control border border-primary/16 bg-primary/5 p-3">
               <div className="flex items-start gap-3">
                 <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-surface text-primary">
                   <PenLine className="h-[18px] w-[18px]" />
@@ -621,7 +621,7 @@ function CoachOpeningBlueprint({
 
           <div className="grid gap-3 sm:grid-cols-2">
             {tipBlock && (
-              <div className="rounded-xl border border-warning/32 bg-surface-container p-3">
+              <div className="rounded-control border border-warning/32 bg-surface-container p-3">
                 <div className="flex items-center gap-2 type-eyebrow text-warning">
                   <Lightbulb className="h-4 w-4" />
                   {copy.coachTip}
@@ -638,7 +638,7 @@ function CoachOpeningBlueprint({
             )}
 
             {mistakeBlock && (
-              <div className="rounded-xl border border-error/24 bg-surface-container p-3">
+              <div className="rounded-control border border-error/24 bg-surface-container p-3">
                 <div className="flex items-center gap-2 type-eyebrow text-error">
                   <CircleAlert className="h-4 w-4" />
                   {copy.watchOut}
@@ -660,7 +660,7 @@ function CoachOpeningBlueprint({
       {exampleBlock && (
         <div className="bg-surface-container px-3 pb-3 sm:px-4 sm:pb-4">
           <div className="flex items-start gap-3 rounded-lg border border-primary/20 bg-surface p-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-container text-primary">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary-container text-primary">
               <BookOpen className="h-[18px] w-[18px]" />
             </div>
             <div className="min-w-0 flex-1">
@@ -819,7 +819,7 @@ function CoachVisualExplainerCard({
     normalizeFormulaText(visual.title) === normalizeFormulaText(formulaText);
 
   return (
-    <section className="mt-5 max-w-[780px] overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none">
+    <section className="mt-5 max-w-[780px] overflow-hidden rounded-control border border-outline-variant bg-surface shadow-none">
       <div className="px-5 py-6 sm:px-8 sm:py-7">
         {titleIsFormula && !visual.subtitle ? null : (
           <motion.div
@@ -1160,7 +1160,7 @@ function AssistantMessage({
             className="max-w-[760px] px-0 py-1 type-body"
           >
             <BeautifulStreamingText streaming={isStreaming}>
-              <div className="prose max-w-none prose-p:my-3 prose-p:leading-8 prose-ul:my-3 prose-ol:my-3 prose-li:my-1.5 prose-li:leading-7 prose-strong:font-semibold prose-strong:text-on-surface prose-headings:text-on-surface prose-headings:mb-2 prose-headings:mt-5 prose-p:text-on-surface prose-li:text-on-surface prose-a:text-primary prose-code:rounded prose-code:bg-surface-container prose-code:px-1 prose-code:py-0.5 prose-code:text-primary prose-pre:rounded-xl prose-pre:bg-surface-container">
+              <div className="prose max-w-none prose-p:my-3 prose-p:leading-8 prose-ul:my-3 prose-ol:my-3 prose-li:my-1.5 prose-li:leading-7 prose-strong:font-semibold prose-strong:text-on-surface prose-headings:text-on-surface prose-headings:mb-2 prose-headings:mt-5 prose-p:text-on-surface prose-li:text-on-surface prose-a:text-primary prose-code:rounded prose-code:bg-surface-container prose-code:px-1 prose-code:py-0.5 prose-code:text-primary prose-pre:rounded-control prose-pre:bg-surface-container">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {message.content}
                 </ReactMarkdown>
@@ -1268,7 +1268,7 @@ function CoachVisualPreparingCard() {
         duration: shouldReduceMotion ? 0 : 0.24,
         ease: "easeOut",
       }}
-      className="mt-5 max-w-[820px] overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none"
+      className="mt-5 max-w-[820px] overflow-hidden rounded-control border border-outline-variant bg-surface shadow-none"
       aria-live="polite"
     >
       <div className="border-b border-outline-variant px-5 py-4">
@@ -1299,7 +1299,7 @@ function CoachVisualPreparingCard() {
 function UserMessage({ message }: { message: ChatMessageLocal }) {
   return (
     <div className="flex flex-row-reverse items-start gap-3">
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary shadow-token-primary">
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary text-on-primary shadow-token-primary">
         <User className="h-4 w-4" />
       </div>
       <div className="max-w-[min(76%,680px)] rounded-xl rounded-tr-md bg-primary px-4 py-2.5 type-body text-on-primary shadow-none">

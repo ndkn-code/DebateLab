@@ -291,7 +291,7 @@ export function IeltsCoachShell() {
       <BeautifulChatFrame
         header={header}
         composer={composer}
-        className="min-h-[620px] rounded-xl border border-outline-variant shadow-token-card"
+        className="min-h-[620px] rounded-control border border-outline-variant shadow-token-card"
       >
         <div
           ref={scrollRef}
@@ -375,7 +375,7 @@ export function IeltsCoachShell() {
         className="space-y-3 lg:overflow-y-auto"
         aria-label={copy.sourcesTitle}
       >
-        <section className="rounded-xl border border-outline-variant bg-surface p-4">
+        <section className="rounded-control border border-outline-variant bg-surface p-4">
           <div className="flex items-center gap-2 type-title text-on-surface">
             <ProductIcon
               name="shieldCheck"
@@ -396,7 +396,7 @@ export function IeltsCoachShell() {
             items={contextItems}
           />
         ) : (
-          <section className="rounded-xl border border-dashed border-outline-variant bg-surface-container-low/35 p-4">
+          <section className="rounded-control border border-dashed border-outline-variant bg-surface-container-low/35 p-4">
             <div className="flex items-center gap-2 type-title text-on-surface">
               <ProductIcon name="book" size="sm" className="text-primary" />
               {copy.sourcesTitle}

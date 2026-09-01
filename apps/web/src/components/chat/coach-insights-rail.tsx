@@ -46,7 +46,7 @@ export function CoachBrief({
     key ? t(`coach.skill_names.${key}`) : t("coach.not_enough_data");
 
   return (
-    <div className="rounded-xl border border-outline-variant bg-surface px-4 py-4 shadow-none sm:px-5 sm:py-5">
+    <div className="rounded-control border border-outline-variant bg-surface px-4 py-4 shadow-none sm:px-5 sm:py-5">
       <div className="max-w-3xl">
         <div className="inline-flex h-6 items-center gap-2 rounded-md border border-primary/20 bg-primary/5 px-2 type-eyebrow text-primary">
           <Sparkles className="h-3.5 w-3.5" />
@@ -156,7 +156,7 @@ export function CoachInsightsRail({
         className,
       )}
     >
-      <section className="rounded-xl border border-outline-variant bg-surface px-4 py-4">
+      <section className="rounded-control border border-outline-variant bg-surface px-4 py-4">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="type-title text-on-surface">
@@ -229,7 +229,7 @@ export function CoachInsightsRail({
         </div>
       </section>
 
-      <section className="rounded-xl border border-outline-variant bg-surface px-4 py-4">
+      <section className="rounded-control border border-outline-variant bg-surface px-4 py-4">
         <div className="flex items-center gap-2 type-eyebrow text-primary">
           <Target className="h-4 w-4" />
           {t("coach.current_focus")}

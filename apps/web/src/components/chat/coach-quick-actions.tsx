@@ -85,7 +85,7 @@ export function CoachQuickActions({
             onClick={() => onSelect(prompt)}
             className={cn(
               layout === "cards"
-                ? "group flex min-h-[58px] items-center justify-between gap-3 rounded-xl border border-outline-variant/25 bg-surface px-3.5 py-3 text-left text-sm font-medium text-on-surface shadow-token-card transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5 disabled:pointer-events-none disabled:opacity-60"
+                ? "group flex min-h-[58px] items-center justify-between gap-3 rounded-control border border-outline-variant/25 bg-surface px-3.5 py-3 text-left text-sm font-medium text-on-surface shadow-token-card transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/5 disabled:pointer-events-none disabled:opacity-60"
                 : "rounded-control border border-outline-variant bg-surface-container-lowest px-3 py-2 text-left type-label font-medium text-on-surface-variant transition-colors hover:border-primary/30 hover:bg-primary/5 hover:text-on-surface disabled:pointer-events-none disabled:opacity-60",
               compact && "px-3 py-1.5 text-xs",
             )}

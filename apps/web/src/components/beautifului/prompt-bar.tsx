@@ -65,7 +65,7 @@ export function BeautifulPromptBar({
       role="presentation"
       onClick={() => inputRef.current?.focus()}
       className={cn(
-        "cursor-text rounded-xl border border-outline-variant bg-surface px-2.5 py-2 shadow-token-card transition-[border-color,box-shadow] duration-150 focus-within:border-primary/45 focus-within:ring-2 focus-within:ring-ring/20",
+        "cursor-text rounded-control border border-outline-variant bg-surface px-2.5 py-2 shadow-token-card transition-[border-color,box-shadow] duration-150 focus-within:border-primary/45 focus-within:ring-2 focus-within:ring-ring/20",
         className,
       )}
     >

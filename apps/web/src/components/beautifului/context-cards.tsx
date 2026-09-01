@@ -41,7 +41,7 @@ export function BeautifulContextCard({
   return (
     <article
       className={cn(
-        "overflow-hidden rounded-xl border border-outline-variant bg-surface",
+        "overflow-hidden rounded-control border border-outline-variant bg-surface",
         className,
       )}
     >

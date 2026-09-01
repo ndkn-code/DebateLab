@@ -94,7 +94,7 @@ function StructuredCoachResponse({
 
   return (
     <div className="mt-3 space-y-3">
-      <section className="rounded-xl bg-surface-container-low p-3">
+      <section className="rounded-control bg-surface-container-low p-3">
         <p className="type-eyebrow text-primary">{copy.scoreSummary}</p>
         <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
           <div className="rounded-control bg-surface p-2.5">
@@ -125,7 +125,7 @@ function StructuredCoachResponse({
       </section>
 
       {output.learnerEvidenceUsed.length > 0 ? (
-        <details className="rounded-xl border border-outline-variant bg-surface px-3 py-2.5">
+        <details className="rounded-control border border-outline-variant bg-surface px-3 py-2.5">
           <summary className="cursor-pointer type-label font-semibold text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             {copy.evidenceUsedTitle} ({output.learnerEvidenceUsed.length})
           </summary>

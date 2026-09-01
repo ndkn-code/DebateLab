@@ -194,7 +194,7 @@ for nested elements (outer 8px minus a 1px border) and were left alone.
 
 ---
 
-## 5. ~15 elements in the AI chat are at double their intended radius
+## 5. AI chat radii — RESOLVED
 
 Found 2026-09-01. `components/beautifului/` and the chat/coach surfaces were adopted from
 [Beautiful UI](https://www.beautifului.dev/) by pasting the source in literally — a deliberate
@@ -214,3 +214,27 @@ eye before changing anything — the arithmetic says "doubled", not "worse".
 
 Unrelated to the `rounded-[10px]` → `rounded-control` sweep, which correctly moved elements
 that were already tracking our control radius.
+
+### Resolution
+
+Judged by eye in Ego Lite against Beautiful UI's live components, not by arithmetic.
+
+Their treatment for a 32px square is **8px**; their panels are **14px / 10px / 8px**. Ours
+were **24px** across the board, so containers were ~2x and the 32px avatars were 3x — enough
+that `rounded-xl` on a 32px box clamps to a full circle.
+
+But the deciding argument was internal, not fidelity: every other card and button in Thinkfy
+is 12px, and the chat surface sat at 24px. It read soft rather than broken, and it was the
+only part of the product at that radius.
+
+- **Containers, cards, the composer and one button → `rounded-control` (12px)**, matching
+  every other card in the product. 21 elements across 9 files, including
+  `coach-quick-actions` and `coach-insights-rail`, which were not part of the adoption but
+  render on the same screen with the identical class string — leaving them would have created
+  a fresh inconsistency.
+- **Chat bubbles kept their shape.** Round bubbles are a chat convention, and the asymmetric
+  `rounded-xl rounded-tr-md` tail is deliberate.
+- **32px avatars → `rounded-full`.** They already rendered as circles because 24px clamps on a
+  32px box; this states the intent rather than relying on the clamp. No visual change.
+
+Verified after: the chat surface reads 12px ×10, pills ×4, and the one preserved bubble.

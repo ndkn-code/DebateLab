@@ -89,7 +89,7 @@ function ChatLoadError({ onRetryLoad }: { onRetryLoad?: () => void }) {
         <Button
           type="button"
           onClick={onRetryLoad}
-          className="mt-5 h-9 rounded-xl bg-primary px-4 text-sm text-on-primary"
+          className="mt-5 h-9 rounded-control bg-primary px-4 text-sm text-on-primary"
         >
           {t("retry")}
         </Button>
