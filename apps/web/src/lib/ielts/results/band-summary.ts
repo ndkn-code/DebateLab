@@ -101,12 +101,27 @@ export function buildOverallSummary(
   derived: DerivedSkillBands,
 ): OverallBandSummary {
   const inTest = new Set(input.skillsInTest);
-  // Only count skills the test actually covers toward the overall.
+  // Only count skills the test actually covers and has fully scored. A
+  // partially scored Writing/Speaking section can already have a useful band
+  // for its detail card, but it must not make the attempt summary claim that
+  // every skill is complete.
   const result = computeOverallBand({
-    listening: inTest.has("listening") ? input.listeningBand : null,
-    reading: inTest.has("reading") ? input.readingBand : null,
-    writing: inTest.has("writing") ? derived.writingBand : null,
-    speaking: inTest.has("speaking") ? derived.speakingBand : null,
+    listening:
+      inTest.has("listening") && objectiveStatus(input.listeningRaw) === "scored"
+        ? input.listeningBand
+        : null,
+    reading:
+      inTest.has("reading") && objectiveStatus(input.readingRaw) === "scored"
+        ? input.readingBand
+        : null,
+    writing:
+      inTest.has("writing") && derived.writingStatus === "scored"
+        ? derived.writingBand
+        : null,
+    speaking:
+      inTest.has("speaking") && derived.speakingStatus === "scored"
+        ? derived.speakingBand
+        : null,
   });
   const totalSkills = input.skillsInTest.length;
   const isProvisional =

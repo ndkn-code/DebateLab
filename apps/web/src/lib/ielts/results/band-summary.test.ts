@@ -104,6 +104,17 @@ assert.deepEqual(buildOverallSummary(input({}), full), {
   totalSkills: 4,
   isProvisional: false,
 });
+// A partial Writing aggregate may be useful on the detail card, but it must
+// not count as a completed skill while another required task is still pending
+// or failed.
+assert.deepEqual(
+  buildOverallSummary(input({ skillsInTest: ["listening", "reading", "writing"] }), {
+    ...partial,
+    writingBand: 7.5,
+    writingStatus: "in_progress",
+  }),
+  { band: null, presentCount: 2, totalSkills: 3, isProvisional: true },
+);
 // Reading-only skill set exposes its skill band, never a partial overall.
 assert.deepEqual(
   buildOverallSummary(
