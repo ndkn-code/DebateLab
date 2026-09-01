@@ -8,6 +8,7 @@ import type {
   IeltsCoachAttemptSource,
   IeltsCoachCriterionSignalSource,
   IeltsCoachEvidenceRepository,
+  IeltsCoachPreparedContextSource,
   IeltsCoachPublishedFeedbackSource,
 } from "./types";
 
@@ -81,11 +82,381 @@ function criterion(
 }
 
 function unique(values: Array<string | null | undefined>) {
-  return [...new Set(values.filter((value): value is string => Boolean(value)))];
+  return [
+    ...new Set(values.filter((value): value is string => Boolean(value))),
+  ];
 }
 
 function criterionRationale(value: Json, key: string): string | null {
   return stringValue(objectValue(value)?.[key]);
+}
+
+function recordValue(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+function arrayValue(value: unknown): unknown[] | null {
+  return Array.isArray(value) ? value : null;
+}
+
+function requiredArray(value: unknown, key: string): unknown[] {
+  const array = arrayValue(value);
+  if (!array) throw new Error(`Invalid IELTS Coach prepared ${key}`);
+  return array;
+}
+
+function preparedConfidence(metadata: unknown): number | null {
+  const object = recordValue(metadata);
+  const raw = object?.confidence ?? object?.overallConfidence;
+  const numeric = numberValue(raw);
+  if (numeric !== null) return numeric;
+  const level = stringValue(raw) ?? stringValue(recordValue(raw)?.level);
+  if (level === "high") return 0.85;
+  if (level === "medium") return 0.65;
+  if (level === "limited" || level === "low") return 0.35;
+  return null;
+}
+
+function preparedGradingVersion(metadata: unknown): string | null {
+  const object = recordValue(metadata);
+  return stringValue(object?.gradingVersion ?? object?.grading_version);
+}
+
+function preparedCriteria(params: {
+  skill: "writing" | "speaking";
+  row: Record<string, unknown>;
+  confidence: number | null;
+  gradingVersion: string | null;
+}) {
+  const rubricVersion =
+    params.skill === "writing"
+      ? "ielts-writing-rubric-v1"
+      : "ielts-speaking-rubric-v1";
+  const entries =
+    params.skill === "writing"
+      ? [
+          ["task_response", params.row.taskResponseBand],
+          ["coherence_cohesion", params.row.coherenceCohesionBand],
+          ["lexical_resource", params.row.lexicalResourceBand],
+          ["grammar", params.row.grammarBand],
+        ]
+      : [
+          ["fluency_coherence", params.row.fluencyCoherenceBand],
+          ["lexical_resource", params.row.lexicalResourceBand],
+          ["grammar", params.row.grammarBand],
+          ["pronunciation", params.row.pronunciationBand],
+        ];
+  return entries.flatMap(([name, rawBand]) => {
+    const band = numberValue(rawBand);
+    return typeof name === "string" && band !== null
+      ? criterion(
+          name,
+          band,
+          params.confidence,
+          params.gradingVersion,
+          rubricVersion,
+        )
+      : [];
+  });
+}
+
+/** Decode the deliberately narrow JSON projection returned by the RPC. */
+function preparedContextSource(
+  value: unknown,
+  learnerId: string,
+): IeltsCoachPreparedContextSource {
+  const root = recordValue(value);
+  if (!root || stringValue(root.learnerId) !== learnerId) {
+    throw new Error("Invalid IELTS Coach prepared learner scope");
+  }
+  const activeIeltsClassIds = requiredArray(
+    root.activeIeltsClassIds,
+    "active class scope",
+  ).map(stringValue);
+  if (activeIeltsClassIds.some((id) => id === null)) {
+    throw new Error("Invalid IELTS Coach prepared class scope");
+  }
+
+  const attemptRows = requiredArray(root.attempts, "attempts")
+    .map(recordValue)
+    .filter((row): row is Record<string, unknown> => row !== null);
+  const occurredAt = new Map(
+    attemptRows.flatMap((row) => {
+      const id = stringValue(row.attemptId);
+      const at = stringValue(row.occurredAt);
+      return id && at ? [[id, at] as const] : [];
+    }),
+  );
+  const recentAttempts: IeltsCoachAttemptSource[] = [];
+
+  for (const raw of requiredArray(root.skillStates, "skill states")) {
+    const row = recordValue(raw);
+    const skill = skillValue(row?.skill);
+    const band = numberValue(row?.bandEstimate);
+    const id = stringValue(row?.id);
+    const userId = stringValue(row?.userId);
+    const at = stringValue(row?.occurredAt);
+    if (
+      !row ||
+      !id ||
+      !userId ||
+      !at ||
+      band === null ||
+      (skill !== "listening" && skill !== "reading")
+    ) {
+      continue;
+    }
+    const confidence = numberValue(row.confidence);
+    recentAttempts.push({
+      attemptId: id,
+      userId,
+      occurredAt: at,
+      skill,
+      questionType:
+        stringValue(row.questionType) ?? stringValue(row.subskillKey),
+      band,
+      authority: "ai_provisional",
+      confidence,
+      gradingVersion: "ielts-skill-state-v1",
+      rubricVersion: "ielts-objective-band-conversion-v1",
+      criteria: [
+        {
+          criterion: skill,
+          band,
+          authority: "ai_provisional",
+          confidence,
+          gradingVersion: "ielts-skill-state-v1",
+          rubricVersion: "ielts-objective-band-conversion-v1",
+        },
+      ],
+    });
+  }
+
+  for (const raw of requiredArray(root.bandScores, "band scores")) {
+    const row = recordValue(raw);
+    const attemptId = stringValue(row?.attemptId);
+    const userId = stringValue(row?.userId);
+    const at =
+      stringValue(row?.computedAt) ??
+      (attemptId ? occurredAt.get(attemptId) : null);
+    if (!row || !attemptId || !userId || !at) continue;
+    for (const [skill, rawBand] of [
+      ["listening", row.listeningBand],
+      ["reading", row.readingBand],
+    ] as const) {
+      const band = numberValue(rawBand);
+      if (band === null) continue;
+      recentAttempts.push({
+        attemptId,
+        userId,
+        occurredAt: at,
+        skill,
+        band,
+        authority: "objective",
+        criteria: [],
+      });
+    }
+  }
+
+  for (const [key, skill] of [
+    ["writingResponses", "writing"],
+    ["speakingResponses", "speaking"],
+  ] as const) {
+    for (const raw of requiredArray(root[key], key)) {
+      const row = recordValue(raw);
+      const attemptId = stringValue(row?.attemptId);
+      const responseId = stringValue(row?.id);
+      const userId = stringValue(row?.userId);
+      const at =
+        stringValue(row?.scoredAt) ??
+        stringValue(row?.updatedAt) ??
+        (attemptId ? occurredAt.get(attemptId) : null);
+      if (!row || !attemptId || !responseId || !userId || !at) continue;
+      const confidence = preparedConfidence(row.gradingMetadata);
+      const version = preparedGradingVersion(row.gradingMetadata);
+      const responseRevision = numberValue(row.revision);
+      recentAttempts.push({
+        attemptId,
+        userId,
+        responseId,
+        responseRevision:
+          responseRevision === null ? null : Math.trunc(responseRevision),
+        occurredAt: at,
+        skill,
+        questionType:
+          skill === "writing"
+            ? `writing_task_${numberValue(row.taskNumber) ?? 2}`
+            : numberValue(row.partNumber) !== null
+              ? `speaking_part_${numberValue(row.partNumber)}`
+              : null,
+        band: numberValue(
+          skill === "writing" ? row.taskBand : row.speakingBand,
+        ),
+        authority: "ai_provisional",
+        confidence,
+        gradingVersion: version,
+        rubricVersion:
+          skill === "writing"
+            ? "ielts-writing-rubric-v1"
+            : "ielts-speaking-rubric-v1",
+        criteria: preparedCriteria({
+          skill,
+          row,
+          confidence,
+          gradingVersion: version,
+        }),
+      });
+    }
+  }
+
+  const publishedTeacherFeedback = requiredArray(
+    root.publishedTeacherFeedback,
+    "teacher feedback",
+  ).flatMap((raw): IeltsCoachPublishedFeedbackSource[] => {
+    const row = recordValue(raw);
+    const reviewKind = stringValue(row?.reviewKind);
+    const skill =
+      reviewKind === "writing"
+        ? "writing"
+        : reviewKind === "speaking"
+          ? "speaking"
+          : null;
+    const responseId = stringValue(
+      skill === "writing" ? row?.writingResponseId : row?.speakingResponseId,
+    );
+    const reviewId = stringValue(row?.id);
+    const feedbackUserId = stringValue(row?.userId);
+    const classId = stringValue(row?.classId);
+    const attemptId = stringValue(row?.attemptId);
+    const publishedAt = stringValue(row?.publishedAt);
+    const revision = numberValue(row?.revision);
+    if (
+      !row ||
+      !skill ||
+      !responseId ||
+      !reviewId ||
+      !feedbackUserId ||
+      !classId ||
+      !attemptId ||
+      !publishedAt ||
+      revision === null
+    ) {
+      return [];
+    }
+    const feedback = recordValue(row.criterionFeedback);
+    const criteria =
+      skill === "writing"
+        ? [
+            ["task_response", row.taskResponseBand, "taskResponse"],
+            [
+              "coherence_cohesion",
+              row.coherenceCohesionBand,
+              "coherenceCohesion",
+            ],
+            ["lexical_resource", row.lexicalResourceBand, "lexicalResource"],
+            ["grammar", row.grammarBand, "grammaticalRangeAccuracy"],
+          ]
+        : [
+            ["fluency_coherence", row.fluencyCoherenceBand, "fluencyCoherence"],
+            ["lexical_resource", row.lexicalResourceBand, "lexicalResource"],
+            ["grammar", row.grammarBand, "grammaticalRangeAccuracy"],
+            ["pronunciation", row.pronunciationBand, "pronunciation"],
+          ];
+    return [
+      {
+        reviewId,
+        userId: feedbackUserId,
+        classId,
+        attemptId,
+        responseId,
+        responseRevision: Math.trunc(revision),
+        skill,
+        status: "published",
+        publishedAt,
+        skillBand: numberValue(
+          skill === "writing" ? row.taskBand : row.skillBand,
+        ),
+        criteria: criteria.flatMap(([name, rawBand, rationaleKey]) => {
+          const band = numberValue(rawBand);
+          return typeof name === "string" &&
+            band !== null &&
+            typeof rationaleKey === "string"
+            ? [
+                {
+                  criterion: name,
+                  band,
+                  rationale: stringValue(feedback?.[rationaleKey]),
+                },
+              ]
+            : [];
+        }),
+        summary: null,
+      },
+    ];
+  });
+
+  const assignedWork = requiredArray(root.assignedWork, "assigned work")
+    .map(recordValue)
+    .flatMap((row): IeltsCoachAssignedWorkSource[] => {
+      const assignmentId = stringValue(row?.id);
+      const classId = stringValue(row?.classId);
+      const title = stringValue(row?.title);
+      const metadata = recordValue(row?.metadata);
+      const skill = skillValue(
+        metadata?.skill ?? row?.assignedTrack ?? row?.topicCategory,
+      );
+      if (!row || !assignmentId || !classId || !title || !skill) return [];
+      return [
+        {
+          assignmentId,
+          classId,
+          assignedLearnerId:
+            stringValue(metadata?.assignedLearnerId) ??
+            stringValue(metadata?.assigned_learner_id),
+          subject: "ielts",
+          publicationStatus: "published",
+          status: "active",
+          title,
+          skill,
+          criterion: stringValue(metadata?.criterion),
+          questionType:
+            stringValue(metadata?.questionType) ??
+            stringValue(metadata?.question_type),
+          dueAt: stringValue(row.dueAt),
+          estimatedMinutes: numberValue(
+            metadata?.estimatedMinutes ?? metadata?.estimated_minutes,
+          ),
+        },
+      ];
+    });
+
+  const goalRow = recordValue(root.goal);
+  const goal = goalRow
+    ? {
+        userId: stringValue(goalRow.userId) ?? "",
+        targetOverallBand: numberValue(goalRow.targetOverallBand) ?? NaN,
+        targetSkillBands: {
+          listening: numberValue(goalRow.targetListeningBand) ?? undefined,
+          reading: numberValue(goalRow.targetReadingBand) ?? undefined,
+          writing: numberValue(goalRow.targetWritingBand) ?? undefined,
+          speaking: numberValue(goalRow.targetSpeakingBand) ?? undefined,
+        },
+        targetTestDate: stringValue(goalRow.targetTestDate),
+      }
+    : null;
+
+  return {
+    accessScope: {
+      learnerId,
+      activeIeltsClassIds: activeIeltsClassIds as string[],
+    },
+    goal,
+    recentAttempts,
+    publishedTeacherFeedback,
+    assignedWork,
+  };
 }
 
 /**
@@ -98,8 +469,26 @@ export function createIeltsCoachEvidenceRepository(
   client: SupabaseClient,
 ): IeltsCoachEvidenceRepository {
   const db = client as Db;
+  const preparedRpc = client as unknown as {
+    rpc(
+      name: string,
+      args: Record<string, unknown>,
+    ): Promise<{ data: unknown; error: { message: string } | null }>;
+  };
 
   return {
+    async loadPreparedContext(learnerId, limit) {
+      const result = await preparedRpc.rpc(
+        "load_ielts_coach_prepared_context",
+        {
+          p_learner_id: learnerId,
+          p_max_recent_attempts: limit,
+        },
+      );
+      if (result.error) throw new Error(result.error.message);
+      return preparedContextSource(result.data, learnerId);
+    },
+
     async loadAccessScope(learnerId) {
       const memberships = await db
         .from("class_memberships")
@@ -238,16 +627,11 @@ export function createIeltsCoachEvidenceRepository(
           .in("status", ["scored", "overridden"]),
       ]);
       const error =
-        bandsResult.error ??
-        writingResult.error ??
-        speakingResult.error;
+        bandsResult.error ?? writingResult.error ?? speakingResult.error;
       if (error) throw error;
 
       const occurredAt = new Map(
-        attempts.map((row) => [
-          row.id,
-          row.submitted_at ?? row.started_at,
-        ]),
+        attempts.map((row) => [row.id, row.submitted_at ?? row.started_at]),
       );
       const rows: IeltsCoachAttemptSource[] = [...skillStateRows];
       for (const band of bandsResult.data ?? []) {
@@ -409,13 +793,29 @@ export function createIeltsCoachEvidenceRepository(
             skill === "writing"
               ? [
                   ["task_response", row.task_response_band, "taskResponse"],
-                  ["coherence_cohesion", row.coherence_cohesion_band, "coherenceCohesion"],
-                  ["lexical_resource", row.lexical_resource_band, "lexicalResource"],
+                  [
+                    "coherence_cohesion",
+                    row.coherence_cohesion_band,
+                    "coherenceCohesion",
+                  ],
+                  [
+                    "lexical_resource",
+                    row.lexical_resource_band,
+                    "lexicalResource",
+                  ],
                   ["grammar", row.grammar_band, "grammaticalRangeAccuracy"],
                 ]
               : [
-                  ["fluency_coherence", row.fluency_coherence_band, "fluencyCoherence"],
-                  ["lexical_resource", row.lexical_resource_band, "lexicalResource"],
+                  [
+                    "fluency_coherence",
+                    row.fluency_coherence_band,
+                    "fluencyCoherence",
+                  ],
+                  [
+                    "lexical_resource",
+                    row.lexical_resource_band,
+                    "lexicalResource",
+                  ],
                   ["grammar", row.grammar_band, "grammaticalRangeAccuracy"],
                   ["pronunciation", row.pronunciation_band, "pronunciation"],
                 ];
@@ -430,18 +830,21 @@ export function createIeltsCoachEvidenceRepository(
               skill,
               status: "published",
               publishedAt: row.published_at,
-              skillBand:
-                skill === "writing" ? row.task_band : row.skill_band,
+              skillBand: skill === "writing" ? row.task_band : row.skill_band,
               criteria: criteria.flatMap(([name, band, rationaleKey]) =>
-                typeof name === "string" && typeof band === "number" && typeof rationaleKey === "string"
-                  ? [{
-                      criterion: name,
-                      band,
-                      rationale: criterionRationale(
-                        row.criterion_feedback,
-                        rationaleKey,
-                      ),
-                    }]
+                typeof name === "string" &&
+                typeof band === "number" &&
+                typeof rationaleKey === "string"
+                  ? [
+                      {
+                        criterion: name,
+                        band,
+                        rationale: criterionRationale(
+                          row.criterion_feedback,
+                          rationaleKey,
+                        ),
+                      },
+                    ]
                   : [],
               ),
               summary: null,
@@ -455,16 +858,16 @@ export function createIeltsCoachEvidenceRepository(
       if (activeIeltsClassIds.length === 0) return [];
       const [result, completedAttempts] = await Promise.all([
         db
-        .from("club_assignments")
-        .select(
-          "id, class_id, title, due_at, status, assignment_type, ielts_test_id, assigned_track, topic_category, metadata",
-        )
-        .in("class_id", activeIeltsClassIds)
-        .eq("assignment_type", "ielts_mock")
-        .not("ielts_test_id", "is", null)
-        .eq("status", "active")
-        .order("due_at", { ascending: true, nullsFirst: false })
-        .limit(20),
+          .from("club_assignments")
+          .select(
+            "id, class_id, title, due_at, status, assignment_type, ielts_test_id, assigned_track, topic_category, metadata",
+          )
+          .in("class_id", activeIeltsClassIds)
+          .eq("assignment_type", "ielts_mock")
+          .not("ielts_test_id", "is", null)
+          .eq("status", "active")
+          .order("due_at", { ascending: true, nullsFirst: false })
+          .limit(20),
         db
           .from("ielts_attempts")
           .select("assignment_id")

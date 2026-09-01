@@ -221,14 +221,10 @@ function projectAttempt(
       ? "teacher_confirmed"
       : scoreAuthority(attempt.authority),
     confidence: hasTeacherBand ? null : confidence(attempt.confidence),
-    gradingVersion: hasTeacherBand
-      ? null
-      : safeText(attempt.gradingVersion),
+    gradingVersion: hasTeacherBand ? null : safeText(attempt.gradingVersion),
     rubricVersion: hasTeacherBand ? null : safeText(attempt.rubricVersion),
     teacherReviewId: hasTeacherBand ? feedback!.reviewId : null,
-    teacherResponseRevision: hasTeacherBand
-      ? feedback!.responseRevision
-      : null,
+    teacherResponseRevision: hasTeacherBand ? feedback!.responseRevision : null,
     criteria: projectCriteria(attempt, feedback),
   };
 }
@@ -308,7 +304,8 @@ function buildWeaknesses(
         key,
         skill: attempt.skill,
         criterion: signal.criterion,
-        questionType: objectiveQuestionType ??
+        questionType:
+          objectiveQuestionType ??
           (signal.criterion ? null : attempt.questionType),
         currentBand: signal.band,
         targetBand: target,
@@ -412,13 +409,6 @@ export async function loadIeltsCoachContext(params: {
   if (invalid) return invalid;
 
   try {
-    const scope = await params.repository.loadAccessScope(
-      params.request.learnerId,
-    );
-    const invalidScope = validateScope(params.request, scope);
-    if (invalidScope) return invalidScope;
-
-    const allowedClassIds = new Set(scope.activeIeltsClassIds);
     const limit = Math.max(
       1,
       Math.min(
@@ -426,14 +416,29 @@ export async function loadIeltsCoachContext(params: {
         Math.trunc(params.request.maxRecentAttempts ?? DEFAULT_ATTEMPT_LIMIT),
       ),
     );
-    const [goalSource, attemptSources, assignmentSources] = await Promise.all([
-      params.repository.loadGoal(params.request.learnerId),
-      params.repository.loadRecentAttempts(params.request.learnerId, limit),
-      params.repository.loadAssignedWork(
-        params.request.learnerId,
-        scope.activeIeltsClassIds,
-      ),
-    ]);
+    const prepared = params.repository.loadPreparedContext
+      ? await params.repository.loadPreparedContext(
+          params.request.learnerId,
+          limit,
+        )
+      : null;
+    const scope =
+      prepared?.accessScope ??
+      (await params.repository.loadAccessScope(params.request.learnerId));
+    const invalidScope = validateScope(params.request, scope);
+    if (invalidScope) return invalidScope;
+
+    const allowedClassIds = new Set(scope.activeIeltsClassIds);
+    const [goalSource, attemptSources, assignmentSources] = prepared
+      ? [prepared.goal, prepared.recentAttempts, prepared.assignedWork]
+      : await Promise.all([
+          params.repository.loadGoal(params.request.learnerId),
+          params.repository.loadRecentAttempts(params.request.learnerId, limit),
+          params.repository.loadAssignedWork(
+            params.request.learnerId,
+            scope.activeIeltsClassIds,
+          ),
+        ]);
     const goal =
       goalSource?.userId === params.request.learnerId ? goalSource : null;
     const ownedAttempts = attemptSources
@@ -447,11 +452,12 @@ export async function loadIeltsCoachContext(params: {
       )
       .sort(newestFirst)
       .slice(0, limit);
-    const feedbackSources =
-      await params.repository.loadPublishedTeacherFeedback(
-        params.request.learnerId,
-        ownedAttempts.map((row) => row.attemptId),
-      );
+    const feedbackSources = prepared
+      ? prepared.publishedTeacherFeedback
+      : await params.repository.loadPublishedTeacherFeedback(
+          params.request.learnerId,
+          ownedAttempts.map((row) => row.attemptId),
+        );
     const feedbackByResponse = latestFeedbackByResponse(
       ownedAttempts,
       feedbackSources,

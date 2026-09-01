@@ -98,10 +98,26 @@ export interface IeltsCoachAccessScope {
 }
 
 /**
+ * A single, learner-scoped database snapshot. The builder still projects and
+ * validates every row; this contract only removes dependent network reads.
+ */
+export interface IeltsCoachPreparedContextSource {
+  accessScope: IeltsCoachAccessScope;
+  goal: IeltsCoachGoalSource | null;
+  recentAttempts: IeltsCoachAttemptSource[];
+  publishedTeacherFeedback: IeltsCoachPublishedFeedbackSource[];
+  assignedWork: IeltsCoachAssignedWorkSource[];
+}
+
+/**
  * Adapters should use the learner's RLS-bound Supabase session. The builder
  * repeats all ownership/status checks so a faulty adapter still fails closed.
  */
 export interface IeltsCoachEvidenceRepository {
+  loadPreparedContext?(
+    learnerId: string,
+    limit: number,
+  ): Promise<IeltsCoachPreparedContextSource>;
   loadAccessScope(learnerId: string): Promise<IeltsCoachAccessScope>;
   loadGoal(learnerId: string): Promise<IeltsCoachGoalSource | null>;
   loadRecentAttempts(

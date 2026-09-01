@@ -105,10 +105,7 @@ function authorizationForOutput(): IeltsCoachServerAuthorization {
       OUTPUT.learnerEvidenceUsed.map((item) => [item.evidenceId, item]),
     ),
     approvedKnowledgeSources: new Map([
-      [
-        "rubric-writing-task-response",
-        OUTPUT.sources[1],
-      ],
+      ["rubric-writing-task-response", OUTPUT.sources[1]],
     ]),
     learnerSources: new Map([["attempt-learner-1", OUTPUT.sources[0]]]),
     actions: new Map([
@@ -138,7 +135,7 @@ test("builds a versioned, locale-preserving IELTS-only prompt boundary", () => {
     subject: "ielts",
     locale: "vi",
     skill: "writing",
-    promptVersion: "ielts-coach-prompt.v1",
+    promptVersion: "ielts-coach-prompt.v2",
     rubricVersion: "rubric-2026-1",
     learnerMessage: "Em nên luyện gì tiếp theo?",
     authorizedEvidence: [...OUTPUT.learnerEvidenceUsed],
@@ -248,7 +245,8 @@ test("rejects an allowed evidence id whose band was fabricated", () => {
     },
   };
   assert.throws(
-    () => validateAuthorizedIeltsCoachOutput(fabricated, authorizationForOutput()),
+    () =>
+      validateAuthorizedIeltsCoachOutput(fabricated, authorizationForOutput()),
     /EVIDENCE_MISMATCH/,
   );
 });
@@ -285,7 +283,7 @@ test("builds an evidence-free prompt for a new learner", () => {
     subject: "ielts",
     locale: "en",
     skill: "speaking",
-    promptVersion: "ielts-coach-prompt.v1",
+    promptVersion: "ielts-coach-prompt.v2",
     rubricVersion: "rubric-2026-1",
     learnerMessage: "What should I practise first?",
     authorizedEvidence: [],
@@ -369,7 +367,7 @@ test("routes self-harm text to safety escalation without forwarding it", () => {
         subject: "ielts",
         locale: "en",
         skill: "writing",
-        promptVersion: "ielts-coach-prompt.v1",
+        promptVersion: "ielts-coach-prompt.v2",
         rubricVersion: "rubric-2026-1",
         learnerMessage: "I want to kill myself because of my score.",
         authorizedEvidence: [],

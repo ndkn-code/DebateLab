@@ -193,6 +193,88 @@ function repository(
 }
 
 async function run() {
+  // Production repositories use one prepared snapshot; legacy repository
+  // methods must not be read when that capability is available.
+  {
+    let preparedReads = 0;
+    let legacyReads = 0;
+    const unavailableLegacyRead = async () => {
+      legacyReads += 1;
+      throw new Error("legacy evidence read must not run");
+    };
+    const result = await loadIeltsCoachContext({
+      request: REQUEST,
+      repository: repository({
+        async loadPreparedContext() {
+          preparedReads += 1;
+          return {
+            accessScope: {
+              learnerId: "learner-1",
+              activeIeltsClassIds: ["class-ielts"],
+            },
+            goal: {
+              userId: "learner-1",
+              targetOverallBand: 7,
+              targetSkillBands: { writing: 7.5 },
+              targetTestDate: "2026-12-01",
+            },
+            recentAttempts: [
+              {
+                attemptId: "attempt-prepared",
+                userId: "learner-1",
+                responseId: "response-prepared",
+                responseRevision: 3,
+                occurredAt: "2026-08-31T12:00:00.000Z",
+                skill: "writing",
+                questionType: "writing_task_2",
+                band: 6.5,
+                authority: "ai_provisional",
+                criteria: [
+                  {
+                    criterion: "task_response",
+                    band: 6,
+                    authority: "ai_provisional",
+                  },
+                ],
+              },
+            ],
+            publishedTeacherFeedback: [
+              {
+                reviewId: "review-prepared",
+                userId: "learner-1",
+                classId: "class-ielts",
+                attemptId: "attempt-prepared",
+                responseId: "response-prepared",
+                responseRevision: 3,
+                skill: "writing",
+                status: "published",
+                publishedAt: "2026-08-31T13:00:00.000Z",
+                skillBand: 7,
+                criteria: [{ criterion: "task_response", band: 6.5 }],
+                summary: null,
+              },
+            ],
+            assignedWork: [],
+          };
+        },
+        loadAccessScope: unavailableLegacyRead,
+        loadGoal: unavailableLegacyRead,
+        loadRecentAttempts: unavailableLegacyRead,
+        loadPublishedTeacherFeedback: unavailableLegacyRead,
+        loadAssignedWork: unavailableLegacyRead,
+      }),
+    });
+    assert.equal(result.ok, true);
+    if (!result.ok) throw new Error("expected prepared IELTS context");
+    assert.equal(preparedReads, 1);
+    assert.equal(legacyReads, 0);
+    assert.equal(result.context.recentAttempts[0]?.band, 7);
+    assert.equal(
+      result.context.recentAttempts[0]?.authority,
+      "teacher_confirmed",
+    );
+  }
+
   // A valid snapshot preserves locale, applies published teacher authority, and
   // projects only learner-safe evidence fields.
   {

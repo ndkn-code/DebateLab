@@ -132,7 +132,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
         candidates: getIeltsCoachCandidates(),
         attemptTimeoutMs: 6_000,
         schemaRepairAttempts: 0,
-        maxOutputTokens: 1_400,
+        maxOutputTokens: 600,
         temperature: 0.25,
         criticality: "best_effort",
       };

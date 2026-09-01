@@ -45,7 +45,9 @@ async function run() {
   const ieltsCoachPolicy = getAiTaskPolicy("ielts_coach_chat");
   assert.equal(ieltsCoachPolicy.candidates.length, 2);
   assert.equal(
-    ieltsCoachPolicy.candidates.every((candidate) => candidate.provider === "groq"),
+    ieltsCoachPolicy.candidates.every(
+      (candidate) => candidate.provider === "groq",
+    ),
     true,
   );
 
@@ -92,7 +94,7 @@ async function run() {
   const structured = await generateStructured({
     task: "onboarding_feedback",
     prompt: "return json",
-    schema: z.object({ value: z.string() }),
+    schema: z.object({ value: z.string().min(1).max(80) }),
     context: {
       task: "onboarding_feedback",
       sourceRoute: "core-test",
@@ -149,9 +151,7 @@ async function run() {
     }
     return new Response(
       JSON.stringify({
-        choices: [
-          { message: { content: '{"value":"provider-repaired"}' } },
-        ],
+        choices: [{ message: { content: '{"value":"provider-repaired"}' } }],
         usage: {},
       }),
       { status: 200 },
@@ -176,13 +176,18 @@ async function run() {
   );
 
   calls = 0;
-  globalThis.fetch = (async (input) => {
+  let genericGeminiRequest: unknown;
+  globalThis.fetch = (async (input, init) => {
     calls += 1;
     const url = String(input);
     const text = url.includes("generativelanguage")
       ? "not-json"
       : '{"value":"fallback"}';
     if (url.includes("generativelanguage")) {
+      genericGeminiRequest = JSON.parse(String(init?.body)) as Record<
+        string,
+        unknown
+      >;
       return new Response(
         JSON.stringify({
           candidates: [{ content: { parts: [{ text }] } }],
@@ -215,6 +220,87 @@ async function run() {
   assert.equal(calls, 3, "primary JSON plus repair then fallback provider");
   assert.equal(fallback.output.value, "fallback");
   assert.equal(fallback.fallbackUsed, true);
+  const genericGenerationConfig = (
+    genericGeminiRequest as Record<string, unknown> | undefined
+  )?.generationConfig as Record<string, unknown> | undefined;
+  assert.equal(genericGenerationConfig?.responseMimeType, "application/json");
+  assert.equal("responseJsonSchema" in (genericGenerationConfig ?? {}), false);
+  assert.equal("thinkingConfig" in (genericGenerationConfig ?? {}), false);
+
+  calls = 0;
+  let fastPathGeminiRequest: unknown;
+  globalThis.fetch = (async (input, init) => {
+    calls += 1;
+    if (String(input).includes("generativelanguage")) {
+      fastPathGeminiRequest = JSON.parse(String(init?.body)) as Record<
+        string,
+        unknown
+      >;
+      return new Response(
+        JSON.stringify({
+          candidates: [{ content: { parts: [{ text: '{"value":42}' }] } }],
+          usageMetadata: {},
+        }),
+        { status: 200 },
+      );
+    }
+    return new Response(
+      JSON.stringify({
+        choices: [
+          {
+            message: {
+              content: '{"value":"schema-fallback","minLength":"preserved"}',
+            },
+          },
+        ],
+        usage: {},
+      }),
+      { status: 200 },
+    );
+  }) as typeof fetch;
+  const geminiFastPathFallback = await generateStructured({
+    task: "ielts_coach_chat",
+    prompt: "return json",
+    schema: z.object({
+      value: z.string().min(1).max(80),
+      minLength: z.string(),
+    }),
+    context: {
+      task: "ielts_coach_chat",
+      sourceRoute: "core-test",
+      outputType: "test",
+    },
+    policy: {
+      candidates: [
+        { provider: "gemini", model: "gemini-3.5-flash-lite" },
+        { provider: "groq", model: "qwen/qwen3.8-27b" },
+      ],
+    },
+  });
+  assert.equal(geminiFastPathFallback.output.value, "schema-fallback");
+  assert.equal(geminiFastPathFallback.output.minLength, "preserved");
+  assert.equal(geminiFastPathFallback.fallbackUsed, true);
+  assert.equal(
+    calls,
+    2,
+    "a schema-invalid Gemini fast-path response must advance directly to Groq",
+  );
+  const fastPathGenerationConfig = (
+    fastPathGeminiRequest as Record<string, unknown> | undefined
+  )?.generationConfig as Record<string, unknown> | undefined;
+  assert.equal(fastPathGenerationConfig?.responseMimeType, "application/json");
+  assert.deepEqual(fastPathGenerationConfig?.thinkingConfig, {
+    thinkingLevel: "minimal",
+  });
+  assert.deepEqual(fastPathGenerationConfig?.responseJsonSchema, {
+    type: "object",
+    properties: {
+      value: { type: "string" },
+      minLength: { type: "string" },
+    },
+    required: ["value", "minLength"],
+    additionalProperties: false,
+  });
 
   calls = 0;
   globalThis.fetch = (async (_input, init) => {
@@ -339,9 +425,7 @@ async function run() {
     strictResponseFormat = request.response_format;
     return new Response(
       JSON.stringify({
-        choices: [
-          { message: { content: '{"value":"strict","note":null}' } },
-        ],
+        choices: [{ message: { content: '{"value":"strict","note":null}' } }],
         usage: {},
       }),
       { status: 200 },

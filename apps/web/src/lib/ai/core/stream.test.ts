@@ -53,16 +53,11 @@ async function run() {
     getIeltsCoachCandidates(true)[0]?.model,
     "gemini-3.5-flash-lite",
   );
-  assert.equal(
-    getIeltsCoachCandidates(false)[0]?.model,
-    "qwen/qwen3.8-27b",
-  );
-  assert.equal(
-    getIeltsCoachCandidates(false)[1]?.model,
-    "openai/gpt-oss-20b",
-  );
+  assert.equal(getIeltsCoachCandidates(false)[0]?.model, "qwen/qwen3.8-27b");
+  assert.equal(getIeltsCoachCandidates(false)[1]?.model, "openai/gpt-oss-20b");
   assert.equal(getAiTaskPolicy("ielts_coach_chat").attemptTimeoutMs, 6_000);
   assert.equal(getAiTaskPolicy("ielts_coach_chat").schemaRepairAttempts, 0);
+  assert.equal(getAiTaskPolicy("ielts_coach_chat").maxOutputTokens, 600);
 
   process.env.GEMINI_API_KEY = "gemini-test-key";
   process.env.GROQ_API_KEY = "groq-test-key";

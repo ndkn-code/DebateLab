@@ -170,6 +170,10 @@ test("duplicate request reuses the completed result without a second generation"
   const fake = fakeSupabase();
   let generations = 0;
   let observedConsent: boolean | undefined;
+  const captures: Array<{
+    event: string;
+    properties: Record<string, unknown>;
+  }> = [];
   const runTurn: typeof runIeltsCoachTurn = async (params) => {
     generations += 1;
     observedConsent = params.googleAiConsent;
@@ -181,7 +185,7 @@ test("duplicate request reuses the completed result without a second generation"
       traceId: REQUEST_ID,
       fallbackUsed: false,
       latencyMs: 25,
-      promptVersion: "ielts-coach-prompt.v1" as const,
+      promptVersion: "ielts-coach-prompt.v2" as const,
       rubricVersion: "rubric-v1",
       knowledgeEvidence: [],
     };
@@ -192,7 +196,10 @@ test("duplicate request reuses the completed result without a second generation"
     trustedSupabase: fake.supabase,
     userId: USER_ID,
     request: REQUEST,
-    dependencies: { runTurn, capture: () => undefined },
+    dependencies: {
+      runTurn,
+      capture: ({ event, properties }) => captures.push({ event, properties }),
+    },
   });
   assert.equal(first.status, 200);
   const second = await handleIeltsCoachRequest({
@@ -216,6 +223,18 @@ test("duplicate request reuses the completed result without a second generation"
       .p_claim_token,
     CLAIM_TOKEN,
   );
+  const generationCapture = captures.find(
+    (capture) => capture.event === "$ai_generation",
+  );
+  assert.equal(
+    typeof generationCapture?.properties.history_latency_ms,
+    "number",
+  );
+  assert.equal(
+    typeof generationCapture?.properties.generation_stage_latency_ms,
+    "number",
+  );
+  assert.equal(typeof generationCapture?.properties.total_latency_ms, "number");
 });
 
 test("conversation product mismatch fails before claim or generation", async () => {
@@ -252,7 +271,7 @@ test("reusing a request id for different content fails closed", async () => {
       traceId: REQUEST_ID,
       fallbackUsed: false,
       latencyMs: 25,
-      promptVersion: "ielts-coach-prompt.v1" as const,
+      promptVersion: "ielts-coach-prompt.v2" as const,
       rubricVersion: "rubric-v1",
       knowledgeEvidence: [],
     };

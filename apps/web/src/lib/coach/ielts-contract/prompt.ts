@@ -8,7 +8,7 @@ import {
   type LearnerEvidence,
 } from "./contracts";
 
-export const IELTS_COACH_PROMPT_VERSION = "ielts-coach-prompt.v1" as const;
+export const IELTS_COACH_PROMPT_VERSION = "ielts-coach-prompt.v2" as const;
 
 export const ieltsCoachPromptContextSchema = z
   .object({

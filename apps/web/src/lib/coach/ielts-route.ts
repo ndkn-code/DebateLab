@@ -10,7 +10,10 @@ import {
   CoachContextBoundaryError,
   resolveCoachConversationContext,
 } from "./ielts-context";
-import { ieltsCoachTerminalErrorSchema } from "./ielts-contract";
+import {
+  IELTS_COACH_PROMPT_VERSION,
+  ieltsCoachTerminalErrorSchema,
+} from "./ielts-contract";
 import { IeltsCoachRuntimeError, runIeltsCoachTurn } from "./ielts-runtime";
 import type {
   IeltsCoachApiRequest,
@@ -222,8 +225,29 @@ export async function handleIeltsCoachRequest(params: {
   let claimToken: string | null = null;
   let attempt = 1;
   const startedAt = Date.now();
+  const stageLatency: Partial<
+    Record<
+      "conversation" | "claim" | "history" | "generation" | "persistence",
+      number
+    >
+  > = {};
   try {
+    let stageStartedAt = Date.now();
     const conversationId = await resolveConversation(params);
+    stageLatency.conversation = Date.now() - stageStartedAt;
+    const historyStartedAt = Date.now();
+    const historyPromise = Promise.resolve(
+      params.supabase
+        .from("chat_messages")
+        .select("role, content")
+        .eq("conversation_id", conversationId)
+        .order("created_at", { ascending: false })
+        .limit(12),
+    ).then((result) => ({
+      result,
+      latencyMs: Date.now() - historyStartedAt,
+    }));
+    stageStartedAt = Date.now();
     const claimedResult = await rpcClient(params.trustedSupabase).rpc(
       "claim_ai_coach_turn",
       {
@@ -235,6 +259,7 @@ export async function handleIeltsCoachRequest(params: {
         p_lease_seconds: 90,
       },
     );
+    stageLatency.claim = Date.now() - stageStartedAt;
     if (claimedResult.error) {
       if (claimedResult.error.message.includes("identity mismatch")) {
         throw new CoachContextBoundaryError("COACH_CONTEXT_MISMATCH");
@@ -288,12 +313,8 @@ export async function handleIeltsCoachRequest(params: {
     }
     claimToken = claim.claimToken;
 
-    const historyResult = await params.supabase
-      .from("chat_messages")
-      .select("role, content")
-      .eq("conversation_id", conversationId)
-      .order("created_at", { ascending: false })
-      .limit(12);
+    const { result: historyResult, latencyMs: historyLatencyMs } =
+      await historyPromise;
     if (historyResult.error) throw historyResult.error;
     const history: Array<{
       role: "user" | "assistant";
@@ -311,7 +332,9 @@ export async function handleIeltsCoachRequest(params: {
         });
       }
     }
+    stageLatency.history = historyLatencyMs;
 
+    stageStartedAt = Date.now();
     const result = await (params.dependencies?.runTurn ?? runIeltsCoachTurn)({
       supabase: params.supabase,
       userId: params.userId,
@@ -322,6 +345,7 @@ export async function handleIeltsCoachRequest(params: {
       history,
       googleAiConsent: params.request.googleAiConsent,
     });
+    stageLatency.generation = Date.now() - stageStartedAt;
     const metadata: IeltsCoachResponseMetadata = {
       contractVersion: "ielts-coach-response.v1",
       productContext: "ielts",
@@ -333,6 +357,7 @@ export async function handleIeltsCoachRequest(params: {
       evidenceReferences: result.output.sources,
       confidence: result.output.confidence,
     };
+    stageStartedAt = Date.now();
     const completed = await rpcClient(params.trustedSupabase).rpc(
       "complete_ai_coach_turn",
       {
@@ -349,6 +374,7 @@ export async function handleIeltsCoachRequest(params: {
     const assistantMessageId = z
       .object({ assistantMessageId: z.string().uuid().nullable() })
       .parse(completed.data).assistantMessageId;
+    stageLatency.persistence = Date.now() - stageStartedAt;
 
     const capture =
       params.dependencies?.capture ??
@@ -370,6 +396,12 @@ export async function handleIeltsCoachRequest(params: {
         prompt_version: result.promptVersion,
         rubric_version: result.rubricVersion,
         fallback_used: result.fallbackUsed,
+        conversation_latency_ms: stageLatency.conversation,
+        claim_latency_ms: stageLatency.claim,
+        history_latency_ms: stageLatency.history,
+        generation_stage_latency_ms: stageLatency.generation,
+        persistence_latency_ms: stageLatency.persistence,
+        total_latency_ms: Date.now() - startedAt,
       },
     });
     capture({
@@ -384,6 +416,11 @@ export async function handleIeltsCoachRequest(params: {
         prompt_version: result.promptVersion,
         rubric_version: result.rubricVersion,
         latency_ms: Date.now() - startedAt,
+        conversation_latency_ms: stageLatency.conversation,
+        claim_latency_ms: stageLatency.claim,
+        history_latency_ms: stageLatency.history,
+        generation_stage_latency_ms: stageLatency.generation,
+        persistence_latency_ms: stageLatency.persistence,
       },
     });
     return sseResponse({
@@ -397,8 +434,7 @@ export async function handleIeltsCoachRequest(params: {
       name: error instanceof Error ? error.name : "UnknownError",
       message: error instanceof Error ? error.message : "Unknown failure",
     });
-    const runtimeError =
-      error instanceof IeltsCoachRuntimeError ? error : null;
+    const runtimeError = error instanceof IeltsCoachRuntimeError ? error : null;
     if (turnId && claimToken) {
       await rpcClient(params.trustedSupabase).rpc("fail_ai_coach_turn", {
         p_user_id: params.userId,
@@ -414,9 +450,11 @@ export async function handleIeltsCoachRequest(params: {
         ? error.cause
         : null;
     const lastAttempt = executionCause?.attempts.at(-1);
-    (params.dependencies?.capture ??
+    (
+      params.dependencies?.capture ??
       ((event: Parameters<ReturnType<typeof getPostHogServer>["capture"]>[0]) =>
-        getPostHogServer().capture(event)))({
+        getPostHogServer().capture(event))
+    )({
       distinctId: params.userId,
       event: "$ai_generation",
       properties: {
@@ -426,16 +464,21 @@ export async function handleIeltsCoachRequest(params: {
         $ai_is_error: true,
         route: "/api/chat",
         product_context: "ielts",
-        prompt_version: "ielts-coach-prompt.v1",
+        prompt_version: IELTS_COACH_PROMPT_VERSION,
         rubric_version: "public-ielts-rubric-v1",
         failure_code: safeErrorCode(error),
         attempt,
+        conversation_latency_ms: stageLatency.conversation,
+        claim_latency_ms: stageLatency.claim,
+        history_latency_ms: stageLatency.history,
+        generation_stage_latency_ms: stageLatency.generation,
+        persistence_latency_ms: stageLatency.persistence,
       },
     });
     const retryable =
       error instanceof CoachContextBoundaryError
         ? false
-        : runtimeError?.retryable ?? true;
+        : (runtimeError?.retryable ?? true);
     const maxAttempts = retryable ? 2 : attempt;
     const manualRetryAllowed = retryable && attempt < maxAttempts;
     return jsonResponse(
@@ -458,9 +501,7 @@ export async function handleIeltsCoachRequest(params: {
         maxAttempts,
         manualRetry: {
           allowed: manualRetryAllowed,
-          idempotencyKey: manualRetryAllowed
-            ? params.request.requestId
-            : null,
+          idempotencyKey: manualRetryAllowed ? params.request.requestId : null,
           availableAt: manualRetryAllowed ? new Date().toISOString() : null,
         },
       }),
