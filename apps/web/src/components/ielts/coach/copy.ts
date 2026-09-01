@@ -51,6 +51,8 @@ export const IELTS_COACH_COPY = {
     newChat: "New conversation",
     composerHint: "Enter to send · Shift + Enter for a new line",
     conversationLabel: "IELTS AI Coach conversation",
+    googleAiConsent:
+      "To answer with Gemini 3.5 Flash-Lite, your Coach question and authorized IELTS learning context will be sent to Google AI. Student submissions are not sent unless you include them in this chat. Allow this once on this device? Choose Cancel to use the privacy-safe Groq fallback.",
     practiceShortcutTitle: "Practice library",
     practiceShortcutBody:
       "Choose a focused IELTS task when you are ready to apply the guidance.",
@@ -115,6 +117,8 @@ export const IELTS_COACH_COPY = {
     newChat: "Cuộc trò chuyện mới",
     composerHint: "Enter để gửi · Shift + Enter để xuống dòng",
     conversationLabel: "Cuộc trò chuyện với trợ lý AI IELTS",
+    googleAiConsent:
+      "Để trả lời bằng Gemini 3.5 Flash-Lite, câu hỏi và ngữ cảnh học IELTS được cho phép của bạn sẽ được gửi tới Google AI. Bài làm của học viên không được gửi trừ khi bạn tự đưa vào cuộc trò chuyện này. Cho phép một lần trên thiết bị này? Chọn Hủy để dùng phương án dự phòng Groq.",
     practiceShortcutTitle: "Thư viện luyện tập",
     practiceShortcutBody:
       "Chọn một bài IELTS tập trung khi bạn sẵn sàng áp dụng hướng dẫn.",

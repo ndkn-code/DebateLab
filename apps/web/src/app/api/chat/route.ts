@@ -946,6 +946,7 @@ export async function POST(req: NextRequest) {
           contextType: contextType.data,
           contextId,
           locale: practiceLanguage,
+          googleAiConsent: body.googleAiConsent,
         },
       });
     }

@@ -7,7 +7,7 @@ import {
   handleIeltsCoachRequest,
   type IeltsCoachApiRequest,
 } from "./ielts-route";
-import { IeltsCoachRuntimeError } from "./ielts-runtime";
+import { IeltsCoachRuntimeError, runIeltsCoachTurn } from "./ielts-runtime";
 
 const USER_ID = "00000000-0000-4000-8000-000000000001";
 const CONVERSATION_ID = "00000000-0000-4000-8000-000000000002";
@@ -22,6 +22,7 @@ const REQUEST: IeltsCoachApiRequest = {
   requestId: REQUEST_ID,
   contextType: "ielts-coach",
   locale: "en",
+  googleAiConsent: false,
 };
 
 const OUTPUT = {
@@ -168,8 +169,10 @@ function fakeSupabase(options?: {
 test("duplicate request reuses the completed result without a second generation", async () => {
   const fake = fakeSupabase();
   let generations = 0;
-  const runTurn = async () => {
+  let observedConsent: boolean | undefined;
+  const runTurn: typeof runIeltsCoachTurn = async (params) => {
     generations += 1;
+    observedConsent = params.googleAiConsent;
     return {
       output: OUTPUT,
       text: "First response",
@@ -202,14 +205,15 @@ test("duplicate request reuses the completed result without a second generation"
   assert.equal(second.status, 200);
   assert.match(await second.text(), /Cached response/);
   assert.equal(generations, 1);
+  assert.equal(observedConsent, false);
   const claims = fake.rpcCalls.filter(
     (call) => call.name === "claim_ai_coach_turn",
   );
   assert.equal(claims.length, 2);
   assert.equal(claims[0]?.args.p_request_hash, claims[1]?.args.p_request_hash);
   assert.equal(
-    fake.rpcCalls.find((call) => call.name === "complete_ai_coach_turn")
-      ?.args.p_claim_token,
+    fake.rpcCalls.find((call) => call.name === "complete_ai_coach_turn")?.args
+      .p_claim_token,
     CLAIM_TOKEN,
   );
 });

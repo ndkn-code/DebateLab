@@ -33,12 +33,18 @@ export function getCoachChatCandidates(allowGemini: boolean) {
  * Groq transport only. The second production model is a bounded fallback and
  * is removed when an operator deliberately configures both names identically.
  */
-export function getIeltsCoachCandidates() {
+export function getIeltsCoachCandidates(allowGemini = false) {
   const primary = getIeltsCoachPrimaryModel();
   const fallback = getIeltsCoachFallbackModel();
-  return [primary, fallback]
+  const groqCandidates = [primary, fallback]
     .filter((model, index, models) => models.indexOf(model) === index)
     .map((model) => ({ provider: "groq" as const, model }));
+  return allowGemini
+    ? [
+        { provider: "gemini" as const, model: getGeminiCoachModel() },
+        ...groqCandidates,
+      ]
+    : groqCandidates;
 }
 
 /**

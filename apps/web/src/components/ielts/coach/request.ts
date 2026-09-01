@@ -6,7 +6,7 @@ export interface IeltsCoachChatRequestBody {
   productContext: "ielts";
   subjectContext: "ielts";
   practiceLanguage: "en" | "vi";
-  googleAiConsent: false;
+  googleAiConsent: boolean;
 }
 
 /** Builds the public chat payload with an explicit IELTS product boundary. */
@@ -15,6 +15,7 @@ export function buildIeltsCoachChatRequest(params: {
   conversationId: string | null;
   requestId: string;
   locale: "en" | "vi";
+  googleAiConsent?: boolean;
 }): IeltsCoachChatRequestBody {
   const message = params.message.trim();
   if (!message) throw new Error("IELTS_COACH_MESSAGE_REQUIRED");
@@ -30,6 +31,6 @@ export function buildIeltsCoachChatRequest(params: {
     productContext: "ielts",
     subjectContext: "ielts",
     practiceLanguage: params.locale,
-    googleAiConsent: false,
+    googleAiConsent: params.googleAiConsent === true,
   };
 }

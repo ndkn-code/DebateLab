@@ -4,6 +4,7 @@ import {
   getCoachChatCandidates,
   getGeminiCoachModel,
   getGroqCoachFallbackModel,
+  getIeltsCoachCandidates,
 } from "./policies";
 import { recordGeminiKeySuccess } from "@/lib/gemini/key-pool";
 
@@ -47,6 +48,10 @@ async function run() {
     ["groq"],
   );
   assert.equal(getCoachChatCandidates(false)[0]?.model, "openai/gpt-oss-20b");
+  assert.equal(
+    getIeltsCoachCandidates(true)[0]?.model,
+    "gemini-3.5-flash-lite",
+  );
 
   process.env.GEMINI_API_KEY = "gemini-test-key";
   process.env.GROQ_API_KEY = "groq-test-key";

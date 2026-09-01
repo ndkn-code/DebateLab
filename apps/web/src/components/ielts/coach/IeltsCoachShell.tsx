@@ -30,6 +30,8 @@ import {
   type IeltsCoachStreamEvent,
 } from "./stream";
 
+const GOOGLE_AI_CONSENT_STORAGE_KEY = "debatelab_google_ai_coach_consent_v1";
+
 export function IeltsCoachShell() {
   const currentLocale = useLocale();
   const locale: CoachLocale = currentLocale === "vi" ? "vi" : "en";
@@ -115,6 +117,35 @@ export function IeltsCoachShell() {
     async (question: string, requestId = crypto.randomUUID()) => {
       const text = question.trim();
       if (!text || isLoading) return;
+      let googleAiConsent = false;
+      try {
+        const savedConsent = window.localStorage.getItem(
+          GOOGLE_AI_CONSENT_STORAGE_KEY,
+        );
+        const declinedThisSession =
+          window.sessionStorage.getItem(GOOGLE_AI_CONSENT_STORAGE_KEY) ===
+          "declined";
+        if (savedConsent !== "granted" && !declinedThisSession) {
+          const granted = window.confirm(copy.googleAiConsent);
+          if (granted) {
+            window.localStorage.setItem(
+              GOOGLE_AI_CONSENT_STORAGE_KEY,
+              "granted",
+            );
+            googleAiConsent = true;
+          } else {
+            window.sessionStorage.setItem(
+              GOOGLE_AI_CONSENT_STORAGE_KEY,
+              "declined",
+            );
+          }
+        } else {
+          googleAiConsent = savedConsent === "granted";
+        }
+      } catch {
+        // Storage can be unavailable in privacy mode. In that case, the
+        // request remains on the non-Google provider path.
+      }
       lastRequestRef.current = { question: text, requestId };
       setInput("");
       const timestamp = Date.now();
@@ -148,6 +179,7 @@ export function IeltsCoachShell() {
               conversationId: conversationIdRef.current,
               requestId,
               locale,
+              googleAiConsent,
             }),
           ),
         });
@@ -181,7 +213,7 @@ export function IeltsCoachShell() {
         setIsLoading(false);
       }
     },
-    [applyStreamEvent, copy.error, isLoading, locale],
+    [applyStreamEvent, copy.error, copy.googleAiConsent, isLoading, locale],
   );
 
   const startNewConversation = () => {

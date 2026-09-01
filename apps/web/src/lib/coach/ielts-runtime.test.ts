@@ -5,6 +5,7 @@ import type { IeltsCoachLearnerContext } from "./ielts-context";
 import {
   buildDeterministicIeltsCoachRecovery,
   buildIeltsCoachLearnerEvidence,
+  inferIeltsCoachCriterion,
 } from "./ielts-runtime";
 import type { IeltsCoachServerAuthorization } from "./ielts-contract";
 
@@ -81,6 +82,20 @@ const CONTEXT: IeltsCoachLearnerContext = {
   assignedWork: [],
   limitations: [],
 };
+
+test("explicit English and Vietnamese criterion requests override the default", () => {
+  assert.equal(
+    inferIeltsCoachCriterion(
+      "Give me an Academic Task 1 drill for Task Achievement",
+      "writing",
+    ),
+    "task_achievement",
+  );
+  assert.equal(
+    inferIeltsCoachCriterion("Tôi muốn luyện phát âm", "speaking"),
+    "pronunciation",
+  );
+});
 
 test("teacher overall, criterion, and feedback evidence use distinct canonical ids", () => {
   const evidence = buildIeltsCoachLearnerEvidence({

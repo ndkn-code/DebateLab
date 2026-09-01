@@ -27,6 +27,18 @@ test("IELTS Coach requests always carry an explicit isolated product context", (
   assert.equal("conversationId" in request, false);
 });
 
+test("IELTS Coach forwards explicit one-time Google AI consent", () => {
+  const request = buildIeltsCoachChatRequest({
+    message: "Give me one Speaking drill",
+    conversationId: null,
+    requestId: "request-consented",
+    locale: "en",
+    googleAiConsent: true,
+  });
+
+  assert.equal(request.googleAiConsent, true);
+});
+
 test("authorized coach actions resolve only to deterministic IELTS destinations", () => {
   const assignment = resolveIeltsCoachActionDestination({
     locale: "en",

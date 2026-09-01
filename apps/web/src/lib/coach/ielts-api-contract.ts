@@ -21,6 +21,8 @@ export interface IeltsCoachApiRequest {
   contextType: IeltsCoachContextType;
   contextId?: string;
   locale: "en" | "vi";
+  /** True only after the client collected the shared one-time Google AI consent. */
+  googleAiConsent: boolean;
 }
 
 /** Learner-safe metadata; provider/model details stay server-side. */

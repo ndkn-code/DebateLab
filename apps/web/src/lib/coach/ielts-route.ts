@@ -320,6 +320,7 @@ export async function handleIeltsCoachRequest(params: {
       locale: params.request.locale,
       message: params.request.message,
       history,
+      googleAiConsent: params.request.googleAiConsent,
     });
     const metadata: IeltsCoachResponseMetadata = {
       contractVersion: "ielts-coach-response.v1",

@@ -2,7 +2,12 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { AiExecutionError, generateStructured } from "@/lib/ai/core";
+import {
+  AiExecutionError,
+  generateStructured,
+  getAiTaskPolicy,
+  getIeltsCoachCandidates,
+} from "@/lib/ai/core";
 import {
   findIeltsBandExamples,
   getIeltsRubric,
@@ -161,6 +166,56 @@ function inferSkill(message: string, context: IeltsCoachLearnerContext) {
     context.assignedWork[0]?.skill ??
     context.recentAttempts[0]?.skill ??
     "writing"
+  );
+}
+
+export function inferIeltsCoachCriterion(
+  message: string,
+  skill: IeltsSkill,
+): IeltsCriterion {
+  const normalized = message
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .normalize("NFKC")
+    .toLowerCase();
+  const patterns: Array<[RegExp, IeltsCriterion]> =
+    skill === "writing"
+      ? [
+          [
+            /\b(?:task achievement|task_achievement|dap ung yeu cau)\b/u,
+            "task_achievement",
+          ],
+          [
+            /\b(?:task response|task_response|tra loi yeu cau)\b/u,
+            "task_response",
+          ],
+          [
+            /\b(?:coherence|cohesion|mach lac|lien ket)\b/u,
+            "coherence_and_cohesion",
+          ],
+          [/\b(?:lexical|vocabulary|tu vung)\b/u, "lexical_resource"],
+          [
+            /\b(?:grammar|grammatical|ngu phap)\b/u,
+            "grammatical_range_and_accuracy",
+          ],
+        ]
+      : skill === "speaking"
+        ? [
+            [
+              /\b(?:fluency|coherence|troi chay|mach lac)\b/u,
+              "fluency_and_coherence",
+            ],
+            [/\b(?:pronunciation|phat am)\b/u, "pronunciation"],
+            [/\b(?:lexical|vocabulary|tu vung)\b/u, "lexical_resource"],
+            [
+              /\b(?:grammar|grammatical|ngu phap)\b/u,
+              "grammatical_range_and_accuracy",
+            ],
+          ]
+        : [];
+  return (
+    patterns.find(([pattern]) => pattern.test(normalized))?.[1] ??
+    DEFAULT_CRITERION_BY_SKILL[skill]
   );
 }
 
@@ -338,12 +393,12 @@ function knowledgePrompt(items: KnowledgeEvidence[]) {
 function actionResources(
   context: IeltsCoachLearnerContext,
   skill: IeltsSkill,
+  requestedCriterion: IeltsCriterion,
   recommendation: IeltsQuestionRecommendation | null,
   locale: IeltsCoachLocale,
 ): IeltsCoachActionResource[] {
   const vi = locale === "vi";
-  const weakness = context.weaknesses.find((item) => item.skill === skill);
-  const criterion = criterionName(weakness?.criterion ?? skill, skill);
+  const criterion = requestedCriterion;
   const publishedFeedback = context.teacherPublishedFeedback.find(
     (item) => item.skill === skill,
   );
@@ -689,6 +744,7 @@ export async function runIeltsCoachTurn(params: {
   message: string;
   history?: Array<{ role: "user" | "assistant"; content: string }>;
   classId?: string | null;
+  googleAiConsent?: boolean;
 }): Promise<IeltsCoachTurnResult> {
   const initialBoundary = assessUntrustedCoachContent({
     text: params.message,
@@ -747,6 +803,7 @@ export async function runIeltsCoachTurn(params: {
   }
   const context = contextResult.context;
   const skill = inferSkill(params.message, context);
+  const requestedCriterion = inferIeltsCoachCriterion(params.message, skill);
   const evidence = buildIeltsCoachLearnerEvidence({ context, skill });
   const weakness = context.weaknesses.find((item) => item.skill === skill);
   const targetBand =
@@ -767,7 +824,7 @@ export async function runIeltsCoachTurn(params: {
           sourceRoute: SOURCE_ROUTE,
           userId: params.userId,
           skill,
-          criterion: weakness?.criterion ?? undefined,
+          criterion: requestedCriterion,
           query: initialBoundary.normalizedText,
           limit: 4,
           deadlineMs: 8_000,
@@ -784,7 +841,7 @@ export async function runIeltsCoachTurn(params: {
           userId: params.userId,
           skill,
           taskType: weakness?.questionType ?? skill,
-          criteria: weakness?.criterion ? [weakness.criterion] : undefined,
+          criteria: [requestedCriterion],
           targetBands: uniqueBands([currentBand, targetBand]),
           query: initialBoundary.normalizedText,
           limit: 3,
@@ -831,12 +888,13 @@ export async function runIeltsCoachTurn(params: {
   const recommendation = await findIeltsQuestionRecommendation({
     supabase: params.supabase,
     skill,
-    criterion: criterionName(weakness?.criterion ?? skill, skill),
+    criterion: requestedCriterion,
     message: initialBoundary.normalizedText,
   });
   const actions = actionResources(
     context,
     skill,
+    requestedCriterion,
     recommendation,
     params.locale,
   );
@@ -940,6 +998,10 @@ export async function runIeltsCoachTurn(params: {
   try {
     const generation = await generateStructured({
       task: "ielts_coach_chat",
+      policy: {
+        ...getAiTaskPolicy("ielts_coach_chat"),
+        candidates: getIeltsCoachCandidates(params.googleAiConsent === true),
+      },
       prompt: "",
       schema: createAuthorizedIeltsCoachOutputSchema(authorization),
       context: {
