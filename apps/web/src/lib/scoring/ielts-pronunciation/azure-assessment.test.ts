@@ -77,9 +77,9 @@ const clamped = mapAzureAssessmentToReport(
         Display: "x",
         PronunciationAssessment: {
           AccuracyScore: 88,
+          FluencyScore: 82,
           PronScore: 90,
           CompletenessScore: 100,
-          // FluencyScore omitted → undefined → 0
           // ProsodyScore omitted → undefined → null
         },
         Words: [
@@ -88,27 +88,25 @@ const clamped = mapAzureAssessmentToReport(
             PronunciationAssessment: { AccuracyScore: 150 }, // > 100 → 100
             Phonemes: [
               { Phoneme: "l", PronunciationAssessment: { AccuracyScore: -5 } }, // < 0 → 0
-              { Phoneme: "d" }, // no PronunciationAssessment → 0
+              { Phoneme: "d" }, // incomplete detail is omitted
             ],
           },
-          { Word: "bare" }, // no PronunciationAssessment / Phonemes → 0 / None / []
+          { Word: "bare" }, // incomplete word detail is omitted
         ],
       },
     ],
   }),
   OPTIONS,
 );
-assert.equal(clamped.overall?.fluency, 0); // missing → 0
+assert.equal(clamped.overall?.fluency, 82);
 assert.equal(clamped.overall?.completeness, 100);
 assert.equal(clamped.overall?.prosody, null); // missing → null
 assert.equal(clamped.words[0]?.accuracy, 100); // 150 clamped
 assert.equal(clamped.words[0]?.phonemes[0]?.accuracy, 0); // -5 clamped
-assert.equal(clamped.words[0]?.phonemes[1]?.accuracy, 0); // missing → 0
-assert.equal(clamped.words[1]?.accuracy, 0);
-assert.equal(clamped.words[1]?.errorType, "None");
-assert.deepEqual(clamped.words[1]?.phonemes, []);
+assert.equal(clamped.words[0]?.phonemes.length, 1);
+assert.equal(clamped.words.length, 1);
 
-// PronScore present but AccuracyScore missing still counts as usable overall
+// Partial aggregate payloads fail closed rather than fabricating zeroes.
 const pronScoreOnly = mapAzureAssessmentToReport(
   {
     RecognitionStatus: "Success",
@@ -116,10 +114,21 @@ const pronScoreOnly = mapAzureAssessmentToReport(
   },
   OPTIONS,
 );
-assert.equal(pronScoreOnly.status, "scored");
-assert.equal(pronScoreOnly.overall?.pronunciation, 75);
-assert.equal(pronScoreOnly.overall?.accuracy, 0); // missing accuracy → 0
-assert.equal(pronScoreOnly.overall?.completeness, null); // unscripted → unknown
+assert.deepEqual(pronScoreOnly, EMPTY_PHONEME_REPORT);
+
+const missingFluency = mapAzureAssessmentToReport(
+  {
+    RecognitionStatus: "Success",
+    NBest: [
+      {
+        Display: "x",
+        PronunciationAssessment: { AccuracyScore: 75, PronScore: 75 },
+      },
+    ],
+  },
+  OPTIONS,
+);
+assert.deepEqual(missingFluency, EMPTY_PHONEME_REPORT);
 
 // --- recognizedText falls back: Display → DisplayText → "" ------------------
 const noDisplay = mapAzureAssessmentToReport(
@@ -127,7 +136,11 @@ const noDisplay = mapAzureAssessmentToReport(
     DisplayText: "from display text",
     NBest: [
       {
-        PronunciationAssessment: { AccuracyScore: 80, PronScore: 80 },
+        PronunciationAssessment: {
+          AccuracyScore: 80,
+          FluencyScore: 80,
+          PronScore: 80,
+        },
         Words: [],
       },
     ],
@@ -139,7 +152,15 @@ assert.equal(noDisplay.recognizedText, "from display text");
 const noTextAtAll = mapAzureAssessmentToReport(
   {
     RecognitionStatus: "Success",
-    NBest: [{ PronunciationAssessment: { AccuracyScore: 80, PronScore: 80 } }],
+    NBest: [
+      {
+        PronunciationAssessment: {
+          AccuracyScore: 80,
+          FluencyScore: 80,
+          PronScore: 80,
+        },
+      },
+    ],
   },
   OPTIONS,
 );
@@ -193,7 +214,15 @@ assert.deepEqual(mapAzureAssessmentToReport(42, OPTIONS), EMPTY_PHONEME_REPORT);
 // status omitted entirely is treated as success when overall scores exist
 const noStatus = mapAzureAssessmentToReport(
   {
-    NBest: [{ PronunciationAssessment: { AccuracyScore: 70, PronScore: 72 } }],
+    NBest: [
+      {
+        PronunciationAssessment: {
+          AccuracyScore: 70,
+          FluencyScore: 71,
+          PronScore: 72,
+        },
+      },
+    ],
   },
   OPTIONS,
 );

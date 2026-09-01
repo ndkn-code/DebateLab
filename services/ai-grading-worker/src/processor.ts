@@ -10,6 +10,15 @@ export type SourceClaim = "claimed" | "already_completed" | "terminal";
 export interface AiGradingOperations {
   claimSource(job: AiGradingJob): Promise<SourceClaim>;
   prepare(job: AiGradingJob): Promise<unknown>;
+  runtimeIdentity?(
+    job: AiGradingJob,
+    prepared: unknown,
+  ): {
+    runtimeRevision: string;
+    imageDigest: string;
+    graderVersion: string;
+    corpusVersion: number;
+  };
   generate(
     job: AiGradingJob,
     prepared: unknown,
@@ -148,6 +157,7 @@ export async function processAiGradingDelivery(
     repository: AiGradingRepository;
     operations: AiGradingOperations;
     isFatalError?: (error: unknown) => boolean;
+    operationalAttestationEnabled?: boolean;
   },
 ): Promise<ProcessOutcome> {
   const claim = await dependencies.repository.claim(delivery);
@@ -161,8 +171,20 @@ export async function processAiGradingDelivery(
   let providerReserved = Boolean(claim.providerStartedAt);
   let outputCheckpointed = output !== null;
   let providerFailureDisposition: ProviderFailureDisposition | null = null;
+  const operationalAttestationEnabled =
+    dependencies.operationalAttestationEnabled ??
+    process.env.AI_GRADING_OPERATIONAL_ATTESTATION_ENABLED === "true";
+  let operationalRun = false;
 
   try {
+    if (operationalAttestationEnabled) {
+      operationalRun =
+        (await dependencies.repository.recordTransition?.(
+          job.workflowRunId,
+          claimToken,
+          "worker_claimed",
+        )) ?? false;
+    }
     if (prepared === null) {
       const sourceClaim = await dependencies.operations.claimSource(job);
       if (sourceClaim === "already_completed") {
@@ -194,6 +216,22 @@ export async function processAiGradingDelivery(
         claimToken,
         prepared,
         checkpointHash(prepared),
+      );
+      if (operationalRun) await dependencies.repository.recordTransition?.(
+        job.workflowRunId,
+        claimToken,
+        "prepared_checkpointed",
+      );
+    }
+
+    if (operationalRun && dependencies.operations.runtimeIdentity) {
+      if (!dependencies.repository.attestRuntime) {
+        throw new Error("AI_GRADING_RUNTIME_ATTESTATION_UNAVAILABLE");
+      }
+      await dependencies.repository.attestRuntime(
+        job.workflowRunId,
+        claimToken,
+        dependencies.operations.runtimeIdentity(job, prepared),
       );
     }
 
@@ -229,6 +267,11 @@ export async function processAiGradingDelivery(
         throw new Error("AI_GRADING_OUTPUT_CHECKPOINT_STALE_READ");
       }
       providerReserved = true;
+      if (operationalRun) await dependencies.repository.recordTransition?.(
+        job.workflowRunId,
+        claimToken,
+        "provider_reserved",
+      );
       try {
         output = await dependencies.operations.generate(job, prepared, {
           workflowAttempt: claim.attemptCount,
@@ -250,10 +293,25 @@ export async function processAiGradingDelivery(
         output,
         outputHash,
       );
+      if (operationalRun) await dependencies.repository.recordTransition?.(
+        job.workflowRunId,
+        claimToken,
+        "output_checkpointed",
+      );
       outputCheckpointed = true;
     }
 
+    if (operationalRun) await dependencies.repository.recordTransition?.(
+      job.workflowRunId,
+      claimToken,
+      "persistence_started",
+    );
     await dependencies.operations.persist(job, prepared, output);
+    if (operationalRun) await dependencies.repository.recordTransition?.(
+      job.workflowRunId,
+      claimToken,
+      "persistence_completed",
+    );
     await dependencies.operations
       .afterPersist(job, prepared)
       .catch(() => undefined);

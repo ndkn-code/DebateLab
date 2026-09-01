@@ -107,7 +107,7 @@ The web app needs `@vercel/oidc`; it does not need a GCP private key.
 
 Before setting the web environment to `gcp`:
 
-1. Apply migrations through `20260901130000` in preview and verify all new RPCs
+1. Apply migrations through `20260901170000` in preview and verify all new RPCs
    reject `anon` and `authenticated` while service role succeeds.
 2. Submit one practice, Writing, and Speaking job. Confirm the Pub/Sub payload
    contains no learner content and each produces one checkpoint/run.
@@ -116,14 +116,33 @@ Before setting the web environment to `gcp`:
 4. Fail persistence after output checkpoint. Confirm redelivery reuses output.
 5. Expire a pre-provider lease. Confirm Scheduler republishes and processing
    resumes within the three-attempt cap.
-6. Simulate loss after provider start but before output checkpoint. Confirm the
+6. Kill the worker after the third claim. Confirm a validated output checkpoint
+   is persisted without another provider call; without a checkpoint, confirm
+   the workflow and source become an explicit terminal/manual-retry state.
+7. Simulate loss after provider start but before output checkpoint. Confirm the
    terminal code is `PROVIDER_OUTCOME_UNKNOWN` and no automatic second charge.
-7. Simulate an HTTP 429/5xx and malformed provider output. Confirm only these
+8. Simulate an HTTP 429/5xx and malformed provider output. Confirm only these
    definite failures are re-driven within the three-attempt cap. A client
    timeout or socket loss must remain outcome-unknown and must not auto-call a
    fallback provider.
-8. Confirm an invalid Pub/Sub/Scheduler identity receives no work.
-9. Inspect DLQ alerts, latency, provider attempt count, workflow failures, and
+9. Confirm an invalid Pub/Sub/Scheduler identity receives no work.
+10. Persist one immutable `ai_grading_operational_evidence` run linked to the
+    actual workflow rows for duplicate delivery, provider timeout, stale claim,
+    persistence retry, and retry exhaustion. The evidence expires after seven
+    days and must be regenerated for a release. Begin the run with
+    `begin_ai_grading_operational_evidence`, predeclare each fresh queued job with
+    `declare_ai_grading_operational_scenario`, finalize it only after the fault
+    with `finalize_ai_grading_operational_scenario`, then seal all five. These
+    functions bind deployment/grader/corpus identity and derive provider calls,
+    checkpoints, worker-authored `K_REVISION`/image digest, and ordered fault
+    transitions from durable rows; direct inserts are denied. Deploy the worker
+    with `AI_GRADING_IMAGE_DIGEST` set to the immutable container digest in
+    `sha256:<64 lowercase hex characters>` form. The smoke fails closed unless
+    Cloud Run also supplies a valid `K_REVISION`; placeholder runtime identities
+    are never accepted. Only
+    the dedicated smoke revision sets `AI_GRADING_OPERATIONAL_ATTESTATION_ENABLED=true`;
+    ordinary grading avoids the extra transition RPCs.
+11. Inspect DLQ alerts, latency, provider attempt count, workflow failures, and
    Cloud Run instance/cost dashboards.
 
 ## Rollback

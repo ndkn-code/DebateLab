@@ -1,5 +1,6 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 import { parseGradingBenchmarkImport } from "@/lib/ai/benchmarks/contracts";
@@ -30,6 +31,74 @@ function equalJson(left: unknown, right: unknown) {
   return canonicalJson(left) === canonicalJson(right);
 }
 
+function sha256(value: string | ArrayBuffer): string {
+  return createHash("sha256")
+    .update(typeof value === "string" ? Buffer.from(value, "utf8") : Buffer.from(value))
+    .digest("hex");
+}
+
+interface StorageObjectQuery {
+  eq(column: string, value: string): StorageObjectQuery;
+  maybeSingle(): PromiseLike<{
+    data: { version?: unknown; metadata?: unknown } | null;
+    error: { message: string } | null;
+  }>;
+}
+
+async function verifyBenchmarkArtifacts(
+  client: ReturnType<typeof createAdminClient>,
+  manifest: ReturnType<typeof parseGradingBenchmarkImport>,
+) {
+  const storageMetadataClient = client as unknown as {
+    schema(name: "storage"): {
+      from(table: "objects"): { select(columns: string): StorageObjectQuery };
+    };
+  };
+  for (const benchmark of manifest.benchmarks) {
+    const input = benchmark.protectedLabel.input;
+    if (input.responseText) {
+      if (sha256(input.responseText) !== input.artifactSha256.toLowerCase()) {
+        throw new Error(`Benchmark text checksum mismatch: ${benchmark.benchmarkKey}`);
+      }
+      continue;
+    }
+    const storagePath = input.audioObjectPath ?? input.responseObjectPath;
+    if (!storagePath) throw new Error(`Benchmark artifact missing: ${benchmark.benchmarkKey}`);
+    const [bucket, ...nameParts] = storagePath.split("/");
+    const objectName = nameParts.join("/");
+    if (!bucket || !objectName) {
+      throw new Error(`Benchmark storage path must be bucket/object: ${benchmark.benchmarkKey}`);
+    }
+    const { data: objectRow, error: objectError } = await storageMetadataClient
+      .schema("storage")
+      .from("objects")
+      .select("version,metadata")
+      .eq("bucket_id", bucket)
+      .eq("name", objectName)
+      .maybeSingle();
+    if (objectError || !objectRow) {
+      throw new Error(`Benchmark storage metadata missing: ${benchmark.benchmarkKey}`);
+    }
+    const metadata = record(objectRow.metadata);
+    const etag = metadata.eTag ?? metadata.etag;
+    if (
+      String(objectRow.version ?? "") !== input.artifactStorageVersion ||
+      String(etag ?? "") !== input.artifactEtag
+    ) {
+      throw new Error(`Benchmark storage version/ETag mismatch: ${benchmark.benchmarkKey}`);
+    }
+    const { data: artifact, error: downloadError } = await client.storage
+      .from(bucket)
+      .download(objectName);
+    if (downloadError || !artifact) {
+      throw new Error(`Benchmark artifact download failed: ${benchmark.benchmarkKey}`);
+    }
+    if (sha256(await artifact.arrayBuffer()) !== input.artifactSha256.toLowerCase()) {
+      throw new Error(`Benchmark object checksum mismatch: ${benchmark.benchmarkKey}`);
+    }
+  }
+}
+
 async function main() {
   const filePath = process.env.AI_GRADING_BENCHMARKS_FILE;
   if (!filePath) {
@@ -41,6 +110,7 @@ async function main() {
     JSON.parse(await readFile(filePath, "utf8")),
   );
   const client = createAdminClient();
+  await verifyBenchmarkArtifacts(client, manifest);
 
   const collectionSlugs = [
     ...new Set(
@@ -70,7 +140,7 @@ async function main() {
   const { data: existingSourceData, error: sourceLookupError } = await client
     .from("ai_knowledge_sources")
     .select(
-      "id,canonical_url,authority_tier,rights_status,checksum,review_status",
+      "id,canonical_url,authority_tier,rights_status,checksum,review_status,submitted_by,reviewed_by",
     )
     .in("canonical_url", sourceUrls);
   if (sourceLookupError) {
@@ -91,7 +161,10 @@ async function main() {
       existing.authority_tier === source.authorityTier &&
       existing.rights_status === source.rightsStatus &&
       existing.checksum === source.checksum &&
-      existing.review_status === "approved";
+      existing.review_status === "approved" &&
+      typeof existing.submitted_by === "string" &&
+      typeof existing.reviewed_by === "string" &&
+      existing.submitted_by !== existing.reviewed_by;
     if (!compatible) {
       throw new Error(
         `Existing benchmark source does not match approved manifest: ${source.canonicalUrl}`,
@@ -99,46 +172,16 @@ async function main() {
     }
   }
 
-  const missingSources = manifest.sources
-    .filter((source) => !existingSourceByUrl.has(source.canonicalUrl))
-    .map((source) => ({
-      canonical_url: source.canonicalUrl,
-      publisher: source.publisher,
-      title: source.title,
-      authority_tier: source.authorityTier,
-      rights_status: source.rightsStatus,
-      checksum: source.checksum,
-      review_status: "approved",
-      review_notes: source.reviewNotes,
-      metadata: {
-        benchmarkOnly: true,
-        reviewedBy: source.reviewedBy,
-        reviewedAt: source.reviewedAt,
-        manifestVersion: manifest.manifestVersion,
-      },
-    }));
+  const missingSources = manifest.sources.filter(
+    (source) => !existingSourceByUrl.has(source.canonicalUrl),
+  );
   if (missingSources.length > 0) {
-    const { error } = await client
-      .from("ai_knowledge_sources")
-      .insert(missingSources);
-    if (error)
-      throw new Error(`Benchmark source insert failed: ${error.message}`);
-  }
-
-  const { data: sourceData, error: refreshedSourceError } = await client
-    .from("ai_knowledge_sources")
-    .select("id,canonical_url")
-    .in("canonical_url", sourceUrls);
-  if (refreshedSourceError) {
     throw new Error(
-      `Benchmark source refresh failed: ${refreshedSourceError.message}`,
+      "Benchmark sources must be registered and independently approved before label import",
     );
   }
   const sourceIdByUrl = new Map(
-    (sourceData ?? []).map((row) => [
-      String(row.canonical_url),
-      String(row.id),
-    ]),
+    [...existingSourceByUrl].map(([url, source]) => [url, String(source.id)]),
   );
   if (sourceIdByUrl.size !== sourceUrls.length) {
     throw new Error(
@@ -197,7 +240,8 @@ async function main() {
       existing.band_or_score_range === row.band_or_score_range &&
       (existing.accent_group ?? null) === row.accent_group &&
       existing.split === row.split &&
-      equalJson(existing.protected_label, row.protected_label);
+      equalJson(existing.protected_label, row.protected_label) &&
+      equalJson(existing.metadata, row.metadata);
     if (!immutableMatch) {
       throw new Error(
         `Existing benchmark is immutable and differs from manifest: ${benchmark.benchmarkKey}`,
@@ -212,7 +256,7 @@ async function main() {
   }
   process.stdout.write(
     `${JSON.stringify({
-      sourcesInserted: missingSources.length,
+      sourcesInserted: 0,
       benchmarksInserted: insertRows.length,
       benchmarksUnchanged: manifest.benchmarks.length - insertRows.length,
     })}\n`,

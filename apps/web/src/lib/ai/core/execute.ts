@@ -20,6 +20,47 @@ import { extractJsonObject } from "./json";
 import { getAiTaskPolicy } from "./policies";
 import { z } from "zod";
 
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.entries(value as Record<string, unknown>)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+async function sha256(value: unknown): Promise<string> {
+  const serialized = JSON.stringify(value);
+  if (serialized === undefined) throw new Error("AI audit value is not JSON");
+  const bytes = new TextEncoder().encode(
+    canonicalJson(JSON.parse(serialized) as unknown),
+  );
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
+async function hmacSha256(secret: string, value: unknown): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(canonicalJson(value)),
+  );
+  return Array.from(new Uint8Array(signature), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
+}
+
 function resolvePolicy(
   task: AiTextRequest["task"],
   override?: Partial<AiTaskPolicy>,
@@ -116,7 +157,11 @@ async function invoke(params: {
   candidateIndex: number;
   responseFormat: "json" | "text";
   jsonSchema?: AdapterRequest["jsonSchema"];
-}): Promise<{ response: AdapterResponse; attempt: AiAttempt }> {
+}): Promise<{
+  response: AdapterResponse;
+  attempt: AiAttempt;
+  requestInputSha256: string;
+}> {
   const startedAt = Date.now();
   const controller = new AbortController();
   const timeoutMs = remainingTimeoutMs(
@@ -125,6 +170,26 @@ async function invoke(params: {
   );
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
+    if (params.context.metadata?.benchmarkEvaluationRun === true) {
+      const metadata = params.context.metadata;
+      const configured =
+        process.env.AI_GRADING_BENCHMARK_ATTESTATION_SECRET?.trim();
+      const validMetadata =
+        typeof metadata.benchmarkKey === "string" &&
+        typeof metadata.graderVersion === "string" &&
+        Number.isInteger(metadata.corpusVersion) &&
+        (metadata.evaluationRunKind === "primary" ||
+          metadata.evaluationRunKind === "repeat") &&
+        typeof metadata.benchmarkArtifactSha256 === "string" &&
+        /^[a-f0-9]{64}$/.test(metadata.benchmarkArtifactSha256);
+      if (!configured || !validMetadata) {
+        const error = new Error(
+          "AI grading benchmark attestation is not configured",
+        ) as Error & { kind: "misconfiguration" };
+        error.kind = "misconfiguration";
+        throw error;
+      }
+    }
     // Count once for this declared provider invocation, before it is made. A
     // schema repair or fallback is a separate invocation and receives its own
     // durable-workflow cost observation.
@@ -149,6 +214,10 @@ async function invoke(params: {
     const latencyMs = Date.now() - startedAt;
     return {
       response,
+      requestInputSha256: await sha256({
+        task: params.context.task,
+        messages: params.messages,
+      }),
       attempt: {
         provider: params.candidate.provider,
         model: params.candidate.model,
@@ -266,7 +335,8 @@ function providerJsonSchema<T>(request: AiStructuredRequest<T>) {
     const generated = z.toJSONSchema(request.schema) as Record<string, unknown>;
     // Provider schemas do not need the draft declaration and some constrained
     // decoders reject it even though the remaining schema is supported.
-    const { $schema: _draft, ...schema } = generated;
+    const schema = { ...generated };
+    delete schema.$schema;
     return {
       request: {
         name: `${request.task}_response`,
@@ -374,12 +444,43 @@ function result<T>(params: {
 }
 
 async function auditValidatedSuccess(params: {
-  invocation: { response: AdapterResponse; attempt: AiAttempt };
+  invocation: {
+    response: AdapterResponse;
+    attempt: AiAttempt;
+    requestInputSha256: string;
+  };
   candidate: AiModelCandidate;
   context: AiExecutionContext & { traceId: string };
   phase: "primary" | "schema_repair";
   candidateIndex: number;
+  validatedOutput?: unknown;
 }) {
+  const isBenchmarkRun =
+    params.context.metadata?.benchmarkEvaluationRun === true;
+  const outputSha256 =
+    isBenchmarkRun && params.validatedOutput !== undefined
+      ? await sha256(params.validatedOutput)
+      : null;
+  const benchmarkMetadata = params.context.metadata ?? {};
+  const attestationPayload = isBenchmarkRun
+    ? {
+        benchmarkKey: benchmarkMetadata.benchmarkKey,
+        graderVersion: benchmarkMetadata.graderVersion,
+        corpusVersion: benchmarkMetadata.corpusVersion,
+        evaluationRunKind: benchmarkMetadata.evaluationRunKind,
+        aiTask: params.context.task,
+        provider:
+          params.candidate.provider === "gemini"
+            ? "google"
+            : params.candidate.provider,
+        model: params.candidate.model,
+        benchmarkArtifactSha256: benchmarkMetadata.benchmarkArtifactSha256,
+        requestInputSha256: params.invocation.requestInputSha256,
+        validatedOutputSha256: outputSha256,
+      }
+    : null;
+  const attestationSecret =
+    process.env.AI_GRADING_BENCHMARK_ATTESTATION_SECRET?.trim();
   params.invocation.attempt.providerRequestId = await auditProviderAttempt({
     provider: params.candidate.provider,
     model: params.candidate.model,
@@ -391,6 +492,18 @@ async function auditValidatedSuccess(params: {
     finishReason: params.invocation.response.finishReason,
     phase: params.phase,
     candidateIndex: params.candidateIndex,
+    extraMetadata:
+      isBenchmarkRun && params.validatedOutput !== undefined
+        ? {
+            validatedOutputSha256: outputSha256,
+            validatedOutputSnapshot: params.validatedOutput,
+            requestInputSha256: params.invocation.requestInputSha256,
+            benchmarkAttestationSignature: await hmacSha256(
+              attestationSecret!,
+              attestationPayload,
+            ),
+          }
+        : undefined,
   });
 }
 
@@ -554,6 +667,7 @@ export async function generateStructured<T>(
             context,
             phase: repair === 0 ? "primary" : "schema_repair",
             candidateIndex: index,
+            validatedOutput: parsed.data,
           });
           return result({
             output: parsed.data,

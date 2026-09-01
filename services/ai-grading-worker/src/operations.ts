@@ -131,6 +131,36 @@ function commonEvidenceContext(params: {
 
 export function createProductionOperations(): AiGradingOperations {
   return {
+    runtimeIdentity(job, prepared) {
+      const value = prepared as { baseCorpusVersion?: unknown };
+      const corpusVersion = Number(value.baseCorpusVersion ?? 1);
+      if (!Number.isInteger(corpusVersion) || corpusVersion <= 0) {
+        throw new AiGradingFatalError("AI grading corpus version is invalid");
+      }
+      const runtimeRevision = process.env.K_REVISION?.trim();
+      const imageDigest = process.env.AI_GRADING_IMAGE_DIGEST?.trim();
+      if (!runtimeRevision || !/^[a-z][a-z0-9-]{0,62}$/.test(runtimeRevision)) {
+        throw new AiGradingFatalError(
+          "Operational grading requires a valid Cloud Run K_REVISION",
+        );
+      }
+      if (!imageDigest || !/^sha256:[a-f0-9]{64}$/.test(imageDigest)) {
+        throw new AiGradingFatalError(
+          "Operational grading requires the deployed image SHA-256 digest",
+        );
+      }
+      return {
+        runtimeRevision,
+        imageDigest,
+        graderVersion:
+          job.kind === "practice_analysis"
+            ? "practice-grading-v1"
+            : isIeltsEvidenceAdjudicationEnabled()
+              ? IELTS_GRADING_VERSION
+              : IELTS_PROVISIONAL_EVIDENCE_VERSION,
+        corpusVersion,
+      };
+    },
     async claimSource(job): Promise<SourceClaim> {
       if (job.kind === "practice_analysis") {
         const result = await claimPracticeAnalysis({

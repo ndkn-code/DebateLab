@@ -135,12 +135,16 @@ begin
 
   if v_run.workflow_kind = 'ielts_speaking_score' then
     update public.speaking_responses set
-      status = case when v_retryable then 'pending' else 'failed' end,
+      status = (
+        case when v_retryable then 'pending' else 'failed' end
+      )::public.ielts_response_status,
       updated_at = now()
     where id = v_run.speaking_response_id and status <> 'scored';
   elsif v_run.workflow_kind = 'ielts_writing_score' then
     update public.writing_responses set
-      status = case when v_retryable then 'pending' else 'failed' end,
+      status = (
+        case when v_retryable then 'pending' else 'failed' end
+      )::public.ielts_response_status,
       updated_at = now()
     where id = v_run.writing_response_id and status <> 'scored';
   elsif v_run.workflow_kind = 'practice_analysis' and not v_retryable then

@@ -1,7 +1,9 @@
+import { createHash } from "node:crypto";
+
 import {
   parseGradingPrediction,
   parseOperationalSafetyEvidence,
-  isReleaseEligibleStoredBenchmark,
+  countInvalidStoredBenchmarkRows,
 } from "@/lib/ai/benchmarks/contracts";
 import {
   evaluateBenchmark,
@@ -28,6 +30,214 @@ function evaluationRows(value: unknown): JsonRecord[] {
     : value
       ? [record(value)]
       : [];
+}
+
+function firstRecord(value: unknown): JsonRecord {
+  return Array.isArray(value) ? record(value[0]) : record(value);
+}
+
+function storedReleaseBenchmark(row: JsonRecord) {
+  const source = firstRecord(row.source);
+  return {
+    benchmarkKey: row.benchmark_key,
+    skill: row.skill,
+    taskType: row.task_type,
+    accentGroup: row.accent_group,
+    protectedLabel: row.protected_label,
+    metadata: row.metadata,
+    source: {
+      canonicalUrl: source.canonical_url,
+      authorityTier: source.authority_tier,
+      rightsStatus: source.rights_status,
+      reviewStatus: source.review_status,
+      checksum: source.checksum,
+      submittedBy: source.submitted_by,
+      reviewedBy: source.reviewed_by,
+    },
+  };
+}
+
+type UntypedQueryResult = {
+  data: unknown;
+  error: { message: string } | null;
+};
+
+interface UntypedReleaseQuery {
+  eq(column: string, value: unknown): UntypedReleaseQuery;
+  gte(column: string, value: unknown): UntypedReleaseQuery;
+  lte(column: string, value: unknown): UntypedReleaseQuery;
+  order(column: string, options: { ascending: boolean }): UntypedReleaseQuery;
+  limit(count: number): PromiseLike<UntypedQueryResult>;
+}
+
+interface UntypedReleaseClient {
+  from(table: string): {
+    select(columns: string): UntypedReleaseQuery;
+  };
+}
+
+interface StorageObjectQuery {
+  eq(column: string, value: string): StorageObjectQuery;
+  maybeSingle(): PromiseLike<{
+    data: { version?: unknown; metadata?: unknown } | null;
+    error: { message: string } | null;
+  }>;
+}
+
+function sha256(value: string | ArrayBuffer): string {
+  return createHash("sha256")
+    .update(
+      typeof value === "string" ? Buffer.from(value, "utf8") : Buffer.from(value),
+    )
+    .digest("hex");
+}
+
+async function verifyStoredArtifactBytes(params: {
+  client: ReturnType<typeof createAdminClient>;
+  rows: JsonRecord[];
+}) {
+  const storageMetadataClient = params.client as unknown as {
+    schema(name: "storage"): {
+      from(table: "objects"): { select(columns: string): StorageObjectQuery };
+    };
+  };
+  for (const row of params.rows) {
+    const input = record(record(row.protected_label).input);
+    const expectedHash = String(input.artifactSha256 ?? "").toLowerCase();
+    if (typeof input.responseText === "string") {
+      if (sha256(input.responseText) !== expectedHash) {
+        throw new Error("stored benchmark text checksum mismatch");
+      }
+      continue;
+    }
+    const storagePath =
+      typeof input.audioObjectPath === "string"
+        ? input.audioObjectPath
+        : typeof input.responseObjectPath === "string"
+          ? input.responseObjectPath
+          : "";
+    const [bucket, ...nameParts] = storagePath.split("/");
+    const objectName = nameParts.join("/");
+    if (!bucket || !objectName) {
+      throw new Error("stored benchmark object path invalid");
+    }
+    const { data: objectRow, error: objectError } = await storageMetadataClient
+      .schema("storage")
+      .from("objects")
+      .select("version,metadata")
+      .eq("bucket_id", bucket)
+      .eq("name", objectName)
+      .maybeSingle();
+    const metadata = record(objectRow?.metadata);
+    if (
+      objectError ||
+      !objectRow ||
+      String(objectRow.version ?? "") !==
+        String(input.artifactStorageVersion ?? "") ||
+      String(metadata.eTag ?? metadata.etag ?? "") !==
+        String(input.artifactEtag ?? "")
+    ) {
+      throw new Error("stored benchmark object version/ETag mismatch");
+    }
+    const { data: artifact, error: downloadError } = await params.client.storage
+      .from(bucket)
+      .download(objectName);
+    if (
+      downloadError ||
+      !artifact ||
+      sha256(await artifact.arrayBuffer()) !== expectedHash
+    ) {
+      throw new Error("stored benchmark object checksum mismatch");
+    }
+  }
+}
+
+function operationalScenario(value: unknown) {
+  const row = record(value);
+  const workflow = firstRecord(row.workflow);
+  return {
+    workflowRunId: row.workflow_run_id,
+    scenario: row.scenario,
+    expectedProviderCalls: row.expected_provider_calls,
+    observedProviderCalls: row.observed_provider_calls,
+    actualProviderCalls: workflow.provider_attempt_count,
+    terminalStatus: row.terminal_status,
+    actualWorkflowStatus: workflow.status,
+    invalidAuthoritativeCitationCount: row.invalid_authoritative_citation_count,
+    passed: row.passed,
+    detailsHash: row.details_hash,
+  };
+}
+
+async function loadOperationalEvidence(params: {
+  client: ReturnType<typeof createAdminClient>;
+  graderVersion: string;
+  corpusVersion: number;
+  environment: "preview" | "staging";
+  deploymentId: string;
+  imageDigest: string;
+}) {
+  const client = params.client as unknown as UntypedReleaseClient;
+  const { data, error } = await client
+    .from("ai_grading_operational_evidence")
+    .select(
+      "run_id,grader_version,corpus_version,environment,deployment_id,image_digest,started_at,verified_at,expires_at,evidence_hash,scenarios:ai_grading_operational_scenarios(workflow_run_id,scenario,expected_provider_calls,observed_provider_calls,terminal_status,invalid_authoritative_citation_count,passed,details_hash,workflow:ai_workflow_runs!ai_grading_operational_scenarios_workflow_run_id_fkey(status,provider_attempt_count))",
+    )
+    .eq("grader_version", params.graderVersion)
+    .eq("corpus_version", params.corpusVersion)
+    .eq("environment", params.environment)
+    .eq("deployment_id", params.deploymentId)
+    .eq("image_digest", params.imageDigest)
+    .eq("status", "sealed")
+    .order("verified_at", { ascending: false })
+    .limit(1);
+  if (error) {
+    throw new Error(`operational evidence query failed: ${error.message}`);
+  }
+  const row = Array.isArray(data) ? record(data[0]) : {};
+  return parseOperationalSafetyEvidence({
+    runId: row.run_id,
+    graderVersion: row.grader_version,
+    corpusVersion: row.corpus_version,
+    environment: row.environment,
+    deploymentId: row.deployment_id,
+    imageDigest: row.image_digest,
+    startedAt: row.started_at,
+    verifiedAt: row.verified_at,
+    expiresAt: row.expires_at,
+    evidenceHash: row.evidence_hash,
+    scenarios: Array.isArray(row.scenarios)
+      ? row.scenarios.map(operationalScenario)
+      : [],
+  });
+}
+
+async function countStrandedCohortRuns(params: {
+  client: ReturnType<typeof createAdminClient>;
+  safety: NonNullable<ReturnType<typeof parseOperationalSafetyEvidence>>;
+}) {
+  const client = params.client as unknown as UntypedReleaseClient;
+  const { data, error } = await client
+    .from("ai_workflow_runs")
+    .select("id,status,created_at,updated_at")
+    .eq("backend", "gcp_pubsub")
+    .gte("created_at", params.safety.startedAt)
+    .lte("created_at", params.safety.verifiedAt)
+    .limit(10_000);
+  if (error) throw new Error(`workflow cohort query failed: ${error.message}`);
+  const rows = Array.isArray(data) ? data.map(record) : [];
+  const expectedFailedRuns = new Set(
+    params.safety.scenarios
+      .filter((scenario) => scenario.terminalStatus === "failed")
+      .map((scenario) => scenario.workflowRunId),
+  );
+  const stranded = rows.filter((row) => {
+    const status = typeof row.status === "string" ? row.status : "unknown";
+    if (status === "completed") return false;
+    if (status === "failed") return !expectedFailedRuns.has(String(row.id));
+    return true;
+  }).length;
+  return stranded + (rows.length === 10_000 ? 1 : 0);
 }
 
 function numericBand(value: unknown): number | null {
@@ -117,31 +327,23 @@ function matchingRepeatPairs(params: {
   });
 }
 
-function operationalEvidence(rows: JsonRecord[]) {
-  const evidence = rows
-    .map((row) =>
-      parseOperationalSafetyEvidence(
-        record(row.run_metadata).operationalSafetyEvidence,
-      ),
-    )
-    .filter((value): value is NonNullable<typeof value> => value !== null);
-  if (evidence.length !== rows.length || rows.length === 0) return null;
-  const unique = new Map(
-    evidence.map((value) => [JSON.stringify(value), value]),
-  );
-  return unique.size === 1 ? [...unique.values()][0]! : null;
-}
-
 async function main() {
   const graderVersion = process.env.AI_GRADING_GATE_VERSION;
   const corpusVersion = Number(process.env.AI_GRADING_GATE_CORPUS_VERSION);
+  const environment = process.env.AI_GRADING_GATE_ENVIRONMENT;
+  const deploymentId = process.env.AI_GRADING_GATE_DEPLOYMENT_ID;
+  const imageDigest = process.env.AI_GRADING_GATE_IMAGE_DIGEST;
   if (
     !graderVersion ||
     !Number.isInteger(corpusVersion) ||
-    corpusVersion <= 0
+    corpusVersion <= 0 ||
+    (environment !== "preview" && environment !== "staging") ||
+    !deploymentId ||
+    !imageDigest ||
+    !/^sha256:[a-f0-9]{64}$/.test(imageDigest)
   ) {
     throw new Error(
-      "AI_GRADING_GATE_VERSION and a positive AI_GRADING_GATE_CORPUS_VERSION are required",
+      "AI_GRADING_GATE_VERSION, a positive AI_GRADING_GATE_CORPUS_VERSION, AI_GRADING_GATE_ENVIRONMENT=preview|staging, AI_GRADING_GATE_DEPLOYMENT_ID, and AI_GRADING_GATE_IMAGE_DIGEST=sha256:<digest> are required",
     );
   }
   const client = createAdminClient();
@@ -150,13 +352,14 @@ async function main() {
   const { data, error } = await client
     .from("ai_grading_benchmarks")
     .select(
-      "id, skill, task_type, accent_group, protected_label, metadata, ai_grading_evaluations(prediction, grader_version, corpus_version, run_metadata)",
+      "id, benchmark_key, skill, task_type, accent_group, protected_label, metadata, source:ai_knowledge_sources!ai_grading_benchmarks_source_id_fkey(canonical_url, authority_tier, rights_status, review_status, checksum, submitted_by, reviewed_by), ai_grading_evaluations(id,grader_version,corpus_version,runs:ai_grading_evaluation_runs(run_kind,prediction,provider_request_id,trace_id,started_at,completed_at))",
     )
     .eq("split", "holdout")
     .eq("is_active", true);
   if (error) throw new Error(`grading gate query failed: ${error.message}`);
 
   const benchmarkRows = (data ?? []).map(record);
+  await verifyStoredArtifactBytes({ client, rows: benchmarkRows });
   const coverage = validateIeltsBenchmarkCoverage(
     benchmarkRows.flatMap(coverageFromRow),
   );
@@ -165,7 +368,6 @@ async function main() {
     first: BenchmarkObservation;
     second: BenchmarkObservation;
   }> = [];
-  const selectedEvaluations: JsonRecord[] = [];
   let schemaValidPredictionCount = 0;
 
   for (const row of benchmarkRows) {
@@ -175,10 +377,13 @@ async function main() {
         candidate.corpus_version === corpusVersion,
     );
     if (!evaluation) continue;
-    selectedEvaluations.push(evaluation);
+    const evaluationRuns = evaluationRows(evaluation.runs);
+    const primaryRun = evaluationRuns.find((run) => run.run_kind === "primary");
+    const repeatRun = evaluationRuns.find((run) => run.run_kind === "repeat");
+    if (!primaryRun || !repeatRun) continue;
     const primary = observationsFromPrediction({
       row,
-      prediction: evaluation.prediction,
+      prediction: primaryRun.prediction,
     });
     // A complete criterion-level set is the schema-success denominator. A
     // malformed/incomplete stored JSON document counts as a failed output.
@@ -186,17 +391,44 @@ async function main() {
       schemaValidPredictionCount += 1;
     }
     observations.push(...primary);
-    const repeatPredictions = record(evaluation.run_metadata).repeatPredictions;
-    if (Array.isArray(repeatPredictions)) {
-      for (const repeatPrediction of repeatPredictions) {
-        repeats.push(
-          ...matchingRepeatPairs({ row, primary, repeatPrediction }),
-        );
-      }
-    }
+    repeats.push(
+      ...matchingRepeatPairs({
+        row,
+        primary,
+        repeatPrediction: repeatRun.prediction,
+      }),
+    );
   }
 
-  const safety = operationalEvidence(selectedEvaluations);
+  const safety = await loadOperationalEvidence({
+    client,
+    graderVersion,
+    corpusVersion,
+    environment,
+    deploymentId,
+    imageDigest,
+  });
+  const safetyFresh =
+    safety !== null && new Date(safety.expiresAt).getTime() > Date.now();
+  const invalidAuthoritativeCitationCount =
+    safety?.scenarios.reduce(
+      (sum, scenario) => sum + scenario.invalidAuthoritativeCitationCount,
+      0,
+    ) ?? 0;
+  const duplicatePaidScoringCount =
+    safety?.scenarios.reduce(
+      (sum, scenario) =>
+        sum +
+        Math.max(
+          0,
+          scenario.observedProviderCalls - scenario.expectedProviderCalls,
+        ),
+      0,
+    ) ?? 0;
+  const strandedWorkflowCount =
+    safety && safetyFresh
+      ? await countStrandedCohortRuns({ client, safety })
+      : 1;
   const base = evaluateDerivedReleaseGate({
     observations,
     coverage,
@@ -204,27 +436,20 @@ async function main() {
     schemaValidPredictionCount,
     repeatPairs: repeats,
     expectedRepeatPairCount: observations.length,
-    invalidAuthoritativeCitationCount:
-      safety?.invalidAuthoritativeCitationCount ?? 0,
-    duplicatePaidScoringCount: safety?.duplicatePaidScoringCount ?? 0,
-    strandedWorkflowCount: safety?.strandedWorkflowCount ?? 0,
-    invalidBenchmarkLabelCount: benchmarkRows.filter(
-      (row) =>
-        !isReleaseEligibleStoredBenchmark({
-          skill: row.skill,
-          accentGroup: row.accent_group,
-          protectedLabel: row.protected_label,
-          metadata: row.metadata,
-        }),
-    ).length,
+    invalidAuthoritativeCitationCount,
+    duplicatePaidScoringCount,
+    strandedWorkflowCount,
+    invalidBenchmarkLabelCount: countInvalidStoredBenchmarkRows(
+      benchmarkRows.map(storedReleaseBenchmark),
+    ),
   });
-  const result: ReleaseGateResult = safety
+  const result: ReleaseGateResult = safetyFresh
     ? base
     : {
         passed: false,
         failures: [
           ...base.failures,
-          "operational_safety_evidence_missing_or_inconsistent",
+          "operational_safety_evidence_missing_stale_or_inconsistent",
         ],
       };
   const metrics = evaluateBenchmark(observations);
@@ -239,6 +464,7 @@ async function main() {
           requiredCellCount: coverage.requiredCellCount,
           coveredCellCount: coverage.coveredCellCount,
           missingCellCount: coverage.missingCells.length,
+          underfilledCellCount: coverage.underfilledCells.length,
           unknownCriteria: coverage.unknownCriteria,
           unknownTaskTypes: coverage.unknownTaskTypes,
         },

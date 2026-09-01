@@ -134,8 +134,7 @@ export function combineAzureAssessmentReports(
 
 // The Zod schema admits only finite numbers (it rejects NaN/Infinity), so a
 // value here is either a finite number or undefined (a missing optional field).
-function clampScore(value: number | undefined): number {
-  if (typeof value !== "number") return 0;
+function clampScore(value: number): number {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
 
@@ -163,25 +162,42 @@ export function mapAzureAssessmentToReport(
   const nbest = response.NBest?.[0];
   if (!nbest) return EMPTY_PHONEME_REPORT;
 
-  // Need overall scores to be useful; missing-everything payloads no-op.
+  // All three core aggregate signals are required. Treating an absent score as
+  // zero would fabricate negative learner evidence from a partial provider
+  // payload.
   const scores = nbest.PronunciationAssessment;
   if (
     !scores ||
-    (!Number.isFinite(scores.AccuracyScore) &&
-      !Number.isFinite(scores.PronScore))
+    !Number.isFinite(scores.AccuracyScore) ||
+    !Number.isFinite(scores.FluencyScore) ||
+    !Number.isFinite(scores.PronScore)
   ) {
     return EMPTY_PHONEME_REPORT;
   }
 
-  const words = (nbest.Words ?? []).map((word) => ({
-    word: word.Word,
-    accuracy: clampScore(word.PronunciationAssessment?.AccuracyScore),
-    errorType: word.PronunciationAssessment?.ErrorType ?? "None",
-    phonemes: (word.Phonemes ?? []).map((phoneme) => ({
-      phoneme: phoneme.Phoneme,
-      accuracy: clampScore(phoneme.PronunciationAssessment?.AccuracyScore),
-    })),
-  }));
+  const words = (nbest.Words ?? []).flatMap((word) => {
+    const accuracy = word.PronunciationAssessment?.AccuracyScore;
+    if (!Number.isFinite(accuracy)) return [];
+    return [
+      {
+        word: word.Word,
+        accuracy: clampScore(accuracy!),
+        errorType: word.PronunciationAssessment?.ErrorType ?? "None",
+        phonemes: (word.Phonemes ?? []).flatMap((phoneme) => {
+          const phonemeAccuracy =
+            phoneme.PronunciationAssessment?.AccuracyScore;
+          return Number.isFinite(phonemeAccuracy)
+            ? [
+                {
+                  phoneme: phoneme.Phoneme,
+                  accuracy: clampScore(phonemeAccuracy!),
+                },
+              ]
+            : [];
+        }),
+      },
+    ];
+  });
 
   return phonemeReportSchema.parse({
     schemaVersion: 1,
@@ -192,13 +208,13 @@ export function mapAzureAssessmentToReport(
     referenceText: options.referenceText,
     recognizedText: nbest.Display ?? response.DisplayText ?? "",
     overall: {
-      accuracy: clampScore(scores.AccuracyScore),
-      fluency: clampScore(scores.FluencyScore),
+      accuracy: clampScore(scores.AccuracyScore!),
+      fluency: clampScore(scores.FluencyScore!),
       completeness: options.referenceText.trim()
         ? nullableScore(scores.CompletenessScore)
         : null,
       prosody: nullableScore(scores.ProsodyScore),
-      pronunciation: clampScore(scores.PronScore),
+      pronunciation: clampScore(scores.PronScore!),
     },
     words,
   });

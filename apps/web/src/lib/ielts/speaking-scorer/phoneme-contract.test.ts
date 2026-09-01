@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { mapAzureAssessmentToReport } from "@/lib/scoring/ielts-pronunciation/azure-assessment";
 import { parsePhonemeReport } from "@/lib/scoring/ielts-pronunciation/phoneme-report";
 import { extractPronunciationSignal } from "./phoneme-contract";
 
@@ -79,6 +80,37 @@ const noProsody = extractPronunciationSignal({
 assert.ok(noProsody);
 assert.equal(noProsody?.prosodyScore, null);
 assert.deepEqual(noProsody?.mispronouncedWords, []);
+
+// Missing provider accuracy is absent evidence, not a learner error.
+const partialWordSignal = extractPronunciationSignal(
+  mapAzureAssessmentToReport(
+    {
+      RecognitionStatus: "Success",
+      NBest: [
+        {
+          PronunciationAssessment: {
+            AccuracyScore: 80,
+            FluencyScore: 80,
+            PronScore: 80,
+          },
+          Words: [
+            {
+              Word: "unassessed",
+              PronunciationAssessment: { ErrorType: "Mispronunciation" },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      locale: "en-US",
+      provider: "azure",
+      model: "pronunciation-assessment",
+      referenceText: "",
+    },
+  ),
+);
+assert.deepEqual(partialWordSignal?.mispronouncedWords, []);
 
 // --- flagged-word cap (25) --------------------------------------------------
 const many = extractPronunciationSignal({

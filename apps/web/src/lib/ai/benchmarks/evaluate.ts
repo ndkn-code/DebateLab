@@ -63,6 +63,10 @@ export const IELTS_BENCHMARK_REQUIRED_BANDS = [
   4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9,
 ] as const;
 
+/** Independent response count required in every band/task/criterion slice. */
+export const IELTS_BENCHMARK_MIN_CASES_PER_CELL = 15;
+export const IELTS_BENCHMARK_MIN_CASES_PER_SLICE = 30;
+
 export interface BenchmarkCoverageCell {
   skill: IeltsBenchmarkSkill;
   criterion: string;
@@ -71,11 +75,17 @@ export interface BenchmarkCoverageCell {
   accentGroup: string | null;
 }
 
+export interface BenchmarkCoverageDeficit extends BenchmarkCoverageCell {
+  observedBenchmarkCount: number;
+  requiredBenchmarkCount: number;
+}
+
 export interface BenchmarkCoverageResult {
   passed: boolean;
   requiredCellCount: number;
   coveredCellCount: number;
   missingCells: BenchmarkCoverageCell[];
+  underfilledCells: BenchmarkCoverageDeficit[];
   /** Input values that cannot satisfy a required cell and need corpus review. */
   unknownCriteria: string[];
   unknownTaskTypes: string[];
@@ -187,7 +197,7 @@ export function validateIeltsBenchmarkCoverage(
   );
   const unknownCriteria = new Set<string>();
   const unknownTaskTypes = new Set<string>();
-  const observed = new Set<string>();
+  const observed = new Map<string, Set<string>>();
   const groupsBySkill = new Map<IeltsBenchmarkSkill, Set<string>>();
 
   for (const item of ielts) {
@@ -204,15 +214,16 @@ export function validateIeltsBenchmarkCoverage(
       groups.add(accentGroup);
       groupsBySkill.set(item.skill, groups);
     }
-    observed.add(
-      cellKey({
-        skill: item.skill,
-        criterion,
-        expectedBand: snapBand(item.expectedBand),
-        taskType: item.taskType,
-        accentGroup,
-      }),
-    );
+    const key = cellKey({
+      skill: item.skill,
+      criterion,
+      expectedBand: snapBand(item.expectedBand),
+      taskType: item.taskType,
+      accentGroup,
+    });
+    const benchmarkIds = observed.get(key) ?? new Set<string>();
+    benchmarkIds.add(item.benchmarkId);
+    observed.set(key, benchmarkIds);
   }
 
   const required: BenchmarkCoverageCell[] = [];
@@ -239,15 +250,36 @@ export function validateIeltsBenchmarkCoverage(
       }
     }
   }
-  const missingCells = required.filter((cell) => !observed.has(cellKey(cell)));
+  const underfilledCells = required.flatMap((cell) => {
+    const observedBenchmarkCount = observed.get(cellKey(cell))?.size ?? 0;
+    return observedBenchmarkCount < IELTS_BENCHMARK_MIN_CASES_PER_CELL
+      ? [
+          {
+            ...cell,
+            observedBenchmarkCount,
+            requiredBenchmarkCount: IELTS_BENCHMARK_MIN_CASES_PER_CELL,
+          },
+        ]
+      : [];
+  });
+  const missingCells = underfilledCells
+    .filter((cell) => cell.observedBenchmarkCount === 0)
+    .map((cell) => ({
+      skill: cell.skill,
+      taskType: cell.taskType,
+      criterion: cell.criterion,
+      expectedBand: cell.expectedBand,
+      accentGroup: cell.accentGroup,
+    }));
   return {
     passed:
-      missingCells.length === 0 &&
+      underfilledCells.length === 0 &&
       unknownCriteria.size === 0 &&
       unknownTaskTypes.size === 0,
     requiredCellCount: required.length,
-    coveredCellCount: required.length - missingCells.length,
+    coveredCellCount: required.length - underfilledCells.length,
     missingCells,
+    underfilledCells,
     unknownCriteria: [...unknownCriteria].sort(),
     unknownTaskTypes: [...unknownTaskTypes].sort(),
   };
@@ -399,18 +431,92 @@ export function evaluateDerivedReleaseGate(
   input: DerivedReleaseGateInputs,
 ): ReleaseGateResult {
   const metrics = evaluateBenchmark(input.observations);
+  const accuracyByCell = new Map<string, boolean[]>();
+  for (const observation of input.observations) {
+    const key = cellKey({
+      skill:
+        observation.skill === "ielts_speaking"
+          ? "ielts_speaking"
+          : "ielts_writing",
+      criterion: normalizeIeltsCriterion(observation.criterion),
+      expectedBand: snapBand(observation.expectedBand),
+      taskType: observation.taskType,
+      accentGroup: observation.accentGroup?.trim() || null,
+    });
+    accuracyByCell.set(key, [
+      ...(accuracyByCell.get(key) ?? []),
+      Math.abs(
+        snapBand(observation.predictedBand) - snapBand(observation.expectedBand),
+      ) <= 0.5,
+    ]);
+  }
+  const hasInaccurateCell = [...accuracyByCell.values()].some(
+    (values) => values.filter(Boolean).length / values.length < 0.9,
+  );
+  const accuracyBySlice = new Map<string, Map<string, boolean>>();
+  for (const observation of input.observations) {
+    const criterion = normalizeIeltsCriterion(observation.criterion);
+    const withinHalfBand =
+      Math.abs(
+        snapBand(observation.predictedBand) - snapBand(observation.expectedBand),
+      ) <= 0.5;
+    const slices = [
+      ...(observation.l1Group
+        ? [`l1:${observation.l1Group}|criterion:${criterion}`]
+        : []),
+      ...(observation.audioQualityGroup
+        ? [
+            `audio_quality:${observation.audioQualityGroup}|criterion:${criterion}`,
+          ]
+        : []),
+    ];
+    for (const slice of slices) {
+      const cases = accuracyBySlice.get(slice) ?? new Map<string, boolean>();
+      cases.set(observation.benchmarkId, withinHalfBand);
+      accuracyBySlice.set(slice, cases);
+    }
+  }
+  const hasUnderfilledSlice = [...accuracyBySlice.values()].some(
+    (cases) => cases.size < IELTS_BENCHMARK_MIN_CASES_PER_SLICE,
+  );
+  const hasInaccurateSlice = [...accuracyBySlice.values()].some((cases) => {
+    const results = [...cases.values()];
+    return results.filter(Boolean).length / results.length < 0.9;
+  });
+  const repeatKey = (observation: BenchmarkObservation) =>
+    `${observation.benchmarkId}|${normalizeIeltsCriterion(observation.criterion)}`;
+  const expectedRepeatKeys = new Set(input.observations.map(repeatKey));
+  const repeatPairsByKey = new Map<
+    string,
+    Array<(typeof input.repeatPairs)[number]>
+  >();
+  for (const pair of input.repeatPairs) {
+    const firstKey = repeatKey(pair.first);
+    const secondKey = repeatKey(pair.second);
+    if (firstKey !== secondKey) continue;
+    repeatPairsByKey.set(firstKey, [
+      ...(repeatPairsByKey.get(firstKey) ?? []),
+      pair,
+    ]);
+  }
   const repeatCoverageComplete =
-    input.expectedRepeatPairCount > 0 &&
-    input.repeatPairs.length >= input.expectedRepeatPairCount;
+    input.expectedRepeatPairCount === expectedRepeatKeys.size &&
+    expectedRepeatKeys.size > 0 &&
+    [...expectedRepeatKeys].every(
+      (key) => repeatPairsByKey.get(key)?.length === 1,
+    );
+  const oneRepeatPerObservation = [...expectedRepeatKeys].flatMap(
+    (key) => repeatPairsByKey.get(key)?.slice(0, 1) ?? [],
+  );
   const repeatWithinHalfBandRate =
-    input.repeatPairs.length === 0
+    oneRepeatPerObservation.length === 0
       ? 0
-      : input.repeatPairs.filter(
+      : oneRepeatPerObservation.filter(
           ({ first, second }) =>
             Math.abs(
               snapBand(first.predictedBand) - snapBand(second.predictedBand),
             ) <= 0.5,
-        ).length / input.repeatPairs.length;
+        ).length / oneRepeatPerObservation.length;
   const result = evaluateReleaseGate({
     metrics,
     criterionKappas: criterionKappasFromObservations(input.observations),
@@ -425,9 +531,27 @@ export function evaluateDerivedReleaseGate(
     strandedWorkflowCount: input.strandedWorkflowCount,
     invalidBenchmarkLabelCount: input.invalidBenchmarkLabelCount,
   });
-  if (repeatCoverageComplete) return result;
+  const cellFailures = hasInaccurateCell
+    ? ["cell_within_half_band_below_90pct"]
+    : [];
+  const sliceFailures = [
+    ...(hasUnderfilledSlice ? ["slice_sample_below_30"] : []),
+    ...(hasInaccurateSlice ? ["slice_within_half_band_below_90pct"] : []),
+  ];
+  if (
+    repeatCoverageComplete &&
+    cellFailures.length === 0 &&
+    sliceFailures.length === 0
+  ) {
+    return result;
+  }
   return {
     passed: false,
-    failures: [...result.failures, "repeat_measurement_incomplete"],
+    failures: [
+      ...result.failures,
+      ...cellFailures,
+      ...sliceFailures,
+      ...(repeatCoverageComplete ? [] : ["repeat_measurement_incomplete"]),
+    ],
   };
 }
