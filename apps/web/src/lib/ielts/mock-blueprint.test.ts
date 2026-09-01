@@ -23,13 +23,13 @@ const full = buildMockBlueprint({
 assert.deepEqual(
   full.map((s) => [s.skill, s.sectionOrder, s.timeLimitSeconds, s.label]),
   [
-    ["listening", 0, 1920, "Listening"],
-    ["reading", 1, 3600, "Reading"],
-    ["writing", 2, 3600, "Writing"],
+    ["listening", 1, 1920, "Listening"],
+    ["reading", 2, 3600, "Reading"],
+    ["writing", 3, 3600, "Writing"],
   ],
 );
 
-// full_mock with only R/L content → two sections, re-indexed 0,1.
+// full_mock with only R/L content → two sections, re-indexed 1,2.
 const rl = buildMockBlueprint({
   kind: "full_mock",
   skill: null,
@@ -38,8 +38,8 @@ const rl = buildMockBlueprint({
 assert.deepEqual(
   rl.map((s) => [s.skill, s.sectionOrder]),
   [
-    ["listening", 0],
-    ["reading", 1],
+    ["listening", 1],
+    ["reading", 2],
   ],
 );
 

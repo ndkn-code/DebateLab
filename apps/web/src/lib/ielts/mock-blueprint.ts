@@ -79,7 +79,9 @@ export function buildMockBlueprint(
   const policy = assessmentModePolicy(mode);
   return resolveSkills(input).map((skill, index) => ({
     skill,
-    sectionOrder: index,
+    // Persisted IELTS section order is one-based. The database enforces the
+    // simulation contract as Listening (1), Reading (2), Writing (3).
+    sectionOrder: index + 1,
     label: SKILL_LABELS[skill],
     timeLimitSeconds:
       input.timeLimitOverrides?.[skill] ??
