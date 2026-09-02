@@ -23,7 +23,7 @@ export interface RlsViolation {
 const ALLOWLIST = new Set<string>([]);
 
 const NON_PUBLIC_SCHEMAS = new Set([
-  "auth", "storage", "realtime", "vault", "extensions", "graphql",
+  "auth", "storage", "realtime", "vault", "private", "extensions", "graphql",
   "graphql_public", "pgbouncer", "supabase_functions", "supabase_migrations",
   "cron", "net", "_analytics", "information_schema", "pg_catalog",
 ]);

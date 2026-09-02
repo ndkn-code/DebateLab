@@ -64,6 +64,13 @@ console.log("WS-0.1 self-test\n");
     `create table public.demo_np (id uuid primary key);
      alter table public.demo_np enable row level security;`,
   );
+  const privateOnly = tmp();
+  write(
+    privateOnly,
+    "001.sql",
+    `create table private.internal_ledger (id uuid primary key);
+     revoke all on private.internal_ledger from public, anon, authenticated;`,
+  );
 
   check("RLS: compliant table (RLS + policy) passes", findRlsViolations(good).length === 0);
   check(
@@ -76,7 +83,13 @@ console.log("WS-0.1 self-test\n");
       (v) => v.table === "demo_np" && v.reason === "rls-without-policy",
     ),
   );
-  [good, noRls, noPolicy].forEach((d) => rmSync(d, { recursive: true, force: true }));
+  check(
+    "RLS: private-schema table is outside the public-table gate",
+    findRlsViolations(privateOnly).length === 0,
+  );
+  [good, noRls, noPolicy, privateOnly].forEach((d) =>
+    rmSync(d, { recursive: true, force: true }),
+  );
 }
 
 // ── Tier 1: typed score columns ───────────────────────────────────────────
