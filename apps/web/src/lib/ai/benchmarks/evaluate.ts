@@ -1,3 +1,5 @@
+import { IELTS_BENCHMARK_STUDY_DESIGN_V1 } from "./study-design";
+
 /** A criterion-level prediction from a protected benchmark label. */
 export interface BenchmarkObservation {
   benchmarkId: string;
@@ -21,6 +23,8 @@ export interface BenchmarkCoverageObservation {
   expectedBand: number;
   taskType: string;
   accentGroup?: string | null;
+  l1Group?: string | null;
+  audioQualityGroup?: string | null;
 }
 
 export type IeltsBenchmarkSkill = "ielts_speaking" | "ielts_writing";
@@ -117,7 +121,11 @@ export interface ReleaseGateInputs {
 }
 
 export interface DerivedReleaseGateInputs {
+  /** Every protected criterion label, including cases whose prediction is absent. */
+  expectedObservations: BenchmarkCoverageObservation[];
   observations: BenchmarkObservation[];
+  /** Every protected overall label, including cases whose prediction is absent. */
+  expectedOverallObservations: BenchmarkCoverageObservation[];
   overallObservations: BenchmarkObservation[];
   coverage: BenchmarkCoverageResult;
   /** Every active holdout benchmark expected to have an evaluation. */
@@ -133,9 +141,6 @@ export interface DerivedReleaseGateInputs {
     first: BenchmarkObservation;
     second: BenchmarkObservation;
   }>;
-  /** One paired repeat is required for every predicted criterion observation. */
-  expectedRepeatPairCount: number;
-  expectedOverallRepeatPairCount: number;
   /** Operational checks must be supplied by a fault-injection/reconciliation run. */
   invalidAuthoritativeCitationCount: number;
   duplicatePaidScoringCount: number;
@@ -185,6 +190,12 @@ const CRITERION_ALIASES: Record<string, string> = {
 
 export function normalizeIeltsCriterion(criterion: string): string {
   return CRITERION_ALIASES[normalizedToken(criterion)] ?? criterion;
+}
+
+function benchmarkObservationKey(
+  observation: BenchmarkObservation | BenchmarkCoverageObservation,
+): string {
+  return `${observation.benchmarkId}|${normalizeIeltsCriterion(observation.criterion)}`;
 }
 
 function isRequiredSkill(skill: string): skill is IeltsBenchmarkSkill {
@@ -389,6 +400,63 @@ export function evaluateBenchmark(
   };
 }
 
+/** Counts an absent or malformed prediction as a miss against its protected label. */
+export function evaluateBenchmarkAgainstExpected(
+  expectedObservations: BenchmarkCoverageObservation[],
+  observations: BenchmarkObservation[],
+): BenchmarkMetrics {
+  const expectedByKey = new Map(
+    expectedObservations.map((observation) => [
+      benchmarkObservationKey(observation),
+      observation,
+    ]),
+  );
+  const observationsByKey = new Map(
+    observations.map((observation) => [
+      benchmarkObservationKey(observation),
+      observation,
+    ]),
+  );
+  const outcomes = [...expectedByKey].map(([key, expected]) => {
+    const prediction = observationsByKey.get(key);
+    return {
+      expected,
+      prediction,
+      withinHalfBand:
+        prediction !== undefined &&
+        Math.abs(
+          snapBand(prediction.predictedBand) - snapBand(expected.expectedBand),
+        ) <= 0.5,
+    };
+  });
+  const matchedObservations = outcomes.flatMap(({ expected, prediction }) =>
+    prediction
+      ? [
+          {
+            ...prediction,
+            skill: expected.skill,
+            criterion: expected.criterion,
+            expectedBand: expected.expectedBand,
+            taskType: expected.taskType,
+            accentGroup: expected.accentGroup,
+            l1Group: expected.l1Group,
+            audioQualityGroup: expected.audioQualityGroup,
+          },
+        ]
+      : [],
+  );
+  const observedMetrics = evaluateBenchmark(matchedObservations);
+  return {
+    ...observedMetrics,
+    observationCount: outcomes.length,
+    withinHalfBandRate:
+      outcomes.length === 0
+        ? 0
+        : outcomes.filter((outcome) => outcome.withinHalfBand).length /
+          outcomes.length,
+  };
+}
+
 export function evaluateReleaseGate(
   input: ReleaseGateInputs,
 ): ReleaseGateResult {
@@ -461,50 +529,102 @@ export function criterionKappasFromObservations(
 export function evaluateDerivedReleaseGate(
   input: DerivedReleaseGateInputs,
 ): ReleaseGateResult {
-  const metrics = evaluateBenchmark(input.observations);
-  const overallMetrics = evaluateBenchmark(input.overallObservations);
+  const observationKey = benchmarkObservationKey;
+  const expectedByKey = new Map(
+    input.expectedObservations.map((observation) => [
+      observationKey(observation),
+      observation,
+    ]),
+  );
+  const observationsByKey = new Map(
+    input.observations.map((observation) => [
+      observationKey(observation),
+      observation,
+    ]),
+  );
+  const criterionOutcomes = [...expectedByKey].map(([key, expected]) => {
+    const prediction = observationsByKey.get(key);
+    const withinHalfBand =
+      prediction !== undefined &&
+      Math.abs(
+        snapBand(prediction.predictedBand) - snapBand(expected.expectedBand),
+      ) <= 0.5;
+    return { expected, prediction, withinHalfBand };
+  });
+  const matchedObservations = criterionOutcomes.flatMap(
+    ({ expected, prediction }) =>
+      prediction
+        ? [
+            {
+              ...prediction,
+              skill: expected.skill,
+              criterion: expected.criterion,
+              expectedBand: expected.expectedBand,
+              taskType: expected.taskType,
+              accentGroup: expected.accentGroup,
+              l1Group: expected.l1Group,
+              audioQualityGroup: expected.audioQualityGroup,
+            },
+          ]
+        : [],
+  );
+  const metrics = evaluateBenchmarkAgainstExpected(
+    input.expectedObservations,
+    input.observations,
+  );
+
+  const overallMetrics = evaluateBenchmarkAgainstExpected(
+    input.expectedOverallObservations,
+    input.overallObservations,
+  );
   const accuracyByCell = new Map<string, boolean[]>();
-  for (const observation of input.observations) {
+  for (const { expected, withinHalfBand } of criterionOutcomes) {
     const key = cellKey({
       skill:
-        observation.skill === "ielts_speaking"
+        expected.skill === "ielts_speaking"
           ? "ielts_speaking"
           : "ielts_writing",
-      criterion: normalizeIeltsCriterion(observation.criterion),
-      expectedBand: snapBand(observation.expectedBand),
-      taskType: observation.taskType,
-      accentGroup: observation.accentGroup?.trim() || null,
+      criterion: normalizeIeltsCriterion(expected.criterion),
+      expectedBand: snapBand(expected.expectedBand),
+      taskType: expected.taskType,
+      accentGroup: expected.accentGroup?.trim() || null,
     });
     accuracyByCell.set(key, [
       ...(accuracyByCell.get(key) ?? []),
-      Math.abs(
-        snapBand(observation.predictedBand) - snapBand(observation.expectedBand),
-      ) <= 0.5,
+      withinHalfBand,
     ]);
   }
   const hasInaccurateCell = [...accuracyByCell.values()].some(
     (values) => values.filter(Boolean).length / values.length < 0.9,
   );
   const accuracyBySlice = new Map<string, Map<string, boolean>>();
-  for (const observation of input.observations) {
-    const criterion = normalizeIeltsCriterion(observation.criterion);
-    const withinHalfBand =
-      Math.abs(
-        snapBand(observation.predictedBand) - snapBand(observation.expectedBand),
-      ) <= 0.5;
+  for (const criterion of IELTS_BENCHMARK_REQUIREMENTS.ielts_speaking
+    .criteria) {
+    for (const group of IELTS_BENCHMARK_STUDY_DESIGN_V1.strata.l1Groups) {
+      accuracyBySlice.set(`l1:${group}|criterion:${criterion}`, new Map());
+    }
+    for (const group of IELTS_BENCHMARK_STUDY_DESIGN_V1.strata
+      .audioQualityGroups) {
+      accuracyBySlice.set(
+        `audio_quality:${group}|criterion:${criterion}`,
+        new Map(),
+      );
+    }
+  }
+  for (const { expected, withinHalfBand } of criterionOutcomes) {
+    if (expected.skill !== "ielts_speaking") continue;
+    const criterion = normalizeIeltsCriterion(expected.criterion);
     const slices = [
-      ...(observation.l1Group
-        ? [`l1:${observation.l1Group}|criterion:${criterion}`]
+      ...(expected.l1Group
+        ? [`l1:${expected.l1Group}|criterion:${criterion}`]
         : []),
-      ...(observation.audioQualityGroup
-        ? [
-            `audio_quality:${observation.audioQualityGroup}|criterion:${criterion}`,
-          ]
+      ...(expected.audioQualityGroup
+        ? [`audio_quality:${expected.audioQualityGroup}|criterion:${criterion}`]
         : []),
     ];
     for (const slice of slices) {
       const cases = accuracyBySlice.get(slice) ?? new Map<string, boolean>();
-      cases.set(observation.benchmarkId, withinHalfBand);
+      cases.set(expected.benchmarkId, withinHalfBand);
       accuracyBySlice.set(slice, cases);
     }
   }
@@ -515,9 +635,8 @@ export function evaluateDerivedReleaseGate(
     const results = [...cases.values()];
     return results.filter(Boolean).length / results.length < 0.9;
   });
-  const repeatKey = (observation: BenchmarkObservation) =>
-    `${observation.benchmarkId}|${normalizeIeltsCriterion(observation.criterion)}`;
-  const expectedRepeatKeys = new Set(input.observations.map(repeatKey));
+  const repeatKey = observationKey;
+  const expectedRepeatKeys = new Set(expectedByKey.keys());
   const repeatPairsByKey = new Map<
     string,
     Array<(typeof input.repeatPairs)[number]>
@@ -532,7 +651,6 @@ export function evaluateDerivedReleaseGate(
     ]);
   }
   const repeatCoverageComplete =
-    input.expectedRepeatPairCount === expectedRepeatKeys.size &&
     expectedRepeatKeys.size > 0 &&
     [...expectedRepeatKeys].every(
       (key) => repeatPairsByKey.get(key)?.length === 1,
@@ -541,18 +659,19 @@ export function evaluateDerivedReleaseGate(
     (key) => repeatPairsByKey.get(key)?.slice(0, 1) ?? [],
   );
   const repeatWithinHalfBandRate =
-    oneRepeatPerObservation.length === 0
+    expectedRepeatKeys.size === 0
       ? 0
       : oneRepeatPerObservation.filter(
           ({ first, second }) =>
             Math.abs(
               snapBand(first.predictedBand) - snapBand(second.predictedBand),
             ) <= 0.5,
-        ).length / oneRepeatPerObservation.length;
-  const overallRepeatKey = (observation: BenchmarkObservation) =>
-    observation.benchmarkId;
+        ).length / expectedRepeatKeys.size;
+  const overallRepeatKey = (
+    observation: BenchmarkObservation | BenchmarkCoverageObservation,
+  ) => observation.benchmarkId;
   const expectedOverallRepeatKeys = new Set(
-    input.overallObservations.map(overallRepeatKey),
+    input.expectedOverallObservations.map(overallRepeatKey),
   );
   const overallPairsByKey = new Map<
     string,
@@ -568,7 +687,6 @@ export function evaluateDerivedReleaseGate(
     ]);
   }
   const overallRepeatCoverageComplete =
-    input.expectedOverallRepeatPairCount === expectedOverallRepeatKeys.size &&
     expectedOverallRepeatKeys.size > 0 &&
     [...expectedOverallRepeatKeys].every(
       (key) => overallPairsByKey.get(key)?.length === 1,
@@ -577,18 +695,18 @@ export function evaluateDerivedReleaseGate(
     (key) => overallPairsByKey.get(key)?.slice(0, 1) ?? [],
   );
   const overallRepeatWithinHalfBandRate =
-    oneOverallRepeatPerObservation.length === 0
+    expectedOverallRepeatKeys.size === 0
       ? 0
       : oneOverallRepeatPerObservation.filter(
           ({ first, second }) =>
             Math.abs(
               snapBand(first.predictedBand) - snapBand(second.predictedBand),
             ) <= 0.5,
-        ).length / oneOverallRepeatPerObservation.length;
+        ).length / expectedOverallRepeatKeys.size;
   const result = evaluateReleaseGate({
     metrics,
     overallMetrics,
-    criterionKappas: criterionKappasFromObservations(input.observations),
+    criterionKappas: criterionKappasFromObservations(matchedObservations),
     coverage: input.coverage,
     repeatWithinHalfBandRate,
     overallRepeatWithinHalfBandRate,

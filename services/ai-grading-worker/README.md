@@ -14,6 +14,8 @@ Runtime endpoints:
 - `POST /` — Pub/Sub push identity only.
 - `POST /internal/reconcile` — Cloud Scheduler identity only.
 - `GET /healthz` — Cloud Run private health check.
+- `GET /readyz` — secret-safe deployment readiness; returns 503 when required
+  runtime identity/provider configuration is missing or invalid.
 
 ## Locked IELTS calibration job
 
@@ -70,13 +72,17 @@ Set `AI_GRADING_ACOUSTIC_MODE=assess` with
 to validate a 16 kHz, mono, 16-bit PCM WAV and create the normalized Azure
 report plus a signed assessment receipt. The receipt cryptographically binds
 the report bytes to the exact WAV bytes, benchmark/capture identity, and locale;
-the later attestation refuses a report assessed from any other audio. Keep the
+the later attestation refuses a report assessed from any other audio. Assess
+mode receives only `AI_GRADING_ACOUSTIC_ASSESSMENT_RECEIPT_SECRET`; it must not
+receive the final envelope signing secret. Keep the
 receipt protected with the report. Upload the WAV and report to the private
 benchmark bucket, record their immutable storage versions and ETags, and have a
 second person verify the STT transcript against the audio. Then run
 `AI_GRADING_ACOUSTIC_MODE=attest` with the same input variable and the
 Secret Manager-bound
-`AI_GRADING_BENCHMARK_ATTESTATION_SECRET`. The command refuses unreviewed
+`AI_GRADING_ACOUSTIC_ASSESSMENT_RECEIPT_SECRET` to verify the intermediate
+receipt and `AI_GRADING_BENCHMARK_ATTESTATION_SECRET` to sign the final
+envelope. These secrets must be independently generated and stored. The command refuses unreviewed
 transcripts, scripted reports, unsupported WAV files, non-private object paths,
 future review timestamps, invalid object identities, mismatched assessment
 receipts, and existing output files.

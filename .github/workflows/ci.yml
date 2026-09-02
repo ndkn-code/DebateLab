@@ -43,6 +43,9 @@ jobs:
       - name: Typecheck (shared)
         run: npm run typecheck:shared
 
+      - name: Typecheck (AI grading worker)
+        run: npm run typecheck:ai-grading-worker
+
       - name: Lint (web)
         run: npm run lint:web
 

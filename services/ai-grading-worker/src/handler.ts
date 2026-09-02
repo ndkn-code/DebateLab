@@ -4,6 +4,7 @@ import { createProductionOperations, isFatalAiGradingError } from "./operations"
 import { processAiGradingDelivery } from "./processor";
 import { reconcileAiGradingRuns } from "./reconciler";
 import { createProductionRepository } from "./repository";
+import { checkWorkerReadiness, type WorkerReadiness } from "./readiness";
 
 export type WorkerRequest = {
   method: string;
@@ -23,6 +24,7 @@ type HandlerDependencies = {
     delivery: ReturnType<typeof parseAiGradingPubSubEnvelope>,
   ) => Promise<string>;
   reconcile?: typeof reconcileAiGradingRuns;
+  readiness?: () => WorkerReadiness;
 };
 
 export async function routeWorkerRequest(
@@ -31,6 +33,13 @@ export async function routeWorkerRequest(
 ): Promise<WorkerResponse> {
   if (request.method === "GET" && request.path === "/healthz") {
     return { status: 200, body: { ok: true } };
+  }
+  if (request.method === "GET" && request.path === "/readyz") {
+    const readiness = (dependencies.readiness ?? checkWorkerReadiness)();
+    return {
+      status: readiness.ready ? 200 : 503,
+      body: readiness,
+    };
   }
   const verify = dependencies.verify ?? verifyCloudRunCaller;
   if (request.method === "POST" && request.path === "/") {

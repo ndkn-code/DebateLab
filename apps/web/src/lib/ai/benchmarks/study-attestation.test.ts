@@ -326,7 +326,7 @@ assert.doesNotMatch(refreshScript, /protected_label\s*:/);
 const withdrawalMigration = await readFile(
   resolve(
     process.cwd(),
-    "../../supabase/migrations/20260901200000_external_benchmark_withdrawal_verification.sql",
+    "../../supabase/migrations/20260901202000_external_benchmark_withdrawal_verification_finalize.sql",
   ),
   "utf8",
 );

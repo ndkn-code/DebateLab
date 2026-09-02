@@ -32,7 +32,9 @@ Names used by the checked-in configuration:
   `ai-grading-jobs-dlq-ops`
 - Scheduler job: `ai-grading-reconcile`
 
-Grant the Vercel publisher only `roles/pubsub.publisher` on the grading topic.
+Grant the shared Vercel publisher `roles/pubsub.publisher` on exactly the two
+topics it serves: `ai-grading-jobs` and `lms-material-processing`. Do not grant
+project-wide Pub/Sub publishing.
 Grant the push and Scheduler identities only `roles/run.invoker` on the worker.
 Grant the runtime identity `roles/secretmanager.secretAccessor` on the named
 runtime secrets and `roles/pubsub.publisher` on the grading topic for reconcile.
@@ -41,7 +43,7 @@ forwarding.
 
 ## Build and deploy (manual, reviewed release only)
 
-Build from the repository root:
+Build from the repository root, then resolve the tag to its immutable digest:
 
 ```bash
 gcloud builds submit . \
@@ -49,6 +51,13 @@ gcloud builds submit . \
   --region=asia-southeast1 \
   --config=services/ai-grading-worker/cloudbuild.yaml \
   --substitutions=_IMAGE=asia-southeast1-docker.pkg.dev/thinkfy-debatelab-prod/debatelab-workers/ai-grading-worker:$GIT_SHA
+
+AI_GRADING_IMAGE_URI="asia-southeast1-docker.pkg.dev/thinkfy-debatelab-prod/debatelab-workers/ai-grading-worker:$GIT_SHA"
+AI_GRADING_IMAGE_DIGEST="$(gcloud artifacts docker images describe "$AI_GRADING_IMAGE_URI" \
+  --project=thinkfy-debatelab-prod \
+  --format='value(image_summary.digest)')"
+test -n "$AI_GRADING_IMAGE_DIGEST"
+AI_GRADING_IMAGE="${AI_GRADING_IMAGE_URI%:*}@$AI_GRADING_IMAGE_DIGEST"
 ```
 
 Deploy privately with concurrency one. Concurrency one is defense in depth; the
@@ -58,14 +67,14 @@ database lease remains the authority.
 gcloud run deploy ai-grading-worker \
   --project=thinkfy-debatelab-prod \
   --region=asia-southeast1 \
-  --image=asia-southeast1-docker.pkg.dev/thinkfy-debatelab-prod/debatelab-workers/ai-grading-worker:$GIT_SHA \
+  --image="$AI_GRADING_IMAGE" \
   --service-account=debatelab-ai-grading-worker@thinkfy-debatelab-prod.iam.gserviceaccount.com \
   --no-allow-unauthenticated --concurrency=1 --timeout=3600 --max-instances=10 \
-  --set-env-vars=GCP_PROJECT_ID=thinkfy-debatelab-prod,GCP_AI_GRADING_TOPIC=ai-grading-jobs \
+  --set-env-vars=GCP_PROJECT_ID=thinkfy-debatelab-prod,GCP_AI_GRADING_TOPIC=ai-grading-jobs,AI_GRADING_IMAGE_DIGEST="$AI_GRADING_IMAGE_DIGEST",AZURE_SPEECH_REGION=southeastasia,AI_GRADING_REQUIRE_AZURE_PRONUNCIATION=true \
   --set-secrets=NEXT_PUBLIC_SUPABASE_URL=debatelab-supabase-url:latest,SUPABASE_SERVICE_ROLE_KEY=debatelab-supabase-service-role:latest,GROQ_API_KEY=debatelab-groq-api-key:latest,DEEPSEEK_API_KEY=debatelab-deepseek-api-key:latest,DEEPGRAM_API_KEY=debatelab-deepgram-api-key:latest,AZURE_SPEECH_KEY=debatelab-azure-speech-key:latest
 ```
 
-Also set `AZURE_SPEECH_REGION`, `EMBEDDING_API_URL`,
+Also set `DEBATE_CORPUS_EMBEDDING_URL`,
 `GCP_PUBSUB_PUSH_SERVICE_ACCOUNT_EMAIL`,
 `GCP_SCHEDULER_SERVICE_ACCOUNT_EMAIL`, and `CLOUD_RUN_SERVICE_URL` as ordinary
 environment variables. `GROQ_IELTS_SCORING_FALLBACK_MODEL` is optional and
@@ -88,7 +97,21 @@ gcloud pubsub subscriptions create ai-grading-jobs-cloud-run \
 ```
 
 Create Cloud Scheduler to POST `/internal/reconcile` every five minutes with
-the Scheduler service account and the exact service URL as OIDC audience.
+the Scheduler service account and the exact service URL as OIDC audience:
+
+```bash
+gcloud scheduler jobs create http ai-grading-reconcile \
+  --project=thinkfy-debatelab-prod \
+  --location=asia-southeast1 \
+  --schedule='*/5 * * * *' \
+  --uri="$CLOUD_RUN_SERVICE_URL/internal/reconcile" \
+  --http-method=POST \
+  --oidc-service-account-email=debatelab-ai-grading-scheduler@thinkfy-debatelab-prod.iam.gserviceaccount.com \
+  --oidc-token-audience="$CLOUD_RUN_SERVICE_URL"
+```
+
+Use `gcloud scheduler jobs update http` when the job already exists; a release
+must never create a duplicate scheduler.
 
 ## Protected IELTS benchmark Cloud Run Job
 
@@ -150,10 +173,16 @@ reviewed worker image. It is deliberately two-stage:
    existing output is never overwritten.
 
 The job command is `npm run acoustic:preprocess -w
-@thinkfy/ai-grading-worker`. Bind Azure credentials only to the `assess` job;
-bind `AI_GRADING_BENCHMARK_ATTESTATION_SECRET` only to the `attest` job. Do not
-grant either job public ingress and do not reuse the importer identity as the
-attestation signer.
+@thinkfy/ai-grading-worker`. Provision two independent secrets:
+
+- bind `AI_GRADING_ACOUSTIC_ASSESSMENT_RECEIPT_SECRET` to both `assess` and
+  `attest`; it authenticates only the intermediate Azure assessment receipt;
+- bind Azure credentials only to `assess`;
+- bind `AI_GRADING_BENCHMARK_ATTESTATION_SECRET` only to `attest`; it signs the
+  final benchmark acoustic envelope.
+
+The two HMAC values must be different. Do not grant either job public ingress
+and do not reuse the importer identity as the attestation signer.
 
 Create or update the job with the reviewed immutable image digest:
 
@@ -200,12 +229,25 @@ The web app needs `@vercel/oidc`; it does not need a GCP private key.
   path remains usable.
 - missing/unknown: fail closed before a provider is selected.
 
+`PRACTICE_FULL_ROUND_CORE_STAGED_ENABLED` controls the durable English/Vietnamese
+full-round compound judge. It defaults on only for the GCP practice worker and
+still performs one fenced provider transaction. Set it to `false` for an
+immediate quality-path rollback; short debate, speaking practice, and the
+synchronous compatibility route are unaffected.
+
 ## Release smoke tests
 
 Before setting the web environment to `gcp`:
 
-1. Apply migrations through `20260901180000` in preview and verify all new RPCs
+1. Apply migrations through `20260901202000` in preview and verify all new RPCs
    reject `anon` and `authenticated` while service role succeeds.
+   Before applying, confirm `20260901200000` is absent from
+   `supabase_migrations.schema_migrations`. The `2000`/`2010`/`2020` sequence
+   is a corrected three-phase replacement and must not be applied over a target
+   that already ran the earlier monolithic `2000` file; use a new reviewed
+   forward-only repair sequence for such a target.
+   Before switching traffic, call the private `/readyz` endpoint using an
+   authorized identity and require HTTP 200 with `azurePronunciation=true`.
 2. Submit one practice, Writing, and Speaking job. Confirm the Pub/Sub payload
    contains no learner content and each produces one checkpoint/run.
 3. Send the same Pub/Sub envelope twice concurrently. Confirm one provider phase

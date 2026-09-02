@@ -10,8 +10,13 @@ import {
   isKnowledgeCollectionKey,
 } from "./collections";
 import { getIeltsRubric, findIeltsBandExamples } from "./tools";
-import { knowledgeQueryPreview, normalizeGenericKnowledgeRow } from "./runtime";
-import { buildGenericKnowledgeRpcArgs } from "./runtime";
+import {
+  buildGenericKnowledgeRpcArgs,
+  knowledgeQueryPreview,
+  normalizeGenericKnowledgeRow,
+  normalizeIeltsKnowledgeCriterion,
+  normalizeIeltsKnowledgeTaskType,
+} from "./runtime";
 
 assert.equal(
   canonicalizeSourceUrl("HTTPS://Example.COM/guide/?utm_source=test#part"),
@@ -172,6 +177,39 @@ const versionedArgs = buildGenericKnowledgeRpcArgs({
   corpusVersion: "3",
 });
 assert.equal(versionedArgs.p_filters.collectionVersion, "3");
+assert.equal(
+  normalizeIeltsKnowledgeTaskType("writing_task1_academic"),
+  "academic_task_1",
+);
+assert.equal(
+  normalizeIeltsKnowledgeTaskType("speaking_part2_cuecard"),
+  "speaking_all_parts",
+);
+assert.equal(
+  normalizeIeltsKnowledgeCriterion(
+    "taskResponse",
+    "writing_task1_general",
+  ),
+  "task_achievement",
+);
+assert.equal(
+  normalizeIeltsKnowledgeCriterion("taskResponse", "writing_task2_essay"),
+  "task_response",
+);
+const speakingFilterArgs = buildGenericKnowledgeRpcArgs({
+  collection: "ielts.speaking",
+  query: "Band 7 fluency",
+  purpose: "grading",
+  language: "en",
+  sourceRoute: "knowledge-runtime-test",
+  taskType: "speaking_part3",
+  criteria: ["fluencyCoherence"],
+});
+assert.equal(speakingFilterArgs.p_filters.taskType, "speaking_all_parts");
+assert.equal(
+  speakingFilterArgs.p_filters.criterion,
+  "fluency_and_coherence",
+);
 assert.equal(
   knowledgeQueryPreview({
     query: "protected candidate response",

@@ -91,7 +91,8 @@ function validInput() {
       "ai-grading-benchmarks-private/azure/speaking-vietnamese-band7-001.json",
     reportStorageVersion: "report-version-1",
     reportEtag: "report-etag-1",
-    attestationSecret: "local-test-attestation-secret",
+    assessmentReceiptSecret: "local-test-assessment-receipt-secret",
+    finalAttestationSecret: "local-test-final-attestation-secret",
   };
   return {
     ...input,
@@ -103,7 +104,7 @@ function validInput() {
           locale: input.locale,
           audioBytes: input.audioBytes,
           reportBytes: input.reportBytes,
-          attestationSecret: input.attestationSecret,
+          assessmentReceiptSecret: input.assessmentReceiptSecret,
         }),
       ),
     ),
@@ -177,6 +178,48 @@ test("changing any protected identity changes the signed attestation", () => {
   assert.notEqual(
     original.audioPreprocessing.acousticAttestation.signature,
     changed.audioPreprocessing.acousticAttestation.signature,
+  );
+});
+
+test("assessment receipt and final attestation use separate secrets", () => {
+  const original = validInput();
+  const prepared = prepareAcousticBenchmarkEvidence(original);
+  const changedFinalSecret = prepareAcousticBenchmarkEvidence({
+    ...original,
+    finalAttestationSecret: "different-final-attestation-secret",
+  });
+  assert.notEqual(
+    prepared.audioPreprocessing.acousticAttestation.signature,
+    changedFinalSecret.audioPreprocessing.acousticAttestation.signature,
+  );
+
+  assert.throws(
+    () =>
+      prepareAcousticBenchmarkEvidence({
+        ...original,
+        assessmentReceiptSecret: "wrong-but-distinct-assessment-secret",
+      }),
+    /receipt signature is invalid/,
+  );
+  assert.throws(
+    () =>
+      prepareAcousticBenchmarkEvidence({
+        ...original,
+        assessmentReceiptSecret: original.finalAttestationSecret,
+      }),
+    /secrets must be distinct/,
+  );
+  assert.throws(
+    () =>
+      createAcousticAssessmentReceipt({
+        benchmarkKey: original.benchmarkKey,
+        captureId: original.captureId,
+        locale: original.locale,
+        audioBytes: original.audioBytes,
+        reportBytes: original.reportBytes,
+        assessmentReceiptSecret: " ",
+      }),
+    /assessment receipt secret is required/,
   );
 });
 

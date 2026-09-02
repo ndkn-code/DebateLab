@@ -12,27 +12,37 @@ Pub/Sub. Dispatch is fail-closed unless `AI_GRADING_BACKEND` is explicitly
    `supabase/migrations/20260829110000_ai_knowledge_platform.sql` and
    `supabase/migrations/20260829120000_ai_knowledge_operations.sql`, followed by
    `supabase/migrations/20260830160000_ai_grading_gcp_runtime.sql` and migrations
-   `20260901130000` through `20260901170000` for retry consistency, immutable
-   benchmark slices, third-attempt recovery, linked operational evidence, and
-   worker-authored runtime/repeat-run attestations.
+   `20260901130000` through `20260901202000` for retry consistency, immutable
+   benchmark slices, third-attempt recovery, linked operational evidence,
+   worker-authored runtime/repeat-run attestations, protected benchmark claims,
+   study integrity, and withdrawal verification.
    Regenerate Supabase types afterward. All migrations are forward-only.
 2. Confirm the `ai_workflow_runs` row-level-security policy lets a learner read
    only their own runs and lets only the service role create or update runs.
    Confirm that benchmark labels, knowledge ingestion, and grading-authoritative
    retrieval are service-role-only.
-3. Configure the target Vercel environment with:
+3. Configure the target Vercel environment with only the web publisher values:
    - `AI_GRADING_BACKEND=legacy` until every check below passes
    - `IELTS_EVIDENCE_ADJUDICATION_ENABLED=false` until the pinned benchmark
      gate passes
-   - `CRON_SECRET`
    - `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
-   - `GROQ_API_KEY` for live grading
-   - optional `GROQ_IELTS_SCORING_FALLBACK_MODEL`; it defaults to the fast
-     Groq `openai/gpt-oss-20b` model and never sends student data to Gemini
-   - `VOYAGE_API_KEY` for the English debate and IELTS collections
-   - `AZURE_SPEECH_KEY` and `AZURE_SPEECH_REGION` for pronunciation evidence
    - the keyless WIF publisher variables in `.env.example`; never add a GCP
      service-account JSON key to Vercel
+   Configure grading-provider secrets on the private Cloud Run worker instead:
+   - bind `GROQ_API_KEY`, `DEEPGRAM_API_KEY`, and `AZURE_SPEECH_KEY` from GCP
+     Secret Manager;
+   - set `AZURE_SPEECH_REGION=southeastasia` as a Cloud Run environment variable;
+   - optionally set `GROQ_IELTS_SCORING_FALLBACK_MODEL` (defaults to the fast
+     Groq `openai/gpt-oss-20b` model);
+   - add `VOYAGE_API_KEY` only when a reviewed English collection is ready to
+     embed or retrieve.
+   Do not duplicate Azure or grading-provider secrets in Vercel. The only
+   exception is a deliberately retained legacy Vercel Azure TTS fallback.
+   Protected Speaking calibration additionally uses two separate GCP secrets:
+   `AI_GRADING_ACOUSTIC_ASSESSMENT_RECEIPT_SECRET` is available to both acoustic
+   preparation stages, while `AI_GRADING_BENCHMARK_ATTESTATION_SECRET` is
+   restricted to final attestation. They must never share a value, and neither
+   belongs in Vercel.
 4. Provision and validate the private worker resources described in
    `docs/ai-grading-gcp-runbook.md`. Vercel Workflow, grading queue consumers,
    and a Vercel reconciliation cron are not part of this architecture.

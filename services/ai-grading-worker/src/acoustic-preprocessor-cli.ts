@@ -70,9 +70,9 @@ async function assess(input: JsonRecord) {
     locale,
     audioBytes,
     reportBytes,
-    attestationSecret: requiredString(
-      process.env.AI_GRADING_BENCHMARK_ATTESTATION_SECRET,
-      "AI_GRADING_BENCHMARK_ATTESTATION_SECRET",
+    assessmentReceiptSecret: requiredString(
+      process.env.AI_GRADING_ACOUSTIC_ASSESSMENT_RECEIPT_SECRET,
+      "AI_GRADING_ACOUSTIC_ASSESSMENT_RECEIPT_SECRET",
     ),
   });
   await writeProtectedBytes(outputFile, reportBytes);
@@ -131,7 +131,11 @@ async function attest(input: JsonRecord) {
     assessmentReceiptBytes: await readFile(
       requiredString(input.assessmentReceiptFile, "assessmentReceiptFile"),
     ),
-    attestationSecret: requiredString(
+    assessmentReceiptSecret: requiredString(
+      process.env.AI_GRADING_ACOUSTIC_ASSESSMENT_RECEIPT_SECRET,
+      "AI_GRADING_ACOUSTIC_ASSESSMENT_RECEIPT_SECRET",
+    ),
+    finalAttestationSecret: requiredString(
       process.env.AI_GRADING_BENCHMARK_ATTESTATION_SECRET,
       "AI_GRADING_BENCHMARK_ATTESTATION_SECRET",
     ),

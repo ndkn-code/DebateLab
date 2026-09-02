@@ -8,6 +8,11 @@ import { needsVietnameseProseRepair } from "@/lib/feedback/language-repair";
 import { buildAnalysisPrompt } from "@/lib/prompts";
 import type { DebateScore } from "@/types/feedback";
 import { generateStructured } from "./execute";
+import {
+  buildPracticeFullRoundCompoundPrompt,
+  createPracticeFullRoundCompoundSchema,
+  shouldUsePracticeFullRoundCompoundJudgment,
+} from "./practice-full-round";
 
 /**
  * Compatibility adapter for the existing debate prompt/normalization contract.
@@ -98,6 +103,58 @@ export async function generatePracticeFeedback(
   // durable full-round jobs to correct shallow-but-schema-valid ballots.
   const deadlineAt = Date.now() + (syncRoute ? 50_000 : 75_000);
   const prompt = buildAnalysisPrompt(input);
+  if (shouldUsePracticeFullRoundCompoundJudgment(input)) {
+    const { schema, target } = createPracticeFullRoundCompoundSchema(input);
+    const result = await generateStructured({
+      task: "practice_judging",
+      prompt: buildPracticeFullRoundCompoundPrompt({
+        basePrompt: prompt,
+        practiceLanguage: input.practiceLanguage,
+        minimums: target,
+      }),
+      schema,
+      context: {
+        task: "practice_judging",
+        sourceRoute,
+        outputType: "practice_judging",
+        userId,
+        deadlineAt,
+        idempotencyKey: input.providerAudit?.analysisJobId ?? undefined,
+        entity: {
+          practiceAttemptId: input.providerAudit?.practiceAttemptId,
+          analysisJobId: input.providerAudit?.analysisJobId,
+        },
+        metadata: {
+          ...(input.providerAudit?.metadata ?? {}),
+          phase: "compound_full_round",
+        },
+      },
+      policy: { maxOutputTokens, schemaRepairAttempts: 0 },
+    });
+    const feedback = normalizeDebateScore(
+      result.output.feedback as DebateScore,
+      input,
+    );
+    if (isFeedbackBelowDepthTarget(feedback, target)) {
+      throw new Error(
+        "Compound full-round judgment lost required depth during normalization",
+      );
+    }
+    await onTelemetry?.({
+      provider: result.provider,
+      model: result.model,
+      latencyMs: Date.now() - startedAt,
+      usage: result.usage,
+      providerRequestIds: result.providerRequestIds,
+      fallbackUsed: result.fallbackUsed,
+      metadata: {
+        judgePipeline: "core_compound_full_round",
+        traceId: result.traceId,
+        qualityRepair: false,
+      },
+    });
+    return feedback;
+  }
   let result = await generateStructured({
     task: "practice_judging",
     prompt,

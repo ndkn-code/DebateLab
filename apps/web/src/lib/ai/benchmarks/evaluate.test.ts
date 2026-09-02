@@ -8,6 +8,7 @@ import {
   deriveIeltsTaskBand,
   evaluateDerivedReleaseGate,
   evaluateBenchmark,
+  evaluateBenchmarkAgainstExpected,
   evaluateReleaseGate,
   quadraticWeightedKappa,
   validateIeltsBenchmarkCoverage,
@@ -83,6 +84,23 @@ const completeCoverage = Object.entries(IELTS_BENCHMARK_REQUIREMENTS).flatMap(
               criterion,
               expectedBand,
               taskType,
+              l1Group:
+                skill === "ielts_speaking"
+                  ? sampleIndex % 2 === 0
+                    ? "vi"
+                    : "other_documented"
+                  : null,
+              audioQualityGroup:
+                skill === "ielts_speaking"
+                  ? (
+                      [
+                        "studio",
+                        "quiet_room",
+                        "typical_device",
+                        "degraded",
+                      ] as const
+                    )[sampleIndex % 4]
+                  : null,
             }),
           ),
         ),
@@ -215,10 +233,12 @@ assert.throws(() =>
 );
 
 const derived = evaluateDerivedReleaseGate({
+  expectedObservations: completeCoverage,
   observations: completeCoverage.map((item) => ({
     ...item,
     predictedBand: item.expectedBand,
   })),
+  expectedOverallObservations: perfectOverallObservations,
   overallObservations: perfectOverallObservations,
   coverage,
   expectedEvaluationCount: completeCoverage.length,
@@ -228,8 +248,6 @@ const derived = evaluateDerivedReleaseGate({
     return { first: observation, second: observation };
   }),
   overallRepeatPairs: perfectOverallRepeatPairs,
-  expectedRepeatPairCount: completeCoverage.length,
-  expectedOverallRepeatPairCount: perfectOverallObservations.length,
   invalidAuthoritativeCitationCount: 0,
   duplicatePaidScoringCount: 0,
   strandedWorkflowCount: 0,
@@ -248,7 +266,9 @@ const cellCorruptedObservations = completeCoverage.map((item) => ({
       : item.expectedBand,
 }));
 const cellCorrupted = evaluateDerivedReleaseGate({
+  expectedObservations: completeCoverage,
   observations: cellCorruptedObservations,
+  expectedOverallObservations: perfectOverallObservations,
   overallObservations: perfectOverallObservations,
   coverage,
   expectedEvaluationCount: completeCoverage.length,
@@ -258,17 +278,109 @@ const cellCorrupted = evaluateDerivedReleaseGate({
     second: observation,
   })),
   overallRepeatPairs: perfectOverallRepeatPairs,
-  expectedRepeatPairCount: completeCoverage.length,
-  expectedOverallRepeatPairCount: perfectOverallObservations.length,
   invalidAuthoritativeCitationCount: 0,
   duplicatePaidScoringCount: 0,
   strandedWorkflowCount: 0,
   invalidBenchmarkLabelCount: 0,
 });
 assert.equal(cellCorrupted.passed, false);
-assert.ok(
-  cellCorrupted.failures.includes("cell_within_half_band_below_90pct"),
+assert.ok(cellCorrupted.failures.includes("cell_within_half_band_below_90pct"));
+
+const missingCellKeys = new Set(
+  completeCoverage
+    .filter(
+      (item) =>
+        item.skill === "ielts_writing" &&
+        item.criterion === "taskResponse" &&
+        item.taskType === "writing_task1_academic" &&
+        item.expectedBand === 4,
+    )
+    .slice(0, 2)
+    .map((item) => item.benchmarkId),
 );
+assert.equal(missingCellKeys.size, 2);
+const observationsWithTwoMissing = completeCoverage
+  .filter((item) => !missingCellKeys.has(item.benchmarkId))
+  .map((item) => ({ ...item, predictedBand: item.expectedBand }));
+const metricsWithTwoMissing = evaluateBenchmarkAgainstExpected(
+  completeCoverage,
+  observationsWithTwoMissing,
+);
+assert.equal(metricsWithTwoMissing.observationCount, completeCoverage.length);
+assert.equal(
+  metricsWithTwoMissing.withinHalfBandRate,
+  (completeCoverage.length - 2) / completeCoverage.length,
+);
+const overallWithTwoMissing = perfectOverallObservations.filter(
+  (item) => !missingCellKeys.has(item.benchmarkId),
+);
+const twoMissingInOneCell = evaluateDerivedReleaseGate({
+  expectedObservations: completeCoverage,
+  observations: observationsWithTwoMissing,
+  expectedOverallObservations: perfectOverallObservations,
+  overallObservations: overallWithTwoMissing,
+  coverage,
+  expectedEvaluationCount: completeCoverage.length,
+  schemaValidPredictionCount: completeCoverage.length - 2,
+  repeatPairs: observationsWithTwoMissing.map((observation) => ({
+    first: observation,
+    second: observation,
+  })),
+  overallRepeatPairs: overallWithTwoMissing.map((observation) => ({
+    first: observation,
+    second: observation,
+  })),
+  invalidAuthoritativeCitationCount: 0,
+  duplicatePaidScoringCount: 0,
+  strandedWorkflowCount: 0,
+  invalidBenchmarkLabelCount: 0,
+});
+assert.equal(twoMissingInOneCell.passed, false);
+assert.ok(
+  twoMissingInOneCell.failures.includes("cell_within_half_band_below_90pct"),
+);
+assert.ok(
+  twoMissingInOneCell.failures.includes("repeat_measurement_incomplete"),
+);
+assert.ok(
+  twoMissingInOneCell.failures.includes(
+    "overall_repeat_measurement_incomplete",
+  ),
+);
+assert.equal(
+  twoMissingInOneCell.failures.includes("schema_success_below_99_5pct"),
+  false,
+);
+
+const missingDeclaredSlices = completeCoverage.map((item) => ({
+  ...item,
+  l1Group: item.skill === "ielts_speaking" ? "vi" : null,
+  audioQualityGroup: item.skill === "ielts_speaking" ? "studio" : null,
+}));
+const missingDeclaredSliceObservations = missingDeclaredSlices.map((item) => ({
+  ...item,
+  predictedBand: item.expectedBand,
+}));
+const missingDeclaredSliceGate = evaluateDerivedReleaseGate({
+  expectedObservations: missingDeclaredSlices,
+  observations: missingDeclaredSliceObservations,
+  expectedOverallObservations: perfectOverallObservations,
+  overallObservations: perfectOverallObservations,
+  coverage,
+  expectedEvaluationCount: completeCoverage.length,
+  schemaValidPredictionCount: completeCoverage.length,
+  repeatPairs: missingDeclaredSliceObservations.map((observation) => ({
+    first: observation,
+    second: observation,
+  })),
+  overallRepeatPairs: perfectOverallRepeatPairs,
+  invalidAuthoritativeCitationCount: 0,
+  duplicatePaidScoringCount: 0,
+  strandedWorkflowCount: 0,
+  invalidBenchmarkLabelCount: 0,
+});
+assert.equal(missingDeclaredSliceGate.passed, false);
+assert.ok(missingDeclaredSliceGate.failures.includes("slice_sample_below_30"));
 
 const selectedSliceCells = new Set<string>();
 const sparseBadSliceObservations = completeCoverage.map((item) => {
@@ -280,13 +392,17 @@ const sparseBadSliceObservations = completeCoverage.map((item) => {
   if (useForSlice) selectedSliceCells.add(cell);
   return {
     ...item,
-    predictedBand: useForSlice ? Math.min(9, item.expectedBand + 1) : item.expectedBand,
+    predictedBand: useForSlice
+      ? Math.min(9, item.expectedBand + 1)
+      : item.expectedBand,
     l1Group: useForSlice ? "underfilled-test-group" : null,
     audioQualityGroup: useForSlice ? "degraded" : null,
   };
 });
 const sparseBadSlice = evaluateDerivedReleaseGate({
+  expectedObservations: sparseBadSliceObservations,
   observations: sparseBadSliceObservations,
+  expectedOverallObservations: perfectOverallObservations,
   overallObservations: perfectOverallObservations,
   coverage,
   expectedEvaluationCount: completeCoverage.length,
@@ -296,8 +412,6 @@ const sparseBadSlice = evaluateDerivedReleaseGate({
     second: observation,
   })),
   overallRepeatPairs: perfectOverallRepeatPairs,
-  expectedRepeatPairCount: completeCoverage.length,
-  expectedOverallRepeatPairCount: perfectOverallObservations.length,
   invalidAuthoritativeCitationCount: 0,
   duplicatePaidScoringCount: 0,
   strandedWorkflowCount: 0,
@@ -314,10 +428,12 @@ const firstObservation = {
   predictedBand: completeCoverage[0]!.expectedBand,
 };
 const concentratedRepeats = evaluateDerivedReleaseGate({
+  expectedObservations: completeCoverage,
   observations: completeCoverage.map((item) => ({
     ...item,
     predictedBand: item.expectedBand,
   })),
+  expectedOverallObservations: perfectOverallObservations,
   overallObservations: perfectOverallObservations,
   coverage,
   expectedEvaluationCount: completeCoverage.length,
@@ -327,8 +443,6 @@ const concentratedRepeats = evaluateDerivedReleaseGate({
     second: firstObservation,
   })),
   overallRepeatPairs: perfectOverallRepeatPairs,
-  expectedRepeatPairCount: completeCoverage.length,
-  expectedOverallRepeatPairCount: perfectOverallObservations.length,
   invalidAuthoritativeCitationCount: 0,
   duplicatePaidScoringCount: 0,
   strandedWorkflowCount: 0,

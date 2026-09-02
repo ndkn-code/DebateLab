@@ -27,7 +27,9 @@ owner:ndknwork-1412s-projects:project:debate-lab:environment:production
 
 The impersonated service account
 `debatelab-vercel-publisher@thinkfy-debatelab-prod.iam.gserviceaccount.com`
-has publisher access only on `lms-material-processing`.
+is shared with AI grading and has topic-scoped publisher access only on
+`lms-material-processing` and `ai-grading-jobs`. It has no project-wide
+publisher role.
 
 Required Vercel production config:
 

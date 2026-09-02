@@ -8,6 +8,7 @@ import {
   type IeltsKnowledgeQuestionRow,
 } from "./ielts-release-corpus";
 import { buildKnowledgeIngestionPlan } from "./ingestion";
+import { buildGenericKnowledgeRpcArgs } from "./runtime";
 
 test("official IELTS calibration covers Bands 4-9 by criterion and stays review-gated", () => {
   const writing = buildOfficialIeltsKnowledgeRecords("ielts.writing");
@@ -59,6 +60,82 @@ test("official IELTS calibration covers Bands 4-9 by criterion and stays review-
       for (const band of [4, 5, 6, 7, 8, 9]) {
         assert.ok(writingCoverage.has(`${taskType}:${criterion}:${band}`));
       }
+    }
+  }
+});
+
+test("production scorer filters match every official IELTS rubric criterion", () => {
+  const cases = [
+    {
+      collection: "ielts.writing" as const,
+      taskType: "writing_task1_academic",
+      criteria: [
+        "taskResponse",
+        "coherenceCohesion",
+        "lexicalResource",
+        "grammaticalRangeAccuracy",
+      ],
+    },
+    {
+      collection: "ielts.writing" as const,
+      taskType: "writing_task1_general",
+      criteria: [
+        "taskResponse",
+        "coherenceCohesion",
+        "lexicalResource",
+        "grammaticalRangeAccuracy",
+      ],
+    },
+    {
+      collection: "ielts.writing" as const,
+      taskType: "writing_task2_essay",
+      criteria: [
+        "taskResponse",
+        "coherenceCohesion",
+        "lexicalResource",
+        "grammaticalRangeAccuracy",
+      ],
+    },
+    ...["speaking_part1", "speaking_part2_cuecard", "speaking_part3"].map(
+      (taskType) => ({
+        collection: "ielts.speaking" as const,
+        taskType,
+        criteria: [
+          "fluencyCoherence",
+          "lexicalResource",
+          "grammaticalRangeAccuracy",
+          "pronunciation",
+        ],
+      }),
+    ),
+  ];
+
+  for (const testCase of cases) {
+    const records = buildOfficialIeltsKnowledgeRecords(testCase.collection);
+    for (const criterion of testCase.criteria) {
+      const args = buildGenericKnowledgeRpcArgs({
+        collection: testCase.collection,
+        query: "adjacent band evidence",
+        purpose: "grading",
+        language: "en",
+        sourceRoute: "ielts-release-corpus-contract-test",
+        taskType: testCase.taskType,
+        criteria: [criterion],
+        targetBands: [6, 7, 8],
+      });
+      const filters = args.p_filters as Record<string, unknown>;
+      assert.ok(
+        records.items.some(
+          (item) =>
+            item.taskType === filters.taskType &&
+            item.criterion === filters.criterion &&
+            item.bandMin != null &&
+            item.bandMax != null &&
+            item.bandMax >= 6 &&
+            item.bandMin <= 8,
+        ),
+        `${testCase.taskType}/${criterion} has no matching official corpus item`,
+      );
     }
   }
 });

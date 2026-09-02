@@ -4,13 +4,16 @@ import { test } from "node:test";
 import { resolve } from "node:path";
 
 const root = resolve(import.meta.dirname, "../..");
-const migration = readFileSync(
-  resolve(
-    root,
-    "supabase/migrations/20260901200000_external_benchmark_withdrawal_verification.sql",
-  ),
-  "utf8",
+const migrationPaths = [
+  "supabase/migrations/20260901200000_external_benchmark_withdrawal_verification.sql",
+  "supabase/migrations/20260901201000_external_benchmark_withdrawal_backfill.sql",
+  "supabase/migrations/20260901202000_external_benchmark_withdrawal_verification_finalize.sql",
+];
+const migrations = migrationPaths.map((path) =>
+  readFileSync(resolve(root, path), "utf8"),
 );
+const [preparationMigration, backfillMigration, finalizeMigration] = migrations;
+const migration = migrations.join("\n");
 const runbook = readFileSync(
   resolve(root, "docs/ielts/benchmark-withdrawal-operator-runbook.md"),
   "utf8",
@@ -36,6 +39,38 @@ test("external withdrawal actors are pseudonymous and not profile-bound", () => 
     /study_actor_key[^;]*references public\.profiles/is,
   );
   assert.doesNotMatch(migration, /auth\.uid\(\)/);
+});
+
+test("withdrawal upgrade separates DDL, backfill DML, and finalization", () => {
+  assert.doesNotMatch(preparationMigration, /^\s*update\s+public\./im);
+  assert.match(
+    preparationMigration,
+    /revoke execute on function public\.withdraw_ai_grading_benchmark\(uuid, uuid\)\s+from service_role/,
+  );
+  assert.match(
+    backfillMigration,
+    /update public\.ai_grading_verified_withdrawal_receipts/,
+  );
+  assert.match(
+    backfillMigration,
+    /update public\.ai_grading_benchmark_withdrawals withdrawal/,
+  );
+  assert.doesNotMatch(backfillMigration, /^\s*alter\s+table\b/im);
+  assert.doesNotMatch(backfillMigration, /^\s*create\s+/im);
+  assert.doesNotMatch(backfillMigration, /^\s*(?:grant|revoke)\s+/im);
+  assert.match(
+    finalizeMigration,
+    /alter table public\.ai_grading_verified_withdrawal_receipts[\s\S]*drop column withdrawn_by/,
+  );
+  assert.match(
+    finalizeMigration,
+    /alter table public\.ai_grading_benchmark_withdrawals[\s\S]*drop column withdrawn_by/,
+  );
+  assert.doesNotMatch(finalizeMigration, /legacy\.request\./);
+  for (const phase of migrations) {
+    assert.match(phase, /^begin;/);
+    assert.match(phase, /commit;\s*$/);
+  }
 });
 
 test("receipt verification is independently keyed, immutable, and operator-only", () => {

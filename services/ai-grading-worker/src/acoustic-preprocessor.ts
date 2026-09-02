@@ -66,7 +66,8 @@ export interface PrepareAcousticEvidenceInput {
   reportStorageVersion: string;
   reportEtag: string;
   assessmentReceiptBytes: Uint8Array;
-  attestationSecret: string;
+  assessmentReceiptSecret: string;
+  finalAttestationSecret: string;
 }
 
 export interface AcousticAssessmentReceiptEnvelope {
@@ -193,7 +194,9 @@ function signAssessmentReceipt(
   envelope: AcousticAssessmentReceiptEnvelope,
   secret: string,
 ): string {
-  if (!secret.trim()) throw new Error("Acoustic attestation secret is required");
+  if (!secret.trim()) {
+    throw new Error("Acoustic assessment receipt secret is required");
+  }
   return createHmac("sha256", secret)
     .update(ASSESSMENT_RECEIPT_DOMAIN, "utf8")
     .update(canonicalJson(envelope), "utf8")
@@ -212,7 +215,7 @@ export function createAcousticAssessmentReceipt(input: {
   locale: string;
   audioBytes: Uint8Array;
   reportBytes: Uint8Array;
-  attestationSecret: string;
+  assessmentReceiptSecret: string;
 }): AcousticAssessmentReceipt {
   const wav = parsePronunciationWav(input.audioBytes);
   if (!(wav.durationSeconds > 0)) throw new Error("Audio is empty");
@@ -230,7 +233,10 @@ export function createAcousticAssessmentReceipt(input: {
   };
   return {
     envelope,
-    signature: signAssessmentReceipt(envelope, input.attestationSecret),
+    signature: signAssessmentReceipt(
+      envelope,
+      input.assessmentReceiptSecret,
+    ),
   };
 }
 
@@ -292,6 +298,14 @@ function verifiedAssessmentReceipt(
 export function prepareAcousticBenchmarkEvidence(
   input: PrepareAcousticEvidenceInput,
 ): PreparedAcousticEvidence {
+  if (
+    input.assessmentReceiptSecret.trim() &&
+    input.assessmentReceiptSecret === input.finalAttestationSecret
+  ) {
+    throw new Error(
+      "Assessment receipt and final attestation secrets must be distinct",
+    );
+  }
   const wav = parsePronunciationWav(input.audioBytes);
   if (!(wav.durationSeconds > 0)) throw new Error("Audio is empty");
   const transcript = nonempty(input.transcript, "Reviewed transcript");
@@ -328,7 +342,7 @@ export function prepareAcousticBenchmarkEvidence(
       model: "pronunciation-assessment",
       assessmentMode: "unscripted",
     },
-    input.attestationSecret,
+    input.assessmentReceiptSecret,
   );
   const transcriptReview: AcousticTranscriptReview = {
     ...input.transcriptReview,
@@ -421,7 +435,7 @@ export function prepareAcousticBenchmarkEvidence(
         envelope,
         signature: signAcousticAttestationForTrustedPreprocessor(
           envelope,
-          input.attestationSecret,
+          input.finalAttestationSecret,
         ),
       },
     },

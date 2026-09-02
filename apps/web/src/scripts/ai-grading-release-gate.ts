@@ -10,7 +10,7 @@ import {
 import { assertIeltsBenchmarkModelInputHash } from "@/lib/ai/benchmarks/request";
 import {
   deriveIeltsTaskBand,
-  evaluateBenchmark,
+  evaluateBenchmarkAgainstExpected,
   evaluateDerivedReleaseGate,
   normalizeIeltsCriterion,
   validateIeltsBenchmarkCoverage,
@@ -415,6 +415,14 @@ function coverageFromRow(row: JsonRecord): BenchmarkCoverageObservation[] {
   const taskType = typeof row.task_type === "string" ? row.task_type : "";
   const accentGroup =
     typeof row.accent_group === "string" ? row.accent_group : null;
+  const l1Group =
+    typeof record(row.metadata).l1Group === "string"
+      ? String(record(row.metadata).l1Group)
+      : null;
+  const audioQualityGroup =
+    typeof record(row.metadata).audioQualityGroup === "string"
+      ? String(record(row.metadata).audioQualityGroup)
+      : null;
   return Object.entries(expectedCriteria).flatMap(([criterion, label]) => {
     const expectedBand = numericBand(label);
     return expectedBand === null
@@ -427,9 +435,37 @@ function coverageFromRow(row: JsonRecord): BenchmarkCoverageObservation[] {
             expectedBand,
             taskType,
             accentGroup,
+            l1Group,
+            audioQualityGroup,
           },
         ];
   });
+}
+
+function overallCoverageFromRow(
+  row: JsonRecord,
+): BenchmarkCoverageObservation[] {
+  const expectedBand = numericBand(record(row.protected_label).overallBand);
+  if (expectedBand === null) return [];
+  return [
+    {
+      benchmarkId: String(row.id),
+      skill: typeof row.skill === "string" ? row.skill : "",
+      criterion: "overall",
+      expectedBand,
+      taskType: typeof row.task_type === "string" ? row.task_type : "",
+      accentGroup:
+        typeof row.accent_group === "string" ? row.accent_group : null,
+      l1Group:
+        typeof record(row.metadata).l1Group === "string"
+          ? String(record(row.metadata).l1Group)
+          : null,
+      audioQualityGroup:
+        typeof record(row.metadata).audioQualityGroup === "string"
+          ? String(record(row.metadata).audioQualityGroup)
+          : null,
+    },
+  ];
 }
 
 function observationsFromPrediction(params: {
@@ -569,9 +605,11 @@ async function main() {
   // A row cannot contribute coverage or accuracy until release independently
   // re-verifies its exact model input and all protected acoustic provenance.
   verifyStoredModelInputs({ rows: benchmarkRows, audioReports });
-  const coverage = validateIeltsBenchmarkCoverage(
-    benchmarkRows.flatMap(coverageFromRow),
+  const expectedObservations = benchmarkRows.flatMap(coverageFromRow);
+  const expectedOverallObservations = benchmarkRows.flatMap(
+    overallCoverageFromRow,
   );
+  const coverage = validateIeltsBenchmarkCoverage(expectedObservations);
   const observations: BenchmarkObservation[] = [];
   const overallObservations: BenchmarkObservation[] = [];
   const repeats: Array<{
@@ -656,15 +694,15 @@ async function main() {
       ? await countStrandedCohortRuns({ client, safety })
       : 1;
   const base = evaluateDerivedReleaseGate({
+    expectedObservations,
     observations,
+    expectedOverallObservations,
     overallObservations,
     coverage,
     expectedEvaluationCount: benchmarkRows.length,
     schemaValidPredictionCount,
     repeatPairs: repeats,
     overallRepeatPairs: overallRepeats,
-    expectedRepeatPairCount: observations.length,
-    expectedOverallRepeatPairCount: overallObservations.length,
     invalidAuthoritativeCitationCount,
     duplicatePaidScoringCount,
     strandedWorkflowCount,
@@ -681,8 +719,14 @@ async function main() {
           "operational_safety_evidence_missing_stale_or_inconsistent",
         ],
       };
-  const metrics = evaluateBenchmark(observations);
-  const overallMetrics = evaluateBenchmark(overallObservations);
+  const metrics = evaluateBenchmarkAgainstExpected(
+    expectedObservations,
+    observations,
+  );
+  const overallMetrics = evaluateBenchmarkAgainstExpected(
+    expectedOverallObservations,
+    overallObservations,
+  );
   process.stdout.write(
     `${JSON.stringify(
       {

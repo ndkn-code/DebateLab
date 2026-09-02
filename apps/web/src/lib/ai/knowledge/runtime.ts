@@ -260,11 +260,19 @@ export function buildGenericKnowledgeRpcArgs(
   embedding?: number[],
 ) {
   const config = getKnowledgeCollectionConfig(params.collection);
+  const isIeltsCollection = params.collection.startsWith("ielts.");
+  const taskType = isIeltsCollection
+    ? normalizeIeltsKnowledgeTaskType(params.taskType)
+    : params.taskType;
+  const criterion =
+    isIeltsCollection && params.criteria?.length === 1
+      ? normalizeIeltsKnowledgeCriterion(params.criteria[0], params.taskType)
+      : params.criteria?.[0];
   const filters: Record<string, unknown> = {
     forGrading: params.purpose === "grading",
     usage: params.purpose === "opponent" ? "coaching" : params.purpose,
     language: params.language,
-    taskType: params.taskType ?? "",
+    taskType: taskType ?? "",
     format: params.format ?? "",
     minBand: params.targetBands?.length ? Math.min(...params.targetBands) : "",
     maxBand: params.targetBands?.length ? Math.max(...params.targetBands) : "",
@@ -272,7 +280,7 @@ export function buildGenericKnowledgeRpcArgs(
     // value pins a grading/benchmark replay to one immutable publication.
     collectionVersion: params.corpusVersion ?? "",
   };
-  if (params.criteria?.length === 1) filters.criterion = params.criteria[0];
+  if (params.criteria?.length === 1) filters.criterion = criterion;
   return {
     p_query_embedding: embedding ?? null,
     p_query_text: params.query,
@@ -282,6 +290,57 @@ export function buildGenericKnowledgeRpcArgs(
     p_match_count: Math.min(Math.max(params.limit ?? 8, 1), 24),
     p_filters: filters,
   };
+}
+
+/**
+ * The public source manifests use IELTS' published terminology, while product
+ * questions use the database enum. Keep this translation at the retrieval
+ * boundary so stored provenance remains faithful and callers cannot silently
+ * miss every item through an exact SQL filter.
+ */
+export function normalizeIeltsKnowledgeTaskType(
+  taskType: string | undefined,
+): string | undefined {
+  switch (taskType) {
+    case "writing_task1_academic":
+      return "academic_task_1";
+    case "writing_task1_general":
+      return "general_training_task_1";
+    case "writing_task2_essay":
+      return "writing_task_2";
+    case "speaking_part1":
+    case "speaking_part2_cuecard":
+    case "speaking_part3":
+      return "speaking_all_parts";
+    default:
+      return taskType;
+  }
+}
+
+/** Translate scorer schema keys to the official-corpus criterion taxonomy. */
+export function normalizeIeltsKnowledgeCriterion(
+  criterion: string | undefined,
+  taskType?: string,
+): string | undefined {
+  switch (criterion) {
+    case "taskResponse":
+      return taskType === "writing_task1_academic" ||
+        taskType === "writing_task1_general" ||
+        taskType === "academic_task_1" ||
+        taskType === "general_training_task_1"
+        ? "task_achievement"
+        : "task_response";
+    case "coherenceCohesion":
+      return "coherence_and_cohesion";
+    case "lexicalResource":
+      return "lexical_resource";
+    case "grammaticalRangeAccuracy":
+      return "grammatical_range_and_accuracy";
+    case "fluencyCoherence":
+      return "fluency_and_coherence";
+    default:
+      return criterion;
+  }
 }
 
 function rrf(items: GenericKnowledgeItem[], weight = 1) {

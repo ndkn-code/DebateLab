@@ -72,3 +72,24 @@ test("failed identity verification executes no grading work", async () => {
   );
   assert.equal(processed, false);
 });
+
+test("private readiness fails closed without exposing secret values", async () => {
+  const unavailable = await routeWorkerRequest(
+    { method: "GET", path: "/readyz" },
+    {
+      readiness: () => ({
+        ready: false,
+        missing: ["GROQ_API_KEY"],
+        invalid: [],
+        capabilities: { azurePronunciation: false },
+      }),
+    },
+  );
+  assert.equal(unavailable.status, 503);
+  assert.deepEqual(unavailable.body, {
+    ready: false,
+    missing: ["GROQ_API_KEY"],
+    invalid: [],
+    capabilities: { azurePronunciation: false },
+  });
+});
