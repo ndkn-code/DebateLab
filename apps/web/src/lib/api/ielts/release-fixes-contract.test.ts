@@ -53,7 +53,7 @@ const teacherWorkspaceRollout = readFileSync(
 const coachMockBankV2 = readFileSync(
   resolve(
     process.cwd(),
-    "../../supabase/migrations/20260901083000_ielts_coach_mock_question_bank_v2.sql",
+    "../../supabase/migrations/20260901141253_ielts_coach_mock_question_bank_v2.sql",
   ),
   "utf8",
 );
