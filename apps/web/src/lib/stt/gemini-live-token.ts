@@ -88,6 +88,7 @@ export async function provisionGeminiLiveBenchmarkToken(params: {
           },
         }),
         cache: "no-store",
+        signal: AbortSignal.timeout(10_000),
       });
       const responseBody = await response.text();
       if (!response.ok) {

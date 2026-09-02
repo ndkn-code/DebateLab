@@ -65,6 +65,14 @@ const writingSubmissionService = readFileSync(
   resolve(process.cwd(), "src/lib/ielts/writing-scorer/service.ts"),
   "utf8",
 );
+const speakingResponseRepository = readFileSync(
+  resolve(process.cwd(), "src/lib/api/ielts/speaking-responses-repository.ts"),
+  "utf8",
+);
+const writingResponseRepository = readFileSync(
+  resolve(process.cwd(), "src/lib/api/ielts/writing-responses-repository.ts"),
+  "utf8",
+);
 
 test("AI telemetry constraint preserves every runtime output type", () => {
   for (const outputType of [
@@ -273,4 +281,16 @@ test("the grading kill switch runs before metering or response creation", () => 
     writingGate <
       writingSubmissionService.indexOf("await createWritingResponse("),
   );
+});
+
+test("workflow failure cannot roll a persisted IELTS score backward", () => {
+  for (const repository of [
+    speakingResponseRepository,
+    writingResponseRepository,
+  ]) {
+    assert.match(
+      repository,
+      /\.in\("status", \["pending", "scoring", "failed"\]\)/,
+    );
+  }
 });

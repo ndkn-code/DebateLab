@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 
 const FILLERS = new Set(["ah", "er", "erm", "hmm", "uh", "um"]);
@@ -18,7 +19,10 @@ export function transcriptTokens(value) {
 }
 
 export function editDistance(left, right) {
-  const previous = Array.from({ length: right.length + 1 }, (_, index) => index);
+  const previous = Array.from(
+    { length: right.length + 1 },
+    (_, index) => index,
+  );
   for (let row = 1; row <= left.length; row += 1) {
     const current = [row];
     for (let column = 1; column <= right.length; column += 1) {
@@ -55,11 +59,17 @@ export function scoreTranscript(reference, hypothesis) {
     referenceWords: expected.length,
     edits: editDistance(expected, actual),
     wordErrorRate:
-      expected.length === 0 ? (actual.length === 0 ? 0 : 1) : editDistance(expected, actual) / expected.length,
+      expected.length === 0
+        ? actual.length === 0
+          ? 0
+          : 1
+        : editDistance(expected, actual) / expected.length,
     fillerExpected: expectedFillers.length,
     fillerMatched: matchedFillers,
     fillerRecall:
-      expectedFillers.length === 0 ? null : matchedFillers / expectedFillers.length,
+      expectedFillers.length === 0
+        ? null
+        : matchedFillers / expectedFillers.length,
   };
 }
 
@@ -70,12 +80,16 @@ export function summarizeBenchmark(rows) {
       ? null
       : values.reduce((sum, value) => sum + value, 0) / values.length;
   const aggregate = (provider) => {
-    const providerRows = successful
+    // Provider completion and quality are independent. Do not erase one
+    // provider's success merely because its paired request failed.
+    const providerRows = rows
       .map((row) => row.providers?.[provider])
       .filter((row) => row?.status === "ok");
     return {
       completed: providerRows.length,
-      meanWordErrorRate: mean(providerRows.map((row) => row.quality.wordErrorRate)),
+      meanWordErrorRate: mean(
+        providerRows.map((row) => row.quality.wordErrorRate),
+      ),
       meanFillerRecall: mean(
         providerRows
           .map((row) => row.quality.fillerRecall)
@@ -96,13 +110,60 @@ export function summarizeBenchmark(rows) {
   };
 }
 
+export function validateBenchmarkConsent(consent) {
+  const validSynthetic =
+    consent?.dataClass === "synthetic" &&
+    consent.containsPersonalData === false &&
+    typeof consent.speaker === "string" &&
+    consent.speaker.trim().length > 0;
+  const validHuman =
+    consent?.dataClass === "human_adult_consented" &&
+    consent.containsPersonalData === true &&
+    typeof consent.speaker === "string" &&
+    consent.speaker.trim().length > 0 &&
+    typeof consent.consentReference === "string" &&
+    consent.consentReference.trim().length > 0;
+  if (!validSynthetic && !validHuman) {
+    throw new Error(
+      "Benchmark manifest requires explicit synthetic or consented-adult data classification.",
+    );
+  }
+  return consent;
+}
+
+export function redactHumanTranscriptRows(rows, consent) {
+  if (consent.dataClass !== "human_adult_consented") return rows;
+  return rows.map((row) => ({
+    ...row,
+    providers: Object.fromEntries(
+      Object.entries(row.providers).map(([provider, result]) => {
+        if (result.status !== "ok") return [provider, result];
+        const { transcript, ...safeResult } = result;
+        return [
+          provider,
+          {
+            ...safeResult,
+            transcriptSha256: createHash("sha256")
+              .update(transcript, "utf8")
+              .digest("hex"),
+          },
+        ];
+      }),
+    ),
+  }));
+}
+
 function readAscii(buffer, offset, size) {
   return buffer.subarray(offset, offset + size).toString("ascii");
 }
 
 export async function readPcm16MonoWav(path) {
   const wav = await readFile(path);
-  if (wav.length < 44 || readAscii(wav, 0, 4) !== "RIFF" || readAscii(wav, 8, 4) !== "WAVE") {
+  if (
+    wav.length < 44 ||
+    readAscii(wav, 0, 4) !== "RIFF" ||
+    readAscii(wav, 8, 4) !== "WAVE"
+  ) {
     throw new Error(`Unsupported WAV container: ${path}`);
   }
   let offset = 12;
@@ -112,7 +173,8 @@ export async function readPcm16MonoWav(path) {
     const id = readAscii(wav, offset, 4);
     const size = wav.readUInt32LE(offset + 4);
     const body = offset + 8;
-    if (body + size > wav.length) throw new Error(`Truncated WAV chunk: ${path}`);
+    if (body + size > wav.length)
+      throw new Error(`Truncated WAV chunk: ${path}`);
     if (id === "fmt ") {
       format = {
         encoding: wav.readUInt16LE(body),
@@ -133,7 +195,9 @@ export async function readPcm16MonoWav(path) {
     format.bitsPerSample !== 16 ||
     !pcm
   ) {
-    throw new Error(`Benchmark audio must be 16-bit PCM, mono, 16 kHz: ${path}`);
+    throw new Error(
+      `Benchmark audio must be 16-bit PCM, mono, 16 kHz: ${path}`,
+    );
   }
   return { pcm, durationMs: (pcm.length / 2 / format.sampleRate) * 1000 };
 }

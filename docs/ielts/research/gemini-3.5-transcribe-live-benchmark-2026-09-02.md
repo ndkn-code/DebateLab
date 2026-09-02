@@ -28,22 +28,22 @@ UUID allowlist.
 - Deepgram: `nova-3`, current post-recording production-style request.
 - Punctuation and casing ignored for word error rate; fillers and repetitions
   retained.
-- One Gemini session initially closed with WebSocket code 1011 after five
-  consecutive sessions. The exact case passed after cooldown and is included
-  in the six-case quality aggregate. The first failure remains a reliability
-  warning rather than being discarded.
+- The sixth consecutive Gemini session closed with WebSocket code 1011 in two
+  separate six-case runs. The exact case passed after cooldown. This looks like
+  a burst/session quota or capacity limit and is a release blocker until a
+  load test establishes the safe concurrency and retry envelope.
 
 This is a technical smoke benchmark, not the locked examiner benchmark and not
 a substitute for adult, consented, accent-balanced human speech.
 
 ## Result
 
-| Metric                               | Gemini Live | Deepgram Nova-3 | Interpretation                                 |
-| ------------------------------------ | ----------: | --------------: | ---------------------------------------------- |
-| Completed after cooldown             |         6/6 |             6/6 | Gemini had one transient 1011 on the first run |
-| Word error rate                      |       2.11% |           1.05% | Deepgram was more accurate on this sample      |
-| Filler recall                        |   50% (2/4) |       75% (3/4) | Neither meets an IELTS fluency-evidence gate   |
-| Mean final latency after audio ended |      244 ms |          617 ms | Gemini saved about 373 ms, or 60%              |
+| Metric                                     | Gemini Live | Deepgram Nova-3 | Interpretation                                     |
+| ------------------------------------------ | ----------: | --------------: | -------------------------------------------------- |
+| Consecutive first-pass completion          |         5/6 |             6/6 | Gemini's sixth session failed twice with code 1011 |
+| Word error rate on five paired successes   |       2.35% |           1.18% | Deepgram was more accurate on this sample          |
+| Filler recall by token on paired successes |   50% (2/4) |       75% (3/4) | Neither meets an IELTS fluency-evidence gate       |
+| Mean final latency on paired successes     |      269 ms |          865 ms | Gemini saved about 595 ms, or 69%                  |
 
 The latency comparison reflects the intended product paths: streaming Gemini
 versus the current post-recording Deepgram request. It is not a provider-only

@@ -3,8 +3,10 @@ import test from "node:test";
 import {
   appendZeroPreRoll,
   normalizeTranscript,
+  redactHumanTranscriptRows,
   scoreTranscript,
   summarizeBenchmark,
+  validateBenchmarkConsent,
 } from "./gemini-live-benchmark-core.mjs";
 
 test("normalizes punctuation without erasing fillers or repetitions", () => {
@@ -48,10 +50,49 @@ test("summarizes only successful provider observations", () => {
         },
       },
     },
-    { status: "failed", providers: {} },
+    {
+      status: "failed",
+      providers: {
+        gemini: {
+          status: "ok",
+          quality: { wordErrorRate: 0.2, fillerRecall: 0 },
+          timing: { finalAfterAudioEndMs: 350 },
+        },
+        deepgram: { status: "failed" },
+      },
+    },
   ]);
   assert.equal(summary.cases, 2);
   assert.equal(summary.completedCases, 1);
-  assert.equal(summary.gemini.meanFinalAfterAudioEndMs, 250);
+  assert.equal(summary.gemini.completed, 2);
+  assert.equal(summary.gemini.meanFinalAfterAudioEndMs, 300);
+  assert.equal(summary.deepgram.completed, 1);
   assert.equal(summary.deepgram.meanWordErrorRate, 0.1);
+});
+
+test("consent classification is mandatory and human transcripts are redacted", () => {
+  assert.throws(
+    () => validateBenchmarkConsent(undefined),
+    /explicit synthetic/,
+  );
+  const consent = validateBenchmarkConsent({
+    dataClass: "human_adult_consented",
+    containsPersonalData: true,
+    speaker: "adult-001",
+    consentReference: "consent-receipt-001",
+  });
+  const rows = redactHumanTranscriptRows(
+    [
+      {
+        providers: {
+          gemini: { status: "ok", transcript: "private speech" },
+          deepgram: { status: "failed", error: "timeout" },
+        },
+      },
+    ],
+    consent,
+  );
+  assert.equal(rows[0].providers.gemini.transcript, undefined);
+  assert.match(rows[0].providers.gemini.transcriptSha256, /^[a-f0-9]{64}$/);
+  assert.equal(rows[0].providers.deepgram.error, "timeout");
 });

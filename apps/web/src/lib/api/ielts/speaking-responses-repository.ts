@@ -307,7 +307,10 @@ export async function markSpeakingScoringFailed(
       status: params.retryable ? "pending" : "failed",
       updated_at: now,
     })
-    .eq("id", params.speakingResponseId);
+    .eq("id", params.speakingResponseId)
+    // Persistence may already have committed a valid score before a later
+    // attempt-level aggregation failed. Never roll a terminal score backward.
+    .in("status", ["pending", "scoring", "failed"]);
   if (error) {
     throw new Error(`markSpeakingScoringFailed failed: ${error.message}`);
   }

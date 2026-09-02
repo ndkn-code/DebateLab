@@ -444,7 +444,7 @@ test("a Speaking request binds and carries locked acoustic evidence into preflig
   assert.match(request.messages[0]!.content, /overall 72\/100/);
   assert.match(request.messages[0]!.content, /experiments/);
   assert.match(request.messages[0]!.content, /who the person was/);
-  assert.match(request.messages[0]!.content, /helpful teacher/);
+  assert.doesNotMatch(request.messages[0]!.content, /helpful teacher/);
 
   const lockedInput = {
     ...input,

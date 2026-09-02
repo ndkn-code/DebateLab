@@ -370,7 +370,10 @@ export async function markWritingScoringFailed(
       status: params.retryable ? "pending" : "failed",
       updated_at: now,
     })
-    .eq("id", params.writingResponseId);
+    .eq("id", params.writingResponseId)
+    // Persistence may already have committed a valid score before a later
+    // attempt-level aggregation failed. Never roll a terminal score backward.
+    .in("status", ["pending", "scoring", "failed"]);
   if (error) {
     throw new Error(`markWritingScoringFailed failed: ${error.message}`);
   }
