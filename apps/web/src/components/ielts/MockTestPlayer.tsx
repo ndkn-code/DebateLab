@@ -9,6 +9,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { ieltsPaths, localizedPath } from "@/lib/ielts/routes";
 import { useTranslations } from "next-intl";
 import posthog from "posthog-js";
 import type {
@@ -267,7 +268,12 @@ export function MockTestPlayer({
       // Keep the immutable attempt addressable so a refresh resumes against
       // its snapshot instead of reconstructing from the live test.
       router.replace(
-        `/${params.locale}/ielts/mock/${activeStructure.test.slug}?attempt=${startedAttempt.attempt.id}`,
+        localizedPath(
+          params.locale,
+          ieltsPaths.mock(activeStructure.test.slug, {
+            attempt: startedAttempt.attempt.id,
+          }),
+        ),
       );
     }, "start");
 
@@ -343,7 +349,7 @@ export function MockTestPlayer({
       // funnel back there — the plan, not the raw results page. Self-serve mocks
       // (no returnHref) go to full results.
       const destination =
-        returnHref ?? `/${params.locale}/ielts/attempts/${attemptId}/results`;
+        returnHref ?? localizedPath(params.locale, ieltsPaths.results(attemptId));
       if (assessmentMode === "simulation") {
         // Simulation results can remain in `grading` until Writing finishes;
         // never flash a partial overall band as if the exam were complete.
@@ -367,7 +373,7 @@ export function MockTestPlayer({
           error={error}
           supportCode={supportCode}
           onStart={handleStart}
-          backHref={returnHref ?? `/${params.locale}/ielts/tests`}
+          backHref={returnHref ?? localizedPath(params.locale, ieltsPaths.tests)}
         />
       </div>
     );
@@ -375,7 +381,7 @@ export function MockTestPlayer({
 
   if (phase === "done" && grade) {
     const resultsHref = attemptId
-      ? `/${params.locale}/ielts/attempts/${attemptId}/results`
+      ? localizedPath(params.locale, ieltsPaths.results(attemptId))
       : null;
     return (
       <MockBandSummary

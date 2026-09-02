@@ -10,6 +10,7 @@ import { useTranslations } from "next-intl";
 import { ChevronRight } from "@/components/ui/icons";
 import { bandText } from "@/components/ielts/results/format";
 import type { LearnerAssignedTest } from "@/lib/api/ielts/learner-assignments-repository";
+import { ieltsPaths, localizedPath } from "@/lib/ielts/routes";
 import { ASSIGNMENT_STATE_PILL } from "./state-pill";
 
 function formatDate(iso: string | null, locale: string): string | null {
@@ -37,11 +38,15 @@ function AssignedCard({
   const showResults =
     (state === "completed" || state === "submitted") &&
     Boolean(resultAttemptId);
-  const href = showResults
-    ? `/${locale}/ielts/attempts/${resultAttemptId}/results`
-    : test.testSlug
-      ? `/${locale}/ielts/mock/${test.testSlug}?assignment=${test.assignmentId}`
-      : null;
+  const href =
+    showResults && resultAttemptId
+      ? localizedPath(locale, ieltsPaths.results(resultAttemptId))
+      : test.testSlug
+        ? localizedPath(
+            locale,
+            ieltsPaths.mock(test.testSlug, { assignment: test.assignmentId }),
+          )
+        : null;
   const ctaLabel = showResults
     ? t("learner.viewResults")
     : state === "in_progress"

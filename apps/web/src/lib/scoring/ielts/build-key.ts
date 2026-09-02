@@ -123,8 +123,20 @@ function buildBlankKey(
   if (mode === "text") {
     return { mode, accept: dedupe(authored.flatMap(expandKeyAlternatives)) };
   }
-  // select accepts the canonical option id(s) plus any variants verbatim.
-  return { mode, accept: dedupe(authored) };
+  // select accepts the canonical option id(s) plus any variants verbatim —
+  // verdict tokens authored as display text (`TRUE`, `NOT GIVEN`) are folded
+  // onto the registry option ids so legacy keys keep grading.
+  return { mode, accept: dedupe(authored.map(canonicalSelectId)) };
+}
+
+const VERDICT_TOKEN = /^(?:true|false|yes|no|not[ _-]?given)$/i;
+
+/** Option ids are compared verbatim, except verdict tokens which fold to ids. */
+export function canonicalSelectId(value: string): string {
+  const trimmed = value.trim();
+  return VERDICT_TOKEN.test(trimmed)
+    ? trimmed.toLowerCase().replace(/[\s-]+/g, "_")
+    : trimmed;
 }
 
 export function buildAnswerKey(

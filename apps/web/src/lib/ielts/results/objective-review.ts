@@ -35,6 +35,10 @@ import {
 import { buildAnswerKey } from "@/lib/scoring/ielts/build-key";
 import { gradeQuestion } from "@/lib/scoring/ielts/grade-question";
 import type {
+  IeltsQuestionView as IeltsPlayerQuestionView,
+  IeltsResponseMap,
+} from "@/lib/ielts/question-contract";
+import type {
   AttemptResultsInput,
   ObjectiveReviewItem,
   ObjectiveReviewPart,
@@ -188,6 +192,33 @@ function partKeyFor(question: ResultsObjectiveQuestion, skill: ObjectiveSkillKey
   return `${skill}:general`;
 }
 
+/** Player-shaped view (placement fields added) so group blocks can be rebuilt. */
+function toPlayerView(
+  question: ResultsObjectiveQuestion,
+  orderIndex: number,
+): IeltsPlayerQuestionView {
+  const source = question.source ?? null;
+  return {
+    ...question.view,
+    orderIndex,
+    groupKey: question.groupKey ?? null,
+    passageId: source?.kind === "reading" ? (source.partId ?? null) : null,
+    listeningSectionId:
+      source?.kind === "listening" ? (source.partId ?? null) : null,
+  };
+}
+
+/** questionId → stored response for every answered objective question. */
+export function buildObjectiveResponses(
+  questions: readonly ResultsObjectiveQuestion[],
+): IeltsResponseMap {
+  const responses: IeltsResponseMap = {};
+  for (const question of questions) {
+    if (question.response != null) responses[question.view.id] = question.response;
+  }
+  return responses;
+}
+
 /** Split a skill's items into passage / section parts, in first-seen order. */
 function buildParts(
   questions: ResultsObjectiveQuestion[],
@@ -208,10 +239,12 @@ function buildParts(
         sourceText: source?.text ?? null,
         audioUrl: source?.audioUrl ?? null,
         items: [],
+        questions: [],
       };
       parts.set(key, part);
     }
     part.items.push(items[index]);
+    part.questions.push(toPlayerView(question, index));
   });
   return [...parts.values()];
 }

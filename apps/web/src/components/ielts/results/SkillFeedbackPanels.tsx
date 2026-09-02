@@ -1,14 +1,12 @@
 /**
- * Writing & Speaking result panels (WS-2.2). Renders the typed per-criterion
- * bands + transparency feedback the AI scorers (WS-3.1/3.2) persist, with a
- * graceful "scoring in progress" state while a response is still being marked
- * (so the page integrates cleanly as those cards land). Server component.
+ * Writing result panel (WS-2.2) plus the helpers the Speaking panel
+ * (`SpeakingResultPanel.tsx`) shares. Renders the typed per-criterion bands +
+ * transparency feedback the AI scorers (WS-3.1/3.2) persist, with a graceful
+ * "scoring in progress" state while a response is still being marked.
  */
 import type {
   CriterionScore,
   ResultsInlineCorrection,
-  SpeakingPartResult,
-  SpeakingResult,
   WritingEssayParagraph,
   WritingResult,
   WritingTaskResult,
@@ -20,17 +18,16 @@ import {
   type GradingProcessStatus,
 } from "@/components/ielts/learner/GradingResultDetails";
 import { bandText } from "./format";
-import { PronunciationHeatmap } from "./PronunciationDetails";
 import {
   interpolateResultCopy as interpolate,
   useSkillFeedbackCopy as useResultCopy,
 } from "./skill-feedback-copy";
 
-function isScored(status: string): boolean {
+export function isScored(status: string): boolean {
   return status === "scored" || status === "overridden";
 }
 
-function CriteriaList({ criteria }: { criteria: CriterionScore[] }) {
+export function CriteriaList({ criteria }: { criteria: CriterionScore[] }) {
   const copy = useResultCopy();
   return (
     <ul className="flex flex-col gap-2">
@@ -59,7 +56,7 @@ function CriteriaList({ criteria }: { criteria: CriterionScore[] }) {
   );
 }
 
-function PendingNote({ skill }: { skill: string }) {
+export function PendingNote({ skill }: { skill: string }) {
   const copy = useResultCopy();
   return (
     <p className="rounded-xl bg-warning-container px-3 py-2 type-body-sm text-on-warning-container">
@@ -68,7 +65,7 @@ function PendingNote({ skill }: { skill: string }) {
   );
 }
 
-function TeacherPublishedNote({
+export function TeacherPublishedNote({
   note,
   locale,
 }: {
@@ -78,7 +75,7 @@ function TeacherPublishedNote({
   if (!note) return null;
   const vietnamese = locale.toLowerCase().startsWith("vi");
   return (
-    <div className="rounded-xl border border-primary/30 bg-primary-container/35 px-3 py-2">
+    <div className="rounded-xl border border-outline-variant bg-primary-container px-3 py-2">
       <p className="type-caption font-semibold uppercase text-on-primary-container">
         {vietnamese
           ? "Phản hồi giáo viên đã công bố"
@@ -118,7 +115,7 @@ function Corrections({ items }: { items: ResultsInlineCorrection[] }) {
   );
 }
 
-function Prompt({ text }: { text: string | null }) {
+export function Prompt({ text }: { text: string | null }) {
   if (!text) return null;
   return (
     <p className="rounded-xl bg-surface-container-low px-3 py-2 type-body-sm text-on-surface">
@@ -127,7 +124,7 @@ function Prompt({ text }: { text: string | null }) {
   );
 }
 
-function ModelAnswer({ text }: { text: string | null }) {
+export function ModelAnswer({ text }: { text: string | null }) {
   const copy = useResultCopy();
   if (!text) return null;
   return (
@@ -293,98 +290,6 @@ export function WritingResultPanel({ writing }: { writing: WritingResult }) {
       </div>
       {writing.tasks.map((task) => (
         <WritingTaskCard key={task.questionId} task={task} />
-      ))}
-    </section>
-  );
-}
-
-function SpeakingPartCard({ part }: { part: SpeakingPartResult }) {
-  const locale = useLocale();
-  const copy = useResultCopy();
-  const label = part.partNumber
-    ? interpolate(copy.part, part.partNumber)
-    : copy.speakingResponse;
-  const hasTranscript = part.transcript.trim().length > 0;
-  const grading = gradingPresentationFromResult(part);
-  return (
-    <div className="rounded-xl border border-outline-variant bg-surface-container p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="type-title text-on-surface">{label}</h3>
-        <span className="type-body-sm text-on-surface-variant">
-          {copy.band}{" "}
-          <span className="font-bold text-on-surface tabular-nums">
-            {bandText(part.band)}
-          </span>
-        </span>
-      </div>
-      {part.prompt || hasTranscript ? (
-        <div className="mt-3 flex flex-col gap-3">
-          <Prompt text={part.prompt} />
-          {hasTranscript ? (
-            <div className="rounded-xl border border-outline-variant bg-surface px-3 py-2">
-              <p className="type-caption font-semibold uppercase text-on-surface-variant">
-                {copy.transcript}
-              </p>
-              <p className="mt-1 whitespace-pre-wrap type-body-sm text-on-surface">
-                {part.transcript}
-              </p>
-            </div>
-          ) : null}
-        </div>
-      ) : null}
-      {grading ? (
-        <div className="mt-3">
-          <GradingResultDetails
-            criteria={part.criteria}
-            metadata={grading.metadata}
-            retrySafeRunId={grading.retrySafeRunId}
-            status={part.status as GradingProcessStatus}
-            locale={locale}
-          />
-        </div>
-      ) : null}
-      {isScored(part.status) ? (
-        <div className="mt-3 flex flex-col gap-3">
-          <TeacherPublishedNote note={part.teacherFeedback} locale={locale} />
-          {grading ? null : <CriteriaList criteria={part.criteria} />}
-          {part.summary ? (
-            <p className="type-body-sm text-on-surface">{part.summary}</p>
-          ) : null}
-          <PronunciationHeatmap heatmap={part.pronunciationHeatmap} />
-        </div>
-      ) : (
-        <div className="mt-3">
-          <PendingNote skill={label} />
-        </div>
-      )}
-      {part.modelAnswer ? (
-        <div className="mt-3">
-          <ModelAnswer text={part.modelAnswer} />
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-export function SpeakingResultPanel({
-  speaking,
-}: {
-  speaking: SpeakingResult;
-}) {
-  const copy = useResultCopy();
-  return (
-    <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h2 className="type-heading-md text-on-surface">{copy.speaking}</h2>
-        <span className="type-body-sm text-on-surface-variant">
-          {copy.band}{" "}
-          <span className="font-bold text-on-surface tabular-nums">
-            {bandText(speaking.band)}
-          </span>
-        </span>
-      </div>
-      {speaking.parts.map((part) => (
-        <SpeakingPartCard key={part.questionId} part={part} />
       ))}
     </section>
   );

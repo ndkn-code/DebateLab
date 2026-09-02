@@ -15,6 +15,10 @@ import type {
   IeltsQuestionView,
   IeltsVerdict,
 } from "@/lib/ielts/question-types/types";
+import type {
+  IeltsQuestionView as IeltsPlayerQuestionView,
+  IeltsResponseMap,
+} from "@/lib/ielts/question-contract";
 import type { IeltsQuestionGroupView } from "@/lib/ielts/question-types/groups";
 import type { BandConversionRow } from "@/lib/scoring/ielts/band-conversion";
 import type { WritingResponseStatus } from "@/lib/ielts/writing-scorer/status";
@@ -240,6 +244,11 @@ export interface ObjectiveReviewPart {
   /** Listening: public URL of the section audio; null otherwise. */
   audioUrl: string | null;
   items: ObjectiveReviewItem[];
+  /**
+   * Player-shaped question views (with placement fields), parallel to `items`,
+   * so the review can rebuild group blocks and render the set widgets read-only.
+   */
+  questions: IeltsPlayerQuestionView[];
 }
 
 export interface ObjectiveReviewSection {
@@ -380,6 +389,8 @@ export interface AttemptResultsViewModel {
   objective: ObjectiveReviewSection[];
   /** Question groups (shared banks / stimuli) referenced by `groupKey` on items. */
   groups: IeltsQuestionGroupView[];
+  /** questionId → the learner's stored response envelope (objective questions only). */
+  responses: IeltsResponseMap;
   writing: WritingResult | null;
   speaking: SpeakingResult | null;
 }

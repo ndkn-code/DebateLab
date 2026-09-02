@@ -127,4 +127,21 @@ assert.deepEqual(expandKeyAlternatives("  "), []);
   assert.deepEqual(key.blanks["0"], { mode: "select", accept: ["a/b"] });
 }
 
+// verdict tokens authored as display text fold onto option ids
+{
+  const key = buildAnswerKey(
+    { correctAnswer: { "0": "NOT GIVEN" }, acceptVariants: {} },
+    { family: "single_select", hasOptionBank: true },
+  );
+  assert.deepEqual(key.blanks["0"].accept, ["not_given"]);
+  assert.deepEqual(
+    buildAnswerKey({ correctAnswer: { "0": "TRUE" }, acceptVariants: {} }, { family: "single_select", hasOptionBank: true }).blanks["0"].accept,
+    ["true"],
+  );
+  assert.deepEqual(
+    buildAnswerKey({ correctAnswer: { "0": "B" }, acceptVariants: {} }, { family: "matching", hasOptionBank: true }).blanks["0"].accept,
+    ["B"],
+  );
+}
+
 console.log("scoring/ielts/build-key tests passed");

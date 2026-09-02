@@ -10,6 +10,7 @@ import {
 } from "@/lib/api/ielts/study-plan-repository";
 import { loadIeltsBandPrediction } from "@/lib/api/ielts/band-prediction-repository";
 import { DEFAULT_IELTS_TARGET_BAND } from "@/lib/ielts/adaptive/contracts";
+import { ieltsPaths } from "@/lib/ielts/routes";
 import {
   defaultIeltsOnboardingGoal,
   goalFromStudyPlanRow,
@@ -52,7 +53,7 @@ function diagnosticHrefFor(
 ): string | null {
   if (!slug) return null;
   const returnTo = `/${locale}/ielts/onboarding?step=result`;
-  return `/ielts/mock/${slug}?returnTo=${encodeURIComponent(returnTo)}`;
+  return ieltsPaths.mock(slug, { returnTo });
 }
 
 async function IeltsOnboardingPayload({

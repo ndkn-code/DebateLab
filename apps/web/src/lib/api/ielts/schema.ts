@@ -102,7 +102,17 @@ export function toIeltsTestInsert(
     time_limit_seconds: input.timeLimitSeconds ?? null,
     description: input.description ?? null,
     metadata: input.metadata,
+    // Mirrors the DB CHECK ielts_tests_assessment_mode_kind_check: a full
+    // mock is always sat as a timed simulation; sets and drills are practice.
+    assessment_mode: assessmentModeForKind(input.kind),
   };
+}
+
+/** The `assessment_mode` a test kind must carry (DB CHECK on `ielts_tests`). */
+export function assessmentModeForKind(
+  kind: (typeof IELTS_TEST_KINDS)[number],
+): "simulation" | "practice" {
+  return kind === "full_mock" ? "simulation" : "practice";
 }
 
 /**
@@ -133,7 +143,10 @@ export function toIeltsTestUpdate(
 ): TablesUpdate<"ielts_tests"> {
   const patch: TablesUpdate<"ielts_tests"> = {};
   if (input.title !== undefined) patch.title = input.title;
-  if (input.kind !== undefined) patch.kind = input.kind;
+  if (input.kind !== undefined) {
+    patch.kind = input.kind;
+    patch.assessment_mode = assessmentModeForKind(input.kind);
+  }
   if (input.module !== undefined) patch.module = input.module;
   if (input.skill !== undefined) patch.skill = input.skill ?? null;
   if (input.timeLimitSeconds !== undefined) {

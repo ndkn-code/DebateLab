@@ -357,6 +357,13 @@ assert.deepEqual(readingParts[0].items.map((i) => i.questionId), ["r1", "r2"]);
 const listeningParts = parts.find((s) => s.skill === "listening")!.parts;
 assert.equal(listeningParts[0].audioUrl, "https://cdn/sections/s-1.mp3?v=2");
 assert.equal(listeningParts[0].sourceText, "Transcript.");
+// Parts carry player-shaped views parallel to items, with placement fields.
+assert.deepEqual(readingParts[0].questions.map((q) => q.id), ["r1", "r2"]);
+assert.equal(readingParts[0].questions[0].passageId, "p-1");
+assert.equal(readingParts[0].questions[0].listeningSectionId, null);
+assert.equal(readingParts[1].questions[0].orderIndex, 2);
+assert.equal(listeningParts[0].questions[0].listeningSectionId, "s-1");
+assert.equal(listeningParts[0].questions[0].passageId, null);
 // Items without a source fall into a single per-skill part.
 assert.equal(mcq[0].parts.length, 1);
 assert.equal(mcq[0].parts[0].partId, "reading:general");

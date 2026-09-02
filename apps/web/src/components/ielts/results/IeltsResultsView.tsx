@@ -4,8 +4,8 @@
  * IELTS attempt results — the post-attempt experience (WS-2.2). A server
  * client presentation: it renders the serialisable {@link AttemptResultsViewModel} the
  * page builds (per-skill bands, the overall, the raw→band breakdown, the
- * per-question review, and Writing/Speaking panels). No interactivity beyond
- * native `<details>`, so nothing ships to the client. Design-system tokens only.
+ * per-skill review tabs). Momentum surface: the band hero and meters stay
+ * warm; the review area below is calm and data-first. Design-system tokens only.
  */
 import type {
   AttemptResultsViewModel,
@@ -17,9 +17,8 @@ import {
   type IeltsBandTargets,
 } from "@/lib/ielts/band-visuals";
 import { BandGauge, BandMeter } from "@/components/ielts/band-visuals";
-import { ObjectiveReviewList } from "./ObjectiveReviewList";
 import { RawBandBreakdown } from "./RawBandBreakdown";
-import { SpeakingResultPanel, WritingResultPanel } from "./SkillFeedbackPanels";
+import { ResultsReviewTabs } from "./review/ResultsReviewTabs";
 import { STATUS_PILL } from "./format";
 import { useLocale } from "next-intl";
 
@@ -191,14 +190,7 @@ export function IeltsResultsView({
         <RawBandBreakdown breakdowns={model.breakdowns} />
       ) : null}
 
-      {model.objective.length > 0 ? (
-        <ObjectiveReviewList sections={model.objective} />
-      ) : null}
-
-      {model.writing ? <WritingResultPanel writing={model.writing} /> : null}
-      {model.speaking ? (
-        <SpeakingResultPanel speaking={model.speaking} />
-      ) : null}
+      <ResultsReviewTabs model={model} />
     </div>
   );
 }

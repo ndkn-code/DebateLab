@@ -4,6 +4,7 @@
  * Speaking (three-part set). No Listening in this fixture.
  */
 import type { AuthoredBankOption, AuthoredGroup, AuthoredPassage, AuthoredQuestion, AuthoredTest } from "./types";
+import { FORMAT_SHOWCASE_ACADEMIC } from "./academic";
 
 /** Mirrors GT_READING_BAND_CONVERSION_KEY in scripts/ielts/general-training-mocks-01-04.ts. */
 export const GT_BAND_CONVERSION_KEY = "general_training";
@@ -260,6 +261,39 @@ const speakingQuestions: AuthoredQuestion[] = [
   })),
 ];
 
+
+/**
+ * The official IELTS Listening test is identical for Academic and General
+ * Training candidates, so the GT mock reuses the Academic listening content
+ * (sections, groups, questions, map asset) under GT import ids.
+ */
+function gtImportId(id: string): string {
+  return id.replace(/^fsa-/, "fsg-");
+}
+const listeningAssets = FORMAT_SHOWCASE_ACADEMIC.assets.filter((asset) =>
+  FORMAT_SHOWCASE_ACADEMIC.groups.some(
+    (g) => g.skill === "listening" && g.stimulus?.kind === "image" && g.stimulus.assetImportId === asset.importId,
+  ),
+);
+const listeningSections = FORMAT_SHOWCASE_ACADEMIC.listeningSections.map((section) => ({
+  ...section,
+  importId: gtImportId(section.importId),
+}));
+const listeningGroups: AuthoredGroup[] = FORMAT_SHOWCASE_ACADEMIC.groups
+  .filter((g) => g.skill === "listening")
+  .map((g) => ({
+    ...g,
+    importId: gtImportId(g.importId),
+    sectionImportId: g.sectionImportId ? gtImportId(g.sectionImportId) : undefined,
+  }));
+const listeningQuestions: AuthoredQuestion[] = FORMAT_SHOWCASE_ACADEMIC.questions
+  .filter((q) => q.skill === "listening")
+  .map((q) => ({
+    ...q,
+    importId: gtImportId(q.importId),
+    sectionImportId: q.sectionImportId ? gtImportId(q.sectionImportId) : undefined,
+  }));
+
 export const FORMAT_SHOWCASE_GENERAL: AuthoredTest = {
   slug: "format-showcase-general",
   title: "Format Showcase — General Training",
@@ -269,9 +303,9 @@ export const FORMAT_SHOWCASE_GENERAL: AuthoredTest = {
   kind: "full_mock",
   bandConversionKey: GT_BAND_CONVERSION_KEY,
   timeLimitSeconds: 10800,
-  assets: [],
+  assets: [...listeningAssets],
   passages,
-  listeningSections: [],
-  groups,
-  questions: [...readingQuestions, ...writingQuestions, ...speakingQuestions],
+  listeningSections,
+  groups: [...listeningGroups, ...groups],
+  questions: [...listeningQuestions, ...readingQuestions, ...writingQuestions, ...speakingQuestions],
 };

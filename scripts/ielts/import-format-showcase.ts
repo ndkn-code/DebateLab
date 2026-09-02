@@ -270,7 +270,9 @@ function questionInput(
     listeningSectionId: linkedId(sections, q.sectionImportId, "listening section", q.importId),
     groupKey: q.groupKey ?? null, groupInstructions: q.groupInstructions ?? null,
     options: bankInput(q.options).map((o) => (typeof o === "string" ? o : o.text)),
-    maxPoints: q.maxPoints ?? 1, wordLimit: q.wordLimit ?? null,
+    maxPoints: q.maxPoints ?? 1,
+    // Objective word caps only; Writing minimums (150/250) come from the capture layer.
+    wordLimit: q.skill === "writing" || q.skill === "speaking" ? null : (q.wordLimit ?? null),
     visual: visualInput(q.visual, assets), metadata: questionMetadata(q),
     correctAnswer: q.correctAnswer, acceptVariants: q.acceptVariants,
     explanationEn: q.explanationEn, explanationVi: q.explanationVi,

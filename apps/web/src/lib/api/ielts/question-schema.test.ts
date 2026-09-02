@@ -29,12 +29,12 @@ assert.equal(questionCategory("speaking_part1"), "speaking");
     correctAnswer: "f",
     explanationEn: "Para 2 says forty years.",
   });
-  assert.equal(q.correctAnswer, "FALSE");
+  assert.equal(q.correctAnswer, "false"); // stored as the registry option id
   assert.equal(q.explanationEn, "Para 2 says forty years.");
   const args = toCreateQuestionArgs(q);
   assert.equal(args.p_test_id, TID);
   assert.equal(args.p_skill, "reading");
-  assert.equal(args.p_correct_answer, "FALSE");
+  assert.equal(args.p_correct_answer, "false");
 }
 
 // invalid TF/NG token is rejected
@@ -157,10 +157,10 @@ assert.throws(() =>
     prompt: "Claim",
     correctAnswer: "y",
   });
-  assert.equal(u.correctAnswer, "YES");
+  assert.equal(u.correctAnswer, "yes");
   const args = toUpdateQuestionArgs(u);
   assert.equal(args.p_question_id, QID);
-  assert.equal(args.p_correct_answer, "YES");
+  assert.equal(args.p_correct_answer, "yes");
 }
 
 // ---- format-variety rules ---------------------------------------------------
@@ -304,6 +304,20 @@ rejects(
   });
   assert.equal(plain.wordLimit, null);
   assert.equal(plain.metadata.allowNumber, undefined);
+}
+
+// TFNG / YNNG keys are stored as option ids, whatever the authored form
+{
+  const parsed = parseInput(CreateIeltsQuestionSchema, {
+    testId: "00000000-0000-4000-8000-000000000001", skill: "reading", questionType: "true_false_notgiven",
+    prompt: "Dunes grow.", correctAnswer: "NOT GIVEN",
+  });
+  assert.equal(parsed.correctAnswer, "not_given");
+  const record = parseInput(CreateIeltsQuestionSchema, {
+    testId: "00000000-0000-4000-8000-000000000001", skill: "reading", questionType: "yes_no_notgiven",
+    prompt: "Lights off?", correctAnswer: { "0": "Yes" },
+  });
+  assert.deepEqual(record.correctAnswer, { "0": "yes" });
 }
 
 console.log("IELTS question-schema tests passed");

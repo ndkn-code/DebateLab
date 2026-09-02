@@ -12,6 +12,7 @@ import {
 } from "@/components/shared/product-layout";
 import { IeltsEmptyState } from "@/components/ielts/learner/EmptyState";
 import type { IeltsTestCard } from "@/lib/ielts/learner/library";
+import { ieltsPaths } from "@/lib/ielts/routes";
 import { cn } from "@/lib/utils";
 
 const GUIDE_STORAGE_KEY = "thinkfy:ielts:speaking-rehearsal-guide:v1";
@@ -123,7 +124,7 @@ function RehearsalCard({ card }: { card: IeltsTestCard }) {
         </p>
       ) : null}
       <Link
-        href={`/ielts/mock/${card.slug}?experience=speaking_rehearsal`}
+        href={ieltsPaths.mock(card.slug, { experience: "speaking_rehearsal" })}
         className={cn(
           buttonVariants({ variant: "primary", size: "sm" }),
           "mt-4 w-full",

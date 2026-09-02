@@ -12,7 +12,7 @@ import {
   buildSkillBandRows,
   type DerivedSkillBands,
 } from "./band-summary";
-import { buildObjectiveReview } from "./objective-review";
+import { buildObjectiveResponses, buildObjectiveReview } from "./objective-review";
 import {
   buildSpeakingResult,
   buildWritingResult,
@@ -45,6 +45,7 @@ export function buildAttemptResultsViewModel(
     breakdowns: buildBandBreakdowns(input),
     objective: buildObjectiveReview(input),
     groups: input.questionGroups ?? [],
+    responses: buildObjectiveResponses(input.objectiveQuestions),
     writing,
     speaking,
   };

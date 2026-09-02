@@ -163,6 +163,23 @@ assert.deepEqual(
   [],
 );
 
+// Parts carry player-shaped views (placement fields) for group rebuilding.
+assert.equal(vm.objective[0].parts[0].questions.length, 1);
+assert.equal(vm.objective[0].parts[0].questions[0].id, "l1");
+assert.equal(vm.objective[0].parts[0].questions[0].groupKey, null);
+assert.equal(vm.objective[0].parts[0].questions[0].orderIndex, 0);
+assert.equal(vm.objective[0].parts[0].questions[0].listeningSectionId, null);
+
+// Stored responses are exposed by question id (null responses are omitted).
+assert.deepEqual(vm.responses, { l1: { value: "true" } });
+assert.deepEqual(
+  buildAttemptResultsViewModel({
+    ...input,
+    objectiveQuestions: [{ ...input.objectiveQuestions[0], response: null }],
+  }).responses,
+  {},
+);
+
 // Writing projected; speaking null.
 assert.ok(vm.writing);
 assert.equal(vm.writing.band, 7);

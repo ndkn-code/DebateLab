@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { loadAttemptResults } from "@/lib/api/ielts/results-repository";
 import { loadActiveIeltsBandTargets } from "@/lib/api/ielts/study-plan-repository";
 import { buildAttemptResultsViewModel } from "@/lib/ielts/results/view-model";
+import { ieltsPaths, localizedPath } from "@/lib/ielts/routes";
 import { IeltsResultsView } from "@/components/ielts/results/IeltsResultsView";
 import {
   PageContainer,
@@ -48,7 +49,7 @@ export default async function IeltsAttemptResultsPage({
             </p>
             {input.testSlug ? (
               <Link
-                href={`/${locale}/ielts/mock/${input.testSlug}`}
+                href={localizedPath(locale, ieltsPaths.mock(input.testSlug))}
                 className={buttonVariants({ className: "mt-4" })}
               >
                 {copy.resume}

@@ -25,13 +25,11 @@ import { buildMockBlueprint } from "../../apps/web/src/lib/ielts/mock-blueprint"
 type AdminModule = typeof import("../../apps/web/src/lib/supabase/admin");
 type LifecycleModule = typeof import("../../apps/web/src/lib/api/ielts/attempt-lifecycle");
 type GradeModule = typeof import("../../apps/web/src/lib/api/ielts/grade-attempt");
-type MockRepo = typeof import("../../apps/web/src/lib/api/ielts/mock-repository");
 
 let createTypedAdminClient: AdminModule["createTypedAdminClient"];
 let createAttemptWithSections: LifecycleModule["createAttemptWithSections"];
 let markAttemptSubmitted: LifecycleModule["markAttemptSubmitted"];
 let gradeAttemptObjective: GradeModule["gradeAttemptObjective"];
-let getSkillsWithContent: MockRepo["getSkillsWithContent"];
 
 function installServerOnlyStub(): void {
   const require = Module.createRequire(import.meta.url);
@@ -44,17 +42,15 @@ function installServerOnlyStub(): void {
 
 async function loadServerModules(): Promise<void> {
   installServerOnlyStub();
-  const [admin, lifecycle, grade, mock] = await Promise.all([
+  const [admin, lifecycle, grade] = await Promise.all([
     import("../../apps/web/src/lib/supabase/admin"),
     import("../../apps/web/src/lib/api/ielts/attempt-lifecycle"),
     import("../../apps/web/src/lib/api/ielts/grade-attempt"),
-    import("../../apps/web/src/lib/api/ielts/mock-repository"),
   ]);
   createTypedAdminClient = admin.createTypedAdminClient;
   createAttemptWithSections = lifecycle.createAttemptWithSections;
   markAttemptSubmitted = lifecycle.markAttemptSubmitted;
   gradeAttemptObjective = grade.gradeAttemptObjective;
-  getSkillsWithContent = mock.getSkillsWithContent;
 }
 
 type Admin = ReturnType<AdminModule["createTypedAdminClient"]>;
@@ -147,7 +143,10 @@ async function verifyAttempt(
   admin: Admin, test: AuthoredTest, testRow: { id: string; module: "academic" | "general_training"; kind: "full_mock" | "skill_set" | "drill"; skill: string | null; assessment_mode: string },
   dbQuestions: Array<{ id: string; metadata: unknown; skill: string; order_index?: number | null }>, userId: string, keep: boolean,
 ) {
-  const skillsWithContent = await getSkillsWithContent(testRow.id);
+  const { data: skillRows, error: skillError } = await admin
+    .from("ielts_questions").select("skill").eq("test_id", testRow.id);
+  if (skillError) throw new Error(skillError.message);
+  const skillsWithContent = [...new Set((skillRows ?? []).map((r) => r.skill))];
   const blueprint = buildMockBlueprint({
     kind: testRow.kind,
     skill: (testRow.skill as never) ?? null,
@@ -202,10 +201,14 @@ async function verifyAttempt(
     const readingMax = test.questions.filter((q) => q.skill === "reading").reduce((s, q) => s + (q.maxPoints ?? 1), 0);
     assert.equal(grade.readingRaw, readingMax);
   } finally {
+    // Frozen blueprints are append-only (delete cascades are refused by the
+    // immutability trigger), so QA attempts are retained and tagged instead.
     if (!keep) {
-      const { error } = await admin.from("ielts_attempts").delete().eq("id", attempt.id);
-      if (error) console.warn(`${test.slug}: cleanup failed: ${error.message}`);
-      else console.log(`${test.slug}: QA attempt deleted`);
+      await admin.from("ielts_attempts").update({ status: "abandoned" as never }).eq("id", attempt.id)
+        .then(({ error }) => {
+          if (error) console.log(`${test.slug}: QA attempt ${attempt.id} kept (metadata.seed=${FORMAT_SHOWCASE_BATCH_KEY})`);
+          else console.log(`${test.slug}: QA attempt ${attempt.id} marked abandoned (kept; snapshots are immutable)`);
+        });
     }
   }
 }

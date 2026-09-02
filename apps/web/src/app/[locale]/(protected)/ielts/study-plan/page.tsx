@@ -6,6 +6,7 @@ import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton
 import { IeltsStudyPlanView } from "@/components/ielts/study-plan/IeltsStudyPlanView";
 import { getIeltsStudyPlanPageData } from "@/lib/api/ielts/study-plan-page-repository";
 import { buildIeltsStudyPlanPageView } from "@/lib/ielts/study-plan/page-view";
+import { ieltsPaths } from "@/lib/ielts/routes";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 
 export const metadata = {
@@ -46,7 +47,7 @@ async function IeltsStudyPlanPayload({ locale }: { locale: string }) {
 
   const returnTo = `/${locale}/ielts/study-plan`;
   const diagnosticHref = data.diagnosticTest
-    ? `/ielts/mock/${data.diagnosticTest.slug}?returnTo=${encodeURIComponent(returnTo)}`
+    ? ieltsPaths.mock(data.diagnosticTest.slug, { returnTo })
     : null;
 
   return <IeltsStudyPlanView view={view} diagnosticHref={diagnosticHref} />;

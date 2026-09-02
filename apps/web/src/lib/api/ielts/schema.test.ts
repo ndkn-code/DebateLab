@@ -11,9 +11,12 @@ import {
   CreateSpeakingResponseSchema,
   CreateWritingResponseSchema,
   IELTS_QUESTION_TYPE_COUNT,
+  UpdateIeltsTestSchema,
+  assessmentModeForKind,
   countEssayWords,
   speakingPartNumberForQuestionType,
   toIeltsTestInsert,
+  toIeltsTestUpdate,
   toSpeakingResponseInsert,
   toWritingResponseInsert,
   writingTaskNumberForQuestionType,
@@ -77,8 +80,8 @@ assert.throws(() =>
   parseInput(CreateIeltsTestSchema, { slug: "x", title: "X", kind: "bogus" }),
 );
 
-// the question-type taxonomy has all 19 IELTS types
-assert.equal(IELTS_QUESTION_TYPE_COUNT, 19);
+// the question-type taxonomy has all 20 IELTS types (incl. matching_sentence_endings)
+assert.equal(IELTS_QUESTION_TYPE_COUNT, 20);
 
 // --- WS-3.1 writing-response submission boundary -----------------------------
 // word counting is whitespace-token based
@@ -197,5 +200,15 @@ assert.throws(() =>
     audioStoragePath: "a.webm",
   }),
 );
+
+// full mocks are always simulations (DB CHECK ielts_tests_assessment_mode_kind_check)
+{
+  assert.equal(assessmentModeForKind("full_mock"), "simulation");
+  assert.equal(assessmentModeForKind("skill_set"), "practice");
+  assert.equal(toIeltsTestInsert(CreateIeltsTestSchema.parse({ slug: "x", title: "X", kind: "full_mock" })).assessment_mode, "simulation");
+  assert.equal(toIeltsTestInsert(CreateIeltsTestSchema.parse({ slug: "x", title: "X", kind: "drill", skill: "reading" })).assessment_mode, "practice");
+  assert.equal(toIeltsTestUpdate(UpdateIeltsTestSchema.parse({ kind: "full_mock" })).assessment_mode, "simulation");
+  assert.equal(toIeltsTestUpdate(UpdateIeltsTestSchema.parse({ title: "Y" })).assessment_mode, undefined);
+}
 
 console.log("IELTS data-model boundary smoke tests passed");
