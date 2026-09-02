@@ -25,6 +25,11 @@ import {
   type LmsVocabularySet,
 } from "@/lib/api/class-lms/model";
 import { loadMyStudentLmsWeek } from "@/lib/api/class-lms/student-weekly-repository";
+import {
+  rescheduleTeacherCalendar,
+  rescheduleTeacherCalendarOccurrence,
+  setTeacherOccurrenceState,
+} from "@/lib/api/class-lms/teacher-operation-repository";
 
 type Db = Awaited<ReturnType<typeof createClient>>;
 
@@ -358,4 +363,37 @@ export async function loadMyIeltsLmsWeek(input: unknown) {
     }
   })();
   return loadMyStudentLmsWeek(parsed);
+}
+
+export async function rescheduleTeacherWorkspaceEvent(input: {
+  scheduleId: string;
+  startDate: string;
+  endDate: string;
+  startTime: string;
+  endTime: string;
+  timezone: string;
+  expectedUpdatedAt: string;
+  idempotencyKey: string;
+}) {
+  return rescheduleTeacherCalendar(input);
+}
+
+export async function setTeacherWorkspaceEventState(input: {
+  occurrenceId: string;
+  state: "scheduled" | "completed" | "cancelled";
+  expectedUpdatedAt: string;
+  idempotencyKey: string;
+}) {
+  return setTeacherOccurrenceState(input);
+}
+
+export async function rescheduleTeacherWorkspaceOccurrence(input: {
+  occurrenceId: string;
+  startsAt: string;
+  endsAt: string;
+  timezone: string;
+  expectedUpdatedAt: string;
+  idempotencyKey: string;
+}) {
+  return rescheduleTeacherCalendarOccurrence(input);
 }

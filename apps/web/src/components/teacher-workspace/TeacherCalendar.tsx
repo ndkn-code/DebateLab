@@ -78,7 +78,7 @@ import {
   rescheduleTeacherWorkspaceEvent,
   rescheduleTeacherWorkspaceOccurrence,
   setTeacherWorkspaceEventState,
-} from "@/app/actions/teacher-workspace-calendar";
+} from "@/app/actions/class-lms";
 import styles from "./teacher-calendar.module.css";
 
 const GRID_START_MINUTE = 8 * 60;
