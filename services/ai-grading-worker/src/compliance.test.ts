@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import test from "node:test";
-import { createProductionOperations } from "./operations";
+import {
+  createProductionOperations,
+  getPracticeCheckpointAttribution,
+} from "./operations";
 
 const root = resolve(process.cwd(), "../..");
 const read = (path: string) => readFileSync(resolve(root, path), "utf8");
@@ -28,6 +31,37 @@ test("AI grading has no Vercel Workflow or grading trigger surface", () => {
   );
   assert.throws(() =>
     read("apps/web/src/app/api/queues/ielts-speaking/route.ts"),
+  );
+});
+
+test("legacy immutable practice checkpoints resume without false model attribution", () => {
+  assert.deepEqual(
+    getPracticeCheckpointAttribution({
+      kind: "practice_analysis",
+      feedback: {} as never,
+    }),
+    {
+      modelName: "legacy-checkpoint-unattributed",
+      modelProvider: "unknown",
+      fallbackUsed: false,
+      traceId: null,
+    },
+  );
+  assert.deepEqual(
+    getPracticeCheckpointAttribution({
+      kind: "practice_analysis",
+      feedback: {} as never,
+      modelName: "openai/gpt-oss-120b",
+      modelProvider: "groq",
+      fallbackUsed: true,
+      traceId: "trace-1",
+    }),
+    {
+      modelName: "openai/gpt-oss-120b",
+      modelProvider: "groq",
+      fallbackUsed: true,
+      traceId: "trace-1",
+    },
   );
 });
 test("the GCP migration fences claims, checkpoints, retries, and private grants", () => {
@@ -259,8 +293,9 @@ test("successful output snapshots the provider-attempt fence and recovery cannot
     /grant execute on function public\.finalize_ai_grading_operational_scenario\([\s\S]*to service_role/,
   );
   assert.ok(
-    migration.indexOf("create trigger ai_grading_output_attempt_count_immutable") <
-      migration.indexOf("update public.ai_grading_checkpoints checkpoint"),
+    migration.indexOf(
+      "create trigger ai_grading_output_attempt_count_immutable",
+    ) < migration.indexOf("update public.ai_grading_checkpoints checkpoint"),
     "immutability DDL must precede the one-time backfill DML",
   );
 });
@@ -277,7 +312,10 @@ test("ordinary output checkpointing does not depend on best-effort attempt accou
     checkpointFunction,
     /when v_provider_attempt_count >= 1 then v_provider_attempt_count\s+else null/,
   );
-  assert.match(checkpointFunction, /output_payload = coalesce\(output_payload, p_payload\)/);
+  assert.match(
+    checkpointFunction,
+    /output_payload = coalesce\(output_payload, p_payload\)/,
+  );
   assert.match(checkpointFunction, /return true/);
   assert.doesNotMatch(
     checkpointFunction,
@@ -298,15 +336,30 @@ test("operational simulation is bound to an immutable DB marker and counts only 
     "supabase/migrations/20260902090000_ai_grading_completed_redelivery_observation.sql",
   );
   assert.match(migration, /private\.ai_grading_environment_marker/);
-  assert.match(migration, /before update or delete on private\.ai_grading_environment_marker/);
+  assert.match(
+    migration,
+    /before update or delete on private\.ai_grading_environment_marker/,
+  );
   assert.match(migration, /ai_grading_environment_bootstrap_secret/);
   assert.match(migration, /get_ai_grading_environment_marker/);
   assert.match(migration, /record_ai_grading_operational_boundary_attempt/);
-  assert.match(migration, /v_marker\.environment not in \('preview', 'staging'\)/);
-  assert.match(migration, /v_run\.worker_claim_token is distinct from p_claim_token/);
+  assert.match(
+    migration,
+    /v_marker\.environment not in \('preview', 'staging'\)/,
+  );
+  assert.match(
+    migration,
+    /v_run\.worker_claim_token is distinct from p_claim_token/,
+  );
   assert.match(migration, /injection_token = p_injection_token/);
-  assert.match(migration, /v_claim\.scenario not in \('provider_timeout', 'retry_exhaustion'\)/);
-  assert.match(migration, /v_checkpoint\.provider_claim_token is distinct from p_claim_token/);
+  assert.match(
+    migration,
+    /v_claim\.scenario not in \('provider_timeout', 'retry_exhaustion'\)/,
+  );
+  assert.match(
+    migration,
+    /v_checkpoint\.provider_claim_token is distinct from p_claim_token/,
+  );
   assert.match(migration, /unique \(workflow_run_id, worker_claim_token\)/);
   const insertAt = migration.indexOf(
     "insert into private.ai_grading_operational_boundary_attempts",
@@ -440,10 +493,7 @@ test("the production provisional checkpoint path follows the adjudication flag",
       false,
     );
     process.env.IELTS_EVIDENCE_ADJUDICATION_ENABLED = "true";
-    assert.equal(
-      operations.usesProvisionalCheckpoint?.(speakingJob, {}),
-      true,
-    );
+    assert.equal(operations.usesProvisionalCheckpoint?.(speakingJob, {}), true);
     assert.equal(
       operations.usesProvisionalCheckpoint?.(writingJob, {
         deterministicLowEvidence: null,
@@ -489,10 +539,7 @@ test("the offline benchmark uses a Vault-verified atomic spend fence", () => {
   );
   assert.match(migration, /protect_ai_grading_benchmark_bucket/);
   assert.match(migration, /Protected benchmark bucket cannot be deleted/);
-  assert.match(
-    migration,
-    /new\.public is distinct from false/,
-  );
+  assert.match(migration, /new\.public is distinct from false/);
   assert.ok(
     migration.indexOf("create trigger protect_ai_grading_benchmark_bucket") <
       migration.indexOf("insert into storage.buckets"),
@@ -510,10 +557,7 @@ test("the offline benchmark uses a Vault-verified atomic spend fence", () => {
   assert.match(migration, /v_claim\.claim_attempt_count >= 3/);
   assert.match(migration, /DEFINITE_PROVIDER_FAILURE_EXHAUSTED/);
   assert.match(migration, /benchmarkFailureAttestationSignature/);
-  assert.match(
-    migration,
-    /benchmarkClaimToken'[\s\S]*p_claim_token/,
-  );
+  assert.match(migration, /benchmarkClaimToken'[\s\S]*p_claim_token/);
   assert.match(
     migration,
     /benchmarkClaimAttempt'[\s\S]*v_claim\.claim_attempt_count/,
@@ -523,11 +567,11 @@ test("the offline benchmark uses a Vault-verified atomic spend fence", () => {
     migration,
     /grant select on public\.ai_grading_benchmark_run_claims to service_role/,
   );
+  assert.match(migration, /verify_ai_grading_benchmark_acoustic_attestation/);
   assert.match(
     migration,
-    /verify_ai_grading_benchmark_acoustic_attestation/,
+    /Benchmark acoustic attestation HMAC verification failed/,
   );
-  assert.match(migration, /Benchmark acoustic attestation HMAC verification failed/);
   assert.match(migration, /active_report_path_uidx/);
   assert.match(migration, /active_report_hash_uidx/);
   assert.match(migration, /active_acoustic_envelope_uidx/);
@@ -598,10 +642,7 @@ test("acoustic evidence is Vault-attested and cannot be reused", () => {
   const migration = read(
     "supabase/migrations/20260901180000_ai_grading_benchmark_executor_claims.sql",
   );
-  assert.match(
-    migration,
-    /verify_ai_grading_benchmark_acoustic_attestation/,
-  );
+  assert.match(migration, /verify_ai_grading_benchmark_acoustic_attestation/);
   assert.match(migration, /p_envelope ->> 'audioArtifactSha256'/);
   assert.match(migration, /p_envelope ->> 'transcriptSha256'/);
   assert.match(migration, /p_envelope ->> 'configSha256'/);

@@ -1,8 +1,11 @@
 import type { AiTask, AiTaskPolicy } from "./contracts";
 
 const groqModel = () => process.env.GROQ_CHAT_MODEL || "openai/gpt-oss-120b";
-export const getIeltsScoringFallbackModel = () =>
-  process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL || "openai/gpt-oss-20b";
+export const getGroqGradingPrimaryModel = () =>
+  process.env.GROQ_GRADING_MODEL || "qwen/qwen3.8-27b";
+export const getGroqGradingFallbackModel = () =>
+  process.env.GROQ_GRADING_FALLBACK_MODEL || "openai/gpt-oss-120b";
+export const getIeltsScoringFallbackModel = () => getGroqGradingFallbackModel();
 export const getGeminiCoachModel = () =>
   process.env.GEMINI_COACH_MODEL || "gemini-3.5-flash-lite";
 export const getGroqCoachFallbackModel = () =>
@@ -48,14 +51,26 @@ export function getIeltsCoachCandidates(allowGemini = false) {
 }
 
 /**
- * Live IELTS grading stays on Groq, with a smaller fast model as the bounded
- * fallback for a primary model rate limit or outage. Separate model quotas
- * also prevent two Writing tasks from stranding the same simulation burst.
+ * All learner grading stays on Groq. Qwen 3.8 is the default judge and
+ * GPT-OSS 120B is the bounded fallback for a primary rate limit, schema
+ * failure after repair, or definite provider 5xx. Ambiguous timeouts remain
+ * terminal so a second model cannot duplicate a possibly completed paid call.
+ * Keeping both candidates in one provider path preserves the existing privacy,
+ * observability, schema, and retry controls.
  */
-export function getIeltsScoringCandidates(primaryModel = groqModel()) {
-  return [primaryModel, getIeltsScoringFallbackModel()]
+export function getGroqGradingCandidates(
+  primaryModel = getGroqGradingPrimaryModel(),
+  fallbackModel = getGroqGradingFallbackModel(),
+) {
+  return [primaryModel, fallbackModel]
     .filter((model, index, models) => models.indexOf(model) === index)
     .map((model) => ({ provider: "groq" as const, model }));
+}
+
+export function getIeltsScoringCandidates(
+  primaryModel = getGroqGradingPrimaryModel(),
+) {
+  return getGroqGradingCandidates(primaryModel, getIeltsScoringFallbackModel());
 }
 
 /**
@@ -81,13 +96,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
       };
     case "practice_judging":
       return {
-        candidates: [
-          {
-            provider: "groq",
-            model: process.env.GROQ_FULL_ROUND_JUDGE_MODEL || groqModel(),
-          },
-          { provider: "deepseek", model: deepSeekModel() },
-        ],
+        candidates: getGroqGradingCandidates(),
         attemptTimeoutMs: 35_000,
         schemaRepairAttempts: 1,
         maxOutputTokens: 8_192,
@@ -187,29 +196,18 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
         temperature: 0.7,
         criticality: "critical",
       };
-    case "duel_judging": {
-      const deepSeekPrimary =
-        process.env.DEBATE_DUEL_JUDGE_PROVIDER === "deepseek";
+    case "duel_judging":
       return {
-        candidates: deepSeekPrimary
-          ? [
-              { provider: "deepseek", model: deepSeekModel() },
-              { provider: "groq", model: groqModel() },
-            ]
-          : [
-              { provider: "groq", model: groqModel() },
-              { provider: "deepseek", model: deepSeekModel() },
-            ],
+        candidates: getGroqGradingCandidates(),
         attemptTimeoutMs: 45_000,
         schemaRepairAttempts: 1,
         maxOutputTokens: 8_192,
         temperature: 0.2,
         criticality: "critical",
       };
-    }
     case "onboarding_feedback":
       return {
-        candidates: [{ provider: "groq", model: groqModel() }],
+        candidates: getGroqGradingCandidates(),
         attemptTimeoutMs: 10_000,
         schemaRepairAttempts: 1,
         maxOutputTokens: 300,

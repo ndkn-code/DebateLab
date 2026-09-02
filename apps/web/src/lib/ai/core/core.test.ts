@@ -1,47 +1,72 @@
 import assert from "node:assert/strict";
 import { z } from "zod";
-import { generateStructured, generateText, getAiTaskPolicy } from "./index";
+import {
+  generateStructured,
+  generateText,
+  getAiTaskPolicy,
+  judgeDebateDuel,
+} from "./index";
 import { extractJsonObject } from "./json";
 import { recordGeminiKeySuccess } from "@/lib/gemini/key-pool";
 
 const originalFetch = globalThis.fetch;
 const originalGeminiKey = process.env.GEMINI_API_KEY;
 const originalGroqKey = process.env.GROQ_API_KEY;
+const originalGroqGradingModel = process.env.GROQ_GRADING_MODEL;
+const originalGroqGradingFallbackModel =
+  process.env.GROQ_GRADING_FALLBACK_MODEL;
+const originalIeltsScoringFallbackModel =
+  process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL;
+const originalIeltsSpeakingModel = process.env.GROQ_IELTS_SPEAKING_MODEL;
+const originalIeltsWritingModel = process.env.GROQ_IELTS_WRITING_MODEL;
+const originalFullRoundJudgeModel = process.env.GROQ_FULL_ROUND_JUDGE_MODEL;
 const originalIeltsCoachModel = process.env.GROQ_IELTS_COACH_MODEL;
 const originalIeltsCoachFallbackModel =
   process.env.GROQ_IELTS_COACH_FALLBACK_MODEL;
 
 async function run() {
+  delete process.env.GROQ_GRADING_MODEL;
+  delete process.env.GROQ_GRADING_FALLBACK_MODEL;
+  delete process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL;
+  delete process.env.GROQ_IELTS_SPEAKING_MODEL;
+  delete process.env.GROQ_IELTS_WRITING_MODEL;
+  delete process.env.GROQ_FULL_ROUND_JUDGE_MODEL;
   process.env.GROQ_IELTS_COACH_MODEL = "test-ielts-coach-primary";
   process.env.GROQ_IELTS_COACH_FALLBACK_MODEL = "test-ielts-coach-fallback";
   assert.deepEqual(extractJsonObject('```json\n{"ok":true}\n```'), {
     ok: true,
   });
   assert.throws(() => extractJsonObject("not json"));
-  assert.equal(getAiTaskPolicy("practice_judging").criticality, "critical");
-  assert.equal(getAiTaskPolicy("ielts_speaking_score").candidates.length, 2);
+  const gradingTasks = [
+    "practice_judging",
+    "ielts_speaking_score",
+    "ielts_writing_score",
+    "ielts_speaking_adjudication",
+    "ielts_writing_adjudication",
+    "duel_judging",
+    "onboarding_feedback",
+  ] as const;
+  for (const task of gradingTasks) {
+    const policy = getAiTaskPolicy(task);
+    assert.equal(
+      policy.criticality,
+      task === "onboarding_feedback" ? "best_effort" : "critical",
+    );
+    assert.deepEqual(policy.candidates, [
+      { provider: "groq", model: "qwen/qwen3.8-27b" },
+      { provider: "groq", model: "openai/gpt-oss-120b" },
+    ]);
+  }
+  process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL = "legacy/ielts-only-model";
   assert.equal(
-    getAiTaskPolicy("ielts_speaking_score").candidates[0]?.provider,
-    "groq",
+    getAiTaskPolicy("practice_judging").candidates[1]?.model,
+    "openai/gpt-oss-120b",
   );
   assert.equal(
-    getAiTaskPolicy("ielts_writing_score").candidates[0]?.provider,
-    "groq",
+    getAiTaskPolicy("ielts_speaking_score").candidates[1]?.model,
+    "openai/gpt-oss-120b",
   );
-  assert.equal(
-    getAiTaskPolicy("ielts_speaking_adjudication").candidates[0]?.provider,
-    "groq",
-  );
-  assert.equal(
-    getAiTaskPolicy("ielts_writing_score").candidates[1]?.model,
-    "openai/gpt-oss-20b",
-  );
-  assert.equal(
-    getAiTaskPolicy("ielts_writing_score").candidates.every(
-      (candidate) => candidate.provider === "groq",
-    ),
-    true,
-  );
+  delete process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL;
   const ieltsCoachPolicy = getAiTaskPolicy("ielts_coach_chat");
   assert.equal(ieltsCoachPolicy.candidates.length, 2);
   assert.equal(
@@ -77,6 +102,46 @@ async function run() {
   assert.equal(text.output, "plain text");
   assert.equal("response_format" in (groqRequest ?? {}), false);
   assert.ok(text.traceId);
+
+  let duelTelemetryModel: string | null = null;
+  globalThis.fetch = (async () =>
+    new Response(
+      JSON.stringify({
+        choices: [
+          {
+            message: {
+              content: JSON.stringify({
+                winnerSide: "proposition",
+                comparativeBallot: "proposition wins the decisive clash",
+                participantFeedback: {},
+                model: "model-authored-spoof",
+                judgedAt: "2000-01-01T00:00:00.000Z",
+              }),
+            },
+          },
+        ],
+        usage: {},
+      }),
+      { status: 200 },
+    )) as typeof fetch;
+  const duelJudgment = await judgeDebateDuel(
+    {
+      motion: "This House would test server-owned evidence",
+      topicCategory: "testing",
+      participants: {
+        proposition: { participantId: "prop-1", displayName: "Prop" },
+        opposition: { participantId: "opp-1", displayName: "Opp" },
+      },
+      speeches: [],
+    },
+    undefined,
+    (telemetry) => {
+      duelTelemetryModel = telemetry.model;
+    },
+  );
+  assert.equal(duelJudgment.model, "qwen/qwen3.8-27b");
+  assert.equal(duelTelemetryModel, "qwen/qwen3.8-27b");
+  assert.notEqual(duelJudgment.judgedAt, "2000-01-01T00:00:00.000Z");
 
   process.env.GEMINI_API_KEY = "test-key";
   let calls = 0;
@@ -130,8 +195,8 @@ async function run() {
   );
   assert.equal(
     calls,
-    1,
-    "provider failure must not consume a schema-repair call",
+    2,
+    "provider failures must advance once per grading candidate without consuming schema repair",
   );
   recordGeminiKeySuccess(0);
 
@@ -365,7 +430,7 @@ async function run() {
   });
   assert.equal(ieltsScoringFallback.output.value, "scoring-fallback");
   assert.equal(ieltsScoringFallback.fallbackUsed, true);
-  assert.equal(calls, 2, "a primary 429 must use the fast Groq fallback");
+  assert.equal(calls, 2, "a Qwen 429 must use the GPT-OSS 120B fallback");
 
   calls = 0;
   globalThis.fetch = (async (_input, init) => {
@@ -472,6 +537,26 @@ void run().finally(() => {
   else process.env.GEMINI_API_KEY = originalGeminiKey;
   if (originalGroqKey == null) delete process.env.GROQ_API_KEY;
   else process.env.GROQ_API_KEY = originalGroqKey;
+  if (originalGroqGradingModel == null) delete process.env.GROQ_GRADING_MODEL;
+  else process.env.GROQ_GRADING_MODEL = originalGroqGradingModel;
+  if (originalGroqGradingFallbackModel == null)
+    delete process.env.GROQ_GRADING_FALLBACK_MODEL;
+  else
+    process.env.GROQ_GRADING_FALLBACK_MODEL = originalGroqGradingFallbackModel;
+  if (originalIeltsScoringFallbackModel == null)
+    delete process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL;
+  else
+    process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL =
+      originalIeltsScoringFallbackModel;
+  if (originalIeltsSpeakingModel == null)
+    delete process.env.GROQ_IELTS_SPEAKING_MODEL;
+  else process.env.GROQ_IELTS_SPEAKING_MODEL = originalIeltsSpeakingModel;
+  if (originalIeltsWritingModel == null)
+    delete process.env.GROQ_IELTS_WRITING_MODEL;
+  else process.env.GROQ_IELTS_WRITING_MODEL = originalIeltsWritingModel;
+  if (originalFullRoundJudgeModel == null)
+    delete process.env.GROQ_FULL_ROUND_JUDGE_MODEL;
+  else process.env.GROQ_FULL_ROUND_JUDGE_MODEL = originalFullRoundJudgeModel;
   if (originalIeltsCoachModel == null)
     delete process.env.GROQ_IELTS_COACH_MODEL;
   else process.env.GROQ_IELTS_COACH_MODEL = originalIeltsCoachModel;

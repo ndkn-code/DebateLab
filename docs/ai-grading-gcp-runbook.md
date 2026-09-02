@@ -77,10 +77,13 @@ gcloud run deploy ai-grading-worker \
 Also set `DEBATE_CORPUS_EMBEDDING_URL`,
 `GCP_PUBSUB_PUSH_SERVICE_ACCOUNT_EMAIL`,
 `GCP_SCHEDULER_SERVICE_ACCOUNT_EMAIL`, and `CLOUD_RUN_SERVICE_URL` as ordinary
-environment variables. `GROQ_IELTS_SCORING_FALLBACK_MODEL` is optional and
-defaults to `openai/gpt-oss-20b`; it provides a fast, same-provider fallback
-inside the already-fenced logical provider phase. Add Voyage only when the
-collection runtime is enabled; it is not required for the queue transport.
+environment variables. Live grading defaults to `qwen/qwen3.8-27b`, with
+`openai/gpt-oss-120b` as the same-provider fallback inside the already-fenced
+logical provider phase. Operators may pin those values with
+`GROQ_GRADING_MODEL` and `GROQ_GRADING_FALLBACK_MODEL`. Task-specific grading
+model overrides are intentionally ignored so the route remains centralized. Add Voyage
+only when the collection runtime is enabled; it is not required for the queue
+transport.
 
 Create the push subscription with authenticated OIDC, exponential retry, and a
 dead-letter policy. Recommended values:

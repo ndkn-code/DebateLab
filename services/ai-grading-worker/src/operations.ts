@@ -73,8 +73,32 @@ type WritingFinal = (GeneratedWritingResult | DeterministicWritingResult) & {
 
 type PracticeOutput = {
   kind: "practice_analysis";
-  feedback: Awaited<ReturnType<typeof generatePracticeAnalysis>>;
+  feedback: Awaited<ReturnType<typeof generatePracticeAnalysis>>["feedback"];
+  modelName?: string;
+  modelProvider?: string;
+  fallbackUsed?: boolean;
+  traceId?: string | null;
 };
+
+/**
+ * Output checkpoints are immutable and may outlive a worker revision. Older
+ * practice checkpoints contain only feedback, so keep them persistable without
+ * making another provider call or falsely attributing them to the new primary.
+ */
+export function getPracticeCheckpointAttribution(output: PracticeOutput) {
+  return {
+    modelName:
+      typeof output.modelName === "string" && output.modelName.trim()
+        ? output.modelName
+        : "legacy-checkpoint-unattributed",
+    modelProvider:
+      typeof output.modelProvider === "string" && output.modelProvider.trim()
+        ? output.modelProvider
+        : "unknown",
+    fallbackUsed: output.fallbackUsed === true,
+    traceId: typeof output.traceId === "string" ? output.traceId : null,
+  };
+}
 
 type SpeakingOutput = {
   kind: "ielts_speaking_score";
@@ -531,12 +555,13 @@ export function createProductionOperations(): AiGradingOperations {
       if (job.kind === "practice_analysis") {
         const value = prepared as PreparedPractice;
         assertKind(job, "practice_analysis");
+        const generated = await generatePracticeAnalysis({
+          input: value.input,
+          userId: value.userId,
+        });
         return {
           kind: "practice_analysis",
-          feedback: await generatePracticeAnalysis({
-            input: value.input,
-            userId: value.userId,
-          }),
+          ...generated,
         } satisfies PracticeOutput;
       }
       if (job.kind === "ielts_speaking_score") {
@@ -657,31 +682,31 @@ export function createProductionOperations(): AiGradingOperations {
             }) as unknown as Json,
           }
         : isIeltsEvidenceAdjudicationEnabled()
-        ? await adjudicateIeltsWritingScore({
-            workflowRunId: job.workflowRunId,
-            writingResponseId: job.sourceId,
-            userId: value.userId,
-            questionId: value.questionId,
-            questionType: value.questionType,
-            retrievalQuery: value.retrievalQuery,
-            prompt: value.prompt,
-            provisionalOutput: provisional.output,
-            provisionalTraceId: provisional.traceId,
-            baseEvidence: value.baseEvidence,
-            baseCorpusVersion: value.baseCorpusVersion,
-          })
-        : {
-            ...provisional,
-            gradingMetadata: createStagedGradingMetadata({
-              evidence: value.baseEvidence,
-              gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
-              runId: job.workflowRunId,
-              corpusVersion: value.baseCorpusVersion,
+          ? await adjudicateIeltsWritingScore({
+              workflowRunId: job.workflowRunId,
+              writingResponseId: job.sourceId,
+              userId: value.userId,
+              questionId: value.questionId,
+              questionType: value.questionType,
+              retrievalQuery: value.retrievalQuery,
+              prompt: value.prompt,
+              provisionalOutput: provisional.output,
               provisionalTraceId: provisional.traceId,
-              adjudicationTraceId: provisional.traceId,
-              retrievalSkippedReason: "adjacent_band_adjudication_disabled",
-            }) as unknown as Json,
-          };
+              baseEvidence: value.baseEvidence,
+              baseCorpusVersion: value.baseCorpusVersion,
+            })
+          : {
+              ...provisional,
+              gradingMetadata: createStagedGradingMetadata({
+                evidence: value.baseEvidence,
+                gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+                runId: job.workflowRunId,
+                corpusVersion: value.baseCorpusVersion,
+                provisionalTraceId: provisional.traceId,
+                adjudicationTraceId: provisional.traceId,
+                retrievalSkippedReason: "adjacent_band_adjudication_disabled",
+              }) as unknown as Json,
+            };
       const criterionEvidence = buildWritingCriterionEvidence({
         score: normalizeWritingScore(provisional.output),
         context: commonEvidenceContext({
@@ -727,11 +752,13 @@ export function createProductionOperations(): AiGradingOperations {
       if (job.kind === "practice_analysis") {
         const value = prepared as PreparedPractice;
         const generated = output as PracticeOutput;
+        const attribution = getPracticeCheckpointAttribution(generated);
         await persistPracticeAnalysis({
           workflowRunId: job.workflowRunId,
           jobId: value.jobId,
           attemptId: value.attemptId,
           feedback: generated.feedback,
+          ...attribution,
         });
         return;
       }

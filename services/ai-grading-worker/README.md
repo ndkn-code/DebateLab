@@ -99,7 +99,11 @@ both objects' storage versions/ETags in addition to their hashes.
 Both live and benchmark scoring use the same skill-specific policy builders:
 Speaking allows 3,072 output tokens, Writing 4,096, provisional temperature is
 0.2, and adjudication temperature is 0. The configured primary and bounded
-Groq fallback candidates are identical at both boundaries.
+Groq fallback candidates are identical at both boundaries. By default those
+are `qwen/qwen3.8-27b` followed by `openai/gpt-oss-120b`; a rate limit or other
+definite fallback-eligible primary failure advances to the fallback without
+creating a second provider path. Ambiguous timeouts do not fall through because
+the first call may have completed remotely.
 Provider preflight also requires a non-empty `GROQ_API_KEY` and rejects model
 names outside the built-in verified set. A newly qualified model must be
 explicitly listed in `GROQ_IELTS_SUPPORTED_MODELS` before any stage claim.

@@ -1,14 +1,9 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
-import { judgeDebateDuel } from "@/lib/ai/core";
+import { getAiTaskPolicy, judgeDebateDuel } from "@/lib/ai/core";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import { recordAiQualityRun } from "@/lib/ai/quality";
-import {
-  getDuelJudgeProvider,
-  getProviderLabel,
-  getProviderModelName,
-} from "@/lib/ai/provider-selection";
 import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import {
@@ -189,7 +184,7 @@ async function fetchRoomRows(shareCode: string) {
   const { data: duel, error: duelError } = await supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, phase_deadline, started_at, completed_at, outcome_reason, forfeited_by, ai_opponent, expires_at, created_at"
+      "id, share_code, creator_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, phase_deadline, started_at, completed_at, outcome_reason, forfeited_by, ai_opponent, expires_at, created_at",
     )
     .eq("share_code", normalizedCode)
     .maybeSingle();
@@ -205,7 +200,7 @@ async function fetchRoomRows(shareCode: string) {
   const { data: participants, error: participantError } = await supabase
     .from("debate_duel_participants")
     .select(
-      "id, duel_id, user_id, role, display_name_snapshot, avatar_url_snapshot, joined_at, ready_at, credits_charged_at, completed_at"
+      "id, duel_id, user_id, role, display_name_snapshot, avatar_url_snapshot, joined_at, ready_at, credits_charged_at, completed_at",
     )
     .eq("duel_id", duel.id)
     .order("joined_at", { ascending: true });
@@ -217,7 +212,7 @@ async function fetchRoomRows(shareCode: string) {
   const { data: speeches, error: speechError } = await supabase
     .from("debate_duel_speeches")
     .select(
-      "id, duel_id, participant_id, round_number, speech_type, side, transcript, audio_storage_path, duration_seconds, metadata, created_at"
+      "id, duel_id, participant_id, round_number, speech_type, side, transcript, audio_storage_path, duration_seconds, metadata, created_at",
     )
     .eq("duel_id", duel.id)
     .order("round_number", { ascending: true });
@@ -229,7 +224,7 @@ async function fetchRoomRows(shareCode: string) {
   const { data: judgment, error: judgmentError } = await supabase
     .from("debate_duel_judgments")
     .select(
-      "id, duel_id, winner_participant_id, winner_side, judge_model, confidence, verdict, summary, created_at"
+      "id, duel_id, winner_participant_id, winner_side, judge_model, confidence, verdict, summary, created_at",
     )
     .eq("duel_id", duel.id)
     .maybeSingle();
@@ -238,21 +233,21 @@ async function fetchRoomRows(shareCode: string) {
     throw new Error(judgmentError.message);
   }
 
-  const mappedParticipantsBase: DebateDuelParticipant[] = (participants ?? []).map(
-    (participant) => {
-      return {
-        id: participant.id,
-        userId: participant.user_id,
-        displayName: participant.display_name_snapshot || "Debater",
-        avatarUrl: participant.avatar_url_snapshot ?? null,
-        role: participant.role,
-        joinedAt: participant.joined_at,
-        readyAt: participant.ready_at,
-        creditsChargedAt: participant.credits_charged_at,
-        completedAt: participant.completed_at,
-      };
-    }
-  );
+  const mappedParticipantsBase: DebateDuelParticipant[] = (
+    participants ?? []
+  ).map((participant) => {
+    return {
+      id: participant.id,
+      userId: participant.user_id,
+      displayName: participant.display_name_snapshot || "Debater",
+      avatarUrl: participant.avatar_url_snapshot ?? null,
+      role: participant.role,
+      joinedAt: participant.joined_at,
+      readyAt: participant.ready_at,
+      creditsChargedAt: participant.credits_charged_at,
+      completedAt: participant.completed_at,
+    };
+  });
   const mappedParticipants: DebateDuelParticipant[] = await Promise.all(
     mappedParticipantsBase.map(async (participant) => {
       try {
@@ -279,7 +274,7 @@ async function fetchRoomRows(shareCode: string) {
       } catch {
         return participant;
       }
-    })
+    }),
   );
 
   return {
@@ -300,7 +295,7 @@ function toRoomView(params: {
 }) {
   const { duel, participants, speeches, judgment, userId } = params;
   const viewerParticipant = participants.find(
-    (participant) => participant.userId === userId
+    (participant) => participant.userId === userId,
   );
   const participantCount = participants.length;
   const everyoneReady =
@@ -308,7 +303,8 @@ function toRoomView(params: {
     participants.every((participant) => participant.readyAt);
   const isExpired =
     duel.status === "expired" ||
-    (duel.status === "lobby" && new Date(duel.expires_at).getTime() <= Date.now());
+    (duel.status === "lobby" &&
+      new Date(duel.expires_at).getTime() <= Date.now());
 
   return {
     id: duel.id,
@@ -321,7 +317,7 @@ function toRoomView(params: {
     topicDescription: duel.topic_description,
     practiceLanguage: coercePracticeLanguage(
       duel.practice_language,
-      DEFAULT_PRACTICE_LANGUAGE
+      DEFAULT_PRACTICE_LANGUAGE,
     ),
     duelKind: duel.duel_kind ?? "custom",
     rated: duel.rated ?? false,
@@ -394,7 +390,7 @@ async function getDuelById(duelId: string) {
   const { data, error } = await supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, phase_deadline, started_at, completed_at, outcome_reason, forfeited_by, ai_opponent, expires_at, created_at"
+      "id, share_code, creator_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, phase_deadline, started_at, completed_at, outcome_reason, forfeited_by, ai_opponent, expires_at, created_at",
     )
     .eq("id", duelId)
     .single();
@@ -408,7 +404,7 @@ async function getDuelById(duelId: string) {
 
 export async function getDebateDuelRoom(
   shareCode: string,
-  userId: string
+  userId: string,
 ): Promise<DebateDuelRoomView | null> {
   const rows = await fetchRoomRows(shareCode);
   if (!rows) return null;
@@ -441,7 +437,7 @@ export async function getDebateDuelRoom(
 
 export async function createDebateDuelRoom(
   userId: string,
-  input: CreateDebateDuelInput
+  input: CreateDebateDuelInput,
 ) {
   const supabase = await createClient();
   const { data: profile } = await supabase
@@ -450,7 +446,7 @@ export async function createDebateDuelRoom(
     .eq("id", userId)
     .single();
   const { data: shareCode, error: codeError } = await supabase.rpc(
-    "generate_duel_share_code"
+    "generate_duel_share_code",
   );
 
   if (codeError || !shareCode) {
@@ -459,7 +455,7 @@ export async function createDebateDuelRoom(
 
   const creatorRole =
     input.sideAssignmentMode === "choose"
-      ? input.creatorSidePreference ?? "proposition"
+      ? (input.creatorSidePreference ?? "proposition")
       : null;
 
   const { data: duel, error } = await supabase
@@ -483,7 +479,7 @@ export async function createDebateDuelRoom(
       rated: false,
       creator_side_preference:
         input.sideAssignmentMode === "choose"
-          ? input.creatorSidePreference ?? "proposition"
+          ? (input.creatorSidePreference ?? "proposition")
           : null,
     })
     .select("id, share_code")
@@ -527,7 +523,7 @@ export async function joinDebateDuelRoom(shareCode: string, userId: string) {
 export async function setDebateDuelReady(
   shareCode: string,
   userId: string,
-  ready: boolean
+  ready: boolean,
 ) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("set_debate_duel_ready", {
@@ -579,7 +575,7 @@ export interface DebateDuelIntegrityResult {
 
 function mapMatchmakingTicket(
   row: DuelMatchmakingTicketRow,
-  shareCode: string | null
+  shareCode: string | null,
 ): DebateDuelMatchmakingTicket {
   const expired =
     row.status === "queued" && new Date(row.expires_at).getTime() <= Date.now();
@@ -592,7 +588,7 @@ function mapMatchmakingTicket(
     topicDifficulty: row.topic_difficulty,
     practiceLanguage: coercePracticeLanguage(
       row.practice_language,
-      DEFAULT_PRACTICE_LANGUAGE
+      DEFAULT_PRACTICE_LANGUAGE,
     ),
     config: {
       prepTimeSeconds: row.prep_time_seconds,
@@ -632,7 +628,7 @@ async function fetchMatchmakingTicketById(ticketId: string, userId: string) {
   const { data, error } = await supabase
     .from("debate_duel_matchmaking_tickets")
     .select(
-      "id, user_id, status, topic_category, topic_category_key, topic_difficulty, practice_language, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, matched_duel_id, matched_ticket_id, expires_at, matched_at, cancelled_at, created_at, updated_at"
+      "id, user_id, status, topic_category, topic_category_key, topic_difficulty, practice_language, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, matched_duel_id, matched_ticket_id, expires_at, matched_at, cancelled_at, created_at, updated_at",
     )
     .eq("id", ticketId)
     .eq("user_id", userId)
@@ -653,7 +649,7 @@ export async function getCurrentDebateDuelMatchmakingTicket(userId: string) {
   const { data, error } = await supabase
     .from("debate_duel_matchmaking_tickets")
     .select(
-      "id, user_id, status, topic_category, topic_category_key, topic_difficulty, practice_language, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, matched_duel_id, matched_ticket_id, expires_at, matched_at, cancelled_at, created_at, updated_at"
+      "id, user_id, status, topic_category, topic_category_key, topic_difficulty, practice_language, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, matched_duel_id, matched_ticket_id, expires_at, matched_at, cancelled_at, created_at, updated_at",
     )
     .eq("user_id", userId)
     .in("status", ["queued", "matched"])
@@ -680,7 +676,7 @@ async function seedDuelMmrProfile(userId: string) {
   const { data, error } = await supabase
     .from("debate_sessions")
     .select(
-      "feedback, total_score, created_at, mode, duration_seconds, topic_difficulty, ai_difficulty"
+      "feedback, total_score, created_at, mode, duration_seconds, topic_difficulty, ai_difficulty",
     )
     .eq("user_id", userId)
     .not("total_score", "is", null)
@@ -719,7 +715,7 @@ async function seedDuelMmrProfile(userId: string) {
 
 export async function enterDebateDuelMatchmaking(
   userId: string,
-  input: EnterDebateDuelMatchmakingInput
+  input: EnterDebateDuelMatchmakingInput,
 ) {
   await seedDuelMmrProfile(userId);
 
@@ -738,7 +734,7 @@ export async function enterDebateDuelMatchmaking(
       p_prep_time_seconds: input.prepTimeSeconds,
       p_opening_time_seconds: input.openingTimeSeconds,
       p_rebuttal_time_seconds: input.rebuttalTimeSeconds,
-    }
+    },
   );
 
   if (error || !ticketId) {
@@ -750,7 +746,7 @@ export async function enterDebateDuelMatchmaking(
 
 export async function cancelDebateDuelMatchmaking(
   ticketId: string,
-  userId: string
+  userId: string,
 ) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("cancel_debate_duel_matchmaking", {
@@ -808,7 +804,9 @@ function classifyIntegrityEvent(input: {
   }
 
   return {
-    severity: technicalTypes.has(actionType) ? ("info" as const) : ("info" as const),
+    severity: technicalTypes.has(actionType)
+      ? ("info" as const)
+      : ("info" as const),
     isSuspicious: false,
     reason: null,
   };
@@ -952,7 +950,7 @@ async function finalizeDuelAnalytics(duelId: string, totalSeconds: number) {
 async function judgeAndFinalizeDebateDuel(
   duelId: string,
   speeches: DebateDuelSpeech[],
-  participants: DebateDuelParticipant[]
+  participants: DebateDuelParticipant[],
 ) {
   const supabase = await getDuelWriteClient();
 
@@ -967,7 +965,7 @@ async function judgeAndFinalizeDebateDuel(
   if (existingJudgment?.verdict) {
     const totalSeconds = speeches.reduce(
       (sum, speech) => sum + speech.durationSeconds,
-      0
+      0,
     );
     await supabase
       .from("debate_duels")
@@ -995,13 +993,13 @@ async function judgeAndFinalizeDebateDuel(
   const duel = await getDuelById(duelId);
 
   const orderedSpeeches = [...speeches].sort(
-    (left, right) => left.roundNumber - right.roundNumber
+    (left, right) => left.roundNumber - right.roundNumber,
   );
 
   const participantBySide = new Map(
     participants
       .filter((participant) => participant.role)
-      .map((participant) => [participant.role as DebateDuelSide, participant])
+      .map((participant) => [participant.role as DebateDuelSide, participant]),
   );
 
   // supabase is already service-role-preferring (getDuelWriteClient).
@@ -1010,55 +1008,60 @@ async function judgeAndFinalizeDebateDuel(
   let telemetry: AiQualityTelemetry | null = null;
   let judgment: DebateDuelJudgment;
   try {
-    judgment = await judgeDebateDuel({
-      motion: duel.topic_title,
-      topicCategory: duel.topic_category,
-      practiceLanguage: coercePracticeLanguage(duel.practice_language),
-      participants: {
-        proposition: {
-          participantId: participantBySide.get("proposition")?.id ?? null,
-          displayName:
-            participantBySide.get("proposition")?.displayName ?? "Proposition",
+    judgment = await judgeDebateDuel(
+      {
+        motion: duel.topic_title,
+        topicCategory: duel.topic_category,
+        practiceLanguage: coercePracticeLanguage(duel.practice_language),
+        participants: {
+          proposition: {
+            participantId: participantBySide.get("proposition")?.id ?? null,
+            displayName:
+              participantBySide.get("proposition")?.displayName ??
+              "Proposition",
+          },
+          opposition: {
+            participantId: participantBySide.get("opposition")?.id ?? null,
+            displayName:
+              participantBySide.get("opposition")?.displayName ?? "Opposition",
+          },
         },
-        opposition: {
-          participantId: participantBySide.get("opposition")?.id ?? null,
-          displayName:
-            participantBySide.get("opposition")?.displayName ?? "Opposition",
-        },
+        speeches: orderedSpeeches.map((speech) => ({
+          id: speech.id,
+          roundNumber: speech.roundNumber,
+          speechType: speech.speechType,
+          side: speech.side,
+          label:
+            speech.roundNumber === 1
+              ? "Proposition Opening"
+              : speech.roundNumber === 2
+                ? "Opposition Opening"
+                : speech.roundNumber === 3
+                  ? "Proposition Rebuttal"
+                  : "Opposition Rebuttal",
+          transcript: speech.transcript,
+          durationSeconds: speech.durationSeconds,
+          qualityFlags:
+            speech.transcript.trim().split(/\s+/).filter(Boolean).length < 20
+              ? ["short_transcript"]
+              : [],
+        })),
       },
-      speeches: orderedSpeeches.map((speech) => ({
-        id: speech.id,
-        roundNumber: speech.roundNumber,
-        speechType: speech.speechType,
-        side: speech.side,
-        label:
-          speech.roundNumber === 1
-            ? "Proposition Opening"
-            : speech.roundNumber === 2
-              ? "Opposition Opening"
-              : speech.roundNumber === 3
-                ? "Proposition Rebuttal"
-                : "Opposition Rebuttal",
-        transcript: speech.transcript,
-        durationSeconds: speech.durationSeconds,
-        qualityFlags:
-          speech.transcript.trim().split(/\s+/).filter(Boolean).length < 20
-            ? ["short_transcript"]
-            : [],
-      })),
-    }, duel.creator_id, (nextTelemetry) => {
-      telemetry = nextTelemetry;
-    });
+      duel.creator_id,
+      (nextTelemetry) => {
+        telemetry = nextTelemetry;
+      },
+    );
   } catch (error) {
-    const provider = getDuelJudgeProvider();
+    const requestedJudge = getAiTaskPolicy("duel_judging").candidates[0];
     await recordAiQualityRun(writeClient, {
       userId: duel.creator_id,
       outputType: "duel_judging",
       status: "error",
       sourceRoute: "/api/debate-duels/[shareCode]/speeches/[roundNumber]",
-      provider: getProviderLabel(provider),
-      requestedProvider: getProviderLabel(provider),
-      model: getProviderModelName(provider),
+      provider: requestedJudge?.provider ?? "groq",
+      requestedProvider: requestedJudge?.provider ?? "groq",
+      model: requestedJudge?.model ?? "qwen/qwen3.8-27b",
       practiceTrack: "debate",
       practiceLanguage: coercePracticeLanguage(duel.practice_language),
       difficulty: duel.topic_difficulty,
@@ -1068,7 +1071,10 @@ async function judgeAndFinalizeDebateDuel(
       errorCode: "DUEL_JUDGING_FAILED",
       errorMessage: error instanceof Error ? error.message : String(error),
       inputPreview: orderedSpeeches
-        .map((speech) => `${speech.side} ${speech.speechType}: ${speech.transcript}`)
+        .map(
+          (speech) =>
+            `${speech.side} ${speech.speechType}: ${speech.transcript}`,
+        )
         .join("\n\n"),
       debateDuelId: duelId,
       metadata: {
@@ -1084,8 +1090,8 @@ async function judgeAndFinalizeDebateDuel(
 
   const winnerParticipantId =
     judgment.winnerSide === "proposition"
-      ? participantBySide.get("proposition")?.id ?? null
-      : participantBySide.get("opposition")?.id ?? null;
+      ? (participantBySide.get("proposition")?.id ?? null)
+      : (participantBySide.get("opposition")?.id ?? null);
 
   const aiQualityTelemetry = telemetry as AiQualityTelemetry | null;
   const aiQualityRunId = aiQualityTelemetry
@@ -1103,7 +1109,10 @@ async function judgeAndFinalizeDebateDuel(
         confidence: judgment.confidence,
         outputText: JSON.stringify(judgment),
         inputPreview: orderedSpeeches
-          .map((speech) => `${speech.side} ${speech.speechType}: ${speech.transcript}`)
+          .map(
+            (speech) =>
+              `${speech.side} ${speech.speechType}: ${speech.transcript}`,
+          )
           .join("\n\n"),
         debateDuelId: duelId,
         metadata: {
@@ -1127,7 +1136,7 @@ async function judgeAndFinalizeDebateDuel(
       p_confidence: judgment.confidence,
       p_verdict: judgment,
       p_summary: judgment.summary,
-    }
+    },
   );
 
   if (insertError) {
@@ -1136,7 +1145,7 @@ async function judgeAndFinalizeDebateDuel(
 
   const totalSeconds = orderedSpeeches.reduce(
     (sum, speech) => sum + speech.durationSeconds,
-    duel.prep_time_seconds + Math.max(30, Math.min(duel.prep_time_seconds, 60))
+    duel.prep_time_seconds + Math.max(30, Math.min(duel.prep_time_seconds, 60)),
   );
 
   // Non-fatal: a stats/XP hiccup must never block the duel from reaching
@@ -1186,8 +1195,8 @@ async function judgeAndFinalizeDebateDuel(
           won: participant.role === judgment.winnerSide,
           judge_model: judgment.model,
         },
-      })
-    )
+      }),
+    ),
   );
 
   try {
@@ -1222,7 +1231,11 @@ export async function submitDebateDuelSpeech(params: {
   const allowedPhase = room.currentPhase;
   const phaseToRound: Record<
     DebateDuelPhase,
-    { roundNumber: number; side: DebateDuelSide; speechType: "opening" | "rebuttal" } | null
+    {
+      roundNumber: number;
+      side: DebateDuelSide;
+      speechType: "opening" | "rebuttal";
+    } | null
   > = {
     lobby: null,
     prep: null,
@@ -1278,7 +1291,7 @@ export async function submitDebateDuelSpeech(params: {
         metadata: params.metadata ?? {},
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "duel_id,round_number", ignoreDuplicates: true }
+      { onConflict: "duel_id,round_number", ignoreDuplicates: true },
     )
     .select("id");
 
@@ -1353,9 +1366,9 @@ export async function submitDebateDuelSpeech(params: {
     await judgeAndFinalizeDebateDuel(
       room.id,
       [...updatedRoom.speeches].sort(
-        (left, right) => left.roundNumber - right.roundNumber
+        (left, right) => left.roundNumber - right.roundNumber,
       ),
-      updatedRoom.participants
+      updatedRoom.participants,
     );
     return getDebateDuelRoom(params.shareCode, params.userId);
   }
@@ -1365,7 +1378,7 @@ export async function submitDebateDuelSpeech(params: {
 
 export async function getDebateDuelResult(
   shareCode: string,
-  userId: string
+  userId: string,
 ): Promise<DebateDuelRoomView | null> {
   const room = await getDebateDuelRoom(shareCode, userId);
   if (!room) return null;
@@ -1407,8 +1420,10 @@ export async function judgeDebateDuelRoom(shareCode: string, userId: string) {
 
   await judgeAndFinalizeDebateDuel(
     room.id,
-    [...room.speeches].sort((left, right) => left.roundNumber - right.roundNumber),
-    room.participants
+    [...room.speeches].sort(
+      (left, right) => left.roundNumber - right.roundNumber,
+    ),
+    room.participants,
   );
 
   return getDebateDuelRoom(shareCode, userId);
@@ -1451,7 +1466,7 @@ export async function judgeDebateDuelRoomInternal(shareCode: string) {
   const { data: participantRows, error: participantError } = await admin
     .from("debate_duel_participants")
     .select(
-      "id, duel_id, user_id, role, display_name_snapshot, avatar_url_snapshot, joined_at, ready_at, credits_charged_at, completed_at"
+      "id, duel_id, user_id, role, display_name_snapshot, avatar_url_snapshot, joined_at, ready_at, credits_charged_at, completed_at",
     )
     .eq("duel_id", duel.id)
     .order("joined_at", { ascending: true });
@@ -1462,7 +1477,7 @@ export async function judgeDebateDuelRoomInternal(shareCode: string) {
   const { data: speechRows, error: speechError } = await admin
     .from("debate_duel_speeches")
     .select(
-      "id, duel_id, participant_id, round_number, speech_type, side, transcript, audio_storage_path, duration_seconds, metadata, created_at"
+      "id, duel_id, participant_id, round_number, speech_type, side, transcript, audio_storage_path, duration_seconds, metadata, created_at",
     )
     .eq("duel_id", duel.id)
     .order("round_number", { ascending: true });
@@ -1481,7 +1496,7 @@ export async function judgeDebateDuelRoomInternal(shareCode: string) {
       readyAt: participant.ready_at,
       creditsChargedAt: participant.credits_charged_at,
       completedAt: participant.completed_at,
-    })
+    }),
   );
   const speeches = ((speechRows ?? []) as DuelSpeechRow[]).map(mapSpeech);
 
@@ -1498,24 +1513,27 @@ export async function judgeDebateDuelRoomInternal(shareCode: string) {
  */
 export async function createDebateDuelAiBackfill(
   userId: string,
-  input: EnterDebateDuelMatchmakingInput
+  input: EnterDebateDuelMatchmakingInput,
 ) {
   const aiUserId = await ensureAiOpponentUser();
   const supabase = await createClient();
-  const { data: shareCode, error } = await supabase.rpc("create_ai_backfill_duel", {
-    p_human_user_id: userId,
-    p_ai_user_id: aiUserId,
-    p_practice_topic_key: input.topicKey ?? null,
-    p_topic_title: input.topicTitle,
-    p_topic_category: input.topicCategory,
-    p_topic_category_key: input.topicCategoryKey ?? input.topicCategory,
-    p_topic_difficulty: input.topicDifficulty,
-    p_topic_description: input.topicDescription ?? "",
-    p_practice_language: coercePracticeLanguage(input.practiceLanguage),
-    p_prep_time_seconds: input.prepTimeSeconds,
-    p_opening_time_seconds: input.openingTimeSeconds,
-    p_rebuttal_time_seconds: input.rebuttalTimeSeconds,
-  });
+  const { data: shareCode, error } = await supabase.rpc(
+    "create_ai_backfill_duel",
+    {
+      p_human_user_id: userId,
+      p_ai_user_id: aiUserId,
+      p_practice_topic_key: input.topicKey ?? null,
+      p_topic_title: input.topicTitle,
+      p_topic_category: input.topicCategory,
+      p_topic_category_key: input.topicCategoryKey ?? input.topicCategory,
+      p_topic_difficulty: input.topicDifficulty,
+      p_topic_description: input.topicDescription ?? "",
+      p_practice_language: coercePracticeLanguage(input.practiceLanguage),
+      p_prep_time_seconds: input.prepTimeSeconds,
+      p_opening_time_seconds: input.openingTimeSeconds,
+      p_rebuttal_time_seconds: input.rebuttalTimeSeconds,
+    },
+  );
 
   if (error || !shareCode) {
     throw new Error(error?.message || "Failed to create AI duel.");
@@ -1594,7 +1612,7 @@ export async function aiTurnDebateDuel(shareCode: string, userId: string) {
 
 export async function getDebateDuelHistory(
   userId: string,
-  practiceLanguageInput?: PracticeLanguage | string | null
+  practiceLanguageInput?: PracticeLanguage | string | null,
 ): Promise<DebateDuelHistoryItem[]> {
   const supabase = await createClient();
   const practiceLanguage =
@@ -1616,7 +1634,7 @@ export async function getDebateDuelHistory(
   let duelQuery = supabase
     .from("debate_duels")
     .select(
-      "id, share_code, creator_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, phase_deadline, started_at, completed_at, outcome_reason, forfeited_by, ai_opponent, expires_at, created_at"
+      "id, share_code, creator_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, topic_description, practice_language, duel_kind, rated, integrity_status, rating_processed_at, rating_excluded_reason, prep_time_seconds, opening_time_seconds, rebuttal_time_seconds, entry_cost, side_assignment_mode, creator_side_preference, status, current_phase, phase_started_at, phase_deadline, started_at, completed_at, outcome_reason, forfeited_by, ai_opponent, expires_at, created_at",
     )
     .in("id", duelIds)
     .eq("status", "completed");
@@ -1624,7 +1642,9 @@ export async function getDebateDuelHistory(
   if (practiceLanguage === "vi") {
     duelQuery = duelQuery.eq("practice_language", "vi");
   } else if (practiceLanguage === "en") {
-    duelQuery = duelQuery.or("practice_language.eq.en,practice_language.is.null");
+    duelQuery = duelQuery.or(
+      "practice_language.eq.en,practice_language.is.null",
+    );
   }
 
   const { data: duels } = await duelQuery
@@ -1638,11 +1658,11 @@ export async function getDebateDuelHistory(
   const { data: judgments } = await supabase
     .from("debate_duel_judgments")
     .select(
-      "duel_id, winner_side, summary, created_at, judge_model, confidence, verdict, id, winner_participant_id"
+      "duel_id, winner_side, summary, created_at, judge_model, confidence, verdict, id, winner_participant_id",
     )
     .in(
       "duel_id",
-      duels.map((duel) => duel.id)
+      duels.map((duel) => duel.id),
     );
 
   const completedDuelIds = duels.map((duel) => duel.id);
@@ -1659,27 +1679,28 @@ export async function getDebateDuelHistory(
     ((judgments ?? []) as DuelJudgmentRow[]).map((judgment) => [
       judgment.duel_id,
       judgment,
-    ])
+    ]),
   );
   const durationByDuel = new Map<string, number>();
-  ((speeches ?? []) as Pick<DuelSpeechRow, "duel_id" | "duration_seconds">[]).forEach(
-    (speech) => {
-      durationByDuel.set(
-        speech.duel_id,
-        (durationByDuel.get(speech.duel_id) ?? 0) + speech.duration_seconds
-      );
-    }
-  );
+  (
+    (speeches ?? []) as Pick<DuelSpeechRow, "duel_id" | "duration_seconds">[]
+  ).forEach((speech) => {
+    durationByDuel.set(
+      speech.duel_id,
+      (durationByDuel.get(speech.duel_id) ?? 0) + speech.duration_seconds,
+    );
+  });
   const roleByDuel = new Map(
     (participantRows as { duel_id: string; role: DebateDuelSide | null }[]).map(
-      (row) => [row.duel_id, row.role]
-    )
+      (row) => [row.duel_id, row.role],
+    ),
   );
 
   return (duels as DuelRow[]).map((duel) => {
     const speechSeconds = durationByDuel.get(duel.id) ?? 0;
     const prepSeconds =
-      duel.prep_time_seconds + Math.max(30, Math.min(duel.prep_time_seconds, 60));
+      duel.prep_time_seconds +
+      Math.max(30, Math.min(duel.prep_time_seconds, 60));
 
     return {
       id: duel.id,

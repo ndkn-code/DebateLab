@@ -32,23 +32,27 @@ Pub/Sub. Dispatch is fail-closed unless `AI_GRADING_BACKEND` is explicitly
    - `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`
    - the keyless WIF publisher variables in `.env.example`; never add a GCP
      service-account JSON key to Vercel
-   Configure grading-provider secrets on the private Cloud Run worker instead:
+     Configure grading-provider secrets on the private Cloud Run worker instead:
    - bind `GROQ_API_KEY`, `DEEPGRAM_API_KEY`, and `AZURE_SPEECH_KEY` from GCP
      Secret Manager;
    - set `AZURE_SPEECH_REGION=centralus` and
      `AI_GRADING_AZURE_EXPECTED_REGION=centralus` as Cloud Run environment
      variables; readiness rejects a mismatch without exposing the key;
-   - optionally set `GROQ_IELTS_SCORING_FALLBACK_MODEL` (defaults to the fast
-     Groq `openai/gpt-oss-20b` model);
+   - live IELTS and debate grading default to Groq `qwen/qwen3.8-27b`, with
+     Groq `openai/gpt-oss-120b` as the bounded fallback for rate limits,
+     exhausted schema repair, and definite provider 5xx responses;
+   - optionally pin those choices centrally with `GROQ_GRADING_MODEL` and
+     `GROQ_GRADING_FALLBACK_MODEL`; task-specific grading model overrides are
+     intentionally ignored so every learner grading path uses the same pair;
    - add `VOYAGE_API_KEY` only when a reviewed English collection is ready to
      embed or retrieve.
-   Do not duplicate Azure or grading-provider secrets in Vercel. The only
-   exception is a deliberately retained legacy Vercel Azure TTS fallback.
-   Protected Speaking calibration additionally uses two separate GCP secrets:
-   `AI_GRADING_ACOUSTIC_ASSESSMENT_RECEIPT_SECRET` is available to both acoustic
-   preparation stages, while `AI_GRADING_BENCHMARK_ATTESTATION_SECRET` is
-   restricted to final attestation. They must never share a value, and neither
-   belongs in Vercel.
+     Do not duplicate Azure or grading-provider secrets in Vercel. The only
+     exception is a deliberately retained legacy Vercel Azure TTS fallback.
+     Protected Speaking calibration additionally uses two separate GCP secrets:
+     `AI_GRADING_ACOUSTIC_ASSESSMENT_RECEIPT_SECRET` is available to both acoustic
+     preparation stages, while `AI_GRADING_BENCHMARK_ATTESTATION_SECRET` is
+     restricted to final attestation. They must never share a value, and neither
+     belongs in Vercel.
 4. Provision and validate the private worker resources described in
    `docs/ai-grading-gcp-runbook.md`. Vercel Workflow, grading queue consumers,
    and a Vercel reconciliation cron are not part of this architecture.

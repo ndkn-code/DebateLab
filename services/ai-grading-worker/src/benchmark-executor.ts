@@ -42,7 +42,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export const LOCKED_IELTS_BENCHMARK_GRADER_VERSION = IELTS_GRADING_VERSION;
 const BUILTIN_IELTS_GROQ_MODELS = new Set([
   "openai/gpt-oss-120b",
-  "openai/gpt-oss-20b",
   "qwen/qwen3.8-27b",
 ]);
 export type BenchmarkRunKind = "primary" | "repeat";
@@ -267,9 +266,7 @@ function definiteFailureAuditIds(error: unknown): string[] | null {
     return null;
   }
   return [
-    ...new Set(
-      failed.map((attempt) => attempt.providerRequestId as string),
-    ),
+    ...new Set(failed.map((attempt) => attempt.providerRequestId as string)),
   ];
 }
 

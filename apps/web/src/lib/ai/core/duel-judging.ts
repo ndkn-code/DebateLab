@@ -25,11 +25,13 @@ type DuelJudgeParams = {
   }>;
 };
 
-const DuelJudgmentSchema = z.object({
-  winnerSide: z.enum(["proposition", "opposition"]),
-  comparativeBallot: z.string().min(1),
-  participantFeedback: z.unknown(),
-}).passthrough();
+const DuelJudgmentSchema = z
+  .object({
+    winnerSide: z.enum(["proposition", "opposition"]),
+    comparativeBallot: z.string().min(1),
+    participantFeedback: z.unknown(),
+  })
+  .passthrough();
 
 /** Central durable-quality duel judge, retaining the prompt and post-processing contract. */
 export async function judgeDebateDuel(
@@ -57,15 +59,16 @@ export async function judgeDebateDuel(
     judgment.winnerSide === "proposition"
       ? params.participants.proposition.participantId
       : params.participants.opposition.participantId;
-  judgment.model ||= result.model;
-  judgment.judgedAt ||= new Date().toISOString();
+  // Provider identity and timestamps are server-owned evidence. Never trust
+  // model-authored fields for persistence or analytics.
+  judgment.model = result.model;
+  judgment.judgedAt = new Date().toISOString();
   judgment.qualityWarnings ??= [];
   judgment.roundBreakdown ??= [];
   judgment.clashLinks = normalizeDebateDuelClashLinks(judgment.clashLinks);
   await onTelemetry?.({
     provider: result.provider === "gemini" ? "google" : result.provider,
-    requestedProvider:
-      process.env.DEBATE_DUEL_JUDGE_PROVIDER === "deepseek" ? "deepseek" : "google",
+    requestedProvider: "groq",
     model: result.model,
     latencyMs: result.latencyMs,
     usage: result.usage,

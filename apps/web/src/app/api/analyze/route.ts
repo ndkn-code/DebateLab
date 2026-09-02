@@ -702,8 +702,10 @@ export async function POST(req: NextRequest) {
         timeoutPromise,
       ]);
 
-      const modelUsed = getPracticeFeedbackModelName(practiceTrack || "debate");
       const aiQualityTelemetry = telemetry as AiQualityTelemetry | null;
+      const modelUsed =
+        aiQualityTelemetry?.model ||
+        getPracticeFeedbackModelName(practiceTrack || "debate");
       const transcriptionMetadata = transcription
         ? createTranscriptionQualityMetadata(transcription)
         : null;

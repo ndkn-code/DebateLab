@@ -676,9 +676,7 @@ function duelJudgmentJsonSchema(): string {
     }
   ],
   "summary": "<1 paragraph overall verdict summary>",
-  "qualityWarnings": ["<warning 1>", "<warning 2>"],
-  "model": "<filled by API if missing>",
-  "judgedAt": "<ISO datetime string>"
+  "qualityWarnings": ["<warning 1>", "<warning 2>"]
 }`;
 }
 

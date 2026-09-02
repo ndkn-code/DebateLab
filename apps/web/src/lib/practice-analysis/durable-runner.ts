@@ -13,6 +13,7 @@ import {
   getPracticeFeedbackModelName,
   getPracticeFeedbackModelProvider,
 } from "./constants";
+import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   retrieveEnglishDebateKnowledge,
@@ -118,7 +119,30 @@ export async function generateDurablePracticeFeedback(params: {
   input: Parameters<typeof evaluatePracticeFeedback>[0];
   userId: string;
 }) {
-  return evaluatePracticeFeedback(params.input, params.userId);
+  let telemetry: AiQualityTelemetry | undefined;
+  const feedback = await evaluatePracticeFeedback(
+    params.input,
+    params.userId,
+    (result) => {
+      telemetry = result;
+    },
+  );
+  return {
+    feedback,
+    modelName:
+      telemetry?.model ??
+      getPracticeFeedbackModelName(params.input.practiceTrack),
+    modelProvider:
+      telemetry?.provider === "gemini"
+        ? "google"
+        : (telemetry?.provider ??
+          getPracticeFeedbackModelProvider(params.input.practiceTrack)),
+    fallbackUsed: telemetry?.fallbackUsed ?? false,
+    traceId:
+      typeof telemetry?.metadata?.traceId === "string"
+        ? telemetry.metadata.traceId
+        : null,
+  };
 }
 
 /** Persist a previously checkpointed evaluator result without another model call. */
@@ -127,6 +151,10 @@ export async function persistDurablePracticeAnalysis(params: {
   attemptId: string;
   workflowRunId: string;
   feedback: Awaited<ReturnType<typeof evaluatePracticeFeedback>>;
+  modelName: string;
+  modelProvider: string;
+  fallbackUsed: boolean;
+  traceId: string | null;
 }) {
   const supabase = createAdminClient();
   const { job, attempt } = await getAnalysisJobForProcessing(
@@ -140,22 +168,23 @@ export async function persistDurablePracticeAnalysis(params: {
   if (job.status !== "processing" || attempt.status !== "analyzing") {
     return { status: "terminal" as const };
   }
-  const modelName = getPracticeFeedbackModelName(attempt.practice_track);
   const savedSession = await saveCompletedPracticeAttempt(supabase, {
     attempt,
     feedback: params.feedback,
-    modelName,
+    modelName: params.modelName,
   });
   await markPracticeAnalysisCompleted(supabase, {
     attemptId: attempt.id,
     jobId: job.id,
     feedback: params.feedback,
-    modelName,
-    modelProvider: getPracticeFeedbackModelProvider(attempt.practice_track),
+    modelName: params.modelName,
+    modelProvider: params.modelProvider,
     legacySessionId: savedSession.sessionId,
     resultMetadata: {
       workflowRunId: params.workflowRunId,
       enrichmentStatus: "pending",
+      gradingFallbackUsed: params.fallbackUsed,
+      gradingTraceId: params.traceId,
     },
   });
   return { status: "completed" as const };

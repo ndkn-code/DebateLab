@@ -778,21 +778,19 @@ test("Speaking request rejects Azure config, report, and derived-score tampering
 
 test("live and benchmark stages share the locked IELTS scoring policies", () => {
   const original = {
-    speaking: process.env.GROQ_IELTS_SPEAKING_MODEL,
-    writing: process.env.GROQ_IELTS_WRITING_MODEL,
-    fallback: process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL,
+    primary: process.env.GROQ_GRADING_MODEL,
+    fallback: process.env.GROQ_GRADING_FALLBACK_MODEL,
   };
-  process.env.GROQ_IELTS_SPEAKING_MODEL = "test/speaking-primary";
-  process.env.GROQ_IELTS_WRITING_MODEL = "test/writing-primary";
-  process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL = "test/fast-fallback";
+  process.env.GROQ_GRADING_MODEL = "test/shared-grading-primary";
+  process.env.GROQ_GRADING_FALLBACK_MODEL = "test/qualified-fallback";
   try {
     const speakingProvisional = getIeltsSpeakingScoringPolicy("provisional");
     const speakingAdjudicated = getIeltsSpeakingScoringPolicy("adjudicated");
     const writingProvisional = getIeltsWritingScoringPolicy("provisional");
     const writingAdjudicated = getIeltsWritingScoringPolicy("adjudicated");
     assert.deepEqual(speakingProvisional.candidates, [
-      { provider: "groq", model: "test/speaking-primary" },
-      { provider: "groq", model: "test/fast-fallback" },
+      { provider: "groq", model: "test/shared-grading-primary" },
+      { provider: "groq", model: "test/qualified-fallback" },
     ]);
     assert.deepEqual(
       speakingAdjudicated.candidates,
@@ -802,8 +800,8 @@ test("live and benchmark stages share the locked IELTS scoring policies", () => 
     assert.equal(speakingProvisional.temperature, 0.2);
     assert.equal(speakingAdjudicated.temperature, 0);
     assert.deepEqual(writingProvisional.candidates, [
-      { provider: "groq", model: "test/writing-primary" },
-      { provider: "groq", model: "test/fast-fallback" },
+      { provider: "groq", model: "test/shared-grading-primary" },
+      { provider: "groq", model: "test/qualified-fallback" },
     ]);
     assert.deepEqual(
       writingAdjudicated.candidates,
@@ -813,29 +811,25 @@ test("live and benchmark stages share the locked IELTS scoring policies", () => 
     assert.equal(writingProvisional.temperature, 0.2);
     assert.equal(writingAdjudicated.temperature, 0);
   } finally {
-    if (original.speaking === undefined)
-      delete process.env.GROQ_IELTS_SPEAKING_MODEL;
-    else process.env.GROQ_IELTS_SPEAKING_MODEL = original.speaking;
-    if (original.writing === undefined)
-      delete process.env.GROQ_IELTS_WRITING_MODEL;
-    else process.env.GROQ_IELTS_WRITING_MODEL = original.writing;
+    if (original.primary === undefined) delete process.env.GROQ_GRADING_MODEL;
+    else process.env.GROQ_GRADING_MODEL = original.primary;
     if (original.fallback === undefined)
-      delete process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL;
-    else process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL = original.fallback;
+      delete process.env.GROQ_GRADING_FALLBACK_MODEL;
+    else process.env.GROQ_GRADING_FALLBACK_MODEL = original.fallback;
   }
 });
 
 test("benchmark provider preflight rejects an unsupported selected model", () => {
   const original = {
     key: process.env.GROQ_API_KEY,
-    speaking: process.env.GROQ_IELTS_SPEAKING_MODEL,
-    fallback: process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL,
+    primary: process.env.GROQ_GRADING_MODEL,
+    fallback: process.env.GROQ_GRADING_FALLBACK_MODEL,
     supported: process.env.GROQ_IELTS_SUPPORTED_MODELS,
   };
   try {
     process.env.GROQ_API_KEY = "configured-for-contract-test";
-    process.env.GROQ_IELTS_SPEAKING_MODEL = "unknown/model";
-    process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL = "openai/gpt-oss-20b";
+    process.env.GROQ_GRADING_MODEL = "unknown/model";
+    process.env.GROQ_GRADING_FALLBACK_MODEL = "openai/gpt-oss-120b";
     delete process.env.GROQ_IELTS_SUPPORTED_MODELS;
     assert.throws(
       () => assertBenchmarkProviderConfiguration("ielts_speaking"),
@@ -848,12 +842,11 @@ test("benchmark provider preflight rejects an unsupported selected model", () =>
   } finally {
     if (original.key === undefined) delete process.env.GROQ_API_KEY;
     else process.env.GROQ_API_KEY = original.key;
-    if (original.speaking === undefined)
-      delete process.env.GROQ_IELTS_SPEAKING_MODEL;
-    else process.env.GROQ_IELTS_SPEAKING_MODEL = original.speaking;
+    if (original.primary === undefined) delete process.env.GROQ_GRADING_MODEL;
+    else process.env.GROQ_GRADING_MODEL = original.primary;
     if (original.fallback === undefined)
-      delete process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL;
-    else process.env.GROQ_IELTS_SCORING_FALLBACK_MODEL = original.fallback;
+      delete process.env.GROQ_GRADING_FALLBACK_MODEL;
+    else process.env.GROQ_GRADING_FALLBACK_MODEL = original.fallback;
     if (original.supported === undefined)
       delete process.env.GROQ_IELTS_SUPPORTED_MODELS;
     else process.env.GROQ_IELTS_SUPPORTED_MODELS = original.supported;
