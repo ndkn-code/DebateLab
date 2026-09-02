@@ -317,3 +317,38 @@ export function MockBandSummary({
     </div>
   );
 }
+
+/** Reload of an already-finalized attempt: point straight at the results. */
+export function MockFinishedNotice({
+  resultsHref,
+  returnHref,
+  returnLabel,
+}: {
+  resultsHref: string;
+  returnHref: string;
+  returnLabel: string;
+}) {
+  const t = useTranslations("ielts.player.exam");
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center p-6">
+      <div className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-outline-variant bg-surface-container p-6 text-center">
+        <p className="type-title-md text-on-surface">{t("timerSubmitted")}</p>
+        <p className="type-body-sm text-on-surface-variant">{t("asyncScoring")}</p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <Link
+            href={resultsHref}
+            className="inline-flex min-h-10 items-center justify-center rounded-xl bg-primary px-4 text-sm font-bold text-on-primary"
+          >
+            {t("seeResults")}
+          </Link>
+          <Link
+            href={returnHref}
+            className="inline-flex min-h-10 items-center justify-center rounded-xl border border-outline-variant px-4 text-sm font-semibold text-on-surface"
+          >
+            {returnLabel}
+          </Link>
+        </div>
+      </div>
+    </div>
+  );
+}

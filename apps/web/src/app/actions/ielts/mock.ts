@@ -253,11 +253,20 @@ export async function submitMockAttempt(
   });
   if (error) throw new Error(error.message);
   if (state.attempt.assessment_mode === "simulation") {
-    await enqueueFrozenSimulationWriting({
-      attemptId: input.attemptId,
-      userId,
-      feedbackLanguage: input.feedbackLanguage,
-    });
+    // Writing scoring is asynchronous and retryable from the results page;
+    // a queue/config failure must never leave a finalized attempt ungraded.
+    try {
+      await enqueueFrozenSimulationWriting({
+        attemptId: input.attemptId,
+        userId,
+        feedbackLanguage: input.feedbackLanguage,
+      });
+    } catch (error) {
+      console.error("IELTS simulation writing enqueue failed", {
+        attemptId: input.attemptId,
+        error,
+      });
+    }
   }
   const grade = await gradeAttemptObjective(input.attemptId);
   return { grade, state: await ownAttemptState(input.attemptId) };

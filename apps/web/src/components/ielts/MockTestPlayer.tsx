@@ -37,7 +37,12 @@ import {
 } from "@/app/actions/ielts/mock";
 import { startAssignedMockAttempt } from "@/app/actions/ielts/assignments";
 import { MockSectionView } from "./MockSectionView";
-import { MockBandSummary, MockIntroCard } from "./MockPlayerStates";
+import {
+  MockBandSummary,
+  MockFinishedNotice,
+  MockIntroCard,
+} from "./MockPlayerStates";
+import { initialAttemptState, initialPhase, initialStructure, type Phase } from "./mock-player-state";
 import { IeltsPlayerExperienceProvider } from "./player-experience-context";
 import {
   IELTS_PLAYER_EXPERIENCE_COPY,
@@ -45,7 +50,6 @@ import {
   type IeltsPlayerLocale,
 } from "./player-experience";
 
-type Phase = "intro" | "running" | "done";
 type PlayerActionSurface = "start" | "action";
 
 const SAFE_PLAYER_ERROR = {
@@ -72,20 +76,6 @@ function playerLocale(locale: string): IeltsPlayerLocale {
   return locale === "vi" ? "vi" : "en";
 }
 
-function initialPhase(initialState?: AttemptState): Phase {
-  return initialState ? "running" : "intro";
-}
-
-function initialAttemptState(initialState?: AttemptState): AttemptState | null {
-  return initialState ?? null;
-}
-
-function initialStructure(
-  structure: MockStructure,
-  initialState?: AttemptState,
-): MockStructure {
-  return initialState?.structure ?? structure;
-}
 
 function initialResponses(initialState?: AttemptState): IeltsResponseMap {
   return Object.fromEntries(
@@ -377,6 +367,16 @@ export function MockTestPlayer({
           backHref={returnHref ?? localizedPath(params.locale, ieltsPaths.tests)}
         />
       </div>
+    );
+  }
+
+  if (phase === "done" && !grade && attemptId) {
+    return (
+      <MockFinishedNotice
+        resultsHref={localizedPath(params.locale, ieltsPaths.results(attemptId))}
+        returnHref={returnHref}
+        returnLabel={returnLabel}
+      />
     );
   }
 

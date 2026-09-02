@@ -277,8 +277,9 @@ export function buildObjectiveReview(
     sections.push({
       skill,
       label: SKILL_LABELS[skill],
-      correctCount: items.filter((item) => item.isCorrect).length,
-      totalCount: items.length,
+      // Official raw score: a "21–22" row is worth two marks, so count points.
+      correctCount: items.reduce((sum, item) => sum + item.awardedPoints, 0),
+      totalCount: items.reduce((sum, item) => sum + item.maxPoints, 0),
       items,
       parts: buildParts(questions, items, skill),
     });
