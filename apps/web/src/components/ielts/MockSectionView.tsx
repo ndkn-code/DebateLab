@@ -6,6 +6,13 @@
  * (rendered via the WS-1.2 contract), and section submit. Answers are disabled
  * once the section is paused, submitted, or past its server deadline — the DB
  * enforces the same, this just keeps the UI honest.
+ *
+ * CD-IELTS chrome: parts with a stimulus (passage / recording) render in a
+ * resizable two-pane split (`ExamSplitPane`) so passage and questions scroll
+ * independently; the timer announces the mode's warning thresholds through a
+ * dismissable banner; Listening in exam mode locks earlier parts (audio plays
+ * once); question numbers follow the official paper (a two-answer row is
+ * "21–22" and the next row is 23).
  */
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
@@ -21,17 +28,24 @@ import {
   type AssessmentMode,
 } from "@/lib/ielts/assessment-mode";
 import {
+  assignQuestionNumbers,
+  countQuestionNumbers,
+} from "@/lib/ielts/question-groups";
+import {
   type MockHighlightColor,
   type NoteAnchor,
   useMockAnnotationsStore,
 } from "@/lib/stores/mockAnnotationsStore";
-import { ListeningStimulusDeck } from "./ListeningStimulusDeck";
 import { SectionReviewSheet } from "./SectionReviewSheet";
 import { MockGuideDialog } from "./MockGuideDialog";
 import { ExamNotesSheet } from "./ExamNotesSheet";
 import { ExamSelectionPopup } from "./ExamSelectionPopup";
 import { ExamSectionFooter, ExamSectionHeader } from "./exam/ExamChrome";
-import { SectionPart, SectionStimulus } from "./MockSectionPart";
+import { ExamPartNav } from "./exam/ExamPartNav";
+import { ExamSplitPane } from "./exam/ExamSplitPane";
+import { ExamStimulusPane, partHasStimulus } from "./exam/ExamStimulusPane";
+import { ExamTimerBanner } from "./exam/ExamTimerBanner";
+import { SectionPart } from "./MockSectionPart";
 import { buildSectionParts, type MockPart } from "./mock-parts";
 import {
   buildMockQuestionStatuses,
@@ -56,7 +70,7 @@ interface Props {
   onFinish: () => void;
 }
 
-const PILL = "rounded-full px-4 py-1.5 text-sm font-semibold";
+const QUESTION_PANE = "flex flex-col gap-4 px-3 py-4 sm:px-5 sm:py-5";
 
 function activeQuestionForPart(
   part: MockPart | undefined,
@@ -75,16 +89,6 @@ function activeQuestionForPart(
 function boundedPartIndex(partsLength: number, activePart: number): number {
   if (partsLength === 0) return -1;
   return Math.min(activePart, partsLength - 1);
-}
-
-function sectionHasStimulus(
-  skill: Tables<"ielts_attempt_sections">["skill"],
-  part: MockPart | undefined,
-  parts: MockPart[],
-): boolean {
-  if (!part) return false;
-  if (part.body !== null) return true;
-  return skill === "listening" && parts.some((item) => item.audio.length > 0);
 }
 
 export function MockSectionView({
@@ -107,9 +111,8 @@ export function MockSectionView({
   const t = useTranslations("ielts.player.exam");
   const [activePart, setActivePart] = useState(0);
   const [activeQuestionId, setActiveQuestionId] = useState<string | null>(null);
-  const [pendingScrollQuestionId, setPendingScrollQuestionId] = useState<
-    string | null
-  >(null);
+  const [pendingScrollQuestionId, setPendingScrollQuestionId] =
+    useState<string | null>(null);
   const [pendingAnnotationAnchor, setPendingAnnotationAnchor] =
     useState<NoteAnchor | null>(null);
   const [reviewOpen, setReviewOpen] = useState(false);
@@ -121,20 +124,17 @@ export function MockSectionView({
     useState<MockHighlightColor>("yellow");
   const [timerStatus, setTimerStatus] =
     useState<SectionRuntimeStatus>("not_started");
+  const [activeWarning, setActiveWarning] = useState<number | null>(null);
   const [listeningPlaybackActive, setListeningPlaybackActive] = useState(false);
   const flags = useMockAnnotationsStore((store) => store.flags);
   const notes = useMockAnnotationsStore((store) => store.notes);
-  const modePolicy = assessmentModePolicy(assessmentMode);
+  const modePolicy = useMemo(() => assessmentModePolicy(assessmentMode), [assessmentMode]);
 
   const parts = useMemo(
-    () =>
-      buildSectionParts(
-        structure,
-        section.skill,
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-      ),
+    () => buildSectionParts(structure, section.skill, process.env.NEXT_PUBLIC_SUPABASE_URL),
     [structure, section.skill],
   );
+  const numbers = useMemo(() => assignQuestionNumbers(parts), [parts]);
   const activePartIndex = boundedPartIndex(parts.length, activePart);
   const part = activePartIndex >= 0 ? parts[activePartIndex] : undefined;
   const sectionLabel = t(`skills.${section.skill}`);
@@ -142,8 +142,7 @@ export function MockSectionView({
   const noteCount = useMemo(() => {
     const prefix = `${section.attempt_id}:`;
     return Object.entries(notes).reduce(
-      (total, [key, values]) =>
-        total + (key.startsWith(prefix) ? values.length : 0),
+      (total, [key, values]) => total + (key.startsWith(prefix) ? values.length : 0),
       0,
     );
   }, [notes, section.attempt_id]);
@@ -169,9 +168,7 @@ export function MockSectionView({
     const frame = window.requestAnimationFrame(() => {
       const target =
         pendingAnnotationAnchor.kind === "question"
-          ? document.getElementById(
-              `mock-q-${pendingAnnotationAnchor.questionId}`,
-            )
+          ? document.getElementById(`mock-q-${pendingAnnotationAnchor.questionId}`)
           : document.querySelector<HTMLElement>(
               `[data-annotation-kind="passage"][data-annotation-key="${CSS.escape(pendingAnnotationAnchor.passageKey)}"]`,
             );
@@ -191,15 +188,14 @@ export function MockSectionView({
   const paused = section.paused_at !== null;
   const locked = section.submitted_at !== null || timerStatus === "expired";
   const disabled = locked || paused || busy;
-  const hasStimulus = sectionHasStimulus(section.skill, part, parts);
+  const hasStimulus = partHasStimulus(section.skill, part, parts);
+  // Exam-mode Listening plays each recording once, so earlier parts are closed.
+  const listeningLocked =
+    section.skill === "listening" && !modePolicy.canReplayListeningAudio;
 
-  // Global question number = count in prior parts + index within this part.
+  // Global question number = numbers consumed by prior parts (spans included).
   const numberOffset =
-    activePartIndex <= 0
-      ? 0
-      : parts
-          .slice(0, activePartIndex)
-          .reduce((sum, p) => sum + p.questions.length, 0);
+    activePartIndex <= 0 ? 0 : countQuestionNumbers(parts.slice(0, activePartIndex));
   const questionStatuses = useMemo(
     () =>
       buildMockQuestionStatuses({
@@ -217,6 +213,8 @@ export function MockSectionView({
   );
 
   const selectPart = (index: number) => {
+    if (index < 0 || index >= parts.length) return;
+    if (listeningLocked && index < activePartIndex) return;
     setActivePart(index);
     setActiveQuestionId(parts[index]?.questions[0]?.id ?? null);
   };
@@ -227,12 +225,42 @@ export function MockSectionView({
   };
 
   const jumpToQuestion = (partIndex: number, questionId: string) => {
+    if (listeningLocked && partIndex < activePartIndex) return;
     setActivePart(partIndex);
     setActiveQuestionId(questionId);
     setPendingScrollQuestionId(questionId);
   };
 
   const isLastSection = activeSectionIndex === sections.length - 1;
+
+  const questionPane = (
+    <div className={QUESTION_PANE}>
+      <ExamPartNav
+        parts={parts}
+        activePartIndex={activePartIndex}
+        paused={paused}
+        isPartLocked={(index) => listeningLocked && index !== activePartIndex}
+        onSelectPart={selectPart}
+      />
+      {part ? (
+        <SectionPart
+          part={part}
+          stimulus={null}
+          hasStimulus={false}
+          attemptId={section.attempt_id}
+          assessmentMode={assessmentMode}
+          numberOffset={numberOffset}
+          disabled={disabled}
+          responses={responses}
+          onAnswer={onAnswer}
+          onOpenNotes={(noteId) => openNotes(noteId)}
+          numbers={numbers}
+        />
+      ) : (
+        <p className="type-body-sm text-on-surface-variant">{t("noContent")}</p>
+      )}
+    </div>
+  );
 
   return (
     <section className="flex h-full min-h-0 flex-col bg-background text-on-surface">
@@ -252,8 +280,10 @@ export function MockSectionView({
             section.submitted_at === null)
         }
         guideOpen={guideOpen}
+        warningSeconds={modePolicy.warningSeconds}
         onTimerStatusChange={setTimerStatus}
         onExpire={onExpire}
+        onWarning={setActiveWarning}
         onPause={onPause}
         onResume={onResume}
         onOpenGuide={() => setGuideOpen(true)}
@@ -266,75 +296,37 @@ export function MockSectionView({
         onOpenNotes={() => openNotes()}
       />
 
-      <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
-        <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-4 px-3 py-4 sm:px-5 sm:py-5">
-          {parts.length > 1 ? (
-            <nav
-              className="flex gap-2 overflow-x-auto px-0.5 py-1"
-              aria-label={t("sectionParts")}
-            >
-              {parts.map((candidate, index) => (
-                <button
-                  key={candidate.id}
-                  type="button"
-                  onClick={() => selectPart(index)}
-                  disabled={
-                    section.skill === "listening" &&
-                    !modePolicy.canReplayListeningAudio &&
-                    index !== activePartIndex
-                  }
-                  aria-current={index === activePartIndex ? "step" : undefined}
-                  className={`${PILL} shrink-0 min-h-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
-                    index === activePartIndex
-                      ? "bg-secondary text-on-secondary"
-                      : "bg-surface-container text-on-surface-variant"
-                  }`}
-                >
-                  {candidate.title}
-                </button>
-              ))}
-            </nav>
-          ) : null}
+      <ExamTimerBanner
+        threshold={activeWarning}
+        onDismiss={() => setActiveWarning(null)}
+      />
 
-          {paused ? (
-            <p className="rounded-xl bg-error-container px-4 py-3 text-sm font-medium text-error">
-              {t("pausedBody")}
-            </p>
-          ) : null}
-
-          {part ? (
-            <SectionPart
-              part={part}
-              stimulus={
-                section.skill === "listening" ? (
-                  <ListeningStimulusDeck
-                    parts={parts}
-                    activePartIndex={activePartIndex}
-                    attemptId={section.attempt_id}
-                    playbackBlocked={locked || paused}
-                    onPlaybackActiveChange={setListeningPlaybackActive}
-                    onAudioEnded={handleAudioEnded}
-                  />
-                ) : (
-                  <SectionStimulus
-                    part={part}
-                    onOpenNotes={(noteId) => openNotes(noteId)}
-                  />
-                )
-              }
-              hasStimulus={hasStimulus}
-              attemptId={section.attempt_id}
-              assessmentMode={assessmentMode}
-              numberOffset={numberOffset}
-              disabled={disabled}
-              responses={responses}
-              onAnswer={onAnswer}
-              onOpenNotes={(noteId) => openNotes(noteId)}
-            />
-          ) : (
-            <p className="text-sm text-on-surface-variant">{t("noContent")}</p>
-          )}
-        </div>
+      <main className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {part && hasStimulus ? (
+          <ExamSplitPane
+            attemptId={section.attempt_id}
+            leftLabel={part.title}
+            rightLabel={t("questions")}
+            left={
+              <ExamStimulusPane
+                skill={section.skill}
+                part={part}
+                parts={parts}
+                activePartIndex={activePartIndex}
+                attemptId={section.attempt_id}
+                playbackBlocked={locked || paused}
+                onPlaybackActiveChange={setListeningPlaybackActive}
+                onAudioEnded={handleAudioEnded}
+                onOpenNotes={(noteId) => openNotes(noteId)}
+              />
+            }
+            right={questionPane}
+          />
+        ) : (
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain scroll-smooth">
+            <div className="mx-auto w-full max-w-screen-2xl">{questionPane}</div>
+          </div>
+        )}
       </main>
 
       <ExamSectionFooter
@@ -346,6 +338,7 @@ export function MockSectionView({
         busy={busy}
         locked={locked}
         submissionLocked={listeningPlaybackActive}
+        previousLocked={listeningLocked}
         isLastSection={isLastSection}
         onSelectPart={selectPart}
         onJump={jumpToQuestion}
@@ -388,10 +381,9 @@ export function MockSectionView({
                   (question) => question.id === anchor.questionId,
                 ),
           );
-          if (partIndex >= 0) {
+          if (partIndex >= 0 && !(listeningLocked && partIndex < activePartIndex)) {
             setActivePart(partIndex);
-            if (anchor.kind === "question")
-              setActiveQuestionId(anchor.questionId);
+            if (anchor.kind === "question") setActiveQuestionId(anchor.questionId);
           }
           setPendingAnnotationAnchor(anchor);
         }}

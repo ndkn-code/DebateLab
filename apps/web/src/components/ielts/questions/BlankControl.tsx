@@ -1,5 +1,7 @@
 "use client";
 
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { getStringValue, setValue } from "@/lib/ielts/question-types";
 import type { IeltsAnswer, IeltsOption } from "@/lib/ielts/question-types";
 import { cn } from "@/lib/utils";
@@ -22,7 +24,7 @@ interface Props {
 function stateBorder(state: ChoiceState): string {
   if (state === "correct") return "border-success bg-success-container";
   if (state === "incorrect") return "border-error bg-error-container";
-  return "border-outline-variant bg-surface focus:border-primary";
+  return "";
 }
 
 /** A single fill-in slot: a text input, or a bank dropdown when `options` are given. */
@@ -39,16 +41,11 @@ export function BlankControl({
 }: Props) {
   const current = getStringValue(value, blankId);
   const width = layout === "inline" ? "w-36" : "w-full";
-  const base = cn(
-    "h-10 rounded-xl border-2 px-3 text-sm text-on-surface transition-colors",
-    "focus:outline-none disabled:cursor-default",
-    width,
-    stateBorder(state),
-  );
+  const base = cn("h-10 align-middle type-body-sm", width, stateBorder(state));
 
   if (options && options.length > 0) {
     return (
-      <select
+      <Select
         aria-label={ariaLabel}
         disabled={disabled}
         value={current}
@@ -61,12 +58,12 @@ export function BlankControl({
             {option.label ? `${option.label}. ${option.text}` : option.text}
           </option>
         ))}
-      </select>
+      </Select>
     );
   }
 
   return (
-    <input
+    <Input
       type="text"
       aria-label={ariaLabel}
       disabled={disabled}

@@ -7,7 +7,6 @@
  * register their rich family renderers; Writing/Speaking register async capture
  * surfaces. The fallback stays only as a defensive preview/degraded path.
  */
-import { useId } from "react";
 import type { ComponentType, ReactElement } from "react";
 import {
   extractValue,
@@ -24,24 +23,21 @@ import {
   OBJECTIVE_QUESTION_TYPES,
   type IeltsAnswer,
   type IeltsQuestionFamily,
+  type IeltsVerdict,
 } from "@/lib/ielts/question-types";
+import { BlankControl } from "./questions/BlankControl";
+import { ChoiceTile } from "./questions/ChoiceTile";
 import { CompletionRenderer } from "./questions/CompletionRenderer";
 import { LabelingRenderer } from "./questions/LabelingRenderer";
 import { MatchingRenderer } from "./questions/MatchingRenderer";
 import { MultiSelectRenderer } from "./questions/MultiSelectRenderer";
 import { SingleSelectRenderer } from "./questions/SingleSelectRenderer";
-import type { IeltsRendererProps as ObjectiveRendererProps } from "./questions/types";
-import type { AssessmentMode } from "@/lib/ielts/assessment-mode";
+import type {
+  IeltsRendererContext,
+  IeltsRendererProps as ObjectiveRendererProps,
+} from "./questions/types";
 
-/**
- * Player context a registered task surface may need beyond the question itself —
- * e.g. the live attempt id the Writing/Speaking surfaces submit against (WS-5.2).
- * Optional so objective renderers (and isolated previews) ignore it.
- */
-export interface IeltsRendererContext {
-  attemptId: string;
-  assessmentMode: AssessmentMode;
-}
+export type { IeltsRendererContext } from "./questions/types";
 
 export interface IeltsRendererProps {
   question: IeltsQuestionView;
@@ -49,6 +45,8 @@ export interface IeltsRendererProps {
   disabled: boolean;
   onChange: (value: unknown) => void;
   context?: IeltsRendererContext;
+  /** Present → objective renderers enter read-only review mode. */
+  verdict?: IeltsVerdict | null;
 }
 
 export type IeltsQuestionRenderer = (
@@ -68,12 +66,22 @@ const OBJECTIVE_RENDERERS: Record<
   labeling: LabelingRenderer,
 };
 
-function coerceObjectiveAnswer(
-  question: IeltsQuestionView,
+/**
+ * Normalise whatever the response store holds into the typed `IeltsAnswer`
+ * the family renderers expect (legacy `{ value }` / `{ values: [] }` envelopes
+ * are folded onto blank "0").
+ */
+export function coerceObjectiveAnswer(
+  question: Pick<IeltsQuestionView, "questionType">,
   value: unknown,
 ): IeltsAnswer | null {
-  const parsed = IeltsAnswerSchema.safeParse(value);
-  if (parsed.success) return parsed.data;
+  const hasValuesEnvelope =
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    "values" in value;
+  const parsed = hasValuesEnvelope ? IeltsAnswerSchema.safeParse(value) : null;
+  if (parsed?.success) return parsed.data;
 
   if (question.questionType === "mcq_multi") {
     const values = extractValues(value);
@@ -86,7 +94,8 @@ function coerceObjectiveAnswer(
   return single === null ? null : { values: { [DEFAULT_BLANK_ID]: single } };
 }
 
-function adaptObjectiveRenderer(
+/** Wrap a family renderer in the registry contract, forwarding context + verdict. */
+export function adaptObjectiveRenderer(
   Renderer: ComponentType<ObjectiveRendererProps>,
 ): IeltsQuestionRenderer {
   return function ObjectiveRendererAdapter({
@@ -94,6 +103,8 @@ function adaptObjectiveRenderer(
     value,
     disabled,
     onChange,
+    context,
+    verdict,
   }: IeltsRendererProps) {
     return (
       <Renderer
@@ -101,6 +112,8 @@ function adaptObjectiveRenderer(
         value={coerceObjectiveAnswer(question, value)}
         disabled={disabled}
         onChange={onChange}
+        context={context}
+        verdict={verdict}
       />
     );
   };
@@ -143,6 +156,8 @@ export function getRegisteredIeltsQuestionRendererTypes(): IeltsQuestionType[] {
   return [...REGISTRY.keys()];
 }
 
+// ── Fallback (defensive path: unregistered type / isolated preview) ──────────
+
 interface Choice {
   value: string;
   label: string;
@@ -183,130 +198,104 @@ function normalizeOptions(options: unknown): Choice[] {
   });
 }
 
-function ChoiceGroup({
+function ChoiceList({
   choices,
+  control,
   selected,
   disabled,
   onPick,
 }: {
   choices: Choice[];
-  selected: string | null;
+  control: "radio" | "checkbox";
+  selected: ReadonlySet<string>;
   disabled: boolean;
   onPick: (value: string) => void;
 }) {
-  const name = useId();
   return (
-    <div className="flex flex-col gap-2">
+    <div role="group" className="flex flex-col gap-2">
       {choices.map((choice) => (
-        <label
+        <ChoiceTile
           key={choice.value}
-          className="flex items-center gap-3 rounded-xl border border-outline-variant bg-surface px-4 py-3 text-on-surface"
-        >
-          <input
-            type="radio"
-            name={name}
-            value={choice.value}
-            checked={selected === choice.value}
-            disabled={disabled}
-            onChange={() => onPick(choice.value)}
-            className="size-4 accent-primary"
-          />
-          <span className="text-sm">{choice.label}</span>
-        </label>
+          control={control}
+          text={choice.label}
+          selected={selected.has(choice.value)}
+          disabled={disabled}
+          onSelect={() => onPick(choice.value)}
+        />
       ))}
     </div>
   );
 }
 
-function CheckboxGroup({
-  choices,
-  selected,
-  disabled,
-  onToggle,
-}: {
-  choices: Choice[];
-  selected: Set<string>;
-  disabled: boolean;
-  onToggle: (value: string) => void;
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      {choices.map((choice) => (
-        <label
-          key={choice.value}
-          className="flex items-center gap-3 rounded-xl border border-outline-variant bg-surface px-4 py-3 text-on-surface"
-        >
-          <input
-            type="checkbox"
-            value={choice.value}
-            checked={selected.has(choice.value)}
-            disabled={disabled}
-            onChange={() => onToggle(choice.value)}
-            className="size-4 accent-primary"
-          />
-          <span className="text-sm">{choice.label}</span>
-        </label>
-      ))}
-    </div>
-  );
+/** Wrap a scalar into the typed answer envelope the grader accepts. */
+function singleAnswer(value: string): IeltsAnswer {
+  return { values: { [DEFAULT_BLANK_ID]: value } };
 }
 
-function FallbackQuestion({
+export function FallbackQuestion({
   question,
   value,
   disabled,
   onChange,
+  verdict,
 }: IeltsRendererProps): ReactElement {
   const type = question.questionType;
+  const locked = disabled || verdict != null;
 
   if (type === "true_false_notgiven" || type === "yes_no_notgiven") {
+    const current = extractValue(coerceObjectiveAnswer(question, value)?.values[DEFAULT_BLANK_ID] ?? null);
     return (
-      <ChoiceGroup
+      <ChoiceList
         choices={type === "true_false_notgiven" ? TFNG : YNNG}
-        selected={extractValue(value)}
-        disabled={disabled}
-        onPick={(picked) => onChange({ value: picked })}
+        control="radio"
+        selected={new Set(current === null ? [] : [current])}
+        disabled={locked}
+        onPick={(picked) => onChange(singleAnswer(picked))}
       />
     );
   }
 
   if (type === "mcq_multi") {
-    const selected = new Set(extractValues(value));
+    const selected = new Set(extractValues(coerceObjectiveAnswer(question, value)?.values[DEFAULT_BLANK_ID] ?? []));
     return (
-      <CheckboxGroup
+      <ChoiceList
         choices={normalizeOptions(question.options)}
+        control="checkbox"
         selected={selected}
-        disabled={disabled}
-        onToggle={(picked) => {
+        disabled={locked}
+        onPick={(picked) => {
           const next = new Set(selected);
           if (next.has(picked)) next.delete(picked);
           else next.add(picked);
-          onChange({ values: [...next] });
+          onChange({ values: { [DEFAULT_BLANK_ID]: [...next] } });
         }}
       />
     );
   }
 
   if (SINGLE_CHOICE_TYPES.has(type)) {
+    const current = extractValue(coerceObjectiveAnswer(question, value)?.values[DEFAULT_BLANK_ID] ?? null);
     return (
-      <ChoiceGroup
+      <ChoiceList
         choices={normalizeOptions(question.options)}
-        selected={extractValue(value)}
-        disabled={disabled}
-        onPick={(picked) => onChange({ value: picked })}
+        control="radio"
+        selected={new Set(current === null ? [] : [current])}
+        disabled={locked}
+        onPick={(picked) => onChange(singleAnswer(picked))}
       />
     );
   }
 
   // completion / short-answer / diagram-label: free text capture.
   return (
-    <input
-      type="text"
-      value={extractValue(value) ?? ""}
-      disabled={disabled}
-      onChange={(event) => onChange({ value: event.target.value })}
+    <BlankControl
+      blankId={DEFAULT_BLANK_ID}
+      value={coerceObjectiveAnswer(question, value)}
+      onChange={onChange}
+      disabled={locked}
+      ariaLabel={question.prompt}
       placeholder="Type your answer"
-      className="w-full rounded-xl border border-outline-variant bg-surface px-4 py-3 text-sm text-on-surface placeholder:text-on-surface-variant"
+      layout="block"
     />
   );
 }

@@ -1,8 +1,19 @@
+import type { AssessmentMode } from "@/lib/ielts/assessment-mode";
 import type {
   IeltsAnswer,
   IeltsQuestionView,
   IeltsVerdict,
 } from "@/lib/ielts/question-types";
+
+/**
+ * Player context a renderer may need beyond the question itself — e.g. the
+ * live attempt id the Writing/Speaking surfaces submit against (WS-5.2).
+ * Optional so objective renderers (and isolated previews) can ignore it.
+ */
+export interface IeltsRendererContext {
+  attemptId: string;
+  assessmentMode: AssessmentMode;
+}
 
 /**
  * The shared, controlled props every IELTS question renderer accepts. The
@@ -17,4 +28,5 @@ export interface IeltsRendererProps {
   onChange: (next: IeltsAnswer) => void;
   disabled?: boolean;
   verdict?: IeltsVerdict | null;
+  context?: IeltsRendererContext;
 }

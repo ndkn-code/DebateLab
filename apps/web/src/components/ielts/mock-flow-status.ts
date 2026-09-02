@@ -2,6 +2,7 @@ import type {
   IeltsQuestionView,
   IeltsResponseMap,
 } from "@/lib/ielts/question-contract";
+import { assignQuestionNumbers } from "@/lib/ielts/question-groups";
 import { isAnsweredResponse } from "@/lib/scoring/ielts/answer-normalize";
 import { mockAnnotationKey } from "@/lib/stores/mockAnnotationsStore";
 import type { MockPart } from "./mock-parts";
@@ -9,7 +10,10 @@ import type { MockPart } from "./mock-parts";
 export interface MockQuestionStatus {
   question: IeltsQuestionView;
   questionId: string;
+  /** First official question number this row occupies (1-based). */
   number: number;
+  /** Official label as printed on the paper: "7", or "21–22" for a span. */
+  numberLabel: string;
   partIndex: number;
   partTitle: string;
   answered: boolean;
@@ -37,14 +41,19 @@ export function buildMockQuestionStatuses({
   attemptId: string;
   activeQuestionId: string | null;
 }): MockQuestionStatus[] {
-  let number = 0;
+  // Official-paper numbering: sequential across parts, a `numberSpan` row
+  // consumes several numbers ("21–22") and the next row continues after it.
+  const numbers = assignQuestionNumbers(parts);
+  let fallback = 0;
   return parts.flatMap((part, partIndex) =>
     part.questions.map((question) => {
-      number += 1;
+      fallback += 1;
+      const assigned = numbers.get(question.id);
       return {
         question,
         questionId: question.id,
-        number,
+        number: assigned?.start ?? fallback,
+        numberLabel: assigned?.label ?? String(fallback),
         partIndex,
         partTitle: part.title,
         answered: isAnsweredResponse(responses[question.id]),

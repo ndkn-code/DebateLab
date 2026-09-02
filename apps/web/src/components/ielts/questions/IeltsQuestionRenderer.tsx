@@ -2,31 +2,18 @@
 
 import { useTranslations } from "next-intl";
 import {
+  IeltsAnswerSchema,
   isObjectiveQuestionType,
   parseQuestionView,
 } from "@/lib/ielts/question-types";
-import type {
-  IeltsAnswer,
-  IeltsQuestionFamily,
-  IeltsVerdict,
-} from "@/lib/ielts/question-types";
+import type { IeltsAnswer, IeltsVerdict } from "@/lib/ielts/question-types";
 import { Text } from "@/components/ui/typography";
 import type { Tables } from "@/types/supabase";
-import { CompletionRenderer } from "./CompletionRenderer";
-import { LabelingRenderer } from "./LabelingRenderer";
-import { MatchingRenderer } from "./MatchingRenderer";
-import { MultiSelectRenderer } from "./MultiSelectRenderer";
-import { SingleSelectRenderer } from "./SingleSelectRenderer";
-import type { IeltsRendererProps } from "./types";
-
-/** The one place each renderer family is wired to its player component. */
-const RENDERERS: Record<IeltsQuestionFamily, React.ComponentType<IeltsRendererProps>> = {
-  single_select: SingleSelectRenderer,
-  multi_select: MultiSelectRenderer,
-  matching: MatchingRenderer,
-  completion: CompletionRenderer,
-  labeling: LabelingRenderer,
-};
+import {
+  ensureIeltsObjectiveRenderersRegistered,
+  getIeltsQuestionRenderer,
+} from "../question-renderer-registry";
+import type { IeltsRendererContext } from "./types";
 
 interface Props {
   /** A row from `ielts_questions` (non-secret fields). */
@@ -36,19 +23,22 @@ interface Props {
   disabled?: boolean;
   /** Present → read-only review mode marking the learner's own answer. */
   verdict?: IeltsVerdict | null;
+  context?: IeltsRendererContext;
 }
 
 /**
- * Entry point for rendering any objective IELTS question: parses the row into a
- * non-secret view and dispatches to the family renderer. Writing/Speaking
- * prompts (AI-scored, WS-3.x) are not auto-graded here.
+ * Convenience entry point for rendering an objective IELTS question straight
+ * from its DB row: parses the row into a non-secret view and delegates to the
+ * renderer registry (the single family map). Writing/Speaking prompts
+ * (AI-scored, WS-3.x) are not auto-graded here.
  */
 export function IeltsQuestionRenderer({
   question,
   value,
   onChange,
-  disabled,
+  disabled = false,
   verdict,
+  context,
 }: Props) {
   const t = useTranslations("ielts.player");
   if (!isObjectiveQuestionType(question.question_type)) {
@@ -59,15 +49,18 @@ export function IeltsQuestionRenderer({
     );
   }
 
+  ensureIeltsObjectiveRenderersRegistered();
   const view = parseQuestionView(question);
-  const Renderer = RENDERERS[view.family];
-  return (
-    <Renderer
-      question={view}
-      value={value}
-      onChange={onChange}
-      disabled={disabled}
-      verdict={verdict}
-    />
-  );
+  const render = getIeltsQuestionRenderer(view.questionType);
+  return render({
+    question: { ...view, orderIndex: 0, groupKey: null, passageId: null, listeningSectionId: null },
+    value,
+    disabled,
+    onChange: (next) => {
+      const parsed = IeltsAnswerSchema.safeParse(next);
+      if (parsed.success) onChange(parsed.data);
+    },
+    context,
+    verdict: verdict ?? null,
+  });
 }

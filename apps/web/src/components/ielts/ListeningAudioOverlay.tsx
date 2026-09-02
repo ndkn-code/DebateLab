@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useTranslations } from "next-intl";
 import { ProductIcon } from "@/components/ui/product-icon";
 import { transitions } from "@/lib/motion/variants";
 import { ExamButton } from "./exam/ExamButton";
@@ -271,15 +272,43 @@ export function ListeningAudioOverlay({
   );
 }
 
-export function ListeningAudioUnavailable() {
+/**
+ * Shown instead of the player when a part's audio asset has no playable
+ * source. `pending` = still being generated (try again shortly); `unavailable`
+ * = failed / missing. Either way the section stays sittable — never a blank
+ * overlay, never a crash.
+ */
+export function ListeningAudioUnavailable({
+  variant = "unavailable",
+}: {
+  variant?: "pending" | "unavailable";
+}) {
+  const t = useTranslations("ielts.player.exam");
+  const pending = variant === "pending";
   return (
-    <section className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container p-5">
-      <p className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-        Listening audio
+    <section
+      role="status"
+      className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container p-5"
+    >
+      <p className="type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
+        {t("skills.listening")}
       </p>
-      <p className="rounded-xl bg-surface px-4 py-3 text-sm text-on-surface-variant">
-        Audio is being prepared — this section is still sittable.
-      </p>
+      <div
+        className={
+          pending
+            ? "flex items-start gap-3 rounded-xl border border-warning bg-warning-container px-4 py-3 type-body-sm text-on-warning-container"
+            : "flex items-start gap-3 rounded-xl bg-surface px-4 py-3 type-body-sm text-on-surface-variant"
+        }
+      >
+        <ProductIcon
+          name={pending ? "loader" : "warning"}
+          size="sm"
+          weight="bold"
+          className={pending ? "mt-0.5 shrink-0 animate-spin" : "mt-0.5 shrink-0"}
+          aria-hidden="true"
+        />
+        <p>{pending ? t("audioPending") : t("audioUnavailable")}</p>
+      </div>
     </section>
   );
 }

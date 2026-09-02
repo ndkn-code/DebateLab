@@ -4082,7 +4082,9 @@
         "previousLocked": "Previous parts are locked in exam mode",
         "splitDivider": "Resize passage and questions",
         "audioPending": "Audio for this part is still being prepared. Please try again shortly.",
-        "audioUnavailable": "Audio for this part is unavailable."
+        "audioUnavailable": "Audio for this part is unavailable.",
+        "play": "Play",
+        "timerExpired": "Time is up"
       },
       "writing": {
         "intro": "Write your response below, then submit it for AI band scoring.",

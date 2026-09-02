@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ProductIcon } from "@/components/ui/product-icon";
+import { formatTime } from "@/lib/ielts/audio/format-time";
 import {
   listeningPlaybackKey,
   useListeningPlaybackStore,
@@ -13,17 +14,19 @@ import {
   type ListeningPlaybackStatus,
 } from "./ListeningAudioOverlay";
 
+/**
+ * Why a track has no playable `src`: the asset is still being generated
+ * (`pending`) or it never will be — failed, missing, or unresolvable
+ * (`unavailable`). `ready` always carries a `src`.
+ */
+export type ListeningAudioReadiness = "ready" | "pending" | "unavailable";
+
 export interface ListeningAudioTrack {
   id: string;
   label: string;
   src: string | null;
-}
-
-function formatTime(seconds: number): string {
-  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
-  const wholeSeconds = Math.floor(seconds);
-  const minutes = Math.floor(wholeSeconds / 60);
-  return `${minutes}:${(wholeSeconds % 60).toString().padStart(2, "0")}`;
+  /** Defaults to `ready` when `src` is set, `unavailable` otherwise. */
+  readiness?: ListeningAudioReadiness;
 }
 
 export function ListeningAudioPlayer({
@@ -83,7 +86,11 @@ export function ListeningAudioPlayer({
   if (tracks.length === 0) return null;
 
   if (!track?.src) {
-    return <ListeningAudioUnavailable />;
+    return (
+      <ListeningAudioUnavailable
+        variant={track?.readiness === "pending" ? "pending" : "unavailable"}
+      />
+    );
   }
 
   const locked = played && status !== "starting" && status !== "playing";

@@ -9,8 +9,12 @@ import type {
   IeltsQuestionView,
   IeltsSkill,
 } from "@/lib/ielts/question-contract";
+import type { IeltsQuestionGroupView } from "@/lib/ielts/question-types/groups";
 import { publicListeningAudioUrl } from "@/lib/ielts/listening-audio/storage-paths";
-import type { ListeningAudioTrack } from "./ListeningAudioPlayer";
+import type {
+  ListeningAudioReadiness,
+  ListeningAudioTrack,
+} from "./ListeningAudioPlayer";
 
 export interface MockPart {
   id: string;
@@ -18,6 +22,50 @@ export interface MockPart {
   body: string | null;
   audio: ListeningAudioTrack[];
   questions: IeltsQuestionView[];
+  /**
+   * Set-level question groups (shared bank / summary / table / diagram) that
+   * belong to this part, in `order_index` order. Empty for legacy content.
+   */
+  groups: IeltsQuestionGroupView[];
+}
+
+/** Groups declared on the structure — tolerant of legacy snapshots without the field. */
+function structureGroups(structure: MockStructure): IeltsQuestionGroupView[] {
+  return (structure as Partial<MockStructure>).questionGroups ?? [];
+}
+
+/**
+ * Groups for a part: matched by anchor (`passageId` / `listeningSectionId`)
+ * when the part has one, else by membership overlap (writing, speaking, and
+ * the trailing "unlinked" bucket have no anchor column).
+ */
+function groupsFor(
+  structure: MockStructure,
+  questions: readonly IeltsQuestionView[],
+  anchor: { passageId?: string; listeningSectionId?: string } = {},
+): IeltsQuestionGroupView[] {
+  const memberIds = new Set(questions.map((question) => question.id));
+  return structureGroups(structure)
+    .filter((group) => {
+      if (anchor.passageId) return group.passageId === anchor.passageId;
+      if (anchor.listeningSectionId) {
+        return group.listeningSectionId === anchor.listeningSectionId;
+      }
+      return group.questionIds.some((id) => memberIds.has(id));
+    })
+    .sort((a, b) => a.orderIndex - b.orderIndex);
+}
+
+/** Frozen/live asset status → what the player should say when it cannot play. */
+function audioReadiness(
+  asset: MockStructure["audioAssets"][number] | undefined,
+  src: string | null,
+): ListeningAudioReadiness {
+  if (src) return "ready";
+  if (asset && (asset.status === "pending" || asset.status === "generating")) {
+    return "pending";
+  }
+  return "unavailable";
 }
 
 function questionsFor(
@@ -28,13 +76,17 @@ function questionsFor(
 }
 
 function readingParts(structure: MockStructure): MockPart[] {
-  return structure.passages.map((passage) => ({
-    id: passage.id,
-    title: passage.title,
-    body: passage.body,
-    audio: [],
-    questions: questionsFor(structure, (q) => q.passageId === passage.id),
-  }));
+  return structure.passages.map((passage) => {
+    const questions = questionsFor(structure, (q) => q.passageId === passage.id);
+    return {
+      id: passage.id,
+      title: passage.title,
+      body: passage.body,
+      audio: [],
+      questions,
+      groups: groupsFor(structure, questions, { passageId: passage.id }),
+    };
+  });
 }
 
 function listeningParts(
@@ -56,13 +108,19 @@ function listeningParts(
       id: listening.id,
       label: listening.title ?? `Section ${listening.section_number}`,
       src,
+      readiness: audioReadiness(asset, src),
     };
+    const questions = questionsFor(
+      structure,
+      (q) => q.listeningSectionId === listening.id,
+    );
     return {
       id: listening.id,
       title: listening.title ?? `Section ${listening.section_number}`,
       body: null,
       audio: [track],
-      questions: questionsFor(structure, (q) => q.listeningSectionId === listening.id),
+      questions,
+      groups: groupsFor(structure, questions, { listeningSectionId: listening.id }),
     };
   });
 }
@@ -78,16 +136,20 @@ const SPEAKING_PART_DEFINITIONS: Array<{
 ];
 
 function speakingParts(structure: MockStructure): MockPart[] {
-  return SPEAKING_PART_DEFINITIONS.map((part) => ({
-    id: part.id,
-    title: part.title,
-    body: null,
-    audio: [],
-    questions: questionsFor(
+  return SPEAKING_PART_DEFINITIONS.map((part) => {
+    const questions = questionsFor(
       structure,
       (q) => q.skill === "speaking" && q.questionType === part.questionType,
-    ),
-  }));
+    );
+    return {
+      id: part.id,
+      title: part.title,
+      body: null,
+      audio: [],
+      questions,
+      groups: groupsFor(structure, questions),
+    };
+  });
 }
 
 function unlinkedPart(
@@ -106,6 +168,7 @@ function unlinkedPart(
     body: null,
     audio: [],
     questions: leftovers,
+    groups: groupsFor(structure, leftovers),
   };
 }
 

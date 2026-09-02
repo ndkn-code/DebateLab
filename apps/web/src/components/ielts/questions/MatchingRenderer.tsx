@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { Check, X } from "@/components/ui/icons";
+import { Select } from "@/components/ui/select";
 import { Text } from "@/components/ui/typography";
 import { getStringValue, setValue } from "@/lib/ielts/question-types";
 import { cn } from "@/lib/utils";
@@ -63,23 +64,25 @@ export function MatchingRenderer({
                 </Text>
               </div>
               <div className="flex items-center gap-2">
-                <select
-                  aria-label={item.text}
-                  disabled={locked}
-                  value={chosen}
-                  onChange={(event) => onChange(setValue(value, item.id, event.target.value))}
-                  className={cn(
-                    "h-11 min-w-0 flex-1 rounded-xl border-2 border-outline-variant bg-surface px-3 text-sm text-on-surface",
-                    "focus:border-primary focus:outline-none disabled:cursor-default",
-                  )}
-                >
-                  <option value="">{t("matchSelect")}</option>
-                  {question.options.map((option) => (
-                    <option key={option.id} value={option.id}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
+                <div className="min-w-0 flex-1">
+                  <Select
+                    aria-label={item.text}
+                    disabled={locked}
+                    value={chosen}
+                    onChange={(event) => onChange(setValue(value, item.id, event.target.value))}
+                    className={cn(
+                      itemVerdict?.correct === true && "border-success bg-success-container",
+                      itemVerdict?.correct === false && "border-error bg-error-container",
+                    )}
+                  >
+                    <option value="">{t("matchSelect")}</option>
+                    {question.options.map((option) => (
+                      <option key={option.id} value={option.id}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
                 {itemVerdict ? (
                   <span
                     className={cn(

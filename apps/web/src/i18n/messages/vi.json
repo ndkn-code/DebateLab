@@ -4082,7 +4082,9 @@
         "previousLocked": "Các phần trước đã khoá ở chế độ thi",
         "splitDivider": "Thay đổi kích thước bài đọc và câu hỏi",
         "audioPending": "Âm thanh của phần này đang được chuẩn bị. Vui lòng thử lại sau.",
-        "audioUnavailable": "Không có âm thanh cho phần này."
+        "audioUnavailable": "Không có âm thanh cho phần này.",
+        "play": "Phát",
+        "timerExpired": "Hết giờ"
       },
       "writing": {
         "intro": "Viết bài làm của bạn bên dưới, sau đó gửi để AI chấm điểm band.",

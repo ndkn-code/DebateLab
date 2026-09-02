@@ -149,13 +149,13 @@ export function SectionReviewSheet({
                     status.current && "ring-2 ring-primary/40",
                   )}
                   aria-label={t("backToQuestion", {
-                    number: status.number,
+                    number: status.numberLabel,
                     status: status.answered ? t("answered") : t("unanswered"),
                     flagged: status.flagged ? `, ${t("flagged")}` : "",
                   })}
                 >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-surface text-sm font-bold text-on-surface">
-                    {status.number}
+                  <span className="flex h-8 min-w-8 shrink-0 items-center justify-center rounded-full bg-surface px-1.5 text-sm font-bold tabular-nums text-on-surface">
+                    {status.numberLabel}
                   </span>
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-bold text-on-surface">

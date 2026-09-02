@@ -6,15 +6,21 @@
  * a server action returns fresh timing. While paused it shows the frozen
  * remaining time; on reaching zero it notifies the player to lock the section
  * (the server already rejects any late write).
+ *
+ * `warningSeconds` (from the assessment-mode policy) fires `onWarning` once per
+ * threshold per deadline via the pure `nextTimerWarning` policy.
  */
 import { useEffect, useRef, useState } from "react";
-import { useLocale } from "next-intl";
+import { useTranslations } from "next-intl";
 import {
   remainingSeconds,
   sectionStatus,
   type SectionRuntimeStatus,
   type SectionTimingState,
 } from "@/lib/ielts/section-timing";
+import { nextTimerWarning, warningMinutes } from "@/lib/ielts/timer-warnings";
+
+const NO_WARNINGS: readonly number[] = [];
 
 function formatClock(totalSeconds: number): string {
   const minutes = Math.floor(totalSeconds / 60);
@@ -22,82 +28,64 @@ function formatClock(totalSeconds: number): string {
   return `${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
-type TimerCopy = {
-  expired: string;
-  minute: string;
-  five: string;
-  paused: string;
-  submitted: string;
-  notStarted: string;
-  time: string;
-};
-
-function timerCopy(locale: string): TimerCopy {
-  if (locale === "vi") {
-    return {
-      expired: "Đã hết thời gian.",
-      minute: "Còn khoảng một phút.",
-      five: "Còn khoảng năm phút.",
-      paused: "Đã tạm dừng",
-      submitted: "Đã nộp",
-      notStarted: "Chưa bắt đầu",
-      time: "Thời gian",
-    };
-  }
-  return {
-    expired: "Time expired.",
-    minute: "Approximately one minute remaining.",
-    five: "Approximately five minutes remaining.",
-    paused: "Paused",
-    submitted: "Submitted",
-    notStarted: "Not started",
-    time: "Time",
-  };
-}
-
-function timerAnnouncement(
-  status: SectionRuntimeStatus,
-  remaining: number,
-  copy: TimerCopy,
-): string {
-  if (status === "expired") return copy.expired;
-  if (status !== "running") return "";
-  if (remaining <= 60) return copy.minute;
-  if (remaining <= 300) return copy.five;
-  return "";
-}
-
-function timerLabel(
-  status: SectionRuntimeStatus,
-  remaining: number,
-  copy: TimerCopy,
-): string {
-  if (status === "paused") return copy.paused;
-  if (status === "submitted") return copy.submitted;
-  if (status === "not_started") return copy.notStarted;
-  return formatClock(remaining);
-}
-
 export function SectionTimer({
   timing,
+  warningSeconds = NO_WARNINGS,
   onExpire,
   onStatusChange,
+  onWarning,
 }: {
   timing: SectionTimingState;
+  /** Thresholds (seconds remaining) to announce, e.g. `[600, 300]`. */
+  warningSeconds?: readonly number[];
   onExpire?: () => void;
   onStatusChange?: (status: SectionRuntimeStatus) => void;
+  /** Called once per threshold per deadline, with the threshold in seconds. */
+  onWarning?: (threshold: number) => void;
 }) {
+  const t = useTranslations("ielts.player.exam");
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const locale = useLocale();
+  const [warningAnnouncement, setWarningAnnouncement] = useState("");
   const expiredRef = useRef(false);
+  const firedRef = useRef<number[]>([]);
+  // Latest inputs for the 1 Hz tick, so the interval itself stays stable.
+  const tickInputsRef = useRef({ timing, warningSeconds, onWarning, t });
 
   const status = sectionStatus(timing, nowMs);
   const remaining = remainingSeconds(timing, nowMs);
   const ticking = status === "running";
 
   useEffect(() => {
+    tickInputsRef.current = { timing, warningSeconds, onWarning, t };
+  }, [timing, warningSeconds, onWarning, t]);
+
+  // A new deadline (resume, re-sync, next section) starts the warnings over.
+  useEffect(() => {
+    firedRef.current = [];
+  }, [timing.deadlineAt]);
+
+  useEffect(() => {
     if (!ticking) return;
-    const id = setInterval(() => setNowMs(Date.now()), 1000);
+    const tick = () => {
+      const now = Date.now();
+      setNowMs(now);
+      const inputs = tickInputsRef.current;
+      const threshold = nextTimerWarning(
+        remainingSeconds(inputs.timing, now),
+        inputs.warningSeconds,
+        firedRef.current,
+      );
+      if (threshold === null) return;
+      firedRef.current = [...firedRef.current, threshold];
+      const minutes = warningMinutes(threshold);
+      setWarningAnnouncement(
+        minutes <= 1
+          ? inputs.t("timerWarningOne")
+          : inputs.t("timerWarning", { minutes }),
+      );
+      inputs.onWarning?.(threshold);
+    };
+    const id = setInterval(tick, 1000);
     return () => clearInterval(id);
   }, [ticking]);
 
@@ -110,22 +98,29 @@ export function SectionTimer({
     if (status === "running") expiredRef.current = false;
   }, [status, onExpire, onStatusChange]);
 
-  const copy = timerCopy(locale);
-  const announcement = timerAnnouncement(status, remaining, copy);
+  const announcement =
+    status === "expired" ? `${t("time")} ${formatClock(0)}` : warningAnnouncement;
 
   const low = ticking && remaining <= 60;
-  const label = timerLabel(status, remaining, copy);
+  const label =
+    status === "paused"
+      ? t("timerPaused")
+      : status === "submitted"
+        ? t("timerSubmitted")
+        : status === "not_started"
+          ? t("timerNotStarted")
+          : formatClock(remaining);
 
   return (
     <div
-      className={`flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-bold tabular-nums ${
+      className={`flex items-center gap-2 rounded-full px-4 py-1.5 type-label font-bold tabular-nums ${
         low
           ? "bg-error-container text-error"
           : "bg-surface-container-high text-on-surface"
       }`}
     >
-      <span className="text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-        {copy.time}
+      <span className="type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
+        {t("time")}
       </span>
       {label}
       <span className="sr-only" aria-live="polite">

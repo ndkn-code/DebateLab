@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
 import type { MockQuestionCounts, MockQuestionStatus } from "./mock-flow-status";
 
 const CHIP =
-  "relative flex size-11 items-center justify-center rounded-lg border-2 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:size-12";
+  "relative flex h-11 min-w-11 items-center justify-center rounded-lg border-2 px-1.5 text-sm font-bold tabular-nums transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 sm:h-12 sm:min-w-12";
 
 function chipClass(status: MockQuestionStatus): string {
   if (status.current) return "border-primary bg-primary text-on-primary";
@@ -143,11 +143,11 @@ export function QuestionNavigator({
                 }}
                 className={cn(CHIP, chipClass(status))}
                 aria-current={status.current ? "true" : undefined}
-                aria-label={`${t("question", { number: status.number })}, ${
+                aria-label={`${t("question", { number: status.numberLabel })}, ${
                   status.answered ? t("answered") : t("unanswered")
                 }${status.flagged ? `, ${t("flagged")}` : ""}, ${status.partTitle}`}
               >
-                {status.number}
+                {status.numberLabel}
                 {status.current ? (
                   <MapPin
                     className="absolute -right-1.5 -top-1.5 size-4 rounded-full bg-surface text-primary"

@@ -1,5 +1,5 @@
 import type { Tables } from "@/types/supabase";
-import { useLocale } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import type {
   SectionRuntimeStatus,
   SectionTimingState,
@@ -58,8 +58,10 @@ export function ExamSectionHeader({
   allowPause,
   sectionNavigationLocked,
   guideOpen,
+  warningSeconds,
   onTimerStatusChange,
   onExpire,
+  onWarning,
   onPause,
   onResume,
   onOpenGuide,
@@ -82,8 +84,11 @@ export function ExamSectionHeader({
   allowPause: boolean;
   sectionNavigationLocked: boolean;
   guideOpen: boolean;
+  /** Timer thresholds (seconds) to announce — see assessment-mode policy. */
+  warningSeconds?: readonly number[];
   onTimerStatusChange: (status: SectionRuntimeStatus) => void;
   onExpire: () => void;
+  onWarning?: (threshold: number) => void;
   onPause: () => void;
   onResume: () => void;
   onOpenGuide: () => void;
@@ -95,8 +100,8 @@ export function ExamSectionHeader({
   onSelectHighlightColor: (color: MockHighlightColor) => void;
   onOpenNotes: () => void;
 }) {
+  const t = useTranslations("ielts.player.exam");
   const currentLocale = useLocale();
-  const vi = currentLocale === "vi";
   const locale: IeltsPlayerLocale = currentLocale === "vi" ? "vi" : "en";
   const experience = useIeltsPlayerExperience();
   const experienceLabel =
@@ -115,22 +120,27 @@ export function ExamSectionHeader({
             </h1>
           </div>
           <p className="truncate text-xs font-bold text-on-surface-variant sm:text-sm">
-            {sectionLabel} · Section {activeSectionIndex + 1} of{" "}
-            {sections.length}
+            {t("sectionPosition", {
+              sectionLabel,
+              current: activeSectionIndex + 1,
+              total: sections.length,
+            })}
           </p>
         </div>
         <div className="flex min-w-0 flex-1 items-center justify-end gap-1 sm:shrink-0 sm:gap-2">
           <SectionTimer
             timing={timing}
+            warningSeconds={warningSeconds}
             onExpire={onExpire}
             onStatusChange={onTimerStatusChange}
+            onWarning={onWarning}
           />
           {allowPause ? (
             <ExamButton
               onClick={paused ? onResume : onPause}
               disabled={busy || locked}
               className="size-10 px-0 sm:w-auto sm:px-4"
-              aria-label={paused ? "Resume section" : "Pause section"}
+              aria-label={paused ? t("resumeSection") : t("pauseSection")}
             >
               <ProductIcon
                 name={paused ? "play" : "pause"}
@@ -138,7 +148,7 @@ export function ExamSectionHeader({
                 weight="bold"
               />
               <span className="hidden sm:inline">
-                {paused ? "Resume" : "Pause"}
+                {paused ? t("resume") : t("pause")}
               </span>
             </ExamButton>
           ) : null}
@@ -167,7 +177,7 @@ export function ExamSectionHeader({
             className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl border border-outline-variant bg-surface-container-lowest text-on-surface transition hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             aria-haspopup="dialog"
             aria-expanded={guideOpen}
-            aria-label={`${experienceLabel} details`}
+            aria-label={t("guideLabel")}
           >
             <ProductIcon name="help" size="md" weight="bold" />
           </button>
@@ -179,7 +189,7 @@ export function ExamSectionHeader({
       </div>
       <nav
         className="flex gap-2 overflow-x-auto border-t border-outline-variant px-3 py-2 sm:px-5"
-        aria-label={vi ? "Các phần thi" : "Test sections"}
+        aria-label={t("testSections")}
       >
         {sections.map((candidate, index) => (
           <button
@@ -231,6 +241,7 @@ export function ExamSectionFooter({
   busy,
   locked,
   submissionLocked,
+  previousLocked = false,
   isLastSection,
   onSelectPart,
   onJump,
@@ -245,22 +256,27 @@ export function ExamSectionFooter({
   busy: boolean;
   locked: boolean;
   submissionLocked: boolean;
+  /** Listening in exam mode: recordings play once, so earlier parts are closed. */
+  previousLocked?: boolean;
   isLastSection: boolean;
   onSelectPart: (index: number) => void;
   onJump: (partIndex: number, questionId: string) => void;
   onReview: () => void;
   onFinish: () => void;
 }) {
-  const vi = useLocale() === "vi";
+  const t = useTranslations("ielts.player.exam");
+  const previousDisabled = busy || activePartIndex <= 0 || previousLocked;
+  const previousHint =
+    previousLocked && activePartIndex > 0 ? t("previousLocked") : undefined;
   return (
     <footer className="z-20 shrink-0 border-t border-outline-variant bg-surface/95 shadow-[0_-4px_16px_rgb(0_0_0/0.06)] backdrop-blur">
       <div className="flex min-w-0 items-center gap-2 border-b border-outline-variant px-3 py-2 sm:px-5">
         <span className="shrink-0 text-xs font-extrabold text-on-surface-variant">
-          {vi ? "Phần" : "Part"} {Math.max(1, activePartIndex + 1)}
+          {t("part", { number: Math.max(1, activePartIndex + 1) })}
         </span>
         <div
           className="flex min-w-0 flex-1 gap-1.5 overflow-x-auto py-0.5"
-          aria-label={vi ? "Câu hỏi" : "Questions"}
+          aria-label={t("questions")}
         >
           {statuses.map((status) => (
             <button
@@ -268,13 +284,15 @@ export function ExamSectionFooter({
               type="button"
               onClick={() => onJump(status.partIndex, status.questionId)}
               aria-current={status.current ? "true" : undefined}
-              aria-label={`${vi ? "Câu hỏi" : "Question"} ${status.number}, ${status.answered ? (vi ? "đã trả lời" : "answered") : vi ? "chưa trả lời" : "unanswered"}${status.flagged ? `, ${vi ? "đã đánh dấu" : "flagged"}` : ""}`}
+              aria-label={`${t("question", { number: status.numberLabel })}, ${
+                status.answered ? t("answered") : t("unanswered")
+              }${status.flagged ? `, ${t("flagged")}` : ""}`}
               className={cn(
-                "relative flex size-8 shrink-0 items-center justify-center rounded-lg border text-xs font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                "relative flex h-8 min-w-8 shrink-0 items-center justify-center rounded-lg border px-1.5 text-xs font-extrabold tabular-nums transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
                 questionChipClass(status),
               )}
             >
-              {status.number}
+              {status.numberLabel}
               {status.flagged ? (
                 <ProductIcon
                   name="bookmark"
@@ -290,24 +308,28 @@ export function ExamSectionFooter({
       </div>
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 sm:px-5">
         <div className="flex items-center gap-2">
-          <ExamButton
-            onClick={() => onSelectPart(activePartIndex - 1)}
-            disabled={busy || activePartIndex <= 0}
-            aria-label={vi ? "Phần trước" : "Previous part"}
-            className="size-10 px-0 sm:w-auto sm:px-4"
-          >
-            <ProductIcon name="chevronLeft" size="sm" weight="bold" />
-            <span className="hidden sm:inline">Previous</span>
-          </ExamButton>
+          {/* Disabled buttons drop pointer events; the wrapper keeps the lock hint. */}
+          <span title={previousHint} className="inline-flex">
+            <ExamButton
+              onClick={() => onSelectPart(activePartIndex - 1)}
+              disabled={previousDisabled}
+              aria-label={previousHint ?? t("previousPart")}
+              title={previousHint}
+              className="size-10 px-0 sm:w-auto sm:px-4"
+            >
+              <ProductIcon name="chevronLeft" size="sm" weight="bold" />
+              <span className="hidden sm:inline">{t("previous")}</span>
+            </ExamButton>
+          </span>
           <ExamButton
             onClick={() => onSelectPart(activePartIndex + 1)}
             disabled={
               busy || activePartIndex < 0 || activePartIndex >= partsLength - 1
             }
-            aria-label={vi ? "Phần tiếp theo" : "Next part"}
+            aria-label={t("nextPart")}
             className="size-10 px-0 sm:w-auto sm:px-4"
           >
-            <span className="hidden sm:inline">Next</span>
+            <span className="hidden sm:inline">{t("next")}</span>
             <ProductIcon name="chevronRight" size="sm" weight="bold" />
           </ExamButton>
         </div>
@@ -325,10 +347,8 @@ export function ExamSectionFooter({
             className="px-3 sm:px-4"
           >
             <ProductIcon name="listChecks" size="sm" weight="bold" />
-            <span className="hidden md:inline">
-              Review &amp; submit section
-            </span>
-            <span className="md:hidden">Review</span>
+            <span className="hidden md:inline">{t("reviewSubmitSection")}</span>
+            <span className="md:hidden">{t("review")}</span>
           </ExamButton>
           {isLastSection ? (
             <ExamButton
@@ -337,7 +357,7 @@ export function ExamSectionFooter({
               disabled={busy || submissionLocked}
               className="hidden sm:inline-flex"
             >
-              Finish test
+              {t("finishTest")}
               <ProductIcon name="arrowRight" size="sm" weight="bold" />
             </ExamButton>
           ) : null}
@@ -351,7 +371,7 @@ export function ExamSectionFooter({
             disabled={busy || submissionLocked}
             className="w-full"
           >
-            Finish simulation
+            {t("finishTest")}
             <ProductIcon name="arrowRight" size="sm" weight="bold" />
           </ExamButton>
         </div>
