@@ -1,0 +1,15 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - --file=services/debatelab-ops-mcp/Dockerfile
+      - --tag=asia-southeast1-docker.pkg.dev/thinkfy-debatelab-prod/debatelab-workers/debatelab-ops-mcp:$BUILD_ID
+      - .
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - asia-southeast1-docker.pkg.dev/thinkfy-debatelab-prod/debatelab-workers/debatelab-ops-mcp:$BUILD_ID
+images:
+  - asia-southeast1-docker.pkg.dev/thinkfy-debatelab-prod/debatelab-workers/debatelab-ops-mcp:$BUILD_ID
+options:
+  logging: CLOUD_LOGGING_ONLY
