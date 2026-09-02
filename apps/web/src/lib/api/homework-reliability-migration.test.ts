@@ -46,6 +46,9 @@ assert.match(homeworkRepository, /requireClassManager\(supabase, assignmentRow\.
 assert.match(homeworkRepository, /requireClubOwner\(supabase, clubId\)/);
 assert.match(classManagerAccess, /export async function requireClubOwner/);
 assert.match(classManagerAccess, /profile\?\.role === "admin"/);
-assert.match(classManagerAccess, /\.in\("role", \["owner", "admin"\]\)/);
+assert.match(
+  classManagerAccess,
+  /\.in\("role", \["owner", "admin", "head_teacher"\]\)/,
+);
 
 console.log("Homework reliability migration contract tests passed");

@@ -9,6 +9,8 @@ import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton
 import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
 import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { getTimeGreetingKey } from "@/components/dashboard/plan-copy";
+import { TEACHER_WORKSPACE_V1 } from "@/lib/features";
+import { loadTeacherWorkspaceCapability } from "@/lib/api/class-lms/teacher-workspace-capability";
 
 export const metadata = {
   title: "Dashboard",
@@ -42,11 +44,18 @@ async function DashboardPayload() {
   // Get preferences for welcome banner check
   const profile = data.profile ?? (devAuthBypassUser ? DEV_ADMIN_PROFILE : null);
 
-  // Teachers enter the shared instructional workspace by default. Their
-  // organization and class memberships remain the authorization boundary in
-  // the teacher loader; this redirect only selects the correct product shell.
-  if (profile?.role === "teacher") {
-    redirect("/dashboard/teacher");
+  // The organization membership is the source of truth for instructional
+  // personas. Owners and organization admins retain an explicit mode switch;
+  // assigned teachers and Head Teachers enter their workbench directly.
+  if (TEACHER_WORKSPACE_V1) {
+    let shouldAutoEnterTeacherWorkspace = false;
+    try {
+      const teacherCapability = await loadTeacherWorkspaceCapability();
+      shouldAutoEnterTeacherWorkspace = teacherCapability.shouldAutoEnter;
+    } catch {
+      // Dashboard remains usable when the optional workspace projection fails.
+    }
+    if (shouldAutoEnterTeacherWorkspace) redirect("/dashboard/teacher");
   }
 
   const displayName =

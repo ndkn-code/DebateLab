@@ -11,10 +11,24 @@ export type OrganizationType = (typeof ORGANIZATION_TYPES)[number];
 export const ORGANIZATION_ROLES = [
   "owner",
   "admin",
+  "head_teacher",
   "teacher",
   "student",
 ] as const;
 export type OrganizationRole = (typeof ORGANIZATION_ROLES)[number];
+
+/** Server-derived capabilities. Never infer these from a role string in UI code. */
+export interface OrganizationCapabilities {
+  canManageAcademicProfile: boolean;
+  canManagePeople: boolean;
+  canManageClasses: boolean;
+  canManageCurriculum: boolean;
+  canOverrideReview: boolean;
+  canManagePrivilegedRoles: boolean;
+  canManageBilling: boolean;
+  canManageSecurity: boolean;
+  canTransferOwnership: boolean;
+}
 
 export const ORGANIZATION_STATUSES = ["draft", "active", "archived"] as const;
 export type OrganizationStatus = (typeof ORGANIZATION_STATUSES)[number];

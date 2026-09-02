@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
 import path from "node:path";
 import { loadEnvConfig } from "@next/env";
+// eslint-disable-next-line no-restricted-imports -- standalone, explicitly confirmed service-role CLI
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 export const TEACHER_WORKSPACE_DEMO_TAG = "teacher-workspace-demo-v1";
-export const DEFAULT_TEACHER_EMAIL = "nguyennguyen.dymun@gmail.com";
+export const DEFAULT_TEACHER_EMAIL = "jknguyen.wor@gmail.com";
 type DemoRow = Record<string, unknown> & { id?: string };
 export interface TeacherWorkspaceDemoManifest {
   tag: string;
@@ -160,6 +161,8 @@ export function buildTeacherWorkspaceDemoManifest(input: {
     club_assignment_submissions: [],
     lms_announcements: [],
     lms_notifications: [],
+    notification_events: [],
+    notification_inbox_items: [],
   };
   const classByKey = (key: string) =>
     classes.find(
@@ -546,16 +549,34 @@ export function buildTeacherWorkspaceDemoManifest(input: {
     created_by: input.teacherId,
     updated_by: input.teacherId,
   });
-  for (const recipientId of [input.teacherId, ...input.learnerIds])
-    tables.lms_notifications.push({
-      id: id(`notification:${recipientId}`),
+  const notificationEventId = id("notification-event:welcome");
+  tables.notification_events.push({
+    id: notificationEventId,
+    event_key: `${TEACHER_WORKSPACE_DEMO_TAG}:${input.organizationId}:${input.teacherId}:welcome`,
+    event_type: "announcement",
+    source: "lms-demo",
+    actor_id: input.teacherId,
+    subject_type: "class",
+    subject_id: ielts.id,
+    title: "[Demo] New class announcement",
+    body: "A demo class announcement is ready to review.",
+    message_class: "operational",
+    topic: "announcements",
+    payload: metadata({ classId: ielts.id, announcementId }),
+    importance: "normal",
+    created_at: `${weekStart}T08:00:00Z`,
+  });
+  for (const recipientId of [input.teacherId, ...input.learnerIds]) {
+    tables.notification_inbox_items.push({
+      id: id(`notification-inbox:welcome:${recipientId}`),
+      event_id: notificationEventId,
       recipient_id: recipientId,
-      event_type: "announcement",
-      dedupe_key: `${TEACHER_WORKSPACE_DEMO_TAG}:welcome:${recipientId}`,
-      title: "[Demo] New class announcement",
-      body: "A demo class announcement is ready to review.",
+      state: "unread",
       read_at: null,
+      archived_at: null,
+      created_at: `${weekStart}T08:00:00Z`,
     });
+  }
   return {
     tag: TEACHER_WORKSPACE_DEMO_TAG,
     organizationId: input.organizationId,
@@ -589,7 +610,7 @@ export function parseTeacherWorkspaceDemoArgs(argv: string[]) {
       result.weekStart = argv[++index] ?? result.weekStart;
     else if (arg === "--email")
       throw new Error(
-        "--email is not supported; the demo teacher is fixed to nguyennguyen.dymun@gmail.com.",
+        "--email is not supported; the demo teacher is fixed to jknguyen.wor@gmail.com.",
       );
     else if (arg === "--help" || arg === "-h") {
       console.log(
@@ -678,6 +699,8 @@ async function resolveOrganization(
 }
 async function ensureSyntheticLearners(
   client: SupabaseClient,
+  organizationId: string,
+  teacherId: string,
   count = 4,
   create = true,
 ) {
@@ -695,7 +718,9 @@ async function ensureSyntheticLearners(
     if (existing) {
       if (
         existing.user_metadata?.teacher_workspace_demo !==
-        TEACHER_WORKSPACE_DEMO_TAG
+          TEACHER_WORKSPACE_DEMO_TAG ||
+        existing.user_metadata?.organization_id !== organizationId ||
+        existing.user_metadata?.teacher_id !== teacherId
       )
         throw new Error(
           `Refusing to reuse synthetic auth user ${email}: demo metadata tag does not match.`,
@@ -704,14 +729,22 @@ async function ensureSyntheticLearners(
       continue;
     }
     if (!create) {
-      ids.push(deterministicUuid(`synthetic-learner:${index}`));
+      ids.push(
+        deterministicUuid(
+          `${organizationId}:${teacherId}:synthetic-learner:${index}`,
+        ),
+      );
       continue;
     }
     const created = await client.auth.admin.createUser({
       email,
       email_confirm: true,
-      password: `${deterministicUuid(`password:${index}`)}Aa!1`,
-      user_metadata: { teacher_workspace_demo: TEACHER_WORKSPACE_DEMO_TAG },
+      password: `${deterministicUuid(`${organizationId}:${teacherId}:password:${index}`)}Aa!1`,
+      user_metadata: {
+        teacher_workspace_demo: TEACHER_WORKSPACE_DEMO_TAG,
+        organization_id: organizationId,
+        teacher_id: teacherId,
+      },
       ban_duration: "876000h",
     });
     if (created.error || !created.data.user)
@@ -752,7 +785,9 @@ const IDLESS_TABLE_KEYS: Record<string, string[]> = {
   lms_occurrence_roster_snapshots: ["occurrence_id", "user_id"],
 };
 function rowWithoutSyntheticId(row: DemoRow) {
-  const { id: _id, metadata: _metadata, ...safe } = row;
+  const safe = { ...row };
+  delete safe.id;
+  delete safe.metadata;
   return safe;
 }
 function sameFixtureShape(existing: DemoRow, expected: DemoRow) {
@@ -799,14 +834,39 @@ async function assertNoDeterministicCollisions(
         );
       if (
         !expectedRow ||
-        (!isProvablyDemoTagged(existing, expectedRow) &&
-          !(keyColumns && sameFixtureShape(existing, expectedRow)))
+        !isProvablyDemoTagged(existing, expectedRow) &&
+        !(
+          table === "notification_inbox_items" &&
+          existing.event_id === expectedRow.event_id &&
+          existing.recipient_id === expectedRow.recipient_id
+        ) &&
+        !(keyColumns &&
+          !Object.prototype.hasOwnProperty.call(existing, "metadata") &&
+          !Object.prototype.hasOwnProperty.call(existing, "payload") &&
+          sameFixtureShape(existing, expectedRow))
       )
         throw new Error(
           `Refusing deterministic ID collision in ${table}:${existing.id ?? "composite-key"}; existing row is not provably tagged ${TEACHER_WORKSPACE_DEMO_TAG}.`,
         );
     }
   }
+}
+async function assertWorkspaceFeatureEnabled(
+  client: SupabaseClient,
+  organizationId: string,
+) {
+  const result = await client
+    .from("lms_pilot_flags")
+    .select("class_id, enabled")
+    .eq("club_id", organizationId)
+    .eq("feature_key", "teacher_workspace_v2")
+    .eq("enabled", true);
+  if (result.error)
+    throw new Error(`workspace feature lookup: ${result.error.message}`);
+  if (!result.data?.length)
+    throw new Error(
+      "Refusing to apply demo: teacher_workspace_v2 is not enabled for the exact organization.",
+    );
 }
 const APPLY_ORDER = [
   "classes",
@@ -833,6 +893,8 @@ const APPLY_ORDER = [
   "lms_outbox_events",
   "lms_announcements",
   "lms_notifications",
+  "notification_events",
+  "notification_inbox_items",
 ];
 async function upsertManifest(
   client: SupabaseClient,
@@ -911,6 +973,8 @@ async function cleanupManifest(
     if (!user) continue;
     if (
       user.user_metadata?.teacher_workspace_demo !== TEACHER_WORKSPACE_DEMO_TAG
+      || user.user_metadata?.organization_id !== manifest.organizationId
+      || user.user_metadata?.teacher_id !== manifest.teacherId
     )
       throw new Error(
         `Refusing to delete synthetic auth user ${email}: demo metadata tag does not match.`,
@@ -931,7 +995,14 @@ async function main() {
     teacherId,
     options.organizationId,
   );
-  const learners = await ensureSyntheticLearners(client, 4, options.apply);
+  if (options.apply) await assertWorkspaceFeatureEnabled(client, organizationId);
+  const learners = await ensureSyntheticLearners(
+    client,
+    organizationId,
+    teacherId,
+    4,
+    options.apply,
+  );
   const manifest = buildTeacherWorkspaceDemoManifest({
     organizationId,
     teacherId,

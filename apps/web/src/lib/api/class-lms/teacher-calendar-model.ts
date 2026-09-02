@@ -294,6 +294,7 @@ export function zonedWallClockToUtc(
   assertIsoDate(date);
   const [hour, minute, second = "0"] = time.split(":").map(Number);
   if (
+    !/^([01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/.test(time) ||
     ![hour, minute, Number(second)].every(Number.isFinite) ||
     hour > 23 ||
     minute > 59 ||
@@ -308,8 +309,12 @@ export function zonedWallClockToUtc(
     minute,
     Number(second),
   );
+  if (!validTimezone(timezone)) throw new Error(`Invalid timezone: ${timezone}`);
+  // Gather every offset in a generous window around the requested wall time.
+  // This covers DST gaps/folds (including half-hour transitions) without
+  // assuming that a transition occurs at a particular UTC hour.
   const offsets = new Set<number>();
-  for (const sampleHours of [-36, -24, -12, 0, 12, 24, 36]) {
+  for (let sampleHours = -168; sampleHours <= 168; sampleHours += 1) {
     const sample = new Date(desiredUtc + sampleHours * 60 * 60 * 1000);
     const local = localWallClockParts(sample, timezone);
     const renderedUtc = Date.UTC(

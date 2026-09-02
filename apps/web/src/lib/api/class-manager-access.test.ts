@@ -35,6 +35,18 @@ test("owners and admins retain class access", () => {
   );
 });
 
+test("head teachers manage every class in their organization", () => {
+  assert.equal(
+    resolveClassManagerRole({
+      isAdmin: false,
+      clubRole: "head_teacher",
+      hasActiveTeacherMembership: false,
+      profileRole: "student",
+    }),
+    "head_teacher",
+  );
+});
+
 test("legacy coach membership is accepted but returned as canonical teacher", () => {
   assert.equal(
     resolveClassManagerRole({ isAdmin: false, clubRole: "coach", hasActiveTeacherMembership: true, profileRole: "teacher" }),

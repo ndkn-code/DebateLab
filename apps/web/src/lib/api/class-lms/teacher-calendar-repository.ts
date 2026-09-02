@@ -270,7 +270,7 @@ export async function saveTeacherClassColor(input: { classId: string; colorToken
 async function loadManagedClasses(db: Db, actorId: string) {
   const [profileResult, clubsResult, teacherResult, classesResult, flagsResult] = await Promise.all([
     db.from("profiles").select("role").eq("id", actorId).maybeSingle(),
-    db.from("club_memberships").select("club_id, role").eq("user_id", actorId).eq("status", "active").in("role", ["owner", "admin", "teacher", "coach"]),
+    db.from("club_memberships").select("club_id, role").eq("user_id", actorId).eq("status", "active").in("role", ["owner", "admin", "head_teacher", "teacher", "coach"]),
     db.from("class_memberships").select("class_id").eq("user_id", actorId).eq("member_role", "teacher").eq("status", "active"),
     db.from("classes").select("id, club_id, title, program_type, status").eq("status", "active").order("title", { ascending: true }),
     db.from("lms_pilot_flags").select("club_id, class_id, feature_key, enabled").in("feature_key", [TEACHER_WORKSPACE_FEATURE_KEY, LMS_PILOT_FEATURE_KEY]),
@@ -278,7 +278,7 @@ async function loadManagedClasses(db: Db, actorId: string) {
   const failed = [profileResult, clubsResult, teacherResult, classesResult, flagsResult].find((result) => result.error);
   if (failed?.error) throw new Error(`loadTeacherCalendar authorization: ${failed.error.message}`);
   const isPlatformAdmin = profileResult.data?.role === "admin";
-  const ownerClubs = new Set(((clubsResult.data ?? []) as Row[]).filter((row) => { const role = normalizeOrganizationRole(row.role); return role === "owner" || role === "admin"; }).map((row) => String(row.club_id)));
+  const ownerClubs = new Set(((clubsResult.data ?? []) as Row[]).filter((row) => { const role = normalizeOrganizationRole(row.role); return role === "owner" || role === "admin" || role === "head_teacher"; }).map((row) => String(row.club_id)));
   const teacherClasses = new Set(((teacherResult.data ?? []) as Row[]).map((row) => String(row.class_id)));
   const flags = (flagsResult.data ?? []) as Row[];
   const enabled = (row: Row) => resolveTeacherWorkspaceClassFeature({ flags, organizationId: String(row.club_id), classId: String(row.id), programType: normalizeClassProgram(row.program_type) });

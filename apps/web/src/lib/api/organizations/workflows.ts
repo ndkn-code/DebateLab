@@ -5,6 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { requirePlatformAdmin } from "@/lib/api/class-manager-access";
+import {
+  loadOrganizationCapabilities,
+  requireOrganizationCapability,
+  type OrganizationCapability,
+} from "@/lib/organizations/capabilities";
 import { getAppBaseUrl } from "@/lib/email/config";
 import { sendClubInvitationEmail } from "@/lib/email/club-invitations";
 import {
@@ -78,6 +83,16 @@ async function requireOrganizationManager(
   return userId;
 }
 
+async function requireAcademicOrganizationManager(
+  supabase: ServerSupabase,
+  organizationId: string,
+  capability: OrganizationCapability = "canManageClasses",
+) {
+  const userId = await currentUserId(supabase);
+  await requireOrganizationCapability(organizationId, capability);
+  return userId;
+}
+
 function revalidateOrganization(organizationId?: string) {
   revalidatePath("/dashboard/admin/organizations");
   revalidatePath("/dashboard/admin/clubs");
@@ -116,8 +131,25 @@ export async function updateOrganization(
   const validation = validateUpdateOrganization(input);
   if (!validation.ok) throw new Error(validation.reason);
   const supabase = await createClient();
-  const actorId = await requireOrganizationManager(supabase, input.organizationId);
-  const data = await callOrganizationRpc<unknown>(rpcClient(supabase), ORGANIZATION_RPC_NAMES.update, {
+  const actorId = await currentUserId(supabase);
+  const capabilities = await loadOrganizationCapabilities(input.organizationId);
+  if (!capabilities.canManageAcademicProfile) throw new Error("Forbidden");
+  const headTeacherOnly = !capabilities.canManagePrivilegedRoles;
+  if (headTeacherOnly && (input.organizationType !== undefined || input.country !== undefined || input.city !== undefined || input.logoUrl !== undefined || input.facebookUrl !== undefined || input.instagramUrl !== undefined || input.threadsUrl !== undefined)) {
+    throw new Error("Head Teachers may update only the academic organization name and timezone.");
+  }
+  const rpcName = headTeacherOnly
+    ? "update_organization_academic_profile_transaction"
+    : ORGANIZATION_RPC_NAMES.update;
+  const data = await callOrganizationRpc<unknown>(rpcClient(supabase), rpcName, headTeacherOnly ? {
+    p_organization_id: input.organizationId,
+    p_name: input.name?.trim() ?? null,
+    p_organization_type: null,
+    p_timezone: input.timezone ?? null,
+    p_expected_setup_version: input.setupVersion ?? null,
+    p_idempotency_key: input.idempotencyKey,
+    p_actor_id: actorId,
+  } : {
     p_organization_id: input.organizationId,
     p_name: input.name?.trim() ?? null,
     p_organization_type: input.organizationType ?? null,
@@ -143,8 +175,11 @@ export async function inviteOrganizationMember(
   const validation = validateOrganizationInvite(input);
   if (!validation.ok) throw new Error(validation.reason);
   const supabase = await createClient();
-  const minimum = input.role === "owner" ? "owner" : "admin";
-  const actorId = await requireOrganizationManager(supabase, input.organizationId, minimum);
+  const actorId = input.role === "owner" || input.role === "admin"
+    ? await requireOrganizationManager(supabase, input.organizationId, "owner")
+    : input.role === "head_teacher"
+      ? await requireOrganizationManager(supabase, input.organizationId, "admin")
+      : await requireAcademicOrganizationManager(supabase, input.organizationId, "canManagePeople");
   const data = await callOrganizationRpc<unknown>(rpcClient(supabase), ORGANIZATION_RPC_NAMES.inviteMember, {
     p_organization_id: input.organizationId,
     p_email: validation.payload.email,
@@ -201,7 +236,7 @@ export async function createOrganizationFirstClass(
   const validation = validateOrganizationClass(input);
   if (!validation.ok) throw new Error(validation.reason);
   const supabase = await createClient();
-  const actorId = await requireOrganizationManager(supabase, input.organizationId);
+  const actorId = await requireAcademicOrganizationManager(supabase, input.organizationId);
   const data = await callOrganizationRpc<unknown>(rpcClient(supabase), ORGANIZATION_RPC_NAMES.createClass, {
     p_organization_id: input.organizationId,
     p_club_id: input.organizationId,
@@ -230,7 +265,7 @@ export async function assignOrganizationTeacher(
   const validation = validateOrganizationAssignment(input);
   if (!validation.ok) throw new Error(validation.reason);
   const supabase = await createClient();
-  const actorId = await requireOrganizationManager(supabase, input.organizationId);
+  const actorId = await requireAcademicOrganizationManager(supabase, input.organizationId, "canManagePeople");
   const data = await callOrganizationRpc<unknown>(rpcClient(supabase), ORGANIZATION_RPC_NAMES.assignTeacher, {
     p_organization_id: input.organizationId,
     p_class_id: input.classId,
@@ -254,7 +289,7 @@ export async function assignOrganizationCourse(
   const validation = validateOrganizationAssignment(input);
   if (!validation.ok) throw new Error(validation.reason);
   const supabase = await createClient();
-  const actorId = await requireOrganizationManager(supabase, input.organizationId);
+  const actorId = await requireAcademicOrganizationManager(supabase, input.organizationId, "canManageCurriculum");
   const data = await callOrganizationRpc<unknown>(rpcClient(supabase), ORGANIZATION_RPC_NAMES.assignCourse, {
     p_organization_id: input.organizationId,
     p_class_id: input.classId,
@@ -278,7 +313,7 @@ export async function assignOrganizationMaterial(
   const validation = validateOrganizationAssignment(input);
   if (!validation.ok) throw new Error(validation.reason);
   const supabase = await createClient();
-  const actorId = await requireOrganizationManager(supabase, input.organizationId);
+  const actorId = await requireAcademicOrganizationManager(supabase, input.organizationId, "canManageCurriculum");
   const data = await callOrganizationRpc<unknown>(rpcClient(supabase), ORGANIZATION_RPC_NAMES.assignMaterial, {
     p_organization_id: input.organizationId,
     p_class_id: input.classId,

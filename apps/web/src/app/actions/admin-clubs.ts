@@ -149,11 +149,11 @@ async function verifyClubManager(supabase: Supabase, clubId: string) {
     .eq("club_id", clubId)
     .eq("user_id", user.id)
     .eq("status", "active")
-    .in("role", ["owner", "admin", "teacher", "coach"])
+    .in("role", ["owner", "admin", "head_teacher", "teacher", "coach"])
     .maybeSingle();
 
   const role = normalizeOrganizationRole(membership?.role);
-  if (role === "owner" || role === "admin") return user.id;
+  if (role === "owner" || role === "admin" || role === "head_teacher") return user.id;
   if (isDevAdminBypassEnabled()) return user.id;
   throw new Error("Forbidden");
 }
@@ -737,23 +737,30 @@ export async function addClubMember(input: {
     await assertStudentCanJoinClub(input.userId, input.clubId);
   }
 
-  // Keep the mutation on the authenticated client so organization RLS remains
-  // the final boundary; this legacy action must not bypass it with a service
-  // role client.
-  const { error } = await supabase.from("club_memberships").upsert(
-    {
-      club_id: input.clubId,
-      user_id: input.userId,
-      role,
-      status: "active",
-      removed_at: null,
-      invited_by: actorId,
-      metadata: role === "student" ? { verification_method: "admin" } : {},
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: "club_id,user_id,role" }
-  );
-
+  if (role === "owner") {
+    throw new Error("Ownership changes must use the audited ownership-transfer workflow.");
+  }
+  const { data: existingMembership, error: membershipError } = await supabase
+    .from("club_memberships")
+    .select("id, updated_at")
+    .eq("club_id", input.clubId)
+    .eq("user_id", input.userId)
+    .order("updated_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (membershipError) throw new Error(membershipError.message);
+  const rpc = supabase as unknown as {
+    rpc: (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+  };
+  const { error } = await rpc.rpc("manage_organization_member_transaction", {
+    p_organization_id: input.clubId,
+    p_user_id: input.userId,
+    p_role: role,
+    p_action: existingMembership ? "update" : "add",
+    p_expected_updated_at: existingMembership?.updated_at ?? null,
+    p_idempotency_key: `legacy-member-${randomUUID()}`,
+    p_actor_id: actorId,
+  });
   if (error) throw new Error(error.message);
   revalidatePath("/dashboard/admin/clubs");
   revalidatePath(`/dashboard/admin/clubs/${input.clubId}`);

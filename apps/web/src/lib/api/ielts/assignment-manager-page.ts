@@ -33,6 +33,36 @@ export interface IeltsAssignmentsAdminPage {
   classStudyPlans: IeltsClassStudyPlanSurfaceView;
 }
 
+function hasAdminScope(
+  profileRole: string | null | undefined,
+  clubRole: ReturnType<typeof normalizeOrganizationRole>,
+): boolean {
+  return (
+    profileRole === "admin" ||
+    clubRole === "admin" ||
+    clubRole === "owner" ||
+    clubRole === "head_teacher"
+  );
+}
+
+async function loadAssignedClassIds(
+  supabase: Awaited<ReturnType<typeof createTypedServerClient>>,
+  actorId: string,
+): Promise<Set<string>> {
+  const result = await supabase
+    .from("class_memberships")
+    .select("class_id")
+    .eq("user_id", actorId)
+    .eq("member_role", "teacher")
+    .eq("status", "active");
+  if (result.error) {
+    throw new Error(
+      `loadIeltsAssignmentsAdminPage class memberships: ${result.error.message}`,
+    );
+  }
+  return new Set(result.data?.map((row) => row.class_id) ?? []);
+}
+
 export async function loadIeltsAssignmentsAdminPage(
   clubId: string,
 ): Promise<IeltsAssignmentsAdminPage | null> {
@@ -59,7 +89,7 @@ export async function loadIeltsAssignmentsAdminPage(
   const managerRole = normalizeOrganizationRole(clubMembership?.role);
   const managerScope = {
     actorId,
-    isAdmin: actorProfile?.role === "admin" || managerRole === "admin" || managerRole === "owner",
+    isAdmin: hasAdminScope(actorProfile?.role, managerRole),
     clubRole: managerRole,
   };
 
@@ -85,18 +115,7 @@ export async function loadIeltsAssignmentsAdminPage(
   if (club?.id !== clubId) return null;
   let assignedClassIds: Set<string> | undefined;
   if (!managerScope.isAdmin) {
-    const assignedClassesRes = await supabase
-      .from("class_memberships")
-      .select("class_id")
-      .eq("user_id", actorId)
-      .eq("member_role", "teacher")
-      .eq("status", "active");
-    if (assignedClassesRes.error) {
-      throw new Error(
-        `loadIeltsAssignmentsAdminPage class memberships: ${assignedClassesRes.error.message}`,
-      );
-    }
-    assignedClassIds = new Set(assignedClassesRes.data?.map((row) => row.class_id) ?? []);
+    assignedClassIds = await loadAssignedClassIds(supabase, actorId);
   }
   const classes = filterAssignableIeltsClasses(
     (classesRes.data ?? []) as AssignableClassRow[],

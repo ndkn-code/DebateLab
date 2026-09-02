@@ -139,6 +139,8 @@ type PublishedReview = {
   writing_response_id: string | null;
   speaking_response_id: string | null;
   revision: number;
+  task_number: number | null;
+  part_number: number | null;
   reviewer_note: string | null;
   criterion_feedback: unknown;
   task_response_band: number | null;
@@ -322,27 +324,27 @@ function mapWritingTask(
     taskResponseBand: effectivePublishedBand(
       review,
       "task_response_band",
-      row.task_response_band,
+      null,
     ),
     coherenceCohesionBand: effectivePublishedBand(
       review,
       "coherence_cohesion_band",
-      row.coherence_cohesion_band,
+      null,
     ),
     lexicalResourceBand: effectivePublishedBand(
       review,
       "lexical_resource_band",
-      row.lexical_resource_band,
+      null,
     ),
     grammarBand: effectivePublishedBand(
       review,
       "grammar_band",
-      row.grammar_band,
+      null,
     ),
-    taskBand: effectivePublishedBand(review, "task_band", row.task_band),
-    criteriaFeedback: row.criteria_feedback,
-    inlineCorrections: row.inline_corrections,
-    paragraphFeedback: row.paragraph_feedback,
+    taskBand: effectivePublishedBand(review, "task_band", null),
+    criteriaFeedback: review ? row.criteria_feedback : {},
+    inlineCorrections: review ? row.inline_corrections : [],
+    paragraphFeedback: review ? row.paragraph_feedback : [],
     modelAnswer: key?.model_answer ?? row.model_answer,
     feedbackLanguage: row.feedback_language,
     gradingMetadata: sanitizeLearnerGradingMetadata(row.grading_metadata),
@@ -366,29 +368,29 @@ function mapSpeakingPart(
     fluencyCoherenceBand: effectivePublishedBand(
       review,
       "fluency_coherence_band",
-      row.fluency_coherence_band,
+      null,
     ),
     lexicalResourceBand: effectivePublishedBand(
       review,
       "lexical_resource_band",
-      row.lexical_resource_band,
+      null,
     ),
     grammarBand: effectivePublishedBand(
       review,
       "grammar_band",
-      row.grammar_band,
+      null,
     ),
     pronunciationBand: effectivePublishedBand(
       review,
       "pronunciation_band",
-      row.pronunciation_band,
+      null,
     ),
     speakingBand: effectivePublishedBand(
       review,
       "skill_band",
-      row.speaking_band,
+      null,
     ),
-    feedback: row.feedback,
+    feedback: review ? row.feedback : null,
     feedbackLanguage: row.feedback_language,
     modelAnswer: key?.model_answer ?? null,
     phonemeReport: row.phoneme_report,
@@ -450,6 +452,116 @@ interface AttemptReads {
   publishedReviews: PublishedReview[];
 }
 
+function mapAttemptContent(
+  questions: Array<QuestionRow | FrozenQuestionRow>,
+  frozen: boolean,
+  sourcePassages: PassageRow[],
+  sourceListeningSections: ListeningSectionRow[],
+): Pick<AttemptReads, "questions" | "passages" | "listeningSections"> {
+  if (!frozen) {
+    return {
+      questions: questions as QuestionRow[],
+      passages: sourcePassages,
+      listeningSections: sourceListeningSections,
+    };
+  }
+  const frozenQuestions = questions as FrozenQuestionRow[];
+  const mappedQuestions = frozenQuestions.map((row) => ({
+    id: row.question_id,
+    question_type: row.question_type,
+    skill: row.skill,
+    prompt: row.prompt,
+    group_instructions: row.group_instructions,
+    word_limit: row.word_limit,
+    max_points: row.max_points,
+    options: row.options,
+    visual: row.visual,
+    metadata: row.metadata,
+    passage_id: row.passage_id,
+    listening_section_id: row.listening_section_id,
+    order_index: row.question_order,
+  }));
+  const passages = new Map<string, PassageRow>();
+  const listeningSections = new Map<string, ListeningSectionRow>();
+  for (const row of frozenQuestions) {
+    if (row.passage_id && row.source_body !== null) {
+      passages.set(row.passage_id, {
+        id: row.passage_id,
+        title: row.source_title ?? "",
+        body: row.source_body,
+      });
+    }
+    if (row.listening_section_id && row.source_body !== null) {
+      listeningSections.set(row.listening_section_id, {
+        id: row.listening_section_id,
+        title: row.source_title,
+        script: row.source_body,
+      });
+    }
+  }
+  return {
+    questions: mappedQuestions,
+    passages: [...passages.values()],
+    listeningSections: [...listeningSections.values()],
+  };
+}
+
+function loadQuestionRead(
+  supabase: SessionClient,
+  testId: string,
+  attemptId: string,
+  frozen: boolean,
+) {
+  if (frozen) {
+    return supabase
+      .from("ielts_attempt_question_blueprints")
+      .select(
+        "question_id, question_type, skill, prompt, group_instructions, word_limit, max_points, options, visual, metadata, passage_id, listening_section_id, question_order, source_title, source_body, source_audio_asset_id, source_audio_storage_path, source_audio_version, source_audio_status",
+      )
+      .eq("attempt_id", attemptId)
+      .order("question_order");
+  }
+  return supabase
+    .from("ielts_questions")
+    .select(QUESTION_COLUMNS)
+    .eq("test_id", testId)
+    .order("order_index");
+}
+
+function loadAttemptPassages(supabase: SessionClient, testId: string, frozen: boolean) {
+  return frozen
+    ? Promise.resolve({ data: [], error: null })
+    : supabase
+        .from("passages")
+        .select("id, title, body")
+        .eq("test_id", testId)
+        .order("order_index");
+}
+
+function loadAttemptListeningSections(
+  supabase: SessionClient,
+  testId: string,
+  frozen: boolean,
+) {
+  return frozen
+    ? Promise.resolve({ data: [], error: null })
+    : supabase
+        .from("listening_sections")
+        .select("id, title, script")
+        .eq("test_id", testId)
+        .order("section_number");
+}
+
+function validateAttemptReads(
+  results: Array<{ error: { message: string } | null }>,
+): void {
+  for (const result of results) {
+    if (result.error) {
+      throw new Error(`loadAttemptResults: ${result.error.message}`);
+    }
+  }
+}
+
 /** All learner-RLS reads for the attempt, run in parallel + error-checked. */
 async function runAttemptReads(
   supabase: SessionClient,
@@ -458,19 +570,7 @@ async function runAttemptReads(
   conversionKey: string,
   frozen: boolean,
 ): Promise<AttemptReads> {
-  const questionRead = frozen
-    ? supabase
-        .from("ielts_attempt_question_blueprints")
-        .select(
-          "question_id, question_type, skill, prompt, group_instructions, word_limit, max_points, options, visual, metadata, passage_id, listening_section_id, question_order, source_title, source_body, source_audio_asset_id, source_audio_storage_path, source_audio_version, source_audio_status",
-        )
-        .eq("attempt_id", attemptId)
-        .order("question_order")
-    : supabase
-        .from("ielts_questions")
-        .select(QUESTION_COLUMNS)
-        .eq("test_id", testId)
-        .order("order_index");
+  const questionRead = loadQuestionRead(supabase, testId, attemptId, frozen);
   const [
     bandScore,
     sections,
@@ -506,20 +606,8 @@ async function runAttemptReads(
       .select("conversion_key, skill, module, band, raw_min, raw_max")
       .in("conversion_key", [...new Set(["default", conversionKey])])
       .in("skill", ["listening", "reading"]),
-    frozen
-      ? Promise.resolve({ data: [], error: null })
-      : supabase
-          .from("passages")
-          .select("id, title, body")
-          .eq("test_id", testId)
-          .order("order_index"),
-    frozen
-      ? Promise.resolve({ data: [], error: null })
-      : supabase
-          .from("listening_sections")
-          .select("id, title, script")
-          .eq("test_id", testId)
-          .order("section_number"),
+    loadAttemptPassages(supabase, testId, frozen),
+    loadAttemptListeningSections(supabase, testId, frozen),
     supabase
       .from("writing_responses")
       .select(WRITING_COLUMNS)
@@ -538,14 +626,14 @@ async function runAttemptReads(
     (supabase as unknown as import("@supabase/supabase-js").SupabaseClient)
       .from("ielts_teacher_reviews")
       .select(
-        "writing_response_id, speaking_response_id, revision, reviewer_note, criterion_feedback, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, fluency_coherence_band, pronunciation_band, task_band, skill_band",
+        "writing_response_id, speaking_response_id, revision, task_number, part_number, reviewer_note, criterion_feedback, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, fluency_coherence_band, pronunciation_band, task_band, skill_band",
       )
       .eq("attempt_id", attemptId)
       .eq("status", "published")
       .order("published_at", { ascending: false }),
   ]);
 
-  for (const result of [
+  validateAttemptReads([
     sections,
     responses,
     questions,
@@ -556,60 +644,25 @@ async function runAttemptReads(
     speaking,
     effectiveScore,
     publishedReviews,
-  ]) {
-    if (result.error)
-      throw new Error(`loadAttemptResults: ${result.error.message}`);
-  }
+  ]);
 
   const questionRows = (questions.data ?? []) as Array<
     QuestionRow | FrozenQuestionRow
   >;
-  const frozenQuestions = frozen ? (questionRows as FrozenQuestionRow[]) : [];
-  const mappedQuestions: QuestionRow[] = frozen
-    ? frozenQuestions.map((row) => ({
-        id: row.question_id,
-        question_type: row.question_type,
-        skill: row.skill,
-        prompt: row.prompt,
-        group_instructions: row.group_instructions,
-        word_limit: row.word_limit,
-        max_points: row.max_points,
-        options: row.options,
-        visual: row.visual,
-        metadata: row.metadata,
-        passage_id: row.passage_id,
-        listening_section_id: row.listening_section_id,
-        order_index: row.question_order,
-      }))
-    : (questionRows as QuestionRow[]);
-  const frozenPassages = new Map<string, PassageRow>();
-  const frozenListening = new Map<string, ListeningSectionRow>();
-  for (const row of frozenQuestions) {
-    if (row.passage_id && row.source_body !== null) {
-      frozenPassages.set(row.passage_id, {
-        id: row.passage_id,
-        title: row.source_title ?? "",
-        body: row.source_body,
-      });
-    }
-    if (row.listening_section_id && row.source_body !== null) {
-      frozenListening.set(row.listening_section_id, {
-        id: row.listening_section_id,
-        title: row.source_title,
-        script: row.source_body,
-      });
-    }
-  }
+  const content = mapAttemptContent(
+    questionRows,
+    frozen,
+    passages.data ?? [],
+    listeningSections.data ?? [],
+  );
   return {
     bandScore: bandScore.data ?? null,
     sections: sections.data ?? [],
     responses: responses.data ?? [],
-    questions: mappedQuestions,
+    questions: content.questions,
     conversions: (conversions.data ?? []) as BandConversionRow[],
-    passages: frozen ? [...frozenPassages.values()] : (passages.data ?? []),
-    listeningSections: frozen
-      ? [...frozenListening.values()]
-      : (listeningSections.data ?? []),
+    passages: content.passages,
+    listeningSections: content.listeningSections,
     writing: writing.data ?? [],
     speaking: speaking.data ?? [],
     effectiveScore:
@@ -627,6 +680,69 @@ function bandFields(row: BandScoreRow | null) {
     readingBand: row?.reading_band ?? null,
     storedWritingBand: row?.writing_band ?? null,
     storedSpeakingBand: row?.speaking_band ?? null,
+  };
+}
+
+function publishedReviewIndexes(reviews: PublishedReview[]): {
+  byResponse: Map<string, PublishedReview>;
+  writingTasks: Set<number>;
+  speakingParts: Set<number>;
+} {
+  const byResponse = new Map<string, PublishedReview>();
+  const writingTasks = new Set<number>();
+  const speakingParts = new Set<number>();
+  for (const review of reviews) {
+    const responseId = review.writing_response_id ?? review.speaking_response_id;
+    if (responseId && !byResponse.has(`${responseId}:${review.revision}`)) {
+      byResponse.set(`${responseId}:${review.revision}`, review);
+    }
+    if (review.writing_response_id && (review.task_number === 1 || review.task_number === 2)) {
+      writingTasks.add(review.task_number);
+    }
+    if (
+      review.speaking_response_id &&
+      (review.part_number === 1 || review.part_number === 2 || review.part_number === 3)
+    ) {
+      speakingParts.add(review.part_number);
+    }
+  }
+  return { byResponse, writingTasks, speakingParts };
+}
+
+function publishedScoreVisibility(reviews: PublishedReview[]): {
+  writing: boolean;
+  speaking: boolean;
+  allSubjective: boolean;
+} {
+  const indexes = publishedReviewIndexes(reviews);
+  const writing = indexes.writingTasks.has(1) && indexes.writingTasks.has(2);
+  const speaking = indexes.speakingParts.size === 3;
+  return { writing, speaking, allSubjective: writing && speaking };
+}
+
+async function loadSubmittedQuestionKeys(
+  attempt: { status: string; submitted_at: string | null; blueprint_frozen_at: string | null },
+  reads: AttemptReads,
+  attemptId: string,
+): Promise<KeyRow[]> {
+  if (attempt.status === "in_progress" || attempt.submitted_at === null) return [];
+  return loadQuestionKeys({
+    questionIds: reads.questions.map((question) => question.id),
+    attemptId,
+    frozen: Boolean(attempt.blueprint_frozen_at),
+  });
+}
+
+function visibleScoreFields(
+  effective: ReturnType<typeof projectEffectiveBands>,
+  visibility: ReturnType<typeof publishedScoreVisibility>,
+) {
+  return {
+    storedWritingBand: visibility.writing ? effective.writingBand : null,
+    storedSpeakingBand: visibility.speaking ? effective.speakingBand : null,
+    publishedOverallBand: visibility.allSubjective ? effective.overallBand : null,
+    provisionalBand: visibility.allSubjective ? effective.provisionalBand : null,
+    overallIsProvisional: !visibility.allSubjective || effective.overallIsProvisional,
   };
 }
 
@@ -668,30 +784,14 @@ export async function loadAttemptResults(
     reads.questions.map((question) => [question.id, question]),
   );
   // Reveal keys only once the sitting has been submitted (never mid-attempt).
-  const keys =
-    attempt.status === "in_progress" || attempt.submitted_at === null
-      ? []
-      : await loadQuestionKeys({
-          questionIds: reads.questions.map((question) => question.id),
-          attemptId,
-          frozen: Boolean(attempt.blueprint_frozen_at),
-        });
+  const keys = await loadSubmittedQuestionKeys(attempt, reads, attemptId);
   const keyByQuestion = new Map(keys.map((key) => [key.question_id, key]));
   const effective = projectEffectiveBands(
     reads.effectiveScore,
     reads.bandScore as unknown as Record<string, unknown> | null,
   );
-  const publishedReviewByResponse = new Map<string, PublishedReview>();
-  for (const review of reads.publishedReviews) {
-    const responseId =
-      review.writing_response_id ?? review.speaking_response_id;
-    if (
-      responseId &&
-      !publishedReviewByResponse.has(`${responseId}:${review.revision}`)
-    ) {
-      publishedReviewByResponse.set(`${responseId}:${review.revision}`, review);
-    }
-  }
+  const reviewIndexes = publishedReviewIndexes(reads.publishedReviews);
+  const scoreVisibility = publishedScoreVisibility(reads.publishedReviews);
 
   return {
     attemptId: attempt.id,
@@ -705,11 +805,7 @@ export async function loadAttemptResults(
     ...bandFields(reads.bandScore),
     listeningBand: effective.listeningBand,
     readingBand: effective.readingBand,
-    storedWritingBand: effective.writingBand,
-    storedSpeakingBand: effective.speakingBand,
-    publishedOverallBand: effective.overallBand,
-    provisionalBand: effective.provisionalBand,
-    overallIsProvisional: effective.overallIsProvisional,
+    ...visibleScoreFields(effective, scoreVisibility),
     scoreSource: effective.scoreSource,
     objectiveQuestions: buildObjectiveQuestions(
       reads.questions,
@@ -724,7 +820,7 @@ export async function loadAttemptResults(
         row,
         questionById.get(row.question_id),
         keyByQuestion.get(row.question_id),
-        publishedReviewByResponse.get(`${row.id}:${row.revision}`),
+        reviewIndexes.byResponse.get(`${row.id}:${row.revision}`),
       ),
     ),
     speakingParts: reads.speaking.map((row) =>
@@ -732,7 +828,7 @@ export async function loadAttemptResults(
         row,
         questionById.get(row.question_id),
         keyByQuestion.get(row.question_id),
-        publishedReviewByResponse.get(`${row.id}:${row.revision}`),
+        reviewIndexes.byResponse.get(`${row.id}:${row.revision}`),
       ),
     ),
   };

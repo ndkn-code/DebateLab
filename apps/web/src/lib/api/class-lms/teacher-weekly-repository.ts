@@ -57,7 +57,7 @@ export async function loadTeacherLmsWeek(params: {
       .select("club_id, role")
       .eq("user_id", actorId)
       .eq("status", "active")
-      .in("role", ["owner", "admin", "teacher", "coach"]),
+      .in("role", ["owner", "admin", "head_teacher", "teacher", "coach"]),
   ]);
   if (profileError || clubError) {
     throw new Error(
@@ -71,7 +71,7 @@ export async function loadTeacherLmsWeek(params: {
     (clubMemberships ?? [])
       .filter((row) => {
         const role = normalizeOrganizationRole(row.role);
-        return role === "owner" || role === "admin";
+        return role === "owner" || role === "admin" || role === "head_teacher";
       })
       .map((row) => row.club_id),
   );

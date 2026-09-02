@@ -56,6 +56,10 @@ assert.equal(
   "2026-11-01T07:30:00.000Z",
 );
 assert.equal(
+  zonedWallClockToUtc("2026-11-01", "01:30:00", "America/New_York"),
+  "2026-11-01T05:30:00.000Z",
+);
+assert.equal(
   zonedWallClockToUtc("2026-03-09", "09:00:00", "America/New_York"),
   "2026-03-09T13:00:00.000Z",
 );

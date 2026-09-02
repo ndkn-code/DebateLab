@@ -37,6 +37,8 @@ export type TeacherWorkspaceCapability = {
   profileRole: string | null;
   isPlatformAdmin: boolean;
   canAccess: boolean;
+  shouldAutoEnter: boolean;
+  isHeadTeacher: boolean;
   hasIeltsEntitlement: boolean;
   organizations: TeacherWorkspaceOrganization[];
   classes: TeacherWorkspaceClass[];
@@ -114,7 +116,9 @@ export async function loadTeacherWorkspaceCapability(): Promise<TeacherWorkspace
   const organizationRoles = new Map(organizationRows.map((row) => [text(row, "club_id"), role(row.role)]));
   const managerOrganizationIds = new Set(
     organizationRows
-      .filter((row) => ["owner", "admin"].includes(role(row.role)))
+      .filter((row) =>
+        ["owner", "admin", "head_teacher"].includes(role(row.role)),
+      )
       .map((row) => text(row, "club_id"))
       .filter((value): value is string => Boolean(value)),
   );
@@ -177,11 +181,23 @@ export async function loadTeacherWorkspaceCapability(): Promise<TeacherWorkspace
     } satisfies TeacherWorkspaceOrganization;
   });
   const hasIeltsEntitlement = workspaceClasses.some((item) => item.programType === "ielts");
+  const isHeadTeacher = organizations.some(
+    (organization) => organization.role === "head_teacher",
+  );
+  const shouldAutoEnter =
+    workspaceClasses.length > 0 &&
+    organizations.some(
+      (organization) =>
+        organization.role === "teacher" ||
+        organization.role === "head_teacher",
+    );
   return {
     userId,
     profileRole,
     isPlatformAdmin,
     canAccess: isPlatformAdmin || workspaceClasses.length > 0,
+    shouldAutoEnter,
+    isHeadTeacher,
     hasIeltsEntitlement,
     organizations,
     classes: workspaceClasses,

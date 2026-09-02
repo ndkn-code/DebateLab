@@ -364,6 +364,79 @@ export type Database = {
           },
         ]
       }
+      ai_grading_benchmark_run_claims: {
+        Row: {
+          benchmark_id: string
+          claim_attempt_count: number
+          claim_token: string | null
+          corpus_version: number
+          created_at: string
+          grader_version: string
+          last_error_code: string | null
+          lease_expires_at: string | null
+          pipeline_stage: string
+          provider_request_id: string | null
+          provisional_provider_request_id: string | null
+          run_kind: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          benchmark_id: string
+          claim_attempt_count?: number
+          claim_token?: string | null
+          corpus_version: number
+          created_at?: string
+          grader_version: string
+          last_error_code?: string | null
+          lease_expires_at?: string | null
+          pipeline_stage: string
+          provider_request_id?: string | null
+          provisional_provider_request_id?: string | null
+          run_kind: string
+          status: string
+          updated_at?: string
+        }
+        Update: {
+          benchmark_id?: string
+          claim_attempt_count?: number
+          claim_token?: string | null
+          corpus_version?: number
+          created_at?: string
+          grader_version?: string
+          last_error_code?: string | null
+          lease_expires_at?: string | null
+          pipeline_stage?: string
+          provider_request_id?: string | null
+          provisional_provider_request_id?: string | null
+          run_kind?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_grading_benchmark_run_clai_provisional_provider_request_fkey"
+            columns: ["provisional_provider_request_id"]
+            isOneToOne: false
+            referencedRelation: "ai_provider_requests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_grading_benchmark_run_claims_benchmark_id_fkey"
+            columns: ["benchmark_id"]
+            isOneToOne: false
+            referencedRelation: "ai_grading_benchmarks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_grading_benchmark_run_claims_provider_request_id_fkey"
+            columns: ["provider_request_id"]
+            isOneToOne: false
+            referencedRelation: "ai_provider_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_grading_benchmarks: {
         Row: {
           accent_group: string | null
@@ -483,6 +556,63 @@ export type Database = {
           },
         ]
       }
+      ai_grading_evaluation_runs: {
+        Row: {
+          completed_at: string
+          created_at: string
+          evaluation_id: string
+          id: string
+          model: string
+          prediction: Json
+          provider: string
+          provider_request_id: string
+          run_kind: string
+          started_at: string
+          trace_id: string
+        }
+        Insert: {
+          completed_at: string
+          created_at?: string
+          evaluation_id: string
+          id?: string
+          model: string
+          prediction: Json
+          provider: string
+          provider_request_id: string
+          run_kind: string
+          started_at: string
+          trace_id: string
+        }
+        Update: {
+          completed_at?: string
+          created_at?: string
+          evaluation_id?: string
+          id?: string
+          model?: string
+          prediction?: Json
+          provider?: string
+          provider_request_id?: string
+          run_kind?: string
+          started_at?: string
+          trace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_grading_evaluation_runs_evaluation_id_fkey"
+            columns: ["evaluation_id"]
+            isOneToOne: false
+            referencedRelation: "ai_grading_evaluations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_grading_evaluation_runs_provider_request_id_fkey"
+            columns: ["provider_request_id"]
+            isOneToOne: true
+            referencedRelation: "ai_provider_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_grading_evaluations: {
         Row: {
           benchmark_id: string
@@ -520,6 +650,236 @@ export type Database = {
             columns: ["benchmark_id"]
             isOneToOne: false
             referencedRelation: "ai_grading_benchmarks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_grading_operational_claims: {
+        Row: {
+          declared_at: string
+          evidence_id: string
+          id: string
+          injection_token: string
+          scenario: string
+          workflow_run_id: string
+        }
+        Insert: {
+          declared_at?: string
+          evidence_id: string
+          id?: string
+          injection_token?: string
+          scenario: string
+          workflow_run_id: string
+        }
+        Update: {
+          declared_at?: string
+          evidence_id?: string
+          id?: string
+          injection_token?: string
+          scenario?: string
+          workflow_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_grading_operational_claims_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "ai_grading_operational_evidence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_grading_operational_claims_workflow_run_id_fkey"
+            columns: ["workflow_run_id"]
+            isOneToOne: true
+            referencedRelation: "ai_workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_grading_operational_evidence: {
+        Row: {
+          corpus_version: number
+          created_at: string
+          deployment_id: string
+          environment: string
+          evidence_hash: string | null
+          expires_at: string | null
+          grader_version: string
+          id: string
+          image_digest: string
+          run_id: string
+          started_at: string
+          status: string
+          verified_at: string | null
+        }
+        Insert: {
+          corpus_version: number
+          created_at?: string
+          deployment_id: string
+          environment: string
+          evidence_hash?: string | null
+          expires_at?: string | null
+          grader_version: string
+          id?: string
+          image_digest: string
+          run_id: string
+          started_at?: string
+          status?: string
+          verified_at?: string | null
+        }
+        Update: {
+          corpus_version?: number
+          created_at?: string
+          deployment_id?: string
+          environment?: string
+          evidence_hash?: string | null
+          expires_at?: string | null
+          grader_version?: string
+          id?: string
+          image_digest?: string
+          run_id?: string
+          started_at?: string
+          status?: string
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
+      ai_grading_operational_scenarios: {
+        Row: {
+          claim_id: string
+          details_hash: string
+          evidence_id: string
+          expected_provider_calls: number
+          finalized_at: string
+          id: string
+          invalid_authoritative_citation_count: number
+          observed_provider_calls: number
+          passed: boolean
+          scenario: string
+          terminal_status: string
+          workflow_run_id: string
+        }
+        Insert: {
+          claim_id: string
+          details_hash: string
+          evidence_id: string
+          expected_provider_calls: number
+          finalized_at?: string
+          id?: string
+          invalid_authoritative_citation_count?: number
+          observed_provider_calls: number
+          passed: boolean
+          scenario: string
+          terminal_status: string
+          workflow_run_id: string
+        }
+        Update: {
+          claim_id?: string
+          details_hash?: string
+          evidence_id?: string
+          expected_provider_calls?: number
+          finalized_at?: string
+          id?: string
+          invalid_authoritative_citation_count?: number
+          observed_provider_calls?: number
+          passed?: boolean
+          scenario?: string
+          terminal_status?: string
+          workflow_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_grading_operational_scenarios_claim_id_fkey"
+            columns: ["claim_id"]
+            isOneToOne: true
+            referencedRelation: "ai_grading_operational_claims"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_grading_operational_scenarios_evidence_id_fkey"
+            columns: ["evidence_id"]
+            isOneToOne: false
+            referencedRelation: "ai_grading_operational_evidence"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_grading_operational_scenarios_workflow_run_id_fkey"
+            columns: ["workflow_run_id"]
+            isOneToOne: true
+            referencedRelation: "ai_workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_grading_operational_transitions: {
+        Row: {
+          claim_token: string
+          created_at: string
+          event_type: string
+          id: string
+          workflow_run_id: string
+        }
+        Insert: {
+          claim_token: string
+          created_at?: string
+          event_type: string
+          id?: string
+          workflow_run_id: string
+        }
+        Update: {
+          claim_token?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          workflow_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_grading_operational_transitions_workflow_run_id_fkey"
+            columns: ["workflow_run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_workflow_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_grading_runtime_attestations: {
+        Row: {
+          attested_at: string
+          claim_token: string
+          corpus_version: number
+          grader_version: string
+          id: string
+          image_digest: string
+          runtime_revision: string
+          workflow_run_id: string
+        }
+        Insert: {
+          attested_at?: string
+          claim_token: string
+          corpus_version: number
+          grader_version: string
+          id?: string
+          image_digest: string
+          runtime_revision: string
+          workflow_run_id: string
+        }
+        Update: {
+          attested_at?: string
+          claim_token?: string
+          corpus_version?: number
+          grader_version?: string
+          id?: string
+          image_digest?: string
+          runtime_revision?: string
+          workflow_run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_grading_runtime_attestations_workflow_run_id_fkey"
+            columns: ["workflow_run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_workflow_runs"
             referencedColumns: ["id"]
           },
         ]
@@ -3772,6 +4132,7 @@ export type Database = {
       courses: {
         Row: {
           category: string
+          club_id: string | null
           created_at: string
           created_by: string | null
           description: string | null
@@ -3793,6 +4154,7 @@ export type Database = {
         }
         Insert: {
           category?: string
+          club_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -3814,6 +4176,7 @@ export type Database = {
         }
         Update: {
           category?: string
+          club_id?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
@@ -3833,7 +4196,22 @@ export type Database = {
           updated_at?: string
           visibility?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "courses_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "courses_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       daily_stats: {
         Row: {
@@ -9827,6 +10205,116 @@ export type Database = {
           },
         ]
       }
+      lms_operation_audit_events: {
+        Row: {
+          actor_id: string
+          after_state: Json
+          before_state: Json
+          class_id: string | null
+          club_id: string
+          created_at: string
+          entity_id: string | null
+          id: string
+          idempotency_key: string | null
+          operation: string
+        }
+        Insert: {
+          actor_id: string
+          after_state?: Json
+          before_state?: Json
+          class_id?: string | null
+          club_id: string
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          operation: string
+        }
+        Update: {
+          actor_id?: string
+          after_state?: Json
+          before_state?: Json
+          class_id?: string | null
+          club_id?: string
+          created_at?: string
+          entity_id?: string | null
+          id?: string
+          idempotency_key?: string | null
+          operation?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_operation_audit_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_operation_audit_events_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "admin_class_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_operation_audit_events_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_operation_audit_events_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lms_operation_audit_events_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lms_operation_receipts: {
+        Row: {
+          actor_id: string
+          created_at: string
+          idempotency_key: string
+          input_hash: string
+          operation: string
+          result: Json
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          idempotency_key: string
+          input_hash: string
+          operation: string
+          result: Json
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          idempotency_key?: string
+          input_hash?: string
+          operation?: string
+          result?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lms_operation_receipts_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lms_outbox_events: {
         Row: {
           attempts: number
@@ -14618,6 +15106,17 @@ export type Database = {
         }
         Returns: Json
       }
+      attest_ai_grading_runtime: {
+        Args: {
+          p_claim_token: string
+          p_corpus_version: number
+          p_grader_version: string
+          p_image_digest: string
+          p_run_id: string
+          p_runtime_revision: string
+        }
+        Returns: boolean
+      }
       award_xp_event: {
         Args: {
           p_activity_type?: string
@@ -14651,6 +15150,37 @@ export type Database = {
         Returns: {
           inserted_count: number
         }[]
+      }
+      begin_ai_grading_operational_evidence: {
+        Args: {
+          p_corpus_version: number
+          p_deployment_id: string
+          p_environment: string
+          p_grader_version: string
+          p_image_digest: string
+          p_run_id: string
+        }
+        Returns: {
+          corpus_version: number
+          created_at: string
+          deployment_id: string
+          environment: string
+          evidence_hash: string | null
+          expires_at: string | null
+          grader_version: string
+          id: string
+          image_digest: string
+          run_id: string
+          started_at: string
+          status: string
+          verified_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ai_grading_operational_evidence"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       block_profile: { Args: { p_target_user_id: string }; Returns: Json }
       can_access_duel: {
@@ -14702,6 +15232,21 @@ export type Database = {
           p_user_id: string
         }
         Returns: Json
+      }
+      claim_ai_grading_benchmark_run: {
+        Args: {
+          p_benchmark_id: string
+          p_corpus_version: number
+          p_grader_version: string
+          p_lease_seconds?: number
+          p_pipeline_stage: string
+          p_run_kind: string
+        }
+        Returns: {
+          claim_token: string
+          outcome: string
+          provider_request_id: string
+        }[]
       }
       claim_ai_grading_delivery: {
         Args: {
@@ -14908,6 +15453,15 @@ export type Database = {
           submission_id: string
         }[]
       }
+      clone_global_course_transaction: {
+        Args: {
+          p_idempotency_key: string
+          p_organization_id: string
+          p_slug: string
+          p_source_course_id: string
+        }
+        Returns: Json
+      }
       close_leaderboard_season: {
         Args: { p_leaderboard_language?: string; p_season_id: string }
         Returns: {
@@ -14925,6 +15479,18 @@ export type Database = {
           p_user_message: string
         }
         Returns: Json
+      }
+      complete_ai_grading_benchmark_provider: {
+        Args: {
+          p_benchmark_id: string
+          p_claim_token: string
+          p_corpus_version: number
+          p_grader_version: string
+          p_pipeline_stage: string
+          p_provider_request_id: string
+          p_run_kind: string
+        }
+        Returns: boolean
       }
       complete_ai_grading_delivery: {
         Args: { p_claim_token: string; p_phase?: string; p_run_id: string }
@@ -15121,6 +15687,27 @@ export type Database = {
         Returns: Json
       }
       credit_referral: { Args: { p_referral_id: string }; Returns: undefined }
+      declare_ai_grading_operational_scenario: {
+        Args: {
+          p_evidence_id: string
+          p_scenario: string
+          p_workflow_run_id: string
+        }
+        Returns: {
+          declared_at: string
+          evidence_id: string
+          id: string
+          injection_token: string
+          scenario: string
+          workflow_run_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ai_grading_operational_claims"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       delete_class_attendance_transaction: {
         Args: { p_class_id: string; p_session_id: string }
         Returns: string
@@ -15215,6 +15802,34 @@ export type Database = {
       fail_homework_submission: {
         Args: { p_reason: string; p_submission_id: string; p_user_id: string }
         Returns: string
+      }
+      finalize_ai_grading_operational_scenario: {
+        Args: {
+          p_claim_id: string
+          p_details_hash: string
+          p_injection_token: string
+          p_invalid_authoritative_citation_count: number
+        }
+        Returns: {
+          claim_id: string
+          details_hash: string
+          evidence_id: string
+          expected_provider_calls: number
+          finalized_at: string
+          id: string
+          invalid_authoritative_citation_count: number
+          observed_provider_calls: number
+          passed: boolean
+          scenario: string
+          terminal_status: string
+          workflow_run_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ai_grading_operational_scenarios"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       finalize_debate_duel_stats: {
         Args: { p_duel_id: string; p_duration_minutes: number; p_xp: number }
@@ -15342,6 +15957,15 @@ export type Database = {
         Args: { p_limit?: number }
         Returns: Json
       }
+      grade_curriculum_quiz_submission: {
+        Args: { p_answers: Json; p_lesson_id: string }
+        Returns: {
+          is_correct: boolean
+          max_points: number
+          points: number
+          question_id: string
+        }[]
+      }
       grade_homework_submission: {
         Args: {
           p_club_id: string
@@ -15357,6 +15981,103 @@ export type Database = {
       grant_feedback_popup_reward: {
         Args: { p_amount?: number; p_response_id: string; p_user_id: string }
         Returns: number
+      }
+      head_teacher_override_publish_ielts_review: {
+        Args: {
+          p_idempotency_key: string
+          p_reason: string
+          p_review_id: string
+        }
+        Returns: {
+          assignment_id: string | null
+          attempt_id: string
+          class_id: string
+          club_id: string
+          coherence_cohesion_band: number | null
+          created_at: string
+          criterion_feedback: Json
+          fluency_coherence_band: number | null
+          grammar_band: number | null
+          id: string
+          lexical_resource_band: number | null
+          part_number: number | null
+          pronunciation_band: number | null
+          published_at: string | null
+          returned_at: string | null
+          returned_note: string | null
+          review_kind: string
+          reviewer_id: string
+          reviewer_note: string | null
+          revision: number
+          revision_consumed_at: string | null
+          revision_granted: number | null
+          rubric_key: string
+          rubric_version: number
+          skill_band: number | null
+          speaking_response_id: string | null
+          status: string
+          task_band: number | null
+          task_number: number | null
+          task_response_band: number | null
+          updated_at: string
+          user_id: string
+          writing_response_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ielts_teacher_reviews"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      head_teacher_override_return_ielts_review: {
+        Args: {
+          p_idempotency_key: string
+          p_note: string
+          p_reason: string
+          p_review_id: string
+        }
+        Returns: {
+          assignment_id: string | null
+          attempt_id: string
+          class_id: string
+          club_id: string
+          coherence_cohesion_band: number | null
+          created_at: string
+          criterion_feedback: Json
+          fluency_coherence_band: number | null
+          grammar_band: number | null
+          id: string
+          lexical_resource_band: number | null
+          part_number: number | null
+          pronunciation_band: number | null
+          published_at: string | null
+          returned_at: string | null
+          returned_note: string | null
+          review_kind: string
+          reviewer_id: string
+          reviewer_note: string | null
+          revision: number
+          revision_consumed_at: string | null
+          revision_granted: number | null
+          rubric_key: string
+          rubric_version: number
+          skill_band: number | null
+          speaking_response_id: string | null
+          status: string
+          task_band: number | null
+          task_number: number | null
+          task_response_band: number | null
+          updated_at: string
+          user_id: string
+          writing_response_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "ielts_teacher_reviews"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       ielts_create_attempt_with_blueprint: {
         Args: {
@@ -15419,6 +16140,16 @@ export type Database = {
       ielts_submit_attempt_section_v2: {
         Args: { p_attempt_id: string; p_section_id: string }
         Returns: string
+      }
+      import_ai_grading_benchmark_provider: {
+        Args: {
+          p_benchmark_id: string
+          p_corpus_version: number
+          p_grader_version: string
+          p_provider_request_id: string
+          p_run_kind: string
+        }
+        Returns: boolean
       }
       increment_ai_workflow_provider_attempt: {
         Args: { p_run_id: string }
@@ -15559,6 +16290,17 @@ export type Database = {
         Args: { p_placement_id: string; p_reason: string }
         Returns: boolean
       }
+      load_curriculum_quiz_questions: {
+        Args: { p_lesson_id: string }
+        Returns: {
+          id: string
+          lesson_id: string
+          options: Json
+          order_index: number
+          question_text: string
+          question_type: string
+        }[]
+      }
       load_lms_materials_for_user: {
         Args: { p_class_id: string; p_from: string; p_to: string }
         Returns: {
@@ -15590,6 +16332,61 @@ export type Database = {
           watermark_learner_label: string
         }[]
       }
+      load_student_lms_week: {
+        Args: { p_class_id: string; p_from: string; p_to: string }
+        Returns: Json
+      }
+      load_teacher_review_queue: {
+        Args: { p_class_id: string; p_cursor?: string; p_limit?: number }
+        Returns: {
+          class_id: string
+          item_id: string
+          item_type: string
+          review_status: string
+          score_source: string
+          student_id: string
+          submitted_at: string
+          title: string
+        }[]
+      }
+      load_teacher_review_queue_v2:
+        | {
+            Args: { p_class_id: string; p_cursor?: string; p_limit?: number }
+            Returns: {
+              class_id: string
+              evidence: Json
+              feedback: Json
+              item_id: string
+              item_type: string
+              review_status: string
+              revision: number
+              score_source: string
+              student_id: string
+              submitted_at: string
+              title: string
+            }[]
+          }
+        | {
+            Args: {
+              p_class_id: string
+              p_cursor_at: string
+              p_cursor_id: string
+              p_limit?: number
+            }
+            Returns: {
+              class_id: string
+              evidence: Json
+              feedback: Json
+              item_id: string
+              item_type: string
+              review_status: string
+              revision: number
+              score_source: string
+              student_id: string
+              submitted_at: string
+              title: string
+            }[]
+          }
       manage_class_course_transaction: {
         Args: { p_action: string; p_class_id: string; p_course_id: string }
         Returns: string
@@ -15602,9 +16399,25 @@ export type Database = {
         Args: { p_action: string; p_class_id: string; p_teacher_id: string }
         Returns: string
       }
+      manage_organization_member_transaction: {
+        Args: {
+          p_action: string
+          p_actor_id: string
+          p_expected_updated_at: string
+          p_idempotency_key: string
+          p_organization_id: string
+          p_role: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       mark_homework_submission_uploading: {
         Args: { p_submission_id: string; p_user_id: string }
         Returns: string
+      }
+      mark_lms_notification_read: {
+        Args: { p_notification_id: string }
+        Returns: boolean
       }
       mark_payment_webhook_event: {
         Args: {
@@ -15735,6 +16548,37 @@ export type Database = {
         Args: { p_limit?: number; p_max_attempts?: number }
         Returns: number
       }
+      record_ai_grading_evaluation_run: {
+        Args: {
+          p_evaluation_id: string
+          p_prediction: Json
+          p_provider_request_id: string
+          p_run_kind: string
+        }
+        Returns: {
+          completed_at: string
+          created_at: string
+          evaluation_id: string
+          id: string
+          model: string
+          prediction: Json
+          provider: string
+          provider_request_id: string
+          run_kind: string
+          started_at: string
+          trace_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ai_grading_evaluation_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      record_ai_grading_operational_transition: {
+        Args: { p_claim_token: string; p_event_type: string; p_run_id: string }
+        Returns: boolean
+      }
       record_homework_cleanup_result: {
         Args: { p_error?: string; p_submission_id: string; p_success: boolean }
         Returns: string
@@ -15813,6 +16657,17 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      recover_ai_grading_benchmark_provider: {
+        Args: {
+          p_benchmark_id: string
+          p_corpus_version: number
+          p_grader_version: string
+          p_pipeline_stage: string
+          p_provider_request_id: string
+          p_run_kind: string
+        }
+        Returns: boolean
       }
       refresh_leaderboard_org_totals: {
         Args: { p_leaderboard_language?: string; p_season_id: string }
@@ -16034,6 +16889,34 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      save_organization_course_transaction: {
+        Args: { p_input: Json }
+        Returns: Json
+      }
+      seal_ai_grading_operational_evidence: {
+        Args: { p_evidence_hash: string; p_evidence_id: string }
+        Returns: {
+          corpus_version: number
+          created_at: string
+          deployment_id: string
+          environment: string
+          evidence_hash: string | null
+          expires_at: string | null
+          grader_version: string
+          id: string
+          image_digest: string
+          run_id: string
+          started_at: string
+          status: string
+          verified_at: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "ai_grading_operational_evidence"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       search_ai_knowledge_hybrid: {
         Args: {
           p_collection_slug: string
@@ -16122,6 +17005,17 @@ export type Database = {
         Args: { p_achievement_ids: string[] }
         Returns: Json
       }
+      start_ai_grading_benchmark_provider: {
+        Args: {
+          p_benchmark_id: string
+          p_claim_token: string
+          p_corpus_version: number
+          p_grader_version: string
+          p_pipeline_stage: string
+          p_run_kind: string
+        }
+        Returns: boolean
+      }
       start_debate_duel: {
         Args: { p_actor_user_id: string; p_share_code: string }
         Returns: string
@@ -16146,6 +17040,75 @@ export type Database = {
           p_transcript: string
         }
         Returns: string
+      }
+      teacher_workspace_correct_attendance: {
+        Args: {
+          p_idempotency_key: string
+          p_notes: string
+          p_session_id: string
+          p_status: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
+      teacher_workspace_grade_homework: {
+        Args: {
+          p_expected_updated_at: string
+          p_feedback: string
+          p_idempotency_key: string
+          p_rubric_breakdown: Json
+          p_score: number
+          p_score_max: number
+          p_submission_id: string
+        }
+        Returns: Json
+      }
+      teacher_workspace_place_material: {
+        Args: { p_input: Json }
+        Returns: Json
+      }
+      teacher_workspace_plan_lesson: { Args: { p_input: Json }; Returns: Json }
+      teacher_workspace_publish_announcement: {
+        Args: { p_input: Json }
+        Returns: Json
+      }
+      teacher_workspace_publish_assignment: {
+        Args: {
+          p_assignment_id: string
+          p_expected_updated_at: string
+          p_idempotency_key: string
+        }
+        Returns: Json
+      }
+      teacher_workspace_publish_material: {
+        Args: {
+          p_idempotency_key: string
+          p_material_id: string
+          p_placement_id: string
+        }
+        Returns: Json
+      }
+      teacher_workspace_reschedule: {
+        Args: {
+          p_end_date: string
+          p_end_time: string
+          p_expected_updated_at: string
+          p_idempotency_key: string
+          p_schedule_id: string
+          p_start_date: string
+          p_start_time: string
+          p_timezone: string
+        }
+        Returns: Json
+      }
+      teacher_workspace_set_occurrence_state: {
+        Args: {
+          p_expected_updated_at: string
+          p_idempotency_key: string
+          p_occurrence_id: string
+          p_state: string
+        }
+        Returns: Json
       }
       unblock_profile: { Args: { p_target_user_id: string }; Returns: Json }
       update_class_transaction: {
@@ -16271,6 +17234,18 @@ export type Database = {
         }
         Returns: Json
       }
+      update_organization_academic_profile_transaction: {
+        Args: {
+          p_actor_id: string
+          p_expected_setup_version: number
+          p_idempotency_key: string
+          p_name: string
+          p_organization_id: string
+          p_organization_type: string
+          p_timezone: string
+        }
+        Returns: Json
+      }
       update_organization_transaction: {
         Args: {
           p_actor_id: string
@@ -16298,6 +17273,19 @@ export type Database = {
           p_xp?: number
         }
         Returns: undefined
+      }
+      verify_ai_grading_benchmark_provider_request: {
+        Args: {
+          p_benchmark_id: string
+          p_corpus_version: number
+          p_grader_version: string
+          p_pipeline_stage: string
+          p_provider_request_id: string
+          p_run_kind: string
+        }
+        Returns: {
+          prediction: Json
+        }[]
       }
     }
     Enums: {

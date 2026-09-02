@@ -19,6 +19,8 @@ const capability: TeacherWorkspaceCapability = {
   profileRole: "teacher",
   isPlatformAdmin: false,
   canAccess: true,
+  shouldAutoEnter: true,
+  isHeadTeacher: false,
   hasIeltsEntitlement: true,
   organizations: [{ id: "org-a", role: "teacher", featureEnabled: true, hasIeltsEntitlement: true }],
   classes: [

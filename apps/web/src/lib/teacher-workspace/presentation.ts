@@ -26,7 +26,11 @@ export type TeacherWorkspaceNavigationItem = {
     | "gradebook"
     | "attendance"
     | "materials"
-    | "announcements";
+    | "announcements"
+    | "organization"
+    | "people"
+    | "curriculum"
+    | "reports";
   label: string;
   href: string;
   badge: number | null;
@@ -35,6 +39,8 @@ export type TeacherWorkspaceNavigationItem = {
 export type TeacherWorkspaceNavigation = {
   canAccess: boolean;
   isAdminPreview: boolean;
+  isHeadTeacher: boolean;
+  hasIeltsEntitlement: boolean;
   classCount: number;
   pendingReviewCount: number;
   items: TeacherWorkspaceNavigationItem[];
@@ -148,6 +154,7 @@ export interface TeacherWorkspacePresentation {
   locale: string;
   surface: TeacherWorkspaceSurface;
   isAdminPreview: boolean;
+  isHeadTeacher: boolean;
   hasIeltsEntitlement: boolean;
   classes: TeacherWorkspaceClassPresentation[];
   calendar: TeacherCalendarRangeResult;
@@ -663,6 +670,7 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
     locale: input.locale,
     surface: input.surface,
     isAdminPreview: true,
+    isHeadTeacher: true,
     hasIeltsEntitlement: true,
     classes: DEMO_CLASSES,
     calendar: {

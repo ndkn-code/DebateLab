@@ -20,25 +20,45 @@ function normalizeAnswerMap(value: unknown) {
   );
 }
 
+type CurriculumQuizGradeResult = {
+  question_id: string;
+  is_correct: boolean;
+  points: number;
+  max_points: number;
+};
+
 async function scoreQuizLesson(
   supabase: Awaited<ReturnType<typeof createClient>>,
   lessonId: string,
   submittedAnswers: unknown
 ) {
   const answerMap = normalizeAnswerMap(submittedAnswers);
-  const { data: questions, error } = await supabase
-    .from("quiz_questions")
-    .select("id, correct_answer")
-    .eq("lesson_id", lessonId);
+  const { data: results, error } = await supabase.rpc(
+    "grade_curriculum_quiz_submission",
+    {
+      p_lesson_id: lessonId,
+      p_answers: Object.fromEntries(answerMap),
+    },
+  );
 
   if (error) throw new Error(error.message);
-  if (!questions?.length) return null;
+  if (!results?.length) return null;
 
-  const correct = questions.filter(
-    (question) => answerMap.get(question.id) === question.correct_answer
-  ).length;
+  const typedResults = results as CurriculumQuizGradeResult[];
+  const correct = typedResults.reduce(
+    (total: number, result: CurriculumQuizGradeResult) =>
+      total + (result.is_correct ? result.points : 0),
+    0,
+  );
+  const maxPoints = typedResults.reduce(
+    (total: number, result: CurriculumQuizGradeResult) => total + result.max_points,
+    0,
+  );
 
-  return Math.round((correct / questions.length) * 100);
+  return {
+    score: maxPoints > 0 ? Math.round((correct / maxPoints) * 100) : null,
+    results: typedResults,
+  };
 }
 
 // Used by course-detail-content.tsx (student-facing enroll button)
@@ -163,10 +183,11 @@ export async function markLessonCompleteAction(
     }
   }
 
-  const score =
+  const grading =
     lesson.type === "quiz"
       ? await scoreQuizLesson(supabase, lessonId, scoreOrAnswers)
       : null;
+  const score = grading?.score ?? null;
   const safeTimeSpentSeconds = Number.isFinite(timeSpentSeconds)
     ? Math.max(0, Math.min(24 * 60 * 60, Math.floor(timeSpentSeconds ?? 0)))
     : 0;
@@ -228,7 +249,7 @@ export async function markLessonCompleteAction(
     revalidatePath(`/courses/${courseSlug}`);
   }
 
-  return { xpEarned };
+  return { xpEarned, score, grading: grading?.results ?? null };
 }
 
 export async function unenrollFromCourse(courseId: string) {

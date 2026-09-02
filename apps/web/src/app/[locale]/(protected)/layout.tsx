@@ -36,6 +36,8 @@ async function getTeacherNavigation(
     return {
       canAccess: summary.capability.canAccess,
       isAdminPreview: summary.capability.isPlatformAdmin,
+      isHeadTeacher: summary.capability.isHeadTeacher,
+      hasIeltsEntitlement: summary.capability.hasIeltsEntitlement,
       classCount: summary.classCount,
       pendingReviewCount:
         summary.pendingReviewCount + summary.pendingHomeworkCount,
@@ -48,6 +50,8 @@ async function getTeacherNavigation(
     return {
       canAccess: true,
       isAdminPreview: false,
+      isHeadTeacher: false,
+      hasIeltsEntitlement: false,
       classCount: 0,
       pendingReviewCount: 0,
       items: [
@@ -227,15 +231,17 @@ export default async function ProtectedLayout({
 
   // Admins can opt into the IELTS track in production before the flag flips on;
   // for everyone else this stays `IELTS_ENABLED`, so debate is byte-identical.
+  const teacherNavigation = await getTeacherNavigation(requestPath);
   const activeSubject = await getActiveSubject({
-    ieltsAccessible: IELTS_ENABLED || profile?.role === "admin",
+    ieltsAccessible:
+      IELTS_ENABLED ||
+      profile?.role === "admin" ||
+      Boolean(teacherNavigation?.hasIeltsEntitlement),
   });
   const isEnrolledIeltsStudent = await getIeltsEnrollmentForShell(
     user.id,
     activeSubject,
   );
-  const teacherNavigation = await getTeacherNavigation(requestPath);
-
   return (
     <ProtectedShell
       profile={profile as Profile | null}

@@ -14,12 +14,14 @@ assert.deepEqual(["club", "school"], ["club", "school"]);
 assert.equal(isOrganizationType("school"), true);
 assert.equal(isOrganizationType("center"), false);
 assert.equal(isOrganizationRole("admin"), true);
+assert.equal(isOrganizationRole("head_teacher"), true);
 assert.equal(isOrganizationRole("coach"), false);
 assert.equal(isOrganizationStatus("archived"), true);
 
 assert.equal(getOrganizationTypeLabel("club"), "Club");
 assert.equal(getOrganizationTypeLabel("school", "plural"), "Schools");
 assert.equal(getOrganizationRoleLabel("coach"), "Teacher");
+assert.equal(getOrganizationRoleLabel("head_teacher"), "Head Teacher");
 assert.equal(getOrganizationStatusLabel("active"), "Active");
 
 assert.equal(mapLegacyClubType("school"), "school");

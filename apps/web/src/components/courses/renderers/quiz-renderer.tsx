@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { useRouter } from "@/i18n/navigation";
 import { ArrowRight, CheckCircle2, XCircle } from "@/components/ui/icons";
@@ -22,6 +22,10 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [answers, setAnswers] = useState<Map<string, string>>(new Map());
   const [showResult, setShowResult] = useState(false);
+  const [grading, setGrading] = useState<
+    Map<string, { is_correct: boolean; points: number; max_points: number }>
+  >(new Map());
+  const [submittedScore, setSubmittedScore] = useState<number | null>(null);
   const [submitted, setSubmitted] = useState(
     lesson.progress?.status === "completed",
   );
@@ -29,13 +33,7 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
   const current = questions[currentIdx];
   const selectedAnswer = answers.get(current?.id ?? "");
   const isLast = currentIdx === questions.length - 1;
-  const score = useMemo(() => {
-    if (questions.length === 0) return 0;
-    const correct = questions.filter(
-      (question) => answers.get(question.id) === question.correct_answer,
-    ).length;
-    return Math.round((correct / questions.length) * 100);
-  }, [answers, questions]);
+  const score = submittedScore ?? 0;
 
   const handleSelect = (answer: string) => {
     if (!current || showResult) return;
@@ -59,15 +57,21 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
     }
 
     if (isLast) {
-      setSubmitted(true);
       startTransition(async () => {
-        await markLessonCompleteAction(
+        const result = await markLessonCompleteAction(
           lesson.id,
           lesson.course.id,
           Object.fromEntries(answers.entries()),
           undefined,
           courseSlug,
         );
+        setSubmittedScore(result.score);
+        setGrading(
+          new Map(
+            (result.grading ?? []).map((item) => [item.question_id, item]),
+          ),
+        );
+        setSubmitted(true);
         router.refresh();
       });
       return;
@@ -87,8 +91,8 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
 
   if (submitted) {
     const hasSessionAnswers = answers.size > 0;
-    const correctCount = questions.filter(
-      (question) => answers.get(question.id) === question.correct_answer,
+    const correctCount = [...grading.values()].filter(
+      (result) => result.is_correct,
     ).length;
 
     return (
@@ -136,7 +140,9 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
     );
   }
 
-  const isCorrect = selectedAnswer === current.correct_answer;
+  const currentGrade = grading.get(current.id);
+  const hasGrade = Boolean(currentGrade);
+  const isCorrect = currentGrade?.is_correct ?? false;
 
   return (
     <div className="rounded-xl border border-outline-variant bg-surface p-4 sm:p-5">
@@ -178,7 +184,8 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
           {(current.options ?? []).map((option, index) => {
             const letter = String.fromCharCode(65 + index);
             const isSelected = selectedAnswer === option;
-            const isCorrectOption = option === current.correct_answer;
+            const isCorrectOption =
+              hasGrade && currentGrade?.is_correct === true && isSelected;
 
             return (
               <button
@@ -188,9 +195,9 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
                 disabled={showResult}
                 className={cn(
                   "flex w-full items-center gap-4 rounded-[1.35rem] border px-4 py-4 text-left transition-colors",
-                  showResult && isCorrectOption
+                  isCorrectOption
                     ? "border-emerald-500/40 bg-emerald-500/10"
-                    : showResult && isSelected && !isCorrect
+                    : hasGrade && showResult && isSelected && !isCorrect
                       ? "border-rose-500/40 bg-rose-500/10"
                       : isSelected
                         ? "border-primary/35 bg-primary/5"
@@ -200,18 +207,18 @@ export function QuizRenderer({ lesson, courseSlug }: QuizRendererProps) {
                 <span
                   className={cn(
                     "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
-                    showResult && isCorrectOption
+                    isCorrectOption
                       ? "bg-emerald-500 text-white"
-                      : showResult && isSelected && !isCorrect
+                      : hasGrade && showResult && isSelected && !isCorrect
                         ? "bg-rose-500 text-white"
                         : isSelected
                           ? "bg-primary text-white"
                           : "bg-surface-container text-on-surface-variant",
                   )}
                 >
-                  {showResult && isCorrectOption ? (
+                  {hasGrade && isCorrectOption ? (
                     <CheckCircle2 className="h-4 w-4" />
-                  ) : showResult && isSelected && !isCorrect ? (
+                  ) : hasGrade && showResult && isSelected && !isCorrect ? (
                     <XCircle className="h-4 w-4" />
                   ) : (
                     letter

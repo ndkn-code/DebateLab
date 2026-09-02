@@ -27,6 +27,9 @@ import {
   ChartColumnBig,
   CheckCircle2,
   Megaphone,
+  Building2,
+  UsersRound,
+  BarChart3,
 } from "@/components/ui/icons";
 import { ProductIcon } from "@/components/ui/product-icon";
 import { useTranslations } from "next-intl";
@@ -63,7 +66,11 @@ export type DashboardSidebarNavItem = Omit<DashboardNavItem, "key"> & {
     | "gradebook"
     | "attendance"
     | "materials"
-    | "announcements";
+    | "announcements"
+    | "organization"
+    | "people"
+    | "curriculum"
+    | "reports";
   label?: string;
   badge?: number | null;
 };
@@ -98,6 +105,10 @@ const NAV_ICONS = {
   attendance: CheckCircle2,
   materials: BookOpenText,
   announcements: Megaphone,
+  organization: Building2,
+  people: UsersRound,
+  curriculum: BookOpen,
+  reports: BarChart3,
 } as const;
 
 interface DashboardSidebarRailProps {
@@ -203,7 +214,11 @@ export function DashboardSidebarRail({
       item.key === "gradebook" ||
       item.key === "attendance" ||
       item.key === "materials" ||
-      item.key === "announcements"
+      item.key === "announcements" ||
+      item.key === "organization" ||
+      item.key === "people" ||
+      item.key === "curriculum" ||
+      item.key === "reports"
     ) {
       return item.key === "calendar"
         ? pathname === "/dashboard/teacher" || pathname.startsWith(item.href)
@@ -260,7 +275,11 @@ export function DashboardSidebarRail({
             variant="sidebar"
             currentLocale={currentLocale}
             currentSubject={activeSubject}
-            ieltsAvailable={IELTS_ENABLED || isAdmin}
+            ieltsAvailable={
+              IELTS_ENABLED ||
+              isAdmin ||
+              Boolean(teacherNavigation?.hasIeltsEntitlement)
+            }
           />
         </div>
 

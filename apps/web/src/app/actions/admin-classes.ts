@@ -345,7 +345,7 @@ export async function assignTeacherToClass(classId: string, userId: string) {
     .eq("id", userId)
     .maybeSingle();
   if (profileError) throw new Error(profileError.message);
-  if (!profile || (profile.role !== "teacher" && profile.role !== "admin")) {
+  if (!profile) {
     throw new Error("Teacher profile is required");
   }
 
@@ -355,11 +355,22 @@ export async function assignTeacherToClass(classId: string, userId: string) {
     .eq("club_id", classRow.club_id)
     .eq("user_id", userId)
     .eq("status", "active")
-    .in("role", ["owner", "admin", "teacher", "coach"])
+    .in("role", ["owner", "admin", "head_teacher", "teacher", "coach"])
     .maybeSingle();
   if (clubMembershipError) throw new Error(clubMembershipError.message);
   const organizationRole = normalizeOrganizationRole(clubMembership?.role);
-  if (profile.role !== "admin" && !["owner", "admin", "teacher"].includes(organizationRole ?? "")) {
+  const isOrganizationAcademicLeader = [
+    "owner",
+    "admin",
+    "head_teacher",
+  ].includes(organizationRole ?? "");
+  const isCanonicalTeacher =
+    organizationRole === "teacher" && profile.role === "teacher";
+  if (
+    profile.role !== "admin" &&
+    !isOrganizationAcademicLeader &&
+    !isCanonicalTeacher
+  ) {
     throw new Error("Teacher must be an active manager of this club");
   }
 

@@ -18,6 +18,7 @@ const TYPE_LABELS: Record<
 const ROLE_LABELS: Record<OrganizationRole, string> = {
   owner: "Owner",
   admin: "Admin",
+  head_teacher: "Head Teacher",
   teacher: "Teacher",
   student: "Student",
 };

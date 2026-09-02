@@ -456,7 +456,7 @@ function normalizeFlashcardContent(content: JsonRecord): MobileFlashcardContent 
   };
 }
 
-function scoreQuiz(content: MobileQuizContent, responses: JsonRecord) {
+function normalizeQuizAnswers(responses: JsonRecord) {
   const rawAnswers = responses.answers;
   const answerByQuestion = new Map<string, string>();
 
@@ -473,13 +473,40 @@ function scoreQuiz(content: MobileQuizContent, responses: JsonRecord) {
     }
   }
 
-  const score = content.questions.filter((question) => {
-    const selected = answerByQuestion.get(question.id);
-    const correct = question.correctAnswer;
-    return selected === correct || question.options.find((option) => option.id === selected)?.text === correct;
-  }).length;
+  return answerByQuestion;
+}
 
-  return { score, maxScore: content.questions.length };
+async function gradeQuizSubmission(
+  supabase: SupabaseClient,
+  lessonId: string,
+  responses: JsonRecord,
+) {
+  const { data, error } = await supabase.rpc(
+    "grade_curriculum_quiz_submission",
+    {
+      p_lesson_id: lessonId,
+      p_answers: Object.fromEntries(normalizeQuizAnswers(responses)),
+    },
+  );
+  if (error) {
+    throw new MobileCourseApiError(
+      "Unable to grade quiz.",
+      500,
+      "quiz_grade_failed",
+    );
+  }
+
+  const results = (data ?? []) as Array<{
+    is_correct: boolean;
+    points: number;
+    max_points: number;
+  }>;
+  const score = results.reduce(
+    (total, result) => total + (result.is_correct ? result.points : 0),
+    0,
+  );
+  const maxScore = results.reduce((total, result) => total + result.max_points, 0);
+  return { score, maxScore };
 }
 
 function scoreMatching(content: MobileMatchingContent, responses: JsonRecord) {
@@ -851,11 +878,17 @@ async function buildUnitDetail(
     const type = normalizeLessonType(lessonRow.lesson_type ?? lessonRow.type);
 
     if (type === "quiz") {
-      const { data: questionRows } = await supabase
-        .from("quiz_questions")
-        .select("*")
-        .eq("lesson_id", unit.id)
-        .order("sort_order");
+      const { data: questionRows, error: questionError } = await supabase.rpc(
+        "load_curriculum_quiz_questions",
+        { p_lesson_id: unit.id },
+      );
+      if (questionError) {
+        throw new MobileCourseApiError(
+          "Unable to load quiz questions.",
+          500,
+          "quiz_load_failed",
+        );
+      }
 
       content = {
         type: "quiz",
@@ -1345,9 +1378,9 @@ export async function completeMobileCourseUnit({
     if (unit.kind === "lesson") {
       const detail = await buildUnitDetail(supabase, userId, course, unit);
       if (detail.content.type === "quiz") {
-        const result = scoreQuiz(detail.content.content, responses);
-        score = detail.content.content.questions.length > 0
-          ? Math.round((result.score / Math.max(result.maxScore, 1)) * 100)
+        const result = await gradeQuizSubmission(supabase, unit.id, responses);
+        score = result.maxScore > 0
+          ? Math.round((result.score / result.maxScore) * 100)
           : null;
         maxScore = 100;
       }
@@ -1385,7 +1418,7 @@ export async function completeMobileCourseUnit({
     } else {
       const detail = await buildUnitDetail(supabase, userId, course, unit);
       if (detail.content.type === "quiz") {
-        const result = scoreQuiz(detail.content.content, responses);
+        const result = await gradeQuizSubmission(supabase, unit.id, responses);
         score = result.score;
         maxScore = result.maxScore;
       } else if (detail.content.type === "matching") {

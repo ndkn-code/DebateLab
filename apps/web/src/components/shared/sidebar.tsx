@@ -299,7 +299,11 @@ function NavContent({
             variant="sidebar"
             currentLocale={currentLocale}
             currentSubject={currentSubject}
-            ieltsAvailable={IELTS_ENABLED || isAdmin}
+            ieltsAvailable={
+              IELTS_ENABLED ||
+              isAdmin ||
+              Boolean(teacherNavigation?.hasIeltsEntitlement)
+            }
           />
         </div>
       ) : null}
@@ -334,6 +338,10 @@ function NavContent({
                       attendance: "Điểm danh",
                       materials: "Tài liệu",
                       announcements: "Thông báo",
+                      organization: "Tổ chức",
+                      people: "Nhân sự",
+                      curriculum: "Chương trình học",
+                      reports: "Báo cáo",
                     }
                   : null;
               const label = labels?.[item.key] ?? item.label;
@@ -553,7 +561,7 @@ function NavContent({
               <Settings className="h-4 w-4" />
               {t("settings")}
             </DropdownMenuItem>
-            {(profile?.role === "admin" || profile?.role === "teacher") && (
+            {canUseTeacherWorkspace && (
               <DropdownMenuItem
                 onClick={() => {
                   onNavClick?.();
@@ -648,6 +656,10 @@ export function Sidebar({
                 attendance: "Điểm danh",
                 materials: "Tài liệu",
                 announcements: "Thông báo",
+                organization: "Tổ chức",
+                people: "Nhân sự",
+                curriculum: "Chương trình học",
+                reports: "Báo cáo",
               }[item.key]
             : item.label,
       }))
@@ -757,7 +769,11 @@ export function Sidebar({
           variant="mobile"
           currentLocale={currentLocale}
           currentSubject={activeSubject}
-          ieltsAvailable={IELTS_ENABLED || isAdmin}
+          ieltsAvailable={
+            IELTS_ENABLED ||
+            isAdmin ||
+            Boolean(teacherNavigation?.hasIeltsEntitlement)
+          }
         />
         <ThemeToggle variant="mobile" className="ml-auto" />
         <NotificationCenter

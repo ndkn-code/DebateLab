@@ -19,7 +19,7 @@ export function canonicalOrganizationRole(value: unknown): OrganizationRole | nu
 
 export function isOrganizationWideManagerRole(value: unknown): boolean {
   const role = canonicalOrganizationRole(value);
-  return role === "owner" || role === "admin";
+  return role === "owner" || role === "admin" || role === "head_teacher";
 }
 
 export function isOrganizationTeacherRole(value: unknown): boolean {

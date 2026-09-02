@@ -6,7 +6,7 @@ import type { OrganizationRole } from "@/lib/organizations/contracts";
  * owner, or a teacher assigned to the class. `coach` is accepted only as a
  * legacy input value and is never returned from this module.
  */
-export type ClassManagerRole = "admin" | "owner" | "teacher";
+export type ClassManagerRole = "admin" | "owner" | "head_teacher" | "teacher";
 
 export function resolveClassManagerRole(input: {
   isAdmin: boolean;
@@ -17,6 +17,7 @@ export function resolveClassManagerRole(input: {
   if (input.isAdmin) return "admin";
   const role = normalizeOrganizationRole(input.clubRole);
   if (role === "owner" || role === "admin") return role === "owner" ? "owner" : "admin";
+  if (role === "head_teacher") return "head_teacher";
   if (
     role === "teacher" &&
     input.profileRole === "teacher" &&

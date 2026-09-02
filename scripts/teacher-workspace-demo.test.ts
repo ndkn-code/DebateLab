@@ -46,7 +46,8 @@ test("builds a deterministic tagged fixture covering the teacher workspace loop"
     "club_assignments",
     "club_assignment_submissions",
     "lms_announcements",
-    "lms_notifications",
+    "notification_events",
+    "notification_inbox_items",
     "lms_outbox_events",
   ])
     assert.ok(first.tables[table].length > 0, `${table} is covered`);
@@ -125,6 +126,7 @@ test("builds a deterministic tagged fixture covering the teacher workspace loop"
         (row.email_recipient_ids as unknown[]).length === 0,
     ),
   );
+  assert.equal(first.tables.lms_notifications.length, 0);
   assert.deepEqual(
     first.tables.lms_pilot_flags.map((row) => row.feature_key),
     ["teacher_workspace_v2", "teacher_workspace_v2", "teacher_workspace_v2"],
@@ -163,7 +165,7 @@ test("CLI defaults to dry run and requires explicit project ref before apply", (
     cleanup: false,
     organizationId: null,
     projectRef: null,
-    email: "nguyennguyen.dymun@gmail.com",
+    email: "jknguyen.wor@gmail.com",
     weekStart: "2026-08-31",
   });
   assert.equal(

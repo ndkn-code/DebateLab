@@ -66,10 +66,15 @@ export async function requireClubManager(
     .eq("club_id", clubId)
     .eq("user_id", user.id)
     .eq("status", "active")
-    .in("role", ["owner", "admin", "teacher", "coach"])
+    .in("role", ["owner", "admin", "head_teacher", "teacher", "coach"])
     .maybeSingle();
   const role = normalizeOrganizationRole(membership?.role);
-  if (role === "owner" || role === "admin" || (role === "teacher" && profile?.role === "teacher")) {
+  if (
+    role === "owner" ||
+    role === "admin" ||
+    role === "head_teacher" ||
+    (role === "teacher" && profile?.role === "teacher")
+  ) {
     return user.id;
   }
 
