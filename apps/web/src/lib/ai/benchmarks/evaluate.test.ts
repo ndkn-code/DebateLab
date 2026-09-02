@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 
 import {
   IELTS_BENCHMARK_REQUIRED_BANDS,
+  IELTS_BENCHMARK_MIN_CASES_PER_CELL,
   IELTS_BENCHMARK_REQUIREMENTS,
   criterionKappasFromObservations,
+  deriveIeltsTaskBand,
   evaluateDerivedReleaseGate,
   evaluateBenchmark,
   evaluateReleaseGate,
@@ -17,6 +19,8 @@ import {
 
 assert.equal(quadraticWeightedKappa([4, 5, 6, 7], [4, 5, 6, 7]), 1);
 assert.ok(quadraticWeightedKappa([4, 5, 6, 7], [7, 6, 5, 4]) < 0);
+assert.equal(deriveIeltsTaskBand([6, 6.5, 7, 7.5]), 7);
+assert.equal(deriveIeltsTaskBand([6, 6.5, 7]), null);
 
 const metrics = evaluateBenchmark([
   {
@@ -26,6 +30,8 @@ const metrics = evaluateBenchmark([
     predictedBand: 6,
     taskType: "speaking_part_2",
     accentGroup: "vi",
+    l1Group: "Vietnamese",
+    audioQualityGroup: "typical_device",
   },
   {
     benchmarkId: "2",
@@ -37,6 +43,8 @@ const metrics = evaluateBenchmark([
 ]);
 assert.equal(metrics.withinHalfBandRate, 1);
 assert.equal(metrics.meanSignedError, 0.25);
+assert.equal(metrics.groupBias["l1:Vietnamese"], 0);
+assert.equal(metrics.groupBias["audio_quality:typical_device"], 0);
 
 const gate = evaluateReleaseGate({
   metrics: {
@@ -45,12 +53,20 @@ const gate = evaluateReleaseGate({
     quadraticWeightedKappa: 0.9,
     maxAbsoluteGroupBias: 0.1,
   },
+  overallMetrics: {
+    ...metrics,
+    observationCount: 25,
+    quadraticWeightedKappa: 0.9,
+    maxAbsoluteGroupBias: 0.1,
+  },
   criterionKappas: { lexical: 0.8, grammar: 0.81 },
   repeatWithinHalfBandRate: 0.96,
+  overallRepeatWithinHalfBandRate: 0.96,
   schemaSuccessRate: 0.999,
   invalidAuthoritativeCitationCount: 0,
   duplicatePaidScoringCount: 0,
   strandedWorkflowCount: 0,
+  invalidBenchmarkLabelCount: 0,
 });
 assert.deepEqual(gate, { passed: true, failures: [] });
 
@@ -58,19 +74,53 @@ const completeCoverage = Object.entries(IELTS_BENCHMARK_REQUIREMENTS).flatMap(
   ([skill, requirement]) =>
     requirement.criteria.flatMap((criterion) =>
       requirement.taskTypes.flatMap((taskType) =>
-        IELTS_BENCHMARK_REQUIRED_BANDS.map((expectedBand) => ({
-          benchmarkId: `${skill}:${criterion}:${taskType}:${expectedBand}`,
-          skill,
-          criterion,
-          expectedBand,
-          taskType,
-        })),
+        IELTS_BENCHMARK_REQUIRED_BANDS.flatMap((expectedBand) =>
+          Array.from(
+            { length: IELTS_BENCHMARK_MIN_CASES_PER_CELL },
+            (_, sampleIndex) => ({
+              benchmarkId: `${skill}:${criterion}:${taskType}:${expectedBand}:${sampleIndex}`,
+              skill,
+              criterion,
+              expectedBand,
+              taskType,
+            }),
+          ),
+        ),
       ),
     ),
 );
 const coverage = validateIeltsBenchmarkCoverage(completeCoverage);
 assert.equal(coverage.passed, true);
 assert.equal(coverage.missingCells.length, 0);
+assert.equal(coverage.underfilledCells.length, 0);
+
+const perfectOverallObservations = completeCoverage.map((item) => ({
+  ...item,
+  criterion: "overall",
+  predictedBand: item.expectedBand,
+}));
+const perfectOverallRepeatPairs = perfectOverallObservations.map(
+  (observation) => ({ first: observation, second: observation }),
+);
+
+const underfilledCoverage = validateIeltsBenchmarkCoverage(
+  completeCoverage.filter(
+    (row) =>
+      row.benchmarkId !==
+      `ielts_speaking:pronunciation:speaking_part1:4:${IELTS_BENCHMARK_MIN_CASES_PER_CELL - 1}`,
+  ),
+);
+assert.equal(underfilledCoverage.passed, false);
+assert.ok(
+  underfilledCoverage.underfilledCells.some(
+    (cell) =>
+      cell.skill === "ielts_speaking" &&
+      cell.criterion === "pronunciation" &&
+      cell.taskType === "speaking_part1" &&
+      cell.expectedBand === 4 &&
+      cell.observedBenchmarkCount === IELTS_BENCHMARK_MIN_CASES_PER_CELL - 1,
+  ),
+);
 
 const missingAccentCoverage = validateIeltsBenchmarkCoverage(
   completeCoverage.map((row, index) =>
@@ -107,8 +157,59 @@ assert.throws(() =>
     graderVersion: "v1",
     corpusVersion: 1,
     evaluations: [
-      { benchmarkKey: "one", prediction: {} },
-      { benchmarkKey: "one", prediction: {} },
+      {
+        benchmarkKey: "one",
+        runs: [
+          {
+            runKind: "primary",
+            prediction: {},
+            providerRequestId: "00000000-0000-4000-8000-000000000001",
+          },
+          {
+            runKind: "repeat",
+            prediction: {},
+            providerRequestId: "00000000-0000-4000-8000-000000000002",
+          },
+        ],
+      },
+      {
+        benchmarkKey: "one",
+        runs: [
+          {
+            runKind: "primary",
+            prediction: {},
+            providerRequestId: "00000000-0000-4000-8000-000000000003",
+          },
+          {
+            runKind: "repeat",
+            prediction: {},
+            providerRequestId: "00000000-0000-4000-8000-000000000004",
+          },
+        ],
+      },
+    ],
+  }),
+);
+assert.throws(() =>
+  parseBenchmarkEvaluationImport({
+    graderVersion: "v1",
+    corpusVersion: 1,
+    evaluations: [
+      {
+        benchmarkKey: "copied-repeat",
+        runs: [
+          {
+            runKind: "primary",
+            prediction: {},
+            providerRequestId: "00000000-0000-4000-8000-000000000005",
+          },
+          {
+            runKind: "repeat",
+            prediction: {},
+            providerRequestId: "00000000-0000-4000-8000-000000000005",
+          },
+        ],
+      },
     ],
   }),
 );
@@ -118,6 +219,7 @@ const derived = evaluateDerivedReleaseGate({
     ...item,
     predictedBand: item.expectedBand,
   })),
+  overallObservations: perfectOverallObservations,
   coverage,
   expectedEvaluationCount: completeCoverage.length,
   schemaValidPredictionCount: completeCoverage.length,
@@ -125,12 +227,117 @@ const derived = evaluateDerivedReleaseGate({
     const observation = { ...item, predictedBand: item.expectedBand };
     return { first: observation, second: observation };
   }),
+  overallRepeatPairs: perfectOverallRepeatPairs,
   expectedRepeatPairCount: completeCoverage.length,
+  expectedOverallRepeatPairCount: perfectOverallObservations.length,
   invalidAuthoritativeCitationCount: 0,
   duplicatePaidScoringCount: 0,
   strandedWorkflowCount: 0,
+  invalidBenchmarkLabelCount: 0,
 });
 assert.equal(derived.passed, true);
+
+const cellCorruptedObservations = completeCoverage.map((item) => ({
+  ...item,
+  predictedBand:
+    item.skill === "ielts_speaking" &&
+    item.criterion === "pronunciation" &&
+    item.taskType === "speaking_part3" &&
+    item.expectedBand === 6
+      ? 7
+      : item.expectedBand,
+}));
+const cellCorrupted = evaluateDerivedReleaseGate({
+  observations: cellCorruptedObservations,
+  overallObservations: perfectOverallObservations,
+  coverage,
+  expectedEvaluationCount: completeCoverage.length,
+  schemaValidPredictionCount: completeCoverage.length,
+  repeatPairs: cellCorruptedObservations.map((observation) => ({
+    first: observation,
+    second: observation,
+  })),
+  overallRepeatPairs: perfectOverallRepeatPairs,
+  expectedRepeatPairCount: completeCoverage.length,
+  expectedOverallRepeatPairCount: perfectOverallObservations.length,
+  invalidAuthoritativeCitationCount: 0,
+  duplicatePaidScoringCount: 0,
+  strandedWorkflowCount: 0,
+  invalidBenchmarkLabelCount: 0,
+});
+assert.equal(cellCorrupted.passed, false);
+assert.ok(
+  cellCorrupted.failures.includes("cell_within_half_band_below_90pct"),
+);
+
+const selectedSliceCells = new Set<string>();
+const sparseBadSliceObservations = completeCoverage.map((item) => {
+  const cell = `${item.skill}|${item.criterion}|${item.taskType}|${item.expectedBand}`;
+  const useForSlice =
+    item.skill === "ielts_speaking" &&
+    selectedSliceCells.size < 10 &&
+    !selectedSliceCells.has(cell);
+  if (useForSlice) selectedSliceCells.add(cell);
+  return {
+    ...item,
+    predictedBand: useForSlice ? Math.min(9, item.expectedBand + 1) : item.expectedBand,
+    l1Group: useForSlice ? "underfilled-test-group" : null,
+    audioQualityGroup: useForSlice ? "degraded" : null,
+  };
+});
+const sparseBadSlice = evaluateDerivedReleaseGate({
+  observations: sparseBadSliceObservations,
+  overallObservations: perfectOverallObservations,
+  coverage,
+  expectedEvaluationCount: completeCoverage.length,
+  schemaValidPredictionCount: completeCoverage.length,
+  repeatPairs: sparseBadSliceObservations.map((observation) => ({
+    first: observation,
+    second: observation,
+  })),
+  overallRepeatPairs: perfectOverallRepeatPairs,
+  expectedRepeatPairCount: completeCoverage.length,
+  expectedOverallRepeatPairCount: perfectOverallObservations.length,
+  invalidAuthoritativeCitationCount: 0,
+  duplicatePaidScoringCount: 0,
+  strandedWorkflowCount: 0,
+  invalidBenchmarkLabelCount: 0,
+});
+assert.equal(sparseBadSlice.passed, false);
+assert.ok(sparseBadSlice.failures.includes("slice_sample_below_30"));
+assert.ok(
+  sparseBadSlice.failures.includes("slice_within_half_band_below_90pct"),
+);
+
+const firstObservation = {
+  ...completeCoverage[0]!,
+  predictedBand: completeCoverage[0]!.expectedBand,
+};
+const concentratedRepeats = evaluateDerivedReleaseGate({
+  observations: completeCoverage.map((item) => ({
+    ...item,
+    predictedBand: item.expectedBand,
+  })),
+  overallObservations: perfectOverallObservations,
+  coverage,
+  expectedEvaluationCount: completeCoverage.length,
+  schemaValidPredictionCount: completeCoverage.length,
+  repeatPairs: Array.from({ length: completeCoverage.length }, () => ({
+    first: firstObservation,
+    second: firstObservation,
+  })),
+  overallRepeatPairs: perfectOverallRepeatPairs,
+  expectedRepeatPairCount: completeCoverage.length,
+  expectedOverallRepeatPairCount: perfectOverallObservations.length,
+  invalidAuthoritativeCitationCount: 0,
+  duplicatePaidScoringCount: 0,
+  strandedWorkflowCount: 0,
+  invalidBenchmarkLabelCount: 0,
+});
+assert.equal(concentratedRepeats.passed, false);
+assert.ok(
+  concentratedRepeats.failures.includes("repeat_measurement_incomplete"),
+);
 assert.equal(
   criterionKappasFromObservations(
     completeCoverage.map((item) => ({

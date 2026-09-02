@@ -63,6 +63,8 @@ import {
   prepareDurablePracticeAnalysis,
 } from "@/lib/practice-analysis/durable-runner";
 import { getIeltsWritingGroqModelName } from "@/lib/ielts/writing-scorer/provider-policy";
+import { getIeltsWritingScoringPolicy } from "@/lib/ielts/writing-scorer/provider-policy";
+import { getIeltsSpeakingScoringPolicy } from "@/lib/ielts/speaking-scorer/provider-policy";
 import {
   adjacentBands,
   buildSpeakingAdjudicationPrompt,
@@ -370,6 +372,7 @@ export async function generateIeltsSpeakingScore(params: {
       entity: { speakingResponseId: params.speakingResponseId },
       metadata: { workflowRunId: params.workflowRunId },
     },
+    policy: getIeltsSpeakingScoringPolicy("provisional"),
   });
 }
 
@@ -427,6 +430,7 @@ export async function adjudicateIeltsSpeakingScore(params: {
       entity: { speakingResponseId: params.speakingResponseId },
       metadata: { workflowRunId: params.workflowRunId },
     },
+    policy: getIeltsSpeakingScoringPolicy("adjudicated"),
   });
   const combinedEvidence = [
     ...params.baseEvidence,
@@ -621,6 +625,7 @@ export async function generateIeltsWritingScore(params: {
         writingResponseId: params.writingResponseId,
       },
     },
+    policy: getIeltsWritingScoringPolicy("provisional"),
   });
 }
 
@@ -677,6 +682,7 @@ export async function adjudicateIeltsWritingScore(params: {
       entity: { writingResponseId: params.writingResponseId },
       metadata: { workflowRunId: params.workflowRunId },
     },
+    policy: getIeltsWritingScoringPolicy("adjudicated"),
   });
   const combinedEvidence = [
     ...params.baseEvidence,

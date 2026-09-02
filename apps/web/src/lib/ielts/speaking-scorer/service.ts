@@ -280,7 +280,7 @@ export async function runIeltsSpeakingScoringJob(
     const pronunciation = await assessPronunciation({
       audio: audioBuffer,
       audioContentType: azurePronunciationContentType(contentType),
-      referenceText: transcription.transcript,
+      assessmentMode: "unscripted",
       userId: response.user_id,
       speakingResponseId: response.id,
       practiceAttemptId: response.attempt_id,

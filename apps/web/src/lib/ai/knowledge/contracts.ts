@@ -53,6 +53,10 @@ interface KnowledgeRequestBase {
   deadlineMs?: number;
   limit?: number;
   supabase?: SupabaseClient<Database>;
+  /** Pin an immutable published corpus for offline calibration. */
+  corpusVersion?: string | null;
+  /** Suppress all query previews for protected calibration responses. */
+  sensitiveQuery?: boolean;
 }
 
 export interface DebateKnowledgeRequest extends KnowledgeRequestBase {

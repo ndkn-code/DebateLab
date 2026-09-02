@@ -52,6 +52,7 @@ export async function auditProviderAttempt(params: {
   errorMessage?: string;
   phase: "primary" | "schema_repair";
   candidateIndex: number;
+  extraMetadata?: Record<string, unknown>;
 }) {
   const label = params.provider === "gemini" ? "google" : params.provider;
   return recordAiProviderRequest({
@@ -80,6 +81,7 @@ export async function auditProviderAttempt(params: {
       speakingResponseId: params.context.entity?.speakingResponseId ?? null,
       writingResponseId: params.context.entity?.writingResponseId ?? null,
       ...(params.context.metadata ?? {}),
+      ...(params.extraMetadata ?? {}),
     },
   });
 }

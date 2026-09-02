@@ -90,6 +90,101 @@ gcloud pubsub subscriptions create ai-grading-jobs-cloud-run \
 Create Cloud Scheduler to POST `/internal/reconcile` every five minutes with
 the Scheduler service account and the exact service URL as OIDC audience.
 
+## Protected IELTS benchmark Cloud Run Job
+
+The release benchmark reuses the worker image but runs as an offline Cloud Run
+Job. It does not expose an HTTP endpoint. After applying migration
+`20260901180000_ai_grading_benchmark_executor_claims.sql`, store the identical
+attestation value in Google Secret Manager and Supabase Vault (Vault name:
+`ai_grading_benchmark_attestation_secret`). Never put it in a command or build
+argument.
+
+Before import, each protected case must include the exact-question grounding
+used by production: reference/model answer (or explicit `null`), examiner
+notes, peer references, and Speaking Part 2 cue-card bullets. Speaking audio
+must also include Azure pronunciation, accuracy, fluency, and prosody signals,
+plus immutable audio, Azure config/report, and STT transcript provenance. A
+missing Azure completeness score is valid for unscripted continuous
+assessment only when its limitation reason is recorded. The importer verifies
+the stored artifact and transcript checksums, the canonical production Azure
+configuration, and the private report object's storage version, ETag, and raw
+SHA-256. The release executor independently downloads that same report,
+re-derives every score and flagged word through the production parser, and
+recomputes the prompt hash. Transcript-only Speaking cases fail closed. Do not
+substitute synthetic provenance or run live Azure during benchmark import.
+All protected response, audio, and Azure report objects must be stored in the
+dedicated `ai-grading-benchmarks-private` bucket. Migration `1800` forces that
+bucket private and prevents rename, publicization, or deletion; no learner or
+authenticated-user object policy is created.
+Before import, the trusted preprocessing job must sign the versioned acoustic
+envelope with the benchmark attestation secret. The envelope binds benchmark
+and capture IDs, object paths, all four hashes, and the Azure runtime identity.
+The importer never receives this secret: it calls the Vault-backed verification
+RPC, as do the executor and release gate. Reused report paths, hashes, or
+envelopes are rejected.
+
+Examiner credentials, consent, withdrawal freshness, and study grouping use a
+second, independent trust boundary. The study lead holds an offline Ed25519
+private key; import and release processes receive only its public key. A signed
+release envelope binds the artifact, consent/retention, a withdrawal-registry
+snapshot, examiner credential proof hashes, and the four grouping receipts. It
+expires within 24 hours of the withdrawal check. Configure the public
+`AI_GRADING_BENCHMARK_TRUST_SET_JSON` for the release gate and mount that same
+public trust set as `AI_GRADING_BENCHMARK_TRUST_SET_FILE` for the importer and
+detached attestation refresh command. The trust set supports an overlap window
+during key rotation. Refresh updates only the release-attestation table and
+never rewrites protected benchmark labels. Never give the
+study-lead private key to the importer, worker, or service-role environment.
+
+Run acoustic preparation as a separate private Cloud Run Job using the same
+reviewed worker image. It is deliberately two-stage:
+
+1. `AI_GRADING_ACOUSTIC_MODE=assess` validates the exact recorder WAV format
+   and creates a normalized unscripted Azure report. It never uses the learner
+   transcript as reference text.
+2. After the audio/report objects are uploaded and a separate human verifies
+   the STT transcript against the recording,
+   `AI_GRADING_ACOUSTIC_MODE=attest` reopens all three artifacts, re-derives the
+   production signal, and signs their hashes, object versions/ETags, Azure
+   identity, and transcript-review receipt. Output is a new mode-0600 file;
+   existing output is never overwritten.
+
+The job command is `npm run acoustic:preprocess -w
+@thinkfy/ai-grading-worker`. Bind Azure credentials only to the `assess` job;
+bind `AI_GRADING_BENCHMARK_ATTESTATION_SECRET` only to the `attest` job. Do not
+grant either job public ingress and do not reuse the importer identity as the
+attestation signer.
+
+Create or update the job with the reviewed immutable image digest:
+
+```bash
+gcloud run jobs deploy ai-grading-ielts-benchmark \
+  --project=thinkfy-debatelab-prod \
+  --region=asia-southeast1 \
+  --image="$AI_GRADING_IMAGE" \
+  --service-account=debatelab-ai-grading-worker@thinkfy-debatelab-prod.iam.gserviceaccount.com \
+  --command=npm \
+  --args=run,benchmark,-w,@thinkfy/ai-grading-worker \
+  --max-retries=0 --task-timeout=3600 \
+  --set-env-vars=AI_GRADING_GATE_CORPUS_VERSION="$CORPUS_VERSION",AI_GRADING_BENCHMARK_SPLIT=holdout \
+  --set-secrets=NEXT_PUBLIC_SUPABASE_URL=debatelab-supabase-url:latest,SUPABASE_SERVICE_ROLE_KEY=debatelab-supabase-service-role:latest,GROQ_API_KEY=debatelab-groq-api-key:latest,VOYAGE_API_KEY=debatelab-voyage-api-key:latest,AI_GRADING_BENCHMARK_ATTESTATION_SECRET=debatelab-ai-grading-benchmark-attestation:latest
+```
+
+Execute it manually for a reviewed release. A separate database claim for each
+provisional/adjudication stage is the spend authority; Cloud Run retries stay
+disabled. Preflight and retrieval finish before the matching stage starts, and
+a verified provisional checkpoint is reused after a later crash. The grader is locked to
+`evidence-adjudicated-v1`, all retrieval is pinned to the requested published
+corpus version, and the job prints counts only. A stale provider-started claim
+becomes `PROVIDER_OUTCOME_UNKNOWN` and requires a Vault-HMAC-verified provider
+audit to recover; it is never automatically charged again. A definite HTTP or
+schema-invalid failure is released only after Supabase verifies every linked
+error audit and is capped at three attempts. Provider preflight checks the key
+and every selected model before any claim; extend the verified model set with
+`GROQ_IELTS_SUPPORTED_MODELS` only after qualification.
+Definite-failure audit signatures also bind the exact claim token and attempt;
+replaying a prior attempt's valid audit cannot unlock current spend authority.
+
 ## Vercel WIF publisher
 
 Use the existing `vercel` workload identity pool/provider and production
@@ -107,7 +202,7 @@ The web app needs `@vercel/oidc`; it does not need a GCP private key.
 
 Before setting the web environment to `gcp`:
 
-1. Apply migrations through `20260830160000` in preview and verify all new RPCs
+1. Apply migrations through `20260901180000` in preview and verify all new RPCs
    reject `anon` and `authenticated` while service role succeeds.
 2. Submit one practice, Writing, and Speaking job. Confirm the Pub/Sub payload
    contains no learner content and each produces one checkpoint/run.
@@ -116,11 +211,34 @@ Before setting the web environment to `gcp`:
 4. Fail persistence after output checkpoint. Confirm redelivery reuses output.
 5. Expire a pre-provider lease. Confirm Scheduler republishes and processing
    resumes within the three-attempt cap.
-6. Simulate loss after provider start but before output checkpoint. Confirm the
+6. Kill the worker after the third claim. Confirm a validated output checkpoint
+   is persisted without another provider call; without a checkpoint, confirm
+   the workflow and source become an explicit terminal/manual-retry state.
+7. Simulate loss after provider start but before output checkpoint. Confirm the
    terminal code is `PROVIDER_OUTCOME_UNKNOWN` and no automatic second charge.
-7. Confirm an invalid Pub/Sub/Scheduler identity receives no work.
-8. Inspect DLQ alerts, latency, provider attempt count, workflow failures, and
-   Cloud Run instance/cost dashboards.
+8. Simulate an HTTP 429/5xx and malformed provider output. Confirm only these
+   definite failures are re-driven within the three-attempt cap. A client
+   timeout or socket loss must remain outcome-unknown and must not auto-call a
+   fallback provider.
+9. Confirm an invalid Pub/Sub/Scheduler identity receives no work.
+10. Persist one immutable `ai_grading_operational_evidence` run linked to the
+    actual workflow rows for duplicate delivery, provider timeout, stale claim,
+    persistence retry, and retry exhaustion. The evidence expires after seven
+    days and must be regenerated for a release. Begin the run with
+    `begin_ai_grading_operational_evidence`, predeclare each fresh queued job with
+    `declare_ai_grading_operational_scenario`, finalize it only after the fault
+    with `finalize_ai_grading_operational_scenario`, then seal all five. These
+    functions bind deployment/grader/corpus identity and derive provider calls,
+    checkpoints, worker-authored `K_REVISION`/image digest, and ordered fault
+    transitions from durable rows; direct inserts are denied. Deploy the worker
+    with `AI_GRADING_IMAGE_DIGEST` set to the immutable container digest in
+    `sha256:<64 lowercase hex characters>` form. The smoke fails closed unless
+    Cloud Run also supplies a valid `K_REVISION`; placeholder runtime identities
+    are never accepted. Only
+    the dedicated smoke revision sets `AI_GRADING_OPERATIONAL_ATTESTATION_ENABLED=true`;
+    ordinary grading avoids the extra transition RPCs.
+11. Inspect DLQ alerts, latency, provider attempt count, workflow failures, and
+    Cloud Run instance/cost dashboards.
 
 ## Rollback
 

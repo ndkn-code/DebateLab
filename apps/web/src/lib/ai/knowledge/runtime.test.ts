@@ -10,7 +10,7 @@ import {
   isKnowledgeCollectionKey,
 } from "./collections";
 import { getIeltsRubric, findIeltsBandExamples } from "./tools";
-import { normalizeGenericKnowledgeRow } from "./runtime";
+import { knowledgeQueryPreview, normalizeGenericKnowledgeRow } from "./runtime";
 import { buildGenericKnowledgeRpcArgs } from "./runtime";
 
 assert.equal(
@@ -172,5 +172,12 @@ const versionedArgs = buildGenericKnowledgeRpcArgs({
   corpusVersion: "3",
 });
 assert.equal(versionedArgs.p_filters.collectionVersion, "3");
+assert.equal(
+  knowledgeQueryPreview({
+    query: "protected candidate response",
+    sensitiveQuery: true,
+  }),
+  null,
+);
 
 console.log("Knowledge runtime and ingestion tests passed.");

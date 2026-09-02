@@ -11,8 +11,11 @@ Pub/Sub. Dispatch is fail-closed unless `AI_GRADING_BACKEND` is explicitly
    target environment, then apply
    `supabase/migrations/20260829110000_ai_knowledge_platform.sql` and
    `supabase/migrations/20260829120000_ai_knowledge_operations.sql`, followed by
-   `supabase/migrations/20260830160000_ai_grading_gcp_runtime.sql`. Regenerate
-   Supabase types afterward. All migrations are forward-only.
+   `supabase/migrations/20260830160000_ai_grading_gcp_runtime.sql` and migrations
+   `20260901130000` through `20260901170000` for retry consistency, immutable
+   benchmark slices, third-attempt recovery, linked operational evidence, and
+   worker-authored runtime/repeat-run attestations.
+   Regenerate Supabase types afterward. All migrations are forward-only.
 2. Confirm the `ai_workflow_runs` row-level-security policy lets a learner read
    only their own runs and lets only the service role create or update runs.
    Confirm that benchmark labels, knowledge ingestion, and grading-authoritative
@@ -101,8 +104,14 @@ claiming examiner-equivalent precision.
 Prepare a protected, human-reviewed benchmark manifest first. Every source must
 have approved rights, an official or qualified-examiner authority tier, exact
 response and label locators, all four criterion labels, and a single split per
-source. The importer is append-only by contract: an existing benchmark key may
-be replayed only when its immutable label and provenance match exactly.
+source. Release-eligible labels require at least two independent qualified
+examiner marks and documented adjudication. Speaking cases additionally require
+the protected audio plus accent, first-language, and audio-quality groups. The
+importer is append-only by contract: an existing benchmark key may be replayed
+only when its immutable label and provenance match exactly. Sources must
+already be independently approved rows whose `submitted_by` and `reviewed_by`
+identities are both recorded and different; the label importer cannot approve
+its own source.
 
 ```bash
 AI_GRADING_BENCHMARKS_FILE=/absolute/path/to/reviewed-benchmarks.json \
@@ -116,10 +125,30 @@ database.
 
 Each benchmark input must provide exactly one protected response modality:
 inline text, a private response-object path (for example, a scanned PDF), or a
-private audio-object path. Object-backed responses must include their SHA-256
-digest and content type so an offline runner can reject a missing, replaced, or
-wrong-media artifact before making a paid grading call. A public dataset DOI or
-archive checksum does not substitute for the per-response criterion labels.
+private audio-object path. Every response must include its own SHA-256 digest;
+object-backed responses also include their content type. Repeated artifact
+hashes are rejected so one response cannot inflate coverage or accuracy. A
+public dataset DOI or archive checksum does not substitute for per-response
+criterion labels.
+
+Primary and repeat predictions must be produced as two distinct centralized
+AI-core invocations with `benchmarkEvaluationRun=true`, the benchmark key,
+grader/corpus version, and run kind in the execution metadata. The validated
+output audit creates an HMAC-signed `ai_provider_requests` row that binds the
+immutable artifact, exact model request, validated output, provider, and model.
+The signing secret exists only in the isolated benchmark executor and as the
+Supabase Vault secret `ai_grading_benchmark_attestation_secret`; do not expose
+it to the web application or the evaluation importer. Evaluation import accepts
+only that row's UUID and derives provider, model, trace, timing, and prediction
+identity from the immutable audit; caller-supplied provider names or invented
+trace IDs are not accepted. Once linked, both the evaluation run and its
+provider-request audit are immutable.
+
+Every half-band/task/criterion coverage cell requires at least 15 independent
+responses. Speaking also requires accent, first-language, and audio-quality
+slices. A release run needs exactly one fresh repeat for every evaluated
+benchmark criterion; extra repeats for easy cases cannot compensate for
+missing repeats elsewhere.
 
 Record every candidate source and rejection reason in
 `docs/ielts/benchmark-source-review.md`; a source description that claims labels
@@ -141,6 +170,9 @@ Pin the exact grader and corpus versions, then run:
 ```bash
 AI_GRADING_GATE_VERSION=<grader-version> \
 AI_GRADING_GATE_CORPUS_VERSION=<collection-version> \
+AI_GRADING_GATE_ENVIRONMENT=preview \
+AI_GRADING_GATE_DEPLOYMENT_ID=<cloud-run-revision> \
+AI_GRADING_GATE_IMAGE_DIGEST=sha256:<64-lowercase-hex> \
 npm run ai:grading-gate -w @thinkfy/web
 ```
 
@@ -148,6 +180,16 @@ The command fails closed when credentials, labels, evaluations, or version pins
 are missing. It also fails unless the configured benchmark reaches the release
 thresholds for half-band agreement, quadratic weighted kappa, group bias,
 repeatability, schema validity, evidence authority, and workflow reliability.
+The 90% half-band agreement threshold applies to every required
+skill/criterion/task/band/accent cell as well as the overall corpus, so a weak
+slice cannot be hidden by a large aggregate.
+Workflow reliability is read from a fresh, immutable operational-evidence run
+linked to actual durable workflow rows—not from model-evaluation metadata.
+Set `AI_GRADING_GATE_DEPLOYMENT_ID` and `AI_GRADING_GATE_IMAGE_DIGEST` to the
+exact preview/staging revision and immutable image used by the predeclared
+fault-injection run; workflows outside that bound cohort are
+not reusable as evidence, while every nonterminal/unexpected failure inside the
+cohort is counted as stranded.
 Never use AI-derived annotations as benchmark ground truth.
 
 ## Production cutover

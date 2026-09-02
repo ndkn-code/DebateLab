@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
   azurePronunciationResponseSchema,
+  combineAzureAssessmentReports,
   mapAzureAssessmentToReport,
 } from "./azure-assessment";
 import { EMPTY_PHONEME_REPORT } from "./phoneme-report";
@@ -98,6 +99,12 @@ assert.equal(directScoreReport.words[0]?.accuracy, 93);
 assert.equal(directScoreReport.words[0]?.errorType, "None");
 assert.equal(directScoreReport.words[0]?.phonemes[0]?.accuracy, 95);
 
+const unscriptedReport = mapAzureAssessmentToReport(azureResponse(), {
+  ...OPTIONS,
+  referenceText: "",
+});
+assert.equal(unscriptedReport.overall?.completeness, null);
+
 // --- clamping (out-of-range) + missing-field handling -----------------------
 const clamped = mapAzureAssessmentToReport(
   azureResponse({
@@ -106,9 +113,9 @@ const clamped = mapAzureAssessmentToReport(
         Display: "x",
         PronunciationAssessment: {
           AccuracyScore: 88,
+          FluencyScore: 82,
           PronScore: 90,
           CompletenessScore: 100,
-          // FluencyScore omitted → undefined → 0
           // ProsodyScore omitted → undefined → null
         },
         Words: [
@@ -117,26 +124,25 @@ const clamped = mapAzureAssessmentToReport(
             PronunciationAssessment: { AccuracyScore: 150 }, // > 100 → 100
             Phonemes: [
               { Phoneme: "l", PronunciationAssessment: { AccuracyScore: -5 } }, // < 0 → 0
-              { Phoneme: "d" }, // no PronunciationAssessment → 0
+              { Phoneme: "d" }, // incomplete detail is omitted
             ],
           },
-          { Word: "bare" }, // no PronunciationAssessment / Phonemes → 0 / None / []
+          { Word: "bare" }, // incomplete word detail is omitted
         ],
       },
     ],
   }),
   OPTIONS,
 );
-assert.equal(clamped.overall?.fluency, 0); // missing → 0
+assert.equal(clamped.overall?.fluency, 82);
+assert.equal(clamped.overall?.completeness, 100);
 assert.equal(clamped.overall?.prosody, null); // missing → null
 assert.equal(clamped.words[0]?.accuracy, 100); // 150 clamped
 assert.equal(clamped.words[0]?.phonemes[0]?.accuracy, 0); // -5 clamped
-assert.equal(clamped.words[0]?.phonemes[1]?.accuracy, 0); // missing → 0
-assert.equal(clamped.words[1]?.accuracy, 0);
-assert.equal(clamped.words[1]?.errorType, "None");
-assert.deepEqual(clamped.words[1]?.phonemes, []);
+assert.equal(clamped.words[0]?.phonemes.length, 1);
+assert.equal(clamped.words.length, 1);
 
-// PronScore present but AccuracyScore missing still counts as usable overall
+// Partial aggregate payloads fail closed rather than fabricating zeroes.
 const pronScoreOnly = mapAzureAssessmentToReport(
   {
     RecognitionStatus: "Success",
@@ -144,16 +150,35 @@ const pronScoreOnly = mapAzureAssessmentToReport(
   },
   OPTIONS,
 );
-assert.equal(pronScoreOnly.status, "scored");
-assert.equal(pronScoreOnly.overall?.pronunciation, 75);
-assert.equal(pronScoreOnly.overall?.accuracy, 0); // missing accuracy → 0
+assert.deepEqual(pronScoreOnly, EMPTY_PHONEME_REPORT);
+
+const missingFluency = mapAzureAssessmentToReport(
+  {
+    RecognitionStatus: "Success",
+    NBest: [
+      {
+        Display: "x",
+        PronunciationAssessment: { AccuracyScore: 75, PronScore: 75 },
+      },
+    ],
+  },
+  OPTIONS,
+);
+assert.deepEqual(missingFluency, EMPTY_PHONEME_REPORT);
 
 // --- recognizedText falls back: Display → DisplayText → "" ------------------
 const noDisplay = mapAzureAssessmentToReport(
   azureResponse({
     DisplayText: "from display text",
     NBest: [
-      { PronunciationAssessment: { AccuracyScore: 80, PronScore: 80 }, Words: [] },
+      {
+        PronunciationAssessment: {
+          AccuracyScore: 80,
+          FluencyScore: 80,
+          PronScore: 80,
+        },
+        Words: [],
+      },
     ],
   }),
   OPTIONS,
@@ -163,7 +188,15 @@ assert.equal(noDisplay.recognizedText, "from display text");
 const noTextAtAll = mapAzureAssessmentToReport(
   {
     RecognitionStatus: "Success",
-    NBest: [{ PronunciationAssessment: { AccuracyScore: 80, PronScore: 80 } }],
+    NBest: [
+      {
+        PronunciationAssessment: {
+          AccuracyScore: 80,
+          FluencyScore: 80,
+          PronScore: 80,
+        },
+      },
+    ],
   },
   OPTIONS,
 );
@@ -204,19 +237,38 @@ assert.deepEqual(
   EMPTY_PHONEME_REPORT,
 );
 // malformed payloads (schema parse fails)
-assert.deepEqual(mapAzureAssessmentToReport(null, OPTIONS), EMPTY_PHONEME_REPORT);
-assert.deepEqual(mapAzureAssessmentToReport("nope", OPTIONS), EMPTY_PHONEME_REPORT);
+assert.deepEqual(
+  mapAzureAssessmentToReport(null, OPTIONS),
+  EMPTY_PHONEME_REPORT,
+);
+assert.deepEqual(
+  mapAzureAssessmentToReport("nope", OPTIONS),
+  EMPTY_PHONEME_REPORT,
+);
 assert.deepEqual(mapAzureAssessmentToReport(42, OPTIONS), EMPTY_PHONEME_REPORT);
 
 // status omitted entirely is treated as success when overall scores exist
 const noStatus = mapAzureAssessmentToReport(
-  { NBest: [{ PronunciationAssessment: { AccuracyScore: 70, PronScore: 72 } }] },
+  {
+    NBest: [
+      {
+        PronunciationAssessment: {
+          AccuracyScore: 70,
+          FluencyScore: 71,
+          PronScore: 72,
+        },
+      },
+    ],
+  },
   OPTIONS,
 );
 assert.equal(noStatus.status, "scored");
 
 // --- exported schema parses a sample ----------------------------------------
-assert.equal(azurePronunciationResponseSchema.safeParse(azureResponse()).success, true);
+assert.equal(
+  azurePronunciationResponseSchema.safeParse(azureResponse()).success,
+  true,
+);
 
 // --- recorded Azure detailed response fixture -------------------------------
 const fixture = JSON.parse(
@@ -231,11 +283,54 @@ const fixtureReport = mapAzureAssessmentToReport(fixture, {
   referenceText: "A good answer uses clear examples.",
 });
 assert.equal(fixtureReport.status, "scored");
-assert.equal(fixtureReport.recognizedText, "A good answer uses clear examples.");
+assert.equal(
+  fixtureReport.recognizedText,
+  "A good answer uses clear examples.",
+);
 assert.equal(fixtureReport.overall?.pronunciation, 86);
 assert.equal(fixtureReport.overall?.accuracy, 83);
 assert.equal(fixtureReport.words[1]?.word, "good");
 assert.equal(fixtureReport.words[1]?.phonemes[0]?.phoneme, "ɡ");
 assert.equal(fixtureReport.words[2]?.errorType, "Mispronunciation");
+
+// Continuous recognition combines segments by evidence weight, not by treating
+// a short trailing fragment as a full second answer.
+const firstSegment = mapAzureAssessmentToReport(azureResponse(), {
+  ...OPTIONS,
+  referenceText: "",
+});
+const shortSegment = mapAzureAssessmentToReport(
+  azureResponse({
+    DisplayText: "fragment",
+    NBest: [
+      {
+        Display: "fragment",
+        PronunciationAssessment: {
+          AccuracyScore: 40,
+          FluencyScore: 40,
+          CompletenessScore: 40,
+          PronScore: 40,
+          ProsodyScore: 40,
+        },
+        Words: [
+          {
+            Word: "fragment",
+            PronunciationAssessment: { AccuracyScore: 40 },
+          },
+        ],
+      },
+    ],
+  }),
+  { ...OPTIONS, referenceText: "" },
+);
+const combined = combineAzureAssessmentReports([firstSegment, shortSegment], {
+  ...OPTIONS,
+  referenceText: "",
+});
+assert.equal(combined.status, "scored");
+assert.equal(combined.referenceText, "");
+assert.equal(combined.words.length, 2);
+assert.equal(combined.overall?.pronunciation, 65);
+assert.match(combined.recognizedText, /a good answer fragment/);
 
 console.log("scoring/ielts-pronunciation/azure-assessment tests passed");

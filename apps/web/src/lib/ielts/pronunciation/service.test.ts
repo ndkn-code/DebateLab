@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import type { AiProviderRequestInput } from "@/lib/ai/provider-requests";
 import { EMPTY_PHONEME_REPORT } from "@/lib/scoring/ielts-pronunciation/phoneme-report";
+import { phonemeReportSchema } from "@/lib/scoring/ielts-pronunciation/phoneme-report";
+import {
+  encodeWavPcm16,
+  IELTS_PRONUNCIATION_SAMPLE_RATE,
+} from "@/lib/ielts/audio/wav-encoder";
 import {
   assessPronunciation,
   type AssessPronunciationDeps,
@@ -12,7 +17,7 @@ const AUDIO = new Uint8Array([1, 2, 3, 4]);
 const BASE_INPUT = {
   audio: AUDIO,
   audioContentType: "audio/wav",
-  referenceText: "a good answer",
+  assessmentMode: "unscripted" as const,
   userId: "user-1",
   speakingResponseId: "sr-1",
 };
@@ -34,7 +39,9 @@ const AZURE_OK = {
         {
           Word: "good",
           PronunciationAssessment: { AccuracyScore: 92, ErrorType: "None" },
-          Phonemes: [{ Phoneme: "ɡ", PronunciationAssessment: { AccuracyScore: 95 } }],
+          Phonemes: [
+            { Phoneme: "ɡ", PronunciationAssessment: { AccuracyScore: 95 } },
+          ],
         },
       ],
     },
@@ -56,7 +63,11 @@ function reasonOf(out: AssessPronunciationOutcome): string {
 /** A dep harness recording logged provider calls; override seams per case. */
 function harness(over: Partial<AssessPronunciationDeps> = {}) {
   const recorded: AiProviderRequestInput[] = [];
-  const logs: Array<{ level: "info" | "warn"; message: string; metadata: unknown }> = [];
+  const logs: Array<{
+    level: "info" | "warn";
+    message: string;
+    metadata: unknown;
+  }> = [];
   let fetchCalls = 0;
   const deps: Partial<AssessPronunciationDeps> = {
     getConfig: () => CONFIG,
@@ -70,8 +81,10 @@ function harness(over: Partial<AssessPronunciationDeps> = {}) {
       return jsonResponse(AZURE_OK);
     },
     logger: {
-      info: (message, metadata) => logs.push({ level: "info", message, metadata }),
-      warn: (message, metadata) => logs.push({ level: "warn", message, metadata }),
+      info: (message, metadata) =>
+        logs.push({ level: "info", message, metadata }),
+      warn: (message, metadata) =>
+        logs.push({ level: "warn", message, metadata }),
     },
     ...over,
   };
@@ -101,7 +114,7 @@ async function testNotConfigured() {
     speakingResponseId: "sr-1",
     practiceAttemptId: null,
     audioBytes: 4,
-    hasReferenceText: true,
+    hasReferenceText: false,
   });
 }
 
@@ -119,10 +132,15 @@ async function testMissingReference() {
   const h = harness();
   const out = await assessPronunciation(
     { ...BASE_INPUT, referenceText: "   " },
+    { ...h.deps },
+  );
+  assert.equal(out.status, "ok");
+
+  const scripted = await assessPronunciation(
+    { ...BASE_INPUT, assessmentMode: "scripted", referenceText: "   " },
     h.deps,
   );
-  assert.equal(reasonOf(out), "missing_reference");
-  assert.equal(h.fetchCalls(), 0);
+  assert.equal(reasonOf(scripted), "missing_reference");
 }
 
 async function testSuccess() {
@@ -138,7 +156,7 @@ async function testSuccess() {
   if (out.status !== "ok") throw new Error("unreachable");
   assert.equal(out.report.status, "scored");
   assert.equal(out.report.overall?.pronunciation, 89);
-  assert.equal(out.pronunciationBand, 8); // 89/100*9 = 8.01 → 8.0
+  assert.equal(out.pronunciationBand, null);
   assert.equal(out.providerRequestId, "req-id");
 
   const req = requests[0];
@@ -147,6 +165,10 @@ async function testSuccess() {
   const headers = req.init.headers as Record<string, string>;
   assert.equal(headers["Ocp-Apim-Subscription-Key"], "secret-key");
   assert.equal(req.init.body, AUDIO);
+  const assessment = JSON.parse(
+    Buffer.from(headers["Pronunciation-Assessment"], "base64").toString("utf8"),
+  ) as { ReferenceText: string };
+  assert.equal(assessment.ReferenceText, "");
 
   const rec = h.recorded[0];
   if (!rec) throw new Error("expected a logged provider call");
@@ -157,7 +179,7 @@ async function testSuccess() {
   assert.equal(rec.latencyMs, 0); // now() is constant
   const meta = rec.metadata as Record<string, unknown>;
   assert.equal(meta.speakingResponseId, "sr-1");
-  assert.equal(meta.pronunciationBand, 8);
+  assert.equal(meta.pronunciationBand, undefined);
   assert.equal(meta.audioBytes, 4);
 }
 
@@ -201,6 +223,53 @@ async function testNetworkThrow() {
   assert.equal(h.logs[0]?.level, "warn");
 }
 
+async function testLongAudioUsesContinuousUnscriptedAssessment() {
+  const longAudio = encodeWavPcm16(
+    new Float32Array(IELTS_PRONUNCIATION_SAMPLE_RATE * 26),
+    IELTS_PRONUNCIATION_SAMPLE_RATE,
+  );
+  let continuousCalls = 0;
+  const h = harness({
+    fetchImpl: async () => {
+      throw new Error("short REST path must not run");
+    },
+    assessContinuous: async (input) => {
+      continuousCalls += 1;
+      assert.equal(input.locale, "en-US");
+      return phonemeReportSchema.parse({
+        status: "scored",
+        provider: "azure",
+        model: "pronunciation-assessment",
+        locale: input.locale,
+        referenceText: "",
+        recognizedText: "long spontaneous answer",
+        overall: {
+          accuracy: 80,
+          fluency: 75,
+          completeness: 100,
+          prosody: 72,
+          pronunciation: 78,
+        },
+        words: [
+          { word: "long", accuracy: 80, errorType: "None", phonemes: [] },
+        ],
+      });
+    },
+  });
+  const out = await assessPronunciation(
+    {
+      ...BASE_INPUT,
+      audio: longAudio,
+      audioContentType: "audio/wav; codecs=audio/pcm; samplerate=16000",
+    },
+    h.deps,
+  );
+  assert.equal(out.status, "ok");
+  assert.equal(continuousCalls, 1);
+  assert.equal(h.fetchCalls(), 0);
+  if (out.status === "ok") assert.equal(out.pronunciationBand, null);
+}
+
 async function testLoggingFailureSwallowed() {
   // Even if logging itself throws on the catch path, the call never rejects.
   const out = await assessPronunciation(BASE_INPUT, {
@@ -239,10 +308,13 @@ async function testDefaultDepsNoEnv() {
   } finally {
     if (prevKey !== undefined) process.env.AZURE_SPEECH_KEY = prevKey;
     if (prevRegion !== undefined) process.env.AZURE_SPEECH_REGION = prevRegion;
-    if (prevEndpoint !== undefined) process.env.AZURE_SPEECH_ENDPOINT = prevEndpoint;
+    if (prevEndpoint !== undefined)
+      process.env.AZURE_SPEECH_ENDPOINT = prevEndpoint;
     if (prevAliasKey !== undefined) process.env.SPEECH_KEY = prevAliasKey;
-    if (prevAliasRegion !== undefined) process.env.SPEECH_REGION = prevAliasRegion;
-    if (prevAliasEndpoint !== undefined) process.env.SPEECH_ENDPOINT = prevAliasEndpoint;
+    if (prevAliasRegion !== undefined)
+      process.env.SPEECH_REGION = prevAliasRegion;
+    if (prevAliasEndpoint !== undefined)
+      process.env.SPEECH_ENDPOINT = prevAliasEndpoint;
   }
 }
 
@@ -254,6 +326,7 @@ async function main() {
   await testHttpError();
   await testNoAssessment();
   await testNetworkThrow();
+  await testLongAudioUsesContinuousUnscriptedAssessment();
   await testLoggingFailureSwallowed();
   await testDefaultDepsNoEnv();
 }

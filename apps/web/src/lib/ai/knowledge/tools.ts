@@ -26,6 +26,8 @@ function rubricFallback(params: IeltsRubricToolRequest) {
     deadlineMs: params.deadlineMs,
     limit: params.limit,
     supabase: params.supabase,
+    corpusVersion: params.corpusVersion,
+    sensitiveQuery: params.sensitiveQuery,
   });
 }
 
@@ -52,6 +54,8 @@ export async function getIeltsRubric(
     limit: params.limit,
     deadlineMs: params.deadlineMs,
     supabase: params.supabase,
+    corpusVersion: params.corpusVersion,
+    sensitiveQuery: params.sensitiveQuery,
   });
   if (generic.evidence.length > 0)
     return { ...generic, collection: "ielts_rubric" };
@@ -78,6 +82,8 @@ export async function findIeltsBandExamples(
     limit: params.limit,
     deadlineMs: params.deadlineMs,
     supabase: params.supabase,
+    corpusVersion: params.corpusVersion,
+    sensitiveQuery: params.sensitiveQuery,
   });
   if (
     generic.evidence.length > 0 ||
@@ -98,6 +104,8 @@ export async function findIeltsBandExamples(
     limit: params.limit,
     deadlineMs: params.deadlineMs,
     supabase: params.supabase,
+    corpusVersion: params.corpusVersion,
+    sensitiveQuery: params.sensitiveQuery,
   });
 }
 

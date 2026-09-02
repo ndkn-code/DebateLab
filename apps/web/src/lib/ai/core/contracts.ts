@@ -113,6 +113,8 @@ export interface AiAttempt {
   status: "success" | "error";
   latencyMs: number;
   failureKind?: AiFailureKind;
+  /** HTTP status when the provider definitely returned a response. */
+  responseStatus?: number;
   providerRequestId?: string | null;
 }
 

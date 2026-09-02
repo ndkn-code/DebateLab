@@ -3,6 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "acoustic:preprocess": "NODE_OPTIONS='--conditions=react-server' tsx --tsconfig ../../apps/web/tsconfig.json src/acoustic-preprocessor-cli.ts",
+    "benchmark": "NODE_OPTIONS='--conditions=react-server' tsx --tsconfig ../../apps/web/tsconfig.json src/benchmark-cli.ts",
     "start": "NODE_OPTIONS='--conditions=react-server' tsx --tsconfig ../../apps/web/tsconfig.json src/server.ts",
     "test": "NODE_ENV=test NODE_OPTIONS='--conditions=react-server' tsx --tsconfig ../../apps/web/tsconfig.json --test src/*.test.ts",
     "typecheck": "tsc --noEmit --project tsconfig.json"
