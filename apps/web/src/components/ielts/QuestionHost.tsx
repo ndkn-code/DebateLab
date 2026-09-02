@@ -4,45 +4,68 @@
  * Renders one IELTS question via the WS-1.2 renderer registry (WS-2.1). Owns the
  * prompt/number chrome; delegates answer capture to the registered (or fallback)
  * renderer through the typed contract.
+ *
+ * `variant="row"` is the compact numbered row used inside `SpeakingQuestionList`
+ * (Part 1 / Part 3); the default `"card"` keeps the historical bordered block.
+ * `numberLabel` overrides the displayed number (e.g. "21–22" for a span).
  */
 import type { IeltsQuestionView } from "@/lib/ielts/question-contract";
 import { isObjectiveQuestionType } from "@/lib/ielts/question-types";
 import {
-  mockAnnotationKey,
-  useMockAnnotationsStore,
-} from "@/lib/stores/mockAnnotationsStore";
-import { Bookmark, BookmarkCheck } from "@/components/ui/icons";
-import {
   getIeltsQuestionRenderer,
   type IeltsRendererContext,
 } from "./question-renderer-registry";
+import { FlagToggle } from "./questions/FlagToggle";
 import { ensureIeltsTaskRenderersRegistered } from "./questions/register-task-renderers";
 import { QuestionHighlighter } from "./QuestionHighlighter";
 
 // Register the Writing/Speaking capture surfaces before any renderer is resolved.
 ensureIeltsTaskRenderersRegistered();
 
+export type QuestionHostVariant = "card" | "row";
+
+function QuestionPrompt({ question }: { question: IeltsQuestionView }) {
+  return (
+    <>
+      <p className="text-sm font-medium text-on-surface">{question.prompt}</p>
+      {question.wordLimit !== null ? (
+        <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
+          Write no more than {question.wordLimit}{" "}
+          {question.wordLimit === 1 ? "word" : "words"}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
 export function QuestionHost({
   question,
   number,
+  numberLabel,
   value,
   disabled,
   onChange,
   context,
   allowFlag = false,
   onOpenNotes,
+  variant = "card",
 }: {
   question: IeltsQuestionView;
   number: number;
+  /** Display override for the number badge (e.g. "21–22" for numberSpan rows). */
+  numberLabel?: string;
   value: unknown;
   disabled: boolean;
   onChange: (value: unknown) => void;
   context?: IeltsRendererContext;
   allowFlag?: boolean;
   onOpenNotes?: (noteId: string) => void;
+  variant?: QuestionHostVariant;
 }) {
   const renderQuestion = getIeltsQuestionRenderer(question.questionType);
   const objective = isObjectiveQuestionType(question.questionType);
+  // A Part 2 cue card renders its own boxed prompt; the raw text would repeat it.
+  const showPrompt = !objective && question.cueCard === null;
   const renderer = renderQuestion({
     question,
     value,
@@ -50,43 +73,30 @@ export function QuestionHost({
     onChange,
     context,
   });
-  const isFlagged = useMockAnnotationsStore((store) => {
-    if (!store.activeAttemptId) return false;
-    return (
-      store.flags[mockAnnotationKey(store.activeAttemptId, question.id)] ===
-      true
-    );
-  });
-  const toggleFlag = useMockAnnotationsStore((store) => store.toggleFlag);
-  const FlagIcon = isFlagged ? BookmarkCheck : Bookmark;
+  const row = variant === "row";
 
   return (
     <div
       id={`mock-q-${question.id}`}
-      className="scroll-mt-24 rounded-xl border border-outline-variant bg-surface-container p-5"
+      className={
+        row
+          ? "scroll-mt-24 px-4 py-3"
+          : "scroll-mt-24 rounded-xl border border-outline-variant bg-surface-container p-5"
+      }
     >
       <div className="flex items-start gap-3">
         <div className="flex shrink-0 flex-col items-center gap-2">
-          <span className="flex size-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-on-primary">
-            {number}
+          <span
+            className={
+              row
+                ? "flex h-6 min-w-6 items-center justify-center rounded-full bg-surface-container-high px-1.5 text-xs font-semibold tabular-nums text-on-surface"
+                : "flex h-7 min-w-7 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-bold tabular-nums text-on-primary"
+            }
+          >
+            {numberLabel ?? number}
           </span>
           {allowFlag ? (
-            <button
-              type="button"
-              onClick={() => toggleFlag(question.id)}
-              aria-pressed={isFlagged}
-              title={isFlagged ? "Remove flag" : "Flag for review"}
-              className={`flex size-7 items-center justify-center rounded-full border transition active:scale-95 ${
-                isFlagged
-                  ? "border-warning bg-warning-container text-on-warning-container"
-                  : "border-outline-variant bg-surface text-on-surface-variant hover:border-warning hover:text-warning"
-              }`}
-            >
-              <FlagIcon className="size-3.5" aria-hidden="true" />
-              <span className="sr-only">
-                {isFlagged ? "Remove flag" : "Flag for review"}
-              </span>
-            </button>
+            <FlagToggle questionId={question.id} size={row ? "sm" : "md"} />
           ) : null}
         </div>
         <QuestionHighlighter questionId={question.id} onOpenNotes={onOpenNotes}>
@@ -94,16 +104,8 @@ export function QuestionHost({
             renderer
           ) : (
             <>
-              <p className="text-sm font-medium text-on-surface">
-                {question.prompt}
-              </p>
-              {question.wordLimit !== null ? (
-                <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-on-surface-variant">
-                  Write no more than {question.wordLimit}{" "}
-                  {question.wordLimit === 1 ? "word" : "words"}
-                </p>
-              ) : null}
-              <div className="mt-3">{renderer}</div>
+              {showPrompt ? <QuestionPrompt question={question} /> : null}
+              <div className={showPrompt ? "mt-3" : undefined}>{renderer}</div>
             </>
           )}
         </QuestionHighlighter>

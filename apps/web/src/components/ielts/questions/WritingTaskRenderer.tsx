@@ -6,14 +6,16 @@
  * + feedback. The draft (essay + in-flight response id) is persisted through the
  * player's response map via `onChange`, so it survives part/section navigation and
  * a reload resumes the poll. Registered for the `writing_*` question types.
+ *
+ * Task 1 keeps its figure (Academic) or letter brief (General Training) beside
+ * the editor; the exam textarea, minimum-length meter and GT scaffold live in
+ * `../writing/`.
  */
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import type { IeltsRendererProps } from "../question-renderer-registry";
 import type { WritingResponseView } from "@/lib/api/ielts/writing-responses-repository";
 import { showToast } from "@/components/shared/toast";
-import { GradingConfidenceNote } from "@/components/ielts/learner/GradingConfidenceNote";
-import { gradingPresentationFromResult } from "@/components/ielts/learner/GradingResultDetails";
 import {
   CaptureRequestError,
   pollWritingResponse,
@@ -21,17 +23,13 @@ import {
 } from "@/lib/api/ielts/capture-client";
 import {
   countWords,
-  extractFeedbackSummary,
   parseWritingCaptureValue,
   recommendedMinWords,
 } from "@/lib/ielts/capture/capture-format";
-import {
-  CaptureBandResult,
-  CaptureDetails,
-  CaptureErrorNote,
-  CaptureScoringNote,
-  type CaptureBandRow,
-} from "./CaptureBandResult";
+import { GtLetterScaffold } from "../writing/GtLetterScaffold";
+import { WritingEditor } from "../writing/WritingEditor";
+import { WritingScoreCard } from "../writing/WritingScoreCard";
+import { CaptureErrorNote, CaptureScoringNote } from "./CaptureBandResult";
 import { QuestionVisual } from "./QuestionVisual";
 import { useScoringPoll } from "./useScoringPoll";
 import {
@@ -39,110 +37,34 @@ import {
   getCaptureActionState,
 } from "./capture-action-state";
 
-function WordCount({ words, minWords }: { words: number; minWords: number }) {
-  const t = useTranslations("ielts.player");
-  const below = words > 0 && words < minWords;
-  return (
-    <span className="type-caption text-on-surface-variant">
-      {t("writing.wordCount", { count: words })}
-      {below ? ` · ${t("writing.recommendedMin", { count: minWords })}` : ""}
-    </span>
-  );
-}
-
-function WritingScoreCard({ view }: { view: WritingResponseView }) {
-  const t = useTranslations("ielts.player");
-  const locale = useLocale();
-  const grading = gradingPresentationFromResult(view);
-  const rows: CaptureBandRow[] = [
-    {
-      key: "tr",
-      label: t("bands.taskResponse"),
-      band: view.bands.taskResponse,
-    },
-    {
-      key: "cc",
-      label: t("bands.coherenceCohesion"),
-      band: view.bands.coherenceCohesion,
-    },
-    {
-      key: "lr",
-      label: t("bands.lexicalResource"),
-      band: view.bands.lexicalResource,
-    },
-    {
-      key: "gr",
-      label: t("bands.grammaticalRangeAccuracy"),
-      band: view.bands.grammaticalRangeAccuracy,
-    },
-  ];
-  return (
-    <CaptureBandResult
-      headlineLabel={t("writing.taskBand")}
-      headlineBand={view.bands.task}
-      rows={rows}
-      summary={extractFeedbackSummary(view.criteriaFeedback, locale)}
-    >
-      {view.modelAnswer ? (
-        <CaptureDetails summary={t("writing.modelAnswer")}>
-          {view.modelAnswer}
-        </CaptureDetails>
-      ) : null}
-      {grading ? (
-        <GradingConfidenceNote metadata={grading.metadata} locale={locale} />
-      ) : null}
-    </CaptureBandResult>
-  );
-}
-
-function WritingEditor({
-  essay,
-  minWords,
-  disabled,
-  isSimulation,
-  actionState,
-  canSubmit,
-  onEssay,
-  onSubmit,
+/**
+ * Task 1 keeps its brief beside the editor: the Academic figure (charts go
+ * through `QuestionVisual` → `@/components/charts`) or the GT letter scaffold.
+ */
+function WritingTaskLayout({
+  question,
+  children,
 }: {
-  essay: string;
-  minWords: number;
-  disabled: boolean;
-  isSimulation: boolean;
-  actionState: ReturnType<typeof getCaptureActionState>;
-  canSubmit: boolean;
-  onEssay: (text: string) => void;
-  onSubmit: () => void;
+  question: IeltsRendererProps["question"];
+  children: ReactNode;
 }) {
   const t = useTranslations("ielts.player");
+  const brief = question.visual ? (
+    <div className="flex min-w-0 flex-col gap-2">
+      <span className="type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
+        {t("writing.task1Visual")}
+      </span>
+      <QuestionVisual visual={question.visual} />
+    </div>
+  ) : question.letter ? (
+    <GtLetterScaffold letter={question.letter} />
+  ) : null;
+
+  if (!brief) return <>{children}</>;
   return (
-    <div className="flex min-w-0 flex-col gap-3">
-      <textarea
-        value={essay}
-        disabled={disabled}
-        onChange={(event) => onEssay(event.target.value)}
-        placeholder={t("writing.placeholder")}
-        className="min-h-[40vh] w-full resize-y rounded-xl border border-outline-variant bg-surface px-4 py-3 type-body-sm leading-relaxed text-on-surface outline-none placeholder:text-on-surface-variant focus-visible:ring-2 focus-visible:ring-primary/45 disabled:opacity-60"
-      />
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <WordCount words={countWords(essay)} minWords={minWords} />
-        {isSimulation ? (
-          <span className="type-caption font-medium text-on-surface-variant">
-            {t("writing.simulationAutosave")}
-          </span>
-        ) : canStartPaidScoring(actionState) ? (
-          <button
-            type="button"
-            onClick={onSubmit}
-            disabled={!canSubmit}
-            className="rounded-full bg-primary px-5 py-2 type-body-sm font-semibold text-on-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 disabled:opacity-50"
-          >
-            {actionState === "retryable"
-              ? t("writing.retry")
-              : t("writing.submit")}
-          </button>
-        ) : null}
-      </div>
+    <div className="grid items-start gap-5 lg:grid-cols-2">
+      {brief}
+      {children}
     </div>
   );
 }
@@ -250,6 +172,7 @@ export function WritingTaskRenderer({
   const editor = (
     <WritingEditor
       essay={essay}
+      words={words}
       minWords={recommendedMinWords(question.questionType)}
       disabled={disabled || submitting || actionState === "complete"}
       isSimulation={isSimulation}
@@ -265,14 +188,7 @@ export function WritingTaskRenderer({
       <p className="type-body-sm text-on-surface-variant">
         {t(isSimulation ? "writing.simulationIntro" : "writing.intro")}
       </p>
-      {question.visual ? (
-        <div className="grid items-start gap-5 lg:grid-cols-2">
-          <QuestionVisual visual={question.visual} />
-          {editor}
-        </div>
-      ) : (
-        editor
-      )}
+      <WritingTaskLayout question={question}>{editor}</WritingTaskLayout>
 
       <WritingStatus
         isSimulation={isSimulation}

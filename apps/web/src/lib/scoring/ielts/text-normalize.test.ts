@@ -7,6 +7,7 @@ import {
   numberWordsToDigits,
   numericValue,
   parseAllowNumber,
+  stripOrdinalSuffix,
   textMatches,
 } from "./text-normalize";
 
@@ -121,5 +122,17 @@ assert.equal(textMatches("a", [""]), false); // article-only never matches empty
 assert.equal(textMatches("a", ["a"]), true);
 assert.equal(textMatches("first floor", ["1st floor"]), true);
 assert.equal(textMatches("twenty two", ["twenty three"]), false);
+
+// ── ordinal suffixes count as numbers ──
+{
+  assert.equal(stripOrdinalSuffix("3rd"), "3");
+  assert.equal(stripOrdinalSuffix("21st"), "21");
+  assert.equal(stripOrdinalSuffix("third"), "third");
+  assert.equal(canonicalForMatch("3rd March"), "3 march");
+  assert.equal(textMatches("3rd March", ["3 March"]), true);
+  assert.equal(textMatches("third of March", ["3 March"]), false);
+  assert.equal(countWords("3rd March", { allowNumber: true }), 1);
+  assert.equal(countWords("3rd March"), 2);
+}
 
 console.log("scoring/ielts/text-normalize tests passed");

@@ -16,6 +16,9 @@ import {
 import type { AssessmentMode } from "@/lib/ielts/assessment-mode";
 import { PassageHighlighter } from "./PassageHighlighter";
 import { QuestionHost } from "./QuestionHost";
+import { WritingPartLayout } from "./writing/WritingSectionTabs";
+import { SpeakingQuestionList } from "./questions/speaking/SpeakingQuestionList";
+import type { IeltsQuestionView } from "@/lib/ielts/question-contract";
 import { QuestionGroupHost } from "./questions/groups";
 import type { MockPart } from "./mock-parts";
 
@@ -85,6 +88,30 @@ export function SectionPart({
     );
   }, [numberOffset, numbers, part]);
 
+  const skill = part.questions[0]?.skill;
+  const hostFor = (
+    question: IeltsQuestionView,
+    number: number,
+    numberLabel?: string,
+    variant?: "card" | "row",
+  ) => (
+    <QuestionHost
+      key={question.id}
+      question={question}
+      number={number}
+      numberLabel={numberLabel}
+      value={responses[question.id]}
+      disabled={disabled}
+      onChange={(value) => onAnswer(question.id, value)}
+      context={{ attemptId, assessmentMode }}
+      allowFlag
+      onOpenNotes={onOpenNotes}
+      variant={variant}
+    />
+  );
+  const isSpeakingList =
+    skill === "speaking" && part.questions[0]?.questionType !== "speaking_part2_cuecard";
+
   return (
     <div
       className={
@@ -93,19 +120,23 @@ export function SectionPart({
     >
       {hasStimulus ? stimulus : null}
       <div className="flex flex-col gap-3">
-        {blocks.map((block) =>
+        {skill === "writing" ? (
+          <WritingPartLayout
+            questions={part.questions}
+            responses={responses}
+            renderQuestion={(question, index) => hostFor(question, numberOffset + index + 1)}
+          />
+        ) : isSpeakingList ? (
+          <SpeakingQuestionList
+            title={part.title}
+            questions={part.questions}
+            numberOffset={numberOffset}
+            renderQuestion={(question, number) => hostFor(question, number, undefined, "row")}
+          />
+        ) : (
+          blocks.map((block) =>
           block.kind === "single" ? (
-            <QuestionHost
-              key={block.question.id}
-              question={block.question}
-              number={block.number.start}
-              value={responses[block.question.id]}
-              disabled={disabled}
-              onChange={(value) => onAnswer(block.question.id, value)}
-              context={{ attemptId, assessmentMode }}
-              allowFlag
-              onOpenNotes={onOpenNotes}
-            />
+            hostFor(block.question, block.number.start, block.number.label)
           ) : (
             <QuestionGroupHost
               key={`group-${block.group.groupKey}-${block.questions[0]?.id ?? ""}`}
@@ -117,6 +148,7 @@ export function SectionPart({
               verdicts={verdicts}
             />
           ),
+          )
         )}
         {part.questions.length === 0 ? (
           <p className="text-sm text-on-surface-variant">{t("noQuestions")}</p>

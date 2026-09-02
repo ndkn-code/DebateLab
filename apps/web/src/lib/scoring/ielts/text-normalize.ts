@@ -219,7 +219,19 @@ export function canonicalForMatch(input: string): string {
     .replace(/ - /g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return numberWordsToDigits(spaced).replace(LEADING_ARTICLE, "");
+  return numberWordsToDigits(spaced)
+    .split(" ")
+    .map(stripOrdinalSuffix)
+    .join(" ")
+    .replace(LEADING_ARTICLE, "");
+}
+
+const ORDINAL_SUFFIX = /^(\d+)(?:st|nd|rd|th)$/;
+
+/** `3rd` → `3`, `21st` → `21`; anything else unchanged (dates: `3rd March` ≡ `3 March`). */
+export function stripOrdinalSuffix(token: string): string {
+  const match = ORDINAL_SUFFIX.exec(token);
+  return match ? match[1] : token;
 }
 
 export interface WordCountOptions {
@@ -236,7 +248,7 @@ export function countWords(input: string, options: WordCountOptions = {}): numbe
   if (normalized === "") return 0;
   const tokens = normalized.split(" ");
   if (!options.allowNumber) return tokens.length;
-  return tokens.filter((token) => numericValue(token) === null).length;
+  return tokens.filter((token) => numericValue(stripOrdinalSuffix(token)) === null).length;
 }
 
 /** True when the answer is over the question's word limit (IELTS: over = wrong). */

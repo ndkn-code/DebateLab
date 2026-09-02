@@ -7,211 +7,29 @@
  * the band + criteria + feedback (carrying a real phoneme report when Azure creds
  * are present). The in-flight response id is persisted via `onChange` so a reload
  * resumes the poll. Registered for the `speaking_*` question types.
+ *
+ * Part 2 adds the cue card + timed stage: preparation countdown → recording
+ * auto-starts → speaking countdown → recording auto-stops → submit as usual.
+ * Part 1 / Part 3 keep the manual record → stop → submit flow. Upload/poll
+ * state lives in `speaking/useSpeakingSubmission`; the clock ↔ recorder binding
+ * in `speaking/useCueCardFlow`.
  */
 import { useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
+import { useTranslations } from "next-intl";
 import type { IeltsRendererProps } from "../question-renderer-registry";
-import type { SpeakingResponseView } from "@/lib/api/ielts/speaking-responses-repository";
-import { showToast } from "@/components/shared/toast";
-import { GradingConfidenceNote } from "@/components/ielts/learner/GradingConfidenceNote";
-import { gradingPresentationFromResult } from "@/components/ielts/learner/GradingResultDetails";
+import { parseSpeakingCaptureValue } from "@/lib/ielts/capture/capture-format";
+import { useSpeakingRecorder } from "./useSpeakingRecorder";
+import { CueCardStage } from "./speaking/CueCardStage";
+import { SpeakingCapture } from "./speaking/SpeakingCapture";
+import { SpeakingCueCard } from "./speaking/SpeakingCueCard";
+import { SpeakingStatus } from "./speaking/SpeakingStatus";
 import {
-  CaptureRequestError,
-  pollSpeakingResponse,
-  submitSpeakingResponse,
-  uploadSpeakingAudio,
-} from "@/lib/api/ielts/capture-client";
-import {
-  extractFeedbackSummary,
-  hasPhonemeDetail,
-  parseSpeakingCaptureValue,
-} from "@/lib/ielts/capture/capture-format";
-import {
-  useSpeakingRecorder,
-  type RecorderErrorCode,
-  type SpeakingRecorder,
-} from "./useSpeakingRecorder";
-import {
-  CaptureBandResult,
-  CaptureDetails,
-  CaptureErrorNote,
-  CaptureScoringNote,
-  type CaptureBandRow,
-} from "./CaptureBandResult";
-import { useScoringPoll } from "./useScoringPoll";
-import {
-  canStartPaidScoring,
-  getCaptureActionState,
-  type CaptureActionState,
-} from "./capture-action-state";
-
-const RECORDER_ERROR_KEYS: Record<RecorderErrorCode, string> = {
-  mic_denied: "speaking.micDenied",
-  no_audio: "speaking.noSpeech",
-  encode_failed: "speaking.failed",
-};
-
-const PILL =
-  "rounded-full px-5 py-2 type-body-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/45 disabled:opacity-50";
-
-function speakingGuidanceKey(questionType: string): string {
-  if (questionType === "speaking_part1") return "speaking.part1Hint";
-  if (questionType === "speaking_part2_cuecard") return "speaking.part2Hint";
-  if (questionType === "speaking_part3") return "speaking.part3Hint";
-  return "speaking.intro";
-}
-
-function SpeakingCapture({
-  recorder,
-  disabled,
-  submitting,
-  canSubmit,
-  actionState,
-  onSubmit,
-  onRecordAgain,
-}: {
-  recorder: SpeakingRecorder;
-  disabled: boolean;
-  submitting: boolean;
-  canSubmit: boolean;
-  actionState: CaptureActionState;
-  onSubmit: () => void;
-  onRecordAgain: () => void;
-}) {
-  const t = useTranslations("ielts.player");
-
-  if (recorder.status === "recording") {
-    return (
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-outline-variant bg-surface-container px-4 py-3">
-        <span className="flex items-center gap-2 type-body-sm font-medium text-on-surface">
-          <span
-            className="size-2.5 animate-pulse rounded-full bg-error"
-            aria-hidden="true"
-          />
-          {t("speaking.recording")} · {recorder.elapsedSeconds}s
-        </span>
-        <button
-          type="button"
-          onClick={recorder.stop}
-          className={`${PILL} bg-primary text-on-primary`}
-        >
-          {t("speaking.stop")}
-        </button>
-      </div>
-    );
-  }
-
-  if (recorder.status === "processing") {
-    return <CaptureScoringNote title={t("speaking.processing")} />;
-  }
-
-  if (recorder.result) {
-    const actionsAvailable = canStartPaidScoring(actionState);
-    return (
-      <div className="flex flex-col gap-2 rounded-xl border border-outline-variant bg-surface-container px-4 py-3">
-        <span className="type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
-          {t("speaking.yourRecording")}
-        </span>
-        <audio
-          controls
-          src={recorder.result.playbackUrl}
-          aria-label={t("speaking.yourRecording")}
-          className="w-full"
-        />
-        {actionsAvailable ? (
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={onRecordAgain}
-              disabled={disabled || submitting}
-              className={`${PILL} bg-surface-container-high text-on-surface`}
-            >
-              {t("speaking.rerecord")}
-            </button>
-            <button
-              type="button"
-              onClick={onSubmit}
-              disabled={submitting || !canSubmit}
-              className={`${PILL} bg-primary text-on-primary`}
-            >
-              {submitting
-                ? t("speaking.submitting")
-                : actionState === "retryable"
-                  ? t("speaking.retry")
-                  : t("speaking.submit")}
-            </button>
-          </div>
-        ) : null}
-      </div>
-    );
-  }
-
-  if (!canStartPaidScoring(actionState)) return null;
-
-  return (
-    <button
-      type="button"
-      onClick={() => {
-        if (actionState === "retryable") onRecordAgain();
-        void recorder.start();
-      }}
-      disabled={disabled}
-      className={`${PILL} self-start bg-primary text-on-primary`}
-    >
-      {t(actionState === "retryable" ? "speaking.rerecord" : "speaking.record")}
-    </button>
-  );
-}
-
-function SpeakingScoreCard({ view }: { view: SpeakingResponseView }) {
-  const t = useTranslations("ielts.player");
-  const locale = useLocale();
-  const grading = gradingPresentationFromResult(view);
-  const rows: CaptureBandRow[] = [
-    {
-      key: "fc",
-      label: t("bands.fluencyCoherence"),
-      band: view.bands.fluencyCoherence,
-    },
-    {
-      key: "lr",
-      label: t("bands.lexicalResource"),
-      band: view.bands.lexicalResource,
-    },
-    {
-      key: "gr",
-      label: t("bands.grammaticalRangeAccuracy"),
-      band: view.bands.grammaticalRangeAccuracy,
-    },
-    {
-      key: "pr",
-      label: t("bands.pronunciation"),
-      band: view.bands.pronunciation,
-    },
-  ];
-  return (
-    <CaptureBandResult
-      headlineLabel={t("speaking.speakingBand")}
-      headlineBand={view.bands.speaking}
-      rows={rows}
-      summary={extractFeedbackSummary(view.feedback, locale)}
-    >
-      {view.transcript ? (
-        <CaptureDetails summary={t("speaking.transcript")}>
-          {view.transcript}
-        </CaptureDetails>
-      ) : null}
-      {hasPhonemeDetail(view.phonemeReport) ? (
-        <p className="type-caption text-on-surface-variant">
-          {t("speaking.pronunciationDetail")}
-        </p>
-      ) : null}
-      {grading ? (
-        <GradingConfidenceNote metadata={grading.metadata} locale={locale} />
-      ) : null}
-    </CaptureBandResult>
-  );
-}
+  cueCardTiming,
+  speakingCaptureContext,
+  speakingGuidanceKey,
+} from "./speaking/speaking-guidance";
+import { useCueCardFlow } from "./speaking/useCueCardFlow";
+import { useSpeakingSubmission } from "./speaking/useSpeakingSubmission";
 
 export function SpeakingTaskRenderer({
   question,
@@ -221,109 +39,93 @@ export function SpeakingTaskRenderer({
   context,
 }: IeltsRendererProps) {
   const t = useTranslations("ielts.player");
-  const locale = useLocale();
   const recorder = useSpeakingRecorder();
-
   const [initial] = useState(() => parseSpeakingCaptureValue(value));
-  const [submitting, setSubmitting] = useState(false);
-  const [errorKey, setErrorKey] = useState<string | null>(null);
-  const poll = useScoringPoll<SpeakingResponseView>(
-    initial.speakingResponseId,
-    pollSpeakingResponse,
-  );
+  const { attemptId, isSimulation } = speakingCaptureContext(context);
+  const timing = cueCardTiming(question);
 
-  const attemptId = context?.attemptId ?? null;
-  const working = submitting || poll.pending;
-  const actionState = getCaptureActionState({
-    responseId: poll.responseId,
-    scored: poll.scored,
-    failed: poll.failed,
-    submitting,
+  const submission = useSpeakingSubmission({
+    attemptId,
+    questionId: question.id,
+    initialResponseId: initial.speakingResponseId,
+    disabled,
+    onChange,
   });
-  const recorderErrorKey = recorder.error
-    ? RECORDER_ERROR_KEYS[recorder.error]
-    : null;
-  const guidanceKey = speakingGuidanceKey(question.questionType);
+
+  const flow = useCueCardFlow({
+    enabled: timing.isCueCard,
+    attemptId,
+    questionId: question.id,
+    prepSeconds: timing.prepSeconds,
+    speakSeconds: timing.speakSeconds,
+    recorder,
+  });
+
+  const stageOpen =
+    timing.isCueCard &&
+    submission.canAct &&
+    !recorder.result &&
+    recorder.status !== "processing";
 
   const handleRecordAgain = () => {
-    if (!canStartPaidScoring(actionState)) return;
+    if (!submission.canAct) return;
     recorder.reset();
-    poll.clear();
-    setErrorKey(null);
-    onChange({ speakingResponseId: null, audioStoragePath: null });
+    submission.clear();
+    flow.reset();
   };
 
-  const handleSubmit = async () => {
-    const result = recorder.result;
-    if (
-      !attemptId ||
-      submitting ||
-      !result ||
-      !canStartPaidScoring(actionState)
-    )
-      return;
-    setSubmitting(true);
-    setErrorKey(null);
-    try {
-      const audioStoragePath = await uploadSpeakingAudio({
-        attemptId,
-        questionId: question.id,
-        wav: result.wav,
-      });
-      const submitted = await submitSpeakingResponse({
-        attemptId,
-        questionId: question.id,
-        audioStoragePath,
-        durationSeconds: Math.max(1, Math.round(result.durationSeconds)),
-        feedbackLanguage: locale === "vi" ? "vi" : "en",
-      });
-      poll.begin(submitted.speakingResponseId);
-      onChange({
-        speakingResponseId: submitted.speakingResponseId,
-        audioStoragePath,
-      });
-      showToast(t("speaking.toastSubmitted"), "success");
-    } catch (error) {
-      const limit =
-        error instanceof CaptureRequestError && error.status === 402;
-      const key = limit ? "speaking.limitReached" : "speaking.failed";
-      setErrorKey(key);
-      showToast(t(key), "error");
-    } finally {
-      setSubmitting(false);
-    }
+  const handleStart = () => {
+    if (submission.actionState === "retryable") handleRecordAgain();
+    void recorder.start();
+  };
+
+  const handleSubmit = () => {
+    if (recorder.result) void submission.submit(recorder.result);
   };
 
   return (
     <div className="flex flex-col gap-3">
-      <p className="type-body-sm text-on-surface-variant">{t(guidanceKey)}</p>
+      {timing.isCueCard ? (
+        <SpeakingCueCard cueCard={timing.cueCard} prompt={question.prompt} />
+      ) : null}
+      <p className="type-body-sm text-on-surface-variant">
+        {t(speakingGuidanceKey(question.questionType))}
+      </p>
+
+      {stageOpen ? (
+        <CueCardStage
+          state={flow.state}
+          remaining={flow.remaining}
+          disabled={disabled}
+          canSkipPrep={!isSimulation}
+          onStartPrep={flow.startPrep}
+          onSkipPrep={flow.skipPrep}
+        />
+      ) : null}
 
       <SpeakingCapture
         recorder={recorder}
         disabled={disabled}
-        submitting={submitting}
-        canSubmit={
-          Boolean(attemptId) && !disabled && canStartPaidScoring(actionState)
-        }
-        actionState={actionState}
+        submitting={submission.submitting}
+        canSubmit={submission.canSubmit}
+        actionState={submission.actionState}
+        remainingSeconds={flow.phase === "speaking" ? flow.remaining : null}
+        hideRecordButton={timing.isCueCard && flow.phase !== "done"}
+        onStart={handleStart}
+        onStop={flow.stop}
         onSubmit={handleSubmit}
         onRecordAgain={handleRecordAgain}
       />
 
-      {recorderErrorKey ? (
-        <CaptureErrorNote message={t(recorderErrorKey)} />
-      ) : null}
-      {errorKey ? <CaptureErrorNote message={t(errorKey)} /> : null}
-      {poll.failed && !errorKey ? (
-        <CaptureErrorNote message={t("speaking.failed")} />
-      ) : null}
-      {working ? (
-        <CaptureScoringNote
-          title={submitting ? t("speaking.submitting") : t("speaking.scoring")}
-          hint={t("speaking.scoringHint")}
-        />
-      ) : null}
-      {poll.scored && poll.view ? <SpeakingScoreCard view={poll.view} /> : null}
+      <SpeakingStatus
+        timeUp={flow.endedByTimer && recorder.result !== null}
+        recorderError={recorder.error}
+        errorKey={submission.errorKey}
+        pollFailed={submission.pollFailed}
+        working={submission.working}
+        submitting={submission.submitting}
+        scoredView={submission.scoredView}
+      />
     </div>
   );
 }
