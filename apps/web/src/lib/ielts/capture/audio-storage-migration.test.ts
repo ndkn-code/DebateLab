@@ -5,7 +5,7 @@ import { join } from "node:path";
 const migration = readFileSync(
   join(
     process.cwd(),
-    "../../supabase/migrations/20260901010000_fix_ielts_speaking_audio_upload.sql",
+    "../../supabase/migrations/20260901044330_fix_ielts_speaking_audio_upload.sql",
   ),
   "utf8",
 );
