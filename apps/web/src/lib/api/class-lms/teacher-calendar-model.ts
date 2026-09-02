@@ -75,6 +75,12 @@ export interface TeacherCalendarCounts {
 export interface TeacherCalendarEvent {
   id: string;
   scheduleId: string;
+  /** Version of the recurring schedule used by schedule mutations. */
+  scheduleUpdatedAt: string | null;
+  /** Version of the materialized occurrence, when one exists. */
+  occurrenceUpdatedAt: string | null;
+  /** The token required by the permitted mutation for this event. */
+  expectedUpdatedAt: string;
   occurrenceId: string | null;
   classId: string;
   classTitle: string;
@@ -112,6 +118,12 @@ export interface TeacherCalendarRangeResult {
 
 export interface TeacherCalendarEventDetail extends TeacherCalendarEvent {
   rosterCount: number;
+  roster: Array<{
+    id: string;
+    name: string;
+    enrollmentStatus: "enrolled" | "removed_after_occurrence";
+    status: "present" | "late" | "absent" | "unmarked";
+  }>;
   lessonNotes: string | null;
   materials: Array<{
     id: string;
@@ -142,6 +154,25 @@ export interface TeacherCalendarEventDetail extends TeacherCalendarEvent {
     publishAt: string | null;
   }>;
   actionUrls: Partial<Record<keyof TeacherCalendarActionPermissions, string>>;
+}
+
+export type TeacherCalendarMutation = "reschedule" | "cancel" | "complete";
+
+export function canMutateTeacherCalendarEvent(
+  event: Pick<
+    TeacherCalendarEvent,
+    "actions" | "scheduleUpdatedAt" | "occurrenceId" | "occurrenceUpdatedAt"
+  >,
+  mutation: TeacherCalendarMutation,
+): boolean {
+  if (!event.actions[mutation]) return false;
+  if (mutation === "reschedule") {
+    return (
+      event.scheduleUpdatedAt !== null ||
+      (event.occurrenceId !== null && event.occurrenceUpdatedAt !== null)
+    );
+  }
+  return event.occurrenceId !== null && event.occurrenceUpdatedAt !== null;
 }
 
 export interface TeacherCalendarPreferences {
@@ -309,7 +340,8 @@ export function zonedWallClockToUtc(
     minute,
     Number(second),
   );
-  if (!validTimezone(timezone)) throw new Error(`Invalid timezone: ${timezone}`);
+  if (!validTimezone(timezone))
+    throw new Error(`Invalid timezone: ${timezone}`);
   // Gather every offset in a generous window around the requested wall time.
   // This covers DST gaps/folds (including half-hour transitions) without
   // assuming that a transition occurs at a particular UTC hour.

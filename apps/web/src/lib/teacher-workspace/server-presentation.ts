@@ -151,7 +151,11 @@ async function loadDetails(events: TeacherCalendarEvent[]) {
         {
           eventId: event.id,
           actionUrls: detail.actionUrls,
-          roster: [],
+          roster: detail.roster.map((student) => ({
+            id: student.id,
+            name: student.name,
+            status: student.status,
+          })),
           rosterCount: detail.rosterCount,
           lessonNotes: detail.lessonNotes,
           materials: detail.materials,

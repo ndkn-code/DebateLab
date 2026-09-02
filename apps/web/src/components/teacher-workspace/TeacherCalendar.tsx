@@ -59,6 +59,7 @@ import type {
   TeacherClassColorToken,
 } from "@/lib/api/class-lms/teacher-calendar-model";
 import {
+  canMutateTeacherCalendarEvent,
   isTeacherCalendarView,
   zonedWallClockToUtc,
 } from "@/lib/api/class-lms/teacher-calendar-model";
@@ -73,6 +74,11 @@ import type {
   TeacherWorkspacePresentation,
 } from "@/lib/teacher-workspace/presentation";
 import { cn } from "@/lib/utils";
+import {
+  rescheduleTeacherWorkspaceEvent,
+  rescheduleTeacherWorkspaceOccurrence,
+  setTeacherWorkspaceEventState,
+} from "@/app/actions/teacher-workspace-calendar";
 import styles from "./teacher-calendar.module.css";
 
 const GRID_START_MINUTE = 8 * 60;
@@ -1091,6 +1097,7 @@ function EventDrawer({
   source,
   onClose,
   onDemoChange,
+  onLiveAction,
 }: {
   event: TeacherCalendarEvent | null;
   detail: TeacherEventDetailPresentation | undefined;
@@ -1106,12 +1113,21 @@ function EventDrawer({
       >
     >,
   ) => void;
+  onLiveAction: (input: {
+    event: TeacherCalendarEvent;
+    action: "reschedule" | "cancel" | "complete";
+    startDate?: string;
+    startTime?: string;
+    endDate?: string;
+    endTime?: string;
+  }) => Promise<void>;
 }) {
   const vi = locale === "vi";
   const [rescheduleOpen, setRescheduleOpen] = useState(false);
   const [startValue, setStartValue] = useState("");
   const [endValue, setEndValue] = useState("");
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionPending, setActionPending] = useState(false);
   const drawerTitleRef = useRef<HTMLHeadingElement>(null);
   const isDemo = source === "explicit_demo";
 
@@ -1123,7 +1139,7 @@ function EventDrawer({
 
   function submitReschedule(eventForm: FormEvent<HTMLFormElement>) {
     eventForm.preventDefault();
-    if (!event || !isDemo) return;
+    if (!event) return;
     let start: Date;
     let end: Date;
     let startDate = "";
@@ -1172,17 +1188,45 @@ function EventDrawer({
       );
       return;
     }
-    onDemoChange(event.id, {
-      date: startDate,
-      startsAt: start.toISOString(),
-      endsAt: end.toISOString(),
-    });
-    setActionMessage(
-      vi
-        ? "Đã kiểm tra và cập nhật bản xem trước."
-        : "Validated and updated in this preview.",
-    );
-    setRescheduleOpen(false);
+    if (isDemo) {
+      onDemoChange(event.id, {
+        date: startDate,
+        startsAt: start.toISOString(),
+        endsAt: end.toISOString(),
+      });
+      setActionMessage(
+        vi
+          ? "Đã kiểm tra và cập nhật bản xem trước."
+          : "Validated and updated in this preview.",
+      );
+      setRescheduleOpen(false);
+      return;
+    }
+    setActionPending(true);
+    void onLiveAction({
+      event,
+      action: "reschedule",
+      startDate,
+      startTime: startValue.split("T")[1],
+      endDate,
+      endTime: endValue.split("T")[1],
+    })
+      .then(() => {
+        setActionMessage(
+          vi ? "Đã cập nhật lịch học." : "Lesson schedule updated.",
+        );
+        setRescheduleOpen(false);
+      })
+      .catch((error: unknown) =>
+        setActionMessage(
+          error instanceof Error
+            ? error.message
+            : vi
+              ? "Không thể cập nhật lịch học."
+              : "Unable to update the schedule.",
+        ),
+      )
+      .finally(() => setActionPending(false));
   }
 
   return (
@@ -1670,7 +1714,11 @@ function EventDrawer({
                 <Button
                   type="button"
                   variant="ghost"
-                  disabled={!event.actions.reschedule || !isDemo}
+                  disabled={
+                    actionPending ||
+                    (!isDemo &&
+                      !canMutateTeacherCalendarEvent(event, "reschedule"))
+                  }
                   onClick={() => {
                     setStartValue(
                       localDateTimeValue(event.startsAt, event.timezone),
@@ -1686,40 +1734,83 @@ function EventDrawer({
                 <Button
                   type="button"
                   variant="destructive"
-                  disabled={!event.actions.cancel || !isDemo}
+                  disabled={
+                    !event.actions.cancel ||
+                    actionPending ||
+                    (!isDemo &&
+                      (!event.occurrenceId || !event.occurrenceUpdatedAt))
+                  }
                   onClick={() => {
-                    onDemoChange(event.id, { status: "cancelled" });
-                    setActionMessage(
-                      vi
-                        ? "Đã hủy trong bản xem trước."
-                        : "Cancelled in this preview.",
-                    );
+                    if (isDemo) {
+                      onDemoChange(event.id, { status: "cancelled" });
+                      setActionMessage(
+                        vi
+                          ? "Đã hủy trong bản xem trước."
+                          : "Cancelled in this preview.",
+                      );
+                      return;
+                    }
+                    setActionPending(true);
+                    void onLiveAction({ event, action: "cancel" })
+                      .then(() => {
+                        setActionMessage(
+                          vi ? "Đã hủy buổi học." : "Lesson cancelled.",
+                        );
+                      })
+                      .catch((error: unknown) =>
+                        setActionMessage(
+                          error instanceof Error
+                            ? error.message
+                            : vi
+                              ? "Không thể hủy buổi học."
+                              : "Unable to cancel the lesson.",
+                        ),
+                      )
+                      .finally(() => setActionPending(false));
                   }}
                 >
                   {vi ? "Hủy" : "Cancel"}
                 </Button>
                 <Button
                   type="button"
-                  disabled={!event.actions.complete || !isDemo}
+                  disabled={
+                    !event.actions.complete ||
+                    actionPending ||
+                    (!isDemo &&
+                      (!event.occurrenceId || !event.occurrenceUpdatedAt))
+                  }
                   onClick={() => {
-                    onDemoChange(event.id, { status: "completed" });
-                    setActionMessage(
-                      vi
-                        ? "Đã hoàn tất trong bản xem trước."
-                        : "Completed in this preview.",
-                    );
+                    if (isDemo) {
+                      onDemoChange(event.id, { status: "completed" });
+                      setActionMessage(
+                        vi
+                          ? "Đã hoàn tất trong bản xem trước."
+                          : "Completed in this preview.",
+                      );
+                      return;
+                    }
+                    setActionPending(true);
+                    void onLiveAction({ event, action: "complete" })
+                      .then(() => {
+                        setActionMessage(
+                          vi ? "Đã hoàn tất buổi học." : "Lesson completed.",
+                        );
+                      })
+                      .catch((error: unknown) =>
+                        setActionMessage(
+                          error instanceof Error
+                            ? error.message
+                            : vi
+                              ? "Không thể hoàn tất buổi học."
+                              : "Unable to complete the lesson.",
+                        ),
+                      )
+                      .finally(() => setActionPending(false));
                   }}
                 >
                   {vi ? "Hoàn tất" : "Complete"}
                 </Button>
               </div>
-              {!isDemo ? (
-                <p className="type-caption text-on-surface-variant">
-                  {vi
-                    ? "Các thao tác lịch sẽ được bật khi hợp đồng cập nhật lịch phía máy chủ được bàn giao."
-                    : "Schedule mutations stay disabled until the server mutation contract is available."}
-                </p>
-              ) : null}
             </SheetFooter>
           </>
         ) : null}
@@ -1901,6 +1992,67 @@ export function TeacherCalendar({
   function closeEvent() {
     setSelectedEventId(null);
     window.setTimeout(() => lastEventTriggerRef.current?.focus(), 500);
+  }
+
+  async function runLiveAction(input: {
+    event: TeacherCalendarEvent;
+    action: "reschedule" | "cancel" | "complete";
+    startDate?: string;
+    startTime?: string;
+    endDate?: string;
+    endTime?: string;
+  }) {
+    const key = globalThis.crypto.randomUUID();
+    if (input.action === "reschedule") {
+      if (
+        !input.startDate ||
+        !input.startTime ||
+        !input.endDate ||
+        !input.endTime
+      )
+        throw new Error("A complete schedule is required.");
+      if (input.event.occurrenceId && input.event.occurrenceUpdatedAt) {
+        await rescheduleTeacherWorkspaceOccurrence({
+          occurrenceId: input.event.occurrenceId,
+          startsAt: zonedWallClockToUtc(
+            input.startDate,
+            `${input.startTime}:00`,
+            input.event.timezone,
+          ),
+          endsAt: zonedWallClockToUtc(
+            input.endDate,
+            `${input.endTime}:00`,
+            input.event.timezone,
+          ),
+          timezone: input.event.timezone,
+          expectedUpdatedAt: input.event.occurrenceUpdatedAt,
+          idempotencyKey: key,
+        });
+      } else {
+        if (!input.event.scheduleUpdatedAt)
+          throw new Error("This event has no mutable recurring schedule.");
+        await rescheduleTeacherWorkspaceEvent({
+          scheduleId: input.event.scheduleId,
+          startDate: input.startDate,
+          endDate: input.endDate,
+          startTime: input.startTime,
+          endTime: input.endTime,
+          timezone: input.event.timezone,
+          expectedUpdatedAt: input.event.scheduleUpdatedAt,
+          idempotencyKey: key,
+        });
+      }
+    } else {
+      if (!input.event.occurrenceId || !input.event.occurrenceUpdatedAt)
+        throw new Error("This event has no mutable occurrence.");
+      await setTeacherWorkspaceEventState({
+        occurrenceId: input.event.occurrenceId,
+        state: input.action === "cancel" ? "cancelled" : "completed",
+        expectedUpdatedAt: input.event.occurrenceUpdatedAt,
+        idempotencyKey: key,
+      });
+    }
+    router.refresh();
   }
 
   return (
@@ -2170,6 +2322,7 @@ export function TeacherCalendar({
         locale={data.locale}
         source={data.source}
         onClose={closeEvent}
+        onLiveAction={runLiveAction}
         onDemoChange={(eventId, change) =>
           setOverrides((current) => ({
             ...current,

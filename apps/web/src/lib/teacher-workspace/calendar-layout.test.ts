@@ -7,6 +7,9 @@ import {
 
 const base = {
   scheduleId: "s",
+  scheduleUpdatedAt: "2026-08-30T12:00:00.000Z",
+  occurrenceUpdatedAt: "2026-08-30T12:00:00.000Z",
+  expectedUpdatedAt: "2026-08-30T12:00:00.000Z",
   occurrenceId: "o",
   classId: "c",
   classTitle: "Class",

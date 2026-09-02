@@ -285,6 +285,9 @@ function event(
   return {
     id,
     scheduleId: `schedule-${id}`,
+    scheduleUpdatedAt: "2026-08-30T12:00:00.000Z",
+    occurrenceUpdatedAt: "2026-08-30T12:00:00.000Z",
+    expectedUpdatedAt: "2026-08-30T12:00:00.000Z",
     occurrenceId:
       options.occurrenceId === undefined
         ? `occurrence-${id}`

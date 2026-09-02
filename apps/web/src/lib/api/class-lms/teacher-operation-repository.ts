@@ -22,6 +22,12 @@ export const teacherRescheduleSchema = z.object({
 }).strict();
 export type TeacherRescheduleInput = z.infer<typeof teacherRescheduleSchema>;
 
+export const teacherOccurrenceRescheduleSchema = z.object({
+  occurrenceId: uuid, startsAt: timestamp, endsAt: timestamp,
+  timezone: nonEmpty(100), expectedUpdatedAt: timestamp, idempotencyKey,
+}).strict();
+export type TeacherOccurrenceRescheduleInput = z.infer<typeof teacherOccurrenceRescheduleSchema>;
+
 export const teacherOccurrenceStateSchema = z.object({
   occurrenceId: uuid, state: z.enum(["scheduled", "completed", "cancelled"]),
   expectedUpdatedAt: timestamp, idempotencyKey,
@@ -117,6 +123,7 @@ function parsed<T>(schema: z.ZodType<T>, value: unknown): T {
 
 export const teacherOperationRpc: Record<string, OperationRpc> = {
   reschedule: (args) => callRpc("teacher_workspace_reschedule", args),
+  rescheduleOccurrence: (args) => callRpc("teacher_workspace_reschedule_occurrence", args),
   occurrenceState: (args) => callRpc("teacher_workspace_set_occurrence_state", args),
   planLesson: (args) => callRpc("teacher_workspace_plan_lesson", { p_input: args }),
   publishAssignment: (args) => callRpc("teacher_workspace_publish_assignment", args),
@@ -144,6 +151,11 @@ async function operation(key: string, args: Record<string, unknown>) {
 export async function rescheduleTeacherCalendar(input: unknown) {
   const value = parsed(teacherRescheduleSchema, input);
   const result = await operation("reschedule", { p_schedule_id: value.scheduleId, p_start_date: value.startDate, p_end_date: value.endDate, p_start_time: value.startTime, p_end_time: value.endTime, p_timezone: value.timezone, p_expected_updated_at: value.expectedUpdatedAt, p_idempotency_key: value.idempotencyKey });
+  revalidatePath("/dashboard/teacher"); return result;
+}
+export async function rescheduleTeacherCalendarOccurrence(input: unknown) {
+  const value = parsed(teacherOccurrenceRescheduleSchema, input);
+  const result = await operation("rescheduleOccurrence", { p_occurrence_id: value.occurrenceId, p_starts_at: value.startsAt, p_ends_at: value.endsAt, p_timezone: value.timezone, p_expected_updated_at: value.expectedUpdatedAt, p_idempotency_key: value.idempotencyKey });
   revalidatePath("/dashboard/teacher"); return result;
 }
 export async function setTeacherOccurrenceState(input: unknown) {

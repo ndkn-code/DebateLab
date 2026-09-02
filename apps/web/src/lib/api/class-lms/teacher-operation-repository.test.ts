@@ -8,6 +8,7 @@ import {
   teacherLessonPlanSchema,
   teacherMaterialPlacementSchema,
   teacherMaterialRightsSchema,
+  teacherOccurrenceRescheduleSchema,
   teacherOccurrenceStateSchema,
   teacherPublishAssignmentSchema,
   teacherRescheduleSchema,
@@ -25,6 +26,8 @@ test("strict operation schemas require concurrency and idempotency fields", () =
   assert.equal(teacherRescheduleSchema.parse(base).idempotencyKey, key);
   assert.equal(teacherRescheduleSchema.safeParse({ ...base, idempotencyKey: undefined }).success, false);
   assert.equal(teacherRescheduleSchema.safeParse({ ...base, unexpected: true }).success, false);
+  assert.equal(teacherOccurrenceRescheduleSchema.safeParse({ occurrenceId: id, startsAt: updated, endsAt: "2026-09-02T13:00:00.000Z", timezone: "UTC", expectedUpdatedAt: updated, idempotencyKey: key }).success, true);
+  assert.equal(teacherOccurrenceRescheduleSchema.safeParse({ occurrenceId: id, startsAt: "invalid", endsAt: updated, timezone: "UTC", idempotencyKey: key }).success, false);
   assert.equal(teacherOccurrenceStateSchema.safeParse({ occurrenceId: id, state: "completed", expectedUpdatedAt: updated, idempotencyKey: key }).success, true);
   assert.equal(teacherOccurrenceStateSchema.safeParse({ occurrenceId: id, state: "unknown", expectedUpdatedAt: updated, idempotencyKey: key }).success, false);
 });

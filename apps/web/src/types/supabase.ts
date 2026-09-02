@@ -16336,6 +16336,19 @@ export type Database = {
         Args: { p_class_id: string; p_from: string; p_to: string }
         Returns: Json
       }
+      load_teacher_calendar_roster: {
+        Args: {
+          p_class_id: string
+          p_occurrence_id?: string
+          p_session_date?: string
+        }
+        Returns: {
+          attendance_status: string
+          display_name: string
+          enrollment_status: string
+          user_id: string
+        }[]
+      }
       load_teacher_review_queue: {
         Args: { p_class_id: string; p_cursor?: string; p_limit?: number }
         Returns: {
@@ -17097,6 +17110,17 @@ export type Database = {
           p_schedule_id: string
           p_start_date: string
           p_start_time: string
+          p_timezone: string
+        }
+        Returns: Json
+      }
+      teacher_workspace_reschedule_occurrence: {
+        Args: {
+          p_ends_at: string
+          p_expected_updated_at: string
+          p_idempotency_key: string
+          p_occurrence_id: string
+          p_starts_at: string
           p_timezone: string
         }
         Returns: Json

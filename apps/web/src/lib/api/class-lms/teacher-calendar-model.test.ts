@@ -4,6 +4,7 @@ import {
   normalizeTeacherCalendarPreferences,
   normalizeTeacherCalendarRange,
   sortTeacherCalendarEvents,
+  canMutateTeacherCalendarEvent,
   zonedWallClockToUtc,
   type TeacherCalendarEvent,
 } from "./teacher-calendar-model";
@@ -129,6 +130,9 @@ const event = (
 ): TeacherCalendarEvent => ({
   id,
   scheduleId: id,
+  scheduleUpdatedAt: "2026-08-30T12:00:00.000Z",
+  occurrenceUpdatedAt: null,
+  expectedUpdatedAt: "2026-08-30T12:00:00.000Z",
   occurrenceId: null,
   classId: id,
   classTitle,
@@ -163,6 +167,28 @@ const event = (
     complete: true,
   },
 });
+const tokenEvent = event(
+  "token",
+  "2026-03-01T09:00:00.000Z",
+  "2026-03-01T10:00:00.000Z",
+  "Token",
+);
+assert.ok(Number.isFinite(Date.parse(tokenEvent.expectedUpdatedAt)));
+assert.equal(tokenEvent.occurrenceUpdatedAt, null);
+assert.equal(canMutateTeacherCalendarEvent(tokenEvent, "reschedule"), true);
+assert.equal(canMutateTeacherCalendarEvent(tokenEvent, "complete"), false);
+assert.equal(
+  canMutateTeacherCalendarEvent(
+    {
+      ...tokenEvent,
+      scheduleUpdatedAt: null,
+      occurrenceId: "standalone-occurrence",
+      occurrenceUpdatedAt: "2026-08-30T12:00:00.000Z",
+    },
+    "reschedule",
+  ),
+  true,
+);
 assert.deepEqual(
   sortTeacherCalendarEvents([
     event("z", "2026-03-01T10:00:00.000Z", "2026-03-01T11:00:00.000Z", "Zeta"),
