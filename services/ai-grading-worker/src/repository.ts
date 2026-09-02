@@ -22,6 +22,23 @@ export type ProviderReservation =
 
 export interface AiGradingRepository {
   claim(delivery: AiGradingDelivery): Promise<ClaimResult>;
+  loadOperationalEnvironmentMarker?(): Promise<{
+    environment: string;
+    projectRef: string;
+  } | null>;
+  loadOperationalFault?(
+    runId: string,
+    claimToken: string,
+  ): Promise<{
+    scenario: string;
+    injectionToken: string;
+    environment: string;
+  } | null>;
+  recordOperationalBoundaryAttempt?(
+    runId: string,
+    claimToken: string,
+    injectionToken: string,
+  ): Promise<boolean>;
   attestRuntime?(
     runId: string,
     claimToken: string,
@@ -119,6 +136,69 @@ export function createProductionRepository(): AiGradingRepository {
       });
       assertRpc(error, "claim AI grading delivery");
       return parseClaim(data);
+    },
+    async loadOperationalEnvironmentMarker() {
+      const { data, error } = await supabase.rpc(
+        "get_ai_grading_environment_marker",
+      );
+      assertRpc(error, "load operational database environment marker");
+      const marker = firstRow(data);
+      if (!marker) return null;
+      return {
+        environment: String(marker.environment),
+        projectRef: String(marker.project_ref),
+      };
+    },
+    async loadOperationalFault(runId, claimToken) {
+      const { data: run, error: runError } = await supabase
+        .from("ai_workflow_runs")
+        .select("worker_claim_token,status")
+        .eq("id", runId)
+        .maybeSingle();
+      assertRpc(runError, "load operational workflow claim");
+      if (
+        !run ||
+        run.worker_claim_token !== claimToken ||
+        (run.status !== "running" && run.status !== "core_completed")
+      ) {
+        throw new Error("AI_GRADING_OPERATIONAL_CLAIM_LOST");
+      }
+      const { data: claim, error: claimError } = await supabase
+        .from("ai_grading_operational_claims")
+        .select(
+          "scenario,injection_token,evidence:ai_grading_operational_evidence!inner(environment,status)",
+        )
+        .eq("workflow_run_id", runId)
+        .maybeSingle();
+      assertRpc(claimError, "load operational fault claim");
+      if (!claim) return null;
+      const evidence = Array.isArray(claim.evidence)
+        ? claim.evidence[0]
+        : claim.evidence;
+      if (!evidence || evidence.status !== "collecting") {
+        throw new Error("AI_GRADING_OPERATIONAL_EVIDENCE_NOT_COLLECTING");
+      }
+      return {
+        scenario: claim.scenario,
+        injectionToken: claim.injection_token,
+        environment: evidence.environment,
+      };
+    },
+    async recordOperationalBoundaryAttempt(
+      runId,
+      claimToken,
+      injectionToken,
+    ) {
+      const { data, error } = await supabase.rpc(
+        "record_ai_grading_operational_boundary_attempt",
+        {
+          p_run_id: runId,
+          p_claim_token: claimToken,
+          p_injection_token: injectionToken,
+        },
+      );
+      assertRpc(error, "record operational provider boundary attempt");
+      return data === true;
     },
     async attestRuntime(runId, claimToken, identity) {
       const { error } = await supabase.rpc("attest_ai_grading_runtime", {

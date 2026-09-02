@@ -109,3 +109,71 @@ test("an invalid expected Azure region is rejected by name only", () => {
   assert.equal(result.ready, false);
   assert.deepEqual(result.invalid, ["AI_GRADING_AZURE_EXPECTED_REGION"]);
 });
+
+test("operational fault injection readiness is staging-only and token-bound", () => {
+  const unsafe = checkWorkerReadiness({
+    ...complete,
+    AI_GRADING_OPERATIONAL_FAULT_INJECTION_ENABLED: "true",
+    AI_GRADING_OPERATIONAL_ENVIRONMENT: "production",
+  });
+  assert.equal(unsafe.ready, false);
+  assert.ok(unsafe.invalid.includes("AI_GRADING_OPERATIONAL_ENVIRONMENT"));
+  assert.ok(
+    unsafe.missing.includes("AI_GRADING_OPERATIONAL_ATTESTATION_ENABLED"),
+  );
+  assert.ok(
+    unsafe.missing.includes("AI_GRADING_OPERATIONAL_FAULT_INJECTION_TOKENS"),
+  );
+  assert.ok(unsafe.missing.includes("AI_GRADING_OPERATIONAL_DATABASE_REF"));
+  assert.ok(unsafe.missing.includes("AI_GRADING_PRODUCTION_DATABASE_REF"));
+
+  const safeEnvironment = {
+    ...complete,
+    CLOUD_RUN_SERVICE_URL:
+      "https://ai-grading-worker-preview-example.run.app",
+    K_REVISION: "ai-grading-worker-preview-smoke-001",
+    AI_GRADING_OPERATIONAL_FAULT_INJECTION_ENABLED: "true",
+    AI_GRADING_OPERATIONAL_ATTESTATION_ENABLED: "true",
+    AI_GRADING_OPERATIONAL_ENVIRONMENT: "preview",
+    AI_GRADING_OPERATIONAL_FAULT_INJECTION_TOKENS:
+      "00000000-0000-4000-8000-000000000099",
+    NEXT_PUBLIC_SUPABASE_URL: "https://previewref01.supabase.co",
+    AI_GRADING_OPERATIONAL_DATABASE_REF: "previewref01",
+    AI_GRADING_PRODUCTION_DATABASE_REF: "productionref01",
+  };
+  const safe = checkWorkerReadiness(safeEnvironment, {
+    environment: "preview",
+    projectRef: "previewref01",
+  });
+  assert.equal(safe.ready, true);
+  assert.equal(JSON.stringify(safe).includes("00000000-0000"), false);
+
+  const wrongMarker = checkWorkerReadiness(safeEnvironment, {
+    environment: "production",
+    projectRef: "productionref01",
+  });
+  assert.equal(wrongMarker.ready, false);
+  assert.ok(
+    wrongMarker.invalid.includes("AI_GRADING_OPERATIONAL_DATABASE_MARKER"),
+  );
+
+  const productionDatabase = checkWorkerReadiness({
+    ...complete,
+    CLOUD_RUN_SERVICE_URL:
+      "https://ai-grading-worker-preview-example.run.app",
+    K_REVISION: "ai-grading-worker-preview-smoke-001",
+    AI_GRADING_OPERATIONAL_FAULT_INJECTION_ENABLED: "true",
+    AI_GRADING_OPERATIONAL_ATTESTATION_ENABLED: "true",
+    AI_GRADING_OPERATIONAL_ENVIRONMENT: "preview",
+    AI_GRADING_OPERATIONAL_FAULT_INJECTION_TOKENS:
+      "00000000-0000-4000-8000-000000000099",
+    AI_GRADING_OPERATIONAL_DATABASE_REF: "productionref01",
+    AI_GRADING_PRODUCTION_DATABASE_REF: "productionref01",
+  });
+  assert.equal(productionDatabase.ready, false);
+  assert.ok(
+    productionDatabase.invalid.includes(
+      "AI_GRADING_OPERATIONAL_DATABASE_IDENTITY",
+    ),
+  );
+});

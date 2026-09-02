@@ -1,0 +1,19 @@
+{
+  "manifestKind": "composed_review_gated_draft",
+  "collection": "debate.en.competitive",
+  "collectionVersion": 4,
+  "componentManifests": [
+    "ai-knowledge-english-debate-official.v2.json",
+    "ai-knowledge-english-debate-video-candidates.v3.json"
+  ],
+  "releaseControls": {
+    "derivedOnly": true,
+    "fullTranscriptsStored": false,
+    "permittedExcerptsStored": false,
+    "videoCandidatesCoachingOnly": true,
+    "requiresIndependentReview": true,
+    "requiresRightsClearance": true,
+    "requiresVideoLocatorVerification": true,
+    "publishOnPrepare": false
+  }
+}

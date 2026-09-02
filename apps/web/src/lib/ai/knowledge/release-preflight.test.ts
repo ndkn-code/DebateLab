@@ -22,6 +22,7 @@ const item = {
 };
 const source = {
   id: "source-1",
+  authorityTier: "ai_derived",
   reviewStatus: "approved",
   rightsStatus: "approved_for_derived_use",
   submittedBy: "importer",
@@ -47,6 +48,63 @@ test("a coaching-only independently reviewed version is publishable", () => {
   });
   assert.equal(result.ready, true);
   assert.deepEqual(result.blockers, []);
+});
+
+test("approved official IELTS descriptors may serve grading and coaching", () => {
+  const descriptor = {
+    ...item,
+    itemKind: "rubric_descriptor_candidate",
+    usableFor: ["grading", "coaching"],
+    metadata: { derivedOnly: true, answerKeyAvailable: false },
+  };
+  const result = summarizeKnowledgeReleasePreflight({
+    collection,
+    version: 4,
+    versionStatus: "draft",
+    items: [descriptor],
+    sources: [{ ...source, authorityTier: "official" }],
+    embeddings: [embedding],
+  });
+  assert.equal(result.ready, true);
+  assert.equal(result.counts.gradingAndCoaching, 1);
+  assert.equal(result.counts.purposePolicyViolations, 0);
+});
+
+test("IELTS examples and mock prompts cannot acquire grading authority", () => {
+  for (const itemKind of [
+    "practice_prompt",
+    "scored_example_locator_candidate",
+  ]) {
+    const result = summarizeKnowledgeReleasePreflight({
+      collection,
+      version: 4,
+      versionStatus: "draft",
+      items: [{ ...item, itemKind, usableFor: ["grading", "coaching"] }],
+      sources: [{ ...source, authorityTier: "official" }],
+      embeddings: [embedding],
+    });
+    assert.equal(result.ready, false);
+    assert.match(result.blockers.join(","), /purpose_policy_violation/);
+  }
+});
+
+test("official descriptor authority is not inferred from item text", () => {
+  const result = summarizeKnowledgeReleasePreflight({
+    collection,
+    version: 4,
+    versionStatus: "draft",
+    items: [
+      {
+        ...item,
+        itemKind: "rubric_descriptor_candidate",
+        usableFor: ["grading", "coaching"],
+      },
+    ],
+    sources: [{ ...source, authorityTier: "community" }],
+    embeddings: [embedding],
+  });
+  assert.equal(result.ready, false);
+  assert.match(result.blockers.join(","), /purpose_policy_violation/);
 });
 
 test("review, answer-key, and embedding failures are explicit", () => {

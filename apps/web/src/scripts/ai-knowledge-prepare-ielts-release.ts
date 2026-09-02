@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 import {
   buildIeltsMockKnowledgeRecords,
   buildOfficialIeltsKnowledgeRecords,
@@ -9,20 +7,14 @@ import {
   buildKnowledgeIngestionPlan,
   ingestKnowledgePlan,
 } from "@/lib/ai/knowledge/ingestion";
+import { parseKnowledgeDraftArgs } from "@/lib/ai/knowledge/release-cli";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const ArgsSchema = z.object({
-  collectionVersion: z.number().int().min(4),
-});
-
-function readArgs(argv: string[]) {
-  const versionIndex = argv.indexOf("--collection-version");
-  const rawVersion = versionIndex >= 0 ? argv[versionIndex + 1] : "4";
-  return ArgsSchema.parse({ collectionVersion: Number(rawVersion) });
-}
-
 async function main() {
-  const args = readArgs(process.argv.slice(2));
+  const args = parseKnowledgeDraftArgs(process.argv.slice(2), {
+    minimumVersion: 4,
+    defaultVersion: 4,
+  });
   const client = createAdminClient();
   // This projection intentionally cannot read answer keys, explanations,
   // learner responses, teacher feedback, or protected benchmark labels.
@@ -61,7 +53,7 @@ async function main() {
       embeddingBatchDelayMs: 31_000,
       embeddingBatchRetryAttempts: 2,
       embeddingBatchRetryDelayMs: 65_000,
-      submittedBy: null,
+      submittedBy: args.submittedBy,
     });
     results.push({
       collection,

@@ -194,12 +194,10 @@ test("IELTS release corpus keeps mocks separate from review-gated official calib
 });
 
 test("IELTS release importer cannot read protected answers or publish a draft", () => {
-  assert.match(
-    releaseKnowledgeImporter,
-    /collectionVersion: z\.number\(\)\.int\(\)\.min\(4\)/,
-  );
+  assert.match(releaseKnowledgeImporter, /parseKnowledgeDraftArgs/);
   assert.match(releaseKnowledgeImporter, /coach_recommendable: true/);
-  assert.match(releaseKnowledgeImporter, /submittedBy: null/);
+  assert.match(releaseKnowledgeImporter, /submittedBy: args\.submittedBy/);
+  assert.doesNotMatch(releaseKnowledgeImporter, /submittedBy: null/);
   assert.match(releaseKnowledgeImporter, /embeddingBatchSize: 20/);
   assert.match(releaseKnowledgeImporter, /embeddingBatchDelayMs: 31_000/);
   assert.match(releaseKnowledgeImporter, /embeddingBatchRetryAttempts: 2/);

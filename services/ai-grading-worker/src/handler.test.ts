@@ -73,6 +73,30 @@ test("failed identity verification executes no grading work", async () => {
   assert.equal(processed, false);
 });
 
+test("an operational one-shot non-ack asks Pub/Sub for redelivery", async () => {
+  const response = await routeWorkerRequest(
+    {
+      method: "POST",
+      path: "/",
+      authorization: "Bearer push-token",
+      body: {
+        message: {
+          messageId: "message-operational",
+          data: Buffer.from(JSON.stringify(job)).toString("base64"),
+        },
+      },
+    },
+    {
+      verify: async () => undefined,
+      processDelivery: async () => "operational_non_ack",
+    },
+  );
+  assert.deepEqual(response, {
+    status: 503,
+    body: { ok: false, retry: true },
+  });
+});
+
 test("private readiness fails closed without exposing secret values", async () => {
   const unavailable = await routeWorkerRequest(
     { method: "GET", path: "/readyz" },

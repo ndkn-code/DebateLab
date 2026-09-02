@@ -11,7 +11,11 @@ import {
 import { createAdminClient } from "@/lib/supabase/admin";
 
 const ArgsSchema = z.object({
-  collection: z.enum(["ielts.writing", "ielts.speaking"]),
+  collection: z.enum([
+    "ielts.writing",
+    "ielts.speaking",
+    "debate.en.competitive",
+  ]),
   version: z.number().int().positive(),
 });
 
@@ -63,23 +67,23 @@ async function main() {
       ? client
           .from("ai_knowledge_sources")
           .select(
-            "id,review_status,rights_status,submitted_by,reviewed_by",
+            "id,authority_tier,review_status,rights_status,submitted_by,reviewed_by",
           )
           .in("id", sourceIds)
       : Promise.resolve({ data: [], error: null }),
     itemIds.length
       ? client
           .from("ai_knowledge_embeddings")
-          .select(
-            "item_id,provider,model,dimensions,input_type,content_hash",
-          )
+          .select("item_id,provider,model,dimensions,input_type,content_hash")
           .in("item_id", itemIds)
       : Promise.resolve({ data: [], error: null }),
   ]);
   if (sourceResult.error)
     throw new Error(`knowledge_source_lookup:${sourceResult.error.message}`);
   if (embeddingResult.error)
-    throw new Error(`knowledge_embedding_lookup:${embeddingResult.error.message}`);
+    throw new Error(
+      `knowledge_embedding_lookup:${embeddingResult.error.message}`,
+    );
 
   const result = summarizeKnowledgeReleasePreflight({
     collection: {
@@ -109,6 +113,7 @@ async function main() {
     sources: (sourceResult.data ?? []).map(
       (row): KnowledgeReleaseSource => ({
         id: row.id,
+        authorityTier: row.authority_tier,
         reviewStatus: row.review_status,
         rightsStatus: row.rights_status,
         submittedBy: row.submitted_by,

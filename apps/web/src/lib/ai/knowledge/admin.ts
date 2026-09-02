@@ -1,6 +1,7 @@
 import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/supabase";
 import {
   KNOWLEDGE_AUTHORITY_TIERS,
   KNOWLEDGE_REVIEW_STATUSES,
@@ -20,6 +21,10 @@ import {
 
 type AdminClient = SupabaseClient;
 type ReviewStatus = (typeof KNOWLEDGE_REVIEW_STATUSES)[number];
+export type KnowledgeVersionStatusRow = Pick<
+  Database["public"]["Tables"]["ai_knowledge_collection_versions"]["Row"],
+  "version" | "status"
+>;
 
 const REVIEWABLE_STATUSES = new Set<ReviewStatus>([
   "candidate",
@@ -28,8 +33,25 @@ const REVIEWABLE_STATUSES = new Set<ReviewStatus>([
   "rejected",
 ]);
 
-const IELTS_RELEASE_COLLECTIONS = new Set(["ielts.writing", "ielts.speaking"]);
-const IELTS_RELEASE_VERSION = 2;
+const SAFE_RELEASE_COLLECTIONS = new Set([
+  "ielts.writing",
+  "ielts.speaking",
+  "debate.en.competitive",
+]);
+
+/** Prefer the latest draft under review; otherwise inspect the active release. */
+export function resolveKnowledgePreflightVersion(params: {
+  activeVersion: number;
+  versions: readonly KnowledgeVersionStatusRow[];
+}): KnowledgeVersionStatusRow | null {
+  const drafts = params.versions
+    .filter((row) => row.status === "draft")
+    .sort((a, b) => b.version - a.version);
+  if (drafts[0]) return drafts[0];
+  return (
+    params.versions.find((row) => row.version === params.activeVersion) ?? null
+  );
+}
 
 function assertCollection(
   value: string,
@@ -45,7 +67,7 @@ function assertReviewStatus(value: string): asserts value is ReviewStatus {
   }
 }
 
-async function loadIeltsReleasePreflight(params: {
+async function loadKnowledgeReleasePreflight(params: {
   client: AdminClient;
   collection: {
     id: string;
@@ -53,28 +75,24 @@ async function loadIeltsReleasePreflight(params: {
     embedding_provider: string;
     embedding_model: string;
     embedding_dimensions: number;
+    active_version: number;
   };
+  versions: readonly KnowledgeVersionStatusRow[];
 }): Promise<KnowledgeReleasePreflight | null> {
-  if (!IELTS_RELEASE_COLLECTIONS.has(params.collection.slug)) return null;
+  if (!SAFE_RELEASE_COLLECTIONS.has(params.collection.slug)) return null;
+  const target = resolveKnowledgePreflightVersion({
+    activeVersion: params.collection.active_version,
+    versions: params.versions,
+  });
+  if (!target) return null;
 
-  const [versionResult, itemResult] = await Promise.all([
-    params.client
-      .from("ai_knowledge_collection_versions")
-      .select("status")
-      .eq("collection_id", params.collection.id)
-      .eq("version", IELTS_RELEASE_VERSION)
-      .maybeSingle(),
-    params.client
-      .from("ai_knowledge_items")
-      .select(
-        "id,source_id,item_kind,review_status,usable_for,content_hash,metadata,submitted_by,reviewed_by",
-      )
-      .eq("collection_id", params.collection.id)
-      .eq("collection_version", IELTS_RELEASE_VERSION),
-  ]);
-  if (versionResult.error) {
-    throw new Error(`knowledge_version_lookup:${versionResult.error.message}`);
-  }
+  const itemResult = await params.client
+    .from("ai_knowledge_items")
+    .select(
+      "id,source_id,item_kind,review_status,usable_for,content_hash,metadata,submitted_by,reviewed_by",
+    )
+    .eq("collection_id", params.collection.id)
+    .eq("collection_version", target.version);
   if (itemResult.error) {
     throw new Error(`knowledge_item_lookup:${itemResult.error.message}`);
   }
@@ -86,7 +104,9 @@ async function loadIeltsReleasePreflight(params: {
     sourceIds.length
       ? params.client
           .from("ai_knowledge_sources")
-          .select("id,review_status,rights_status,submitted_by,reviewed_by")
+          .select(
+            "id,authority_tier,review_status,rights_status,submitted_by,reviewed_by",
+          )
           .in("id", sourceIds)
       : Promise.resolve({ data: [], error: null }),
     itemIds.length
@@ -112,8 +132,8 @@ async function loadIeltsReleasePreflight(params: {
       embeddingModel: params.collection.embedding_model,
       embeddingDimensions: params.collection.embedding_dimensions,
     },
-    version: IELTS_RELEASE_VERSION,
-    versionStatus: versionResult.data?.status ?? null,
+    version: target.version,
+    versionStatus: target.status,
     items: itemRows.map(
       (row): KnowledgeReleaseItem => ({
         id: row.id,
@@ -133,6 +153,7 @@ async function loadIeltsReleasePreflight(params: {
     sources: (sourceResult.data ?? []).map(
       (row): KnowledgeReleaseSource => ({
         id: row.id,
+        authorityTier: row.authority_tier,
         reviewStatus: row.review_status,
         rightsStatus: row.rights_status,
         submittedBy: row.submitted_by,
@@ -209,7 +230,14 @@ export async function listAiKnowledgeForAdmin(params: {
   }
   let preflight: KnowledgeReleasePreflight | null = null;
   try {
-    preflight = await loadIeltsReleasePreflight({ client, collection });
+    preflight = await loadKnowledgeReleasePreflight({
+      client,
+      collection,
+      versions: (versionsResult.data ?? []).map((row) => ({
+        version: row.version,
+        status: row.status,
+      })),
+    });
   } catch (error) {
     // Review remains available if the hidden safety projection cannot be
     // computed, but the browser contract fails closed and disables publish.

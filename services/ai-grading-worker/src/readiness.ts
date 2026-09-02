@@ -1,4 +1,6 @@
 import { validateAzureSpeechEnv } from "@/lib/ielts/pronunciation/config";
+import { assertOperationalDatabaseIdentity } from "./operational-faults";
+import type { AiGradingRepository } from "./repository";
 
 type Environment = Record<string, string | undefined>;
 
@@ -23,6 +25,11 @@ export type WorkerReadiness = {
   capabilities: { azurePronunciation: boolean };
 };
 
+export type OperationalDatabaseMarker = {
+  environment: string;
+  projectRef: string;
+} | null;
+
 function present(env: Environment, name: string): boolean {
   return Boolean(env[name]?.trim());
 }
@@ -35,6 +42,7 @@ function normalizedRegion(env: Environment, name: string): string | null {
 /** Pure, secret-safe deployment preflight used by the private readiness route. */
 export function checkWorkerReadiness(
   env: Environment = process.env,
+  operationalDatabaseMarker?: OperationalDatabaseMarker,
 ): WorkerReadiness {
   const missing: string[] = REQUIRED_RUNTIME_ENV.filter(
     (name) => !present(env, name),
@@ -99,10 +107,106 @@ export function checkWorkerReadiness(
       missing.push("AI_GRADING_AZURE_EXPECTED_REGION");
     }
   }
+  if (
+    env.AI_GRADING_OPERATIONAL_FAULT_INJECTION_ENABLED?.trim() === "true"
+  ) {
+    const operationalEnvironment =
+      env.AI_GRADING_OPERATIONAL_ENVIRONMENT?.trim();
+    if (
+      operationalEnvironment !== "preview" &&
+      operationalEnvironment !== "staging"
+    ) {
+      invalid.push("AI_GRADING_OPERATIONAL_ENVIRONMENT");
+    }
+    const operationalRevision = env.K_REVISION?.trim().toLowerCase() ?? "";
+    let operationalHostname = "";
+    try {
+      operationalHostname = new URL(env.CLOUD_RUN_SERVICE_URL ?? "").hostname
+        .toLowerCase();
+    } catch {
+      // CLOUD_RUN_SERVICE_URL is already reported by the generic check above.
+    }
+    if (
+      (operationalEnvironment === "preview" ||
+        operationalEnvironment === "staging") &&
+      (!operationalHostname.includes(operationalEnvironment) ||
+        !operationalRevision.includes(operationalEnvironment) ||
+        /(^|[-_])(prod|production)(?=$|[-_])/i.test(operationalRevision))
+    ) {
+      invalid.push("AI_GRADING_OPERATIONAL_RUNTIME_IDENTITY");
+    }
+    if (
+      env.AI_GRADING_OPERATIONAL_ATTESTATION_ENABLED?.trim() !== "true"
+    ) {
+      missing.push("AI_GRADING_OPERATIONAL_ATTESTATION_ENABLED");
+    }
+    const operationalDatabaseRef = present(
+      env,
+      "AI_GRADING_OPERATIONAL_DATABASE_REF",
+    );
+    const productionDatabaseRef = present(
+      env,
+      "AI_GRADING_PRODUCTION_DATABASE_REF",
+    );
+    if (!operationalDatabaseRef) {
+      missing.push("AI_GRADING_OPERATIONAL_DATABASE_REF");
+    }
+    if (!productionDatabaseRef) {
+      missing.push("AI_GRADING_PRODUCTION_DATABASE_REF");
+    }
+    if (operationalDatabaseRef && productionDatabaseRef) {
+      try {
+        const databaseRef = assertOperationalDatabaseIdentity(env);
+        if (
+          !operationalDatabaseMarker ||
+          operationalDatabaseMarker.environment !== operationalEnvironment ||
+          operationalDatabaseMarker.projectRef !== databaseRef ||
+          (operationalDatabaseMarker.environment !== "preview" &&
+            operationalDatabaseMarker.environment !== "staging")
+        ) {
+          invalid.push("AI_GRADING_OPERATIONAL_DATABASE_MARKER");
+        }
+      } catch {
+        invalid.push("AI_GRADING_OPERATIONAL_DATABASE_IDENTITY");
+      }
+    }
+    const injectionTokens =
+      env.AI_GRADING_OPERATIONAL_FAULT_INJECTION_TOKENS?.split(",")
+        .map((value) => value.trim())
+        .filter(Boolean) ?? [];
+    if (injectionTokens.length === 0) {
+      missing.push("AI_GRADING_OPERATIONAL_FAULT_INJECTION_TOKENS");
+    } else if (
+      injectionTokens.length > 5 ||
+      new Set(injectionTokens).size !== injectionTokens.length ||
+      injectionTokens.some(
+        (token) =>
+          !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+            token,
+          ),
+      )
+    ) {
+      invalid.push("AI_GRADING_OPERATIONAL_FAULT_INJECTION_TOKENS");
+    }
+  }
   return {
     ready: missing.length === 0 && invalid.length === 0,
     missing: [...new Set(missing)].sort(),
     invalid: [...new Set(invalid)].sort(),
     capabilities: { azurePronunciation },
   };
+}
+
+/** Readiness independently verifies the immutable marker stored by the target DB. */
+export async function checkProductionWorkerReadiness(
+  repository: Pick<AiGradingRepository, "loadOperationalEnvironmentMarker">,
+  env: Environment = process.env,
+): Promise<WorkerReadiness> {
+  let marker: OperationalDatabaseMarker;
+  try {
+    marker = await repository.loadOperationalEnvironmentMarker?.() ?? null;
+  } catch {
+    marker = null;
+  }
+  return checkWorkerReadiness(env, marker);
 }

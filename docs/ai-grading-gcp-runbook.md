@@ -239,7 +239,7 @@ synchronous compatibility route are unaffected.
 
 Before setting the web environment to `gcp`:
 
-1. Apply migrations through `20260901202000` in preview and verify all new RPCs
+1. Apply migrations through `20260902090000` in preview and verify all new RPCs
    reject `anon` and `authenticated` while service role succeeds.
    Before applying, confirm `20260901200000` is absent from
    `supabase_migrations.schema_migrations`. The `2000`/`2010`/`2020` sequence
@@ -283,6 +283,138 @@ Before setting the web environment to `gcp`:
     ordinary grading avoids the extra transition RPCs.
 11. Inspect DLQ alerts, latency, provider attempt count, workflow failures, and
     Cloud Run instance/cost dashboards.
+
+### Staging-only operational fault harness
+
+Never run this harness against production. The CLI refuses any environment
+other than `preview` or `staging`, requires the target hostname to contain that
+environment, rejects `thinkfy.net`, and rejects production/main deployment
+refs. It performs no provider work itself and never changes the reference-only
+Pub/Sub contract. Scenario control comes only from the protected operational
+claim created by the existing RPC and the current fenced worker claim token.
+
+Prepare an explicit protected state file and a deterministic, non-production
+smoke revision name. The state file is created atomically with mode `0600` and
+contains the scenario tokens, so do not commit it or print it in CI logs.
+
+Before enabling the harness, an infrastructure operator must create the Vault
+secret `ai_grading_environment_bootstrap_secret` and call
+`bootstrap_ai_grading_environment_marker` exactly once in each database. Mark
+the smoke database `preview` or `staging` with its real Supabase project ref;
+mark production `production`. The marker is immutable. A production or absent
+marker makes the worker, readiness check, and CLI fail closed. Never put the
+bootstrap secret in the worker revision or state file.
+
+```bash
+export AI_GRADING_OPERATIONAL_ENVIRONMENT=staging
+export AI_GRADING_OPERATIONAL_TARGET_URL=https://ai-grading-worker-staging-REPLACE.run.app
+export AI_GRADING_OPERATIONAL_DEPLOYMENT_REF=codex/ai-grading-staging-smoke
+export AI_GRADING_OPERATIONAL_DATABASE_REF=REPLACE_STAGING_SUPABASE_PROJECT_REF
+export AI_GRADING_PRODUCTION_DATABASE_REF=REPLACE_PRODUCTION_SUPABASE_PROJECT_REF
+export AI_GRADING_OPERATIONAL_STATE_FILE=/secure/path/ai-grading-operational-state.json
+export AI_GRADING_OPERATIONAL_RUN_ID=release-smoke-REPLACE
+export AI_GRADING_GATE_VERSION=evidence-adjudicated-v1
+export AI_GRADING_GATE_CORPUS_VERSION=REPLACE
+export K_REVISION=ai-grading-worker-staging-smoke-REPLACE
+export AI_GRADING_IMAGE_DIGEST=sha256:REPLACE_WITH_64_LOWERCASE_HEX
+npm run operational:evidence -w @thinkfy/ai-grading-worker -- begin
+```
+
+The CLI extracts the actual project ref from `NEXT_PUBLIC_SUPABASE_URL`, requires
+both database refs, and refuses either a mismatch or equality with the declared
+production ref. It then fetches the database-owned immutable marker through the
+service-role RPC and requires the same preview/staging environment and ref. It
+reports variable names only, never project secrets. `begin`, `declare`,
+`finalize`, and `seal` re-read protected DB state, so rerunning after an RPC
+success/local-state-write crash is idempotent.
+
+Before creating any scenario jobs, pause push delivery so a normal worker cannot
+claim the fresh rows before their protected scenario records and token bundle
+exist. Clearing the push config retains messages on the subscription as pull
+messages; it does not delete them.
+
+```bash
+export AI_GRADING_SMOKE_SUBSCRIPTION=ai-grading-jobs-cloud-run-staging
+gcloud pubsub subscriptions modify-push-config "$AI_GRADING_SMOKE_SUBSCRIPTION" \
+  --project=thinkfy-debatelab-prod --clear-push-config
+```
+
+Create five fresh queued IELTS Writing/Speaking workflow rows through the normal
+staging submission path while push delivery remains paused. For each row,
+declare exactly one scenario. Declaration does not publish or modify a learner
+payload.
+
+```bash
+export AI_GRADING_OPERATIONAL_SCENARIO=duplicate_delivery
+export AI_GRADING_OPERATIONAL_WORKFLOW_RUN_ID=REPLACE_UUID
+npm run operational:evidence -w @thinkfy/ai-grading-worker -- declare
+```
+
+Repeat for `provider_timeout`, `stale_claim`, `persistence_retry`, and
+`retry_exhaustion`. Bind the comma-separated five `injectionToken` values from
+the protected state file to Secret Manager as
+`AI_GRADING_OPERATIONAL_FAULT_INJECTION_TOKENS`; do not echo them. Deploy only
+the predeclared smoke revision with that secret plus:
+
+```text
+AI_GRADING_OPERATIONAL_FAULT_INJECTION_ENABLED=true
+AI_GRADING_OPERATIONAL_ATTESTATION_ENABLED=true
+AI_GRADING_OPERATIONAL_ENVIRONMENT=staging
+AI_GRADING_OPERATIONAL_DATABASE_REF=REPLACE_STAGING_SUPABASE_PROJECT_REF
+AI_GRADING_PRODUCTION_DATABASE_REF=REPLACE_PRODUCTION_SUPABASE_PROJECT_REF
+```
+
+Only after `/readyz` is 200 for that smoke revision, restore authenticated push
+delivery to the private staging service. Reapply the same OIDC service account
+and audience used when the subscription was created; do not point this
+subscription at production.
+
+```bash
+gcloud pubsub subscriptions modify-push-config "$AI_GRADING_SMOKE_SUBSCRIPTION" \
+  --project=thinkfy-debatelab-prod \
+  --push-endpoint="$AI_GRADING_OPERATIONAL_TARGET_URL/" \
+  --push-auth-service-account=debatelab-ai-grading-push@thinkfy-debatelab-prod.iam.gserviceaccount.com \
+  --push-auth-token-audience="$AI_GRADING_OPERATIONAL_TARGET_URL"
+```
+
+The deployment identity and image digest must exactly match the evidence run.
+The five deterministic transitions are:
+
+- `duplicate_delivery`: persist and complete once, return a non-ack once, then
+  let the redelivery observe the completed run without another provider call.
+- `provider_timeout`: stop after the provider reservation with an ambiguous
+  outcome; atomically record one simulated paid-boundary attempt, then the run
+  becomes `PROVIDER_OUTCOME_UNKNOWN` and is never repaid.
+- `stale_claim`: non-ack after preparation while leaving the lease intact;
+  Scheduler reconciliation re-drives it after expiry.
+- `persistence_retry`: checkpoint output, mark persistence started, then
+  non-ack before the persistence call; redelivery reuses the paid output.
+- `retry_exhaustion`: record three definite HTTP-5xx-equivalent failures; the
+  third exhausts to the existing manual-retryable terminal state.
+
+The timeout and retry-exhaustion scenarios do not contact a live provider.
+Their protected boundary-attempt RPC proves provider-call fencing, attempt
+accounting, terminal consistency, and retry policy without consuming student
+data or spend; it does not validate Groq availability or latency.
+
+Poll emits counts only. Once a scenario is terminal, bind the protected token
+bundle in the operator shell, finalize it, and repeat. Finalization derives the
+pass/fail result from real run, checkpoint, provider-attempt, runtime-attestation,
+and ordered-transition rows; it does not accept a caller-authored pass flag.
+
+```bash
+npm run operational:evidence -w @thinkfy/ai-grading-worker -- poll
+export AI_GRADING_OPERATIONAL_SCENARIO=duplicate_delivery
+export AI_GRADING_OPERATIONAL_FAULT_INJECTION_TOKENS=REDACTED_COMMA_SEPARATED_UUIDS
+npm run operational:evidence -w @thinkfy/ai-grading-worker -- finalize
+# After all five have passed:
+npm run operational:evidence -w @thinkfy/ai-grading-worker -- seal
+```
+
+There is deliberately no cleanup/delete operation. Disable the push
+subscription, remove the smoke revision's injection enable flag, and retain the
+sealed evidence for the release gate. Ordinary revisions must leave both
+operational enable flags unset.
 
 ## Rollback
 

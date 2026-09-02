@@ -114,6 +114,74 @@ test("the third automatic attempt is recovered or terminalized without another p
   assert.match(migration, /run\.status in \('running', 'core_completed'\)/);
 });
 
+test("completed redelivery is observed before returning without a new claim", () => {
+  const migration = read(
+    "supabase/migrations/20260902090000_ai_grading_completed_redelivery_observation.sql",
+  );
+  const completedBranch = migration.match(
+    /if v_run\.status = 'completed' then([\s\S]*?)end if;/,
+  )?.[1];
+  assert.ok(completedBranch);
+  assert.match(
+    completedBranch,
+    /update public\.ai_workflow_runs set[\s\S]*last_delivery_id = p_delivery_id,[\s\S]*last_delivery_attempt = p_delivery_attempt,[\s\S]*updated_at = now\(\)/,
+  );
+  assert.match(completedBranch, /and status = 'completed'/);
+  assert.match(
+    completedBranch,
+    /p_delivery_attempt > coalesce\(last_delivery_attempt, 0\)/,
+  );
+  assert.ok(
+    completedBranch.indexOf("update public.ai_workflow_runs") <
+      completedBranch.indexOf("return query select 'completed'"),
+  );
+  assert.doesNotMatch(
+    completedBranch,
+    /worker_claim_token\s*=|reserve_ai_grading_provider|provider_attempt_count\s*=/,
+  );
+  assert.doesNotMatch(completedBranch, /workflow_attempt_count\s*=/);
+});
+
+test("operational simulation is bound to an immutable DB marker and counts only fenced boundaries", () => {
+  const migration = read(
+    "supabase/migrations/20260902090000_ai_grading_completed_redelivery_observation.sql",
+  );
+  assert.match(migration, /private\.ai_grading_environment_marker/);
+  assert.match(migration, /before update or delete on private\.ai_grading_environment_marker/);
+  assert.match(migration, /ai_grading_environment_bootstrap_secret/);
+  assert.match(migration, /get_ai_grading_environment_marker/);
+  assert.match(migration, /record_ai_grading_operational_boundary_attempt/);
+  assert.match(migration, /v_marker\.environment not in \('preview', 'staging'\)/);
+  assert.match(migration, /v_run\.worker_claim_token is distinct from p_claim_token/);
+  assert.match(migration, /injection_token = p_injection_token/);
+  assert.match(migration, /v_claim\.scenario not in \('provider_timeout', 'retry_exhaustion'\)/);
+  assert.match(migration, /v_checkpoint\.provider_claim_token is distinct from p_claim_token/);
+  assert.match(migration, /unique \(workflow_run_id, worker_claim_token\)/);
+  const insertAt = migration.indexOf(
+    "insert into private.ai_grading_operational_boundary_attempts",
+  );
+  const incrementAt = migration.indexOf(
+    "provider_attempt_count = provider_attempt_count + 1",
+  );
+  assert.ok(insertAt >= 0 && incrementAt > insertAt);
+  assert.match(
+    migration,
+    /revoke all on private\.ai_grading_operational_boundary_attempts[\s\S]*service_role/,
+  );
+});
+
+test("the operations CLI re-reads protected state after RPC success", () => {
+  const cli = read(
+    "services/ai-grading-worker/src/operational-evidence-cli.ts",
+  );
+  assert.match(cli, /get_ai_grading_environment_marker/);
+  assert.match(cli, /recover operational evidence/);
+  assert.match(cli, /recover operational scenario declaration/);
+  assert.match(cli, /recover finalized operational scenario/);
+  assert.match(cli, /recover sealed operational evidence/);
+  assert.doesNotMatch(cli, /delete\(|\.delete\(|remove\(/);
+});
+
 test("release safety evidence is immutable and linked to real workflow runs", () => {
   const migration = read(
     "supabase/migrations/20260901160000_ai_grading_operational_evidence.sql",

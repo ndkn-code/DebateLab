@@ -4,7 +4,10 @@ import { createProductionOperations, isFatalAiGradingError } from "./operations"
 import { processAiGradingDelivery } from "./processor";
 import { reconcileAiGradingRuns } from "./reconciler";
 import { createProductionRepository } from "./repository";
-import { checkWorkerReadiness, type WorkerReadiness } from "./readiness";
+import {
+  checkProductionWorkerReadiness,
+  type WorkerReadiness,
+} from "./readiness";
 
 export type WorkerRequest = {
   method: string;
@@ -24,7 +27,7 @@ type HandlerDependencies = {
     delivery: ReturnType<typeof parseAiGradingPubSubEnvelope>,
   ) => Promise<string>;
   reconcile?: typeof reconcileAiGradingRuns;
-  readiness?: () => WorkerReadiness;
+  readiness?: () => WorkerReadiness | Promise<WorkerReadiness>;
 };
 
 export async function routeWorkerRequest(
@@ -35,7 +38,9 @@ export async function routeWorkerRequest(
     return { status: 200, body: { ok: true } };
   }
   if (request.method === "GET" && request.path === "/readyz") {
-    const readiness = (dependencies.readiness ?? checkWorkerReadiness)();
+    const readiness = await (dependencies.readiness
+      ? dependencies.readiness()
+      : checkProductionWorkerReadiness(createProductionRepository()));
     return {
       status: readiness.ready ? 200 : 503,
       body: readiness,
@@ -52,6 +57,9 @@ export async function routeWorkerRequest(
           operations: createProductionOperations(),
           isFatalError: isFatalAiGradingError,
         });
+    if (outcome === "operational_non_ack") {
+      return { status: 503, body: { ok: false, retry: true } };
+    }
     return { status: 204, body: { outcome } };
   }
   if (request.method === "POST" && request.path === "/internal/reconcile") {

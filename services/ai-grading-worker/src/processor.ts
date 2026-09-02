@@ -4,6 +4,15 @@ import type {
   AiGradingJob,
 } from "@/lib/ai/grading/contracts";
 import type { AiGradingRepository } from "./repository";
+import {
+  injectsDefiniteFailure,
+  injectsOnceAtAttempt,
+  operationalAmbiguousTimeout,
+  operationalDefiniteProviderFailure,
+  resolveOperationalFaultPlan,
+  validateOperationalFaultActivation,
+  type OperationalFaultPlan,
+} from "./operational-faults";
 
 export type SourceClaim = "claimed" | "already_completed" | "terminal";
 
@@ -43,7 +52,8 @@ export type ProcessOutcome =
   | "exhausted"
   | "fatal"
   | "provider_outcome_unknown"
-  | "claim_lost";
+  | "claim_lost"
+  | "operational_non_ack";
 
 type ProviderFailureDisposition = "retryable" | "fatal" | "unknown";
 
@@ -161,8 +171,16 @@ export async function processAiGradingDelivery(
     operations: AiGradingOperations;
     isFatalError?: (error: unknown) => boolean;
     operationalAttestationEnabled?: boolean;
+    operationalFaultEnvironment?: Record<string, string | undefined>;
   },
 ): Promise<ProcessOutcome> {
+  // `/readyz` is advisory. Revalidate the staging-only fault mode before even
+  // claiming a run so a production/misbound revision performs no work.
+  const operationalFaultConfiguration =
+    await validateOperationalFaultActivation({
+      repository: dependencies.repository,
+      environment: dependencies.operationalFaultEnvironment,
+    });
   const claim = await dependencies.repository.claim(delivery);
   if (claim.outcome !== "claimed") return claim.outcome;
   if (!claim.claimToken) throw new Error("AI_GRADING_CLAIM_TOKEN_MISSING");
@@ -178,6 +196,7 @@ export async function processAiGradingDelivery(
     dependencies.operationalAttestationEnabled ??
     process.env.AI_GRADING_OPERATIONAL_ATTESTATION_ENABLED === "true";
   let operationalRun = false;
+  let operationalFault: OperationalFaultPlan | null = null;
 
   try {
     if (operationalAttestationEnabled) {
@@ -187,6 +206,16 @@ export async function processAiGradingDelivery(
           claimToken,
           "worker_claimed",
         )) ?? false;
+    }
+    if (operationalRun) {
+      operationalFault = await resolveOperationalFaultPlan({
+        repository: dependencies.repository,
+        job,
+        claimToken,
+        attemptCount: claim.attemptCount,
+        environment: dependencies.operationalFaultEnvironment,
+        configuration: operationalFaultConfiguration,
+      });
     }
     if (prepared === null) {
       const sourceClaim = await dependencies.operations.claimSource(job);
@@ -226,6 +255,9 @@ export async function processAiGradingDelivery(
           claimToken,
           "prepared_checkpointed",
         );
+      if (injectsOnceAtAttempt(operationalFault, "stale_claim")) {
+        return "operational_non_ack";
+      }
     }
 
     if (operationalRun && dependencies.operations.runtimeIdentity) {
@@ -278,6 +310,38 @@ export async function processAiGradingDelivery(
           "provider_reserved",
         );
       try {
+        if (injectsOnceAtAttempt(operationalFault, "provider_timeout")) {
+          if (
+            !operationalFault ||
+            !dependencies.repository.recordOperationalBoundaryAttempt
+          ) {
+            throw new Error(
+              "AI_GRADING_OPERATIONAL_BOUNDARY_REPOSITORY_UNAVAILABLE",
+            );
+          }
+          await dependencies.repository.recordOperationalBoundaryAttempt(
+            job.workflowRunId,
+            claimToken,
+            operationalFault.injectionToken,
+          );
+          throw operationalAmbiguousTimeout();
+        }
+        if (injectsDefiniteFailure(operationalFault)) {
+          if (
+            !operationalFault ||
+            !dependencies.repository.recordOperationalBoundaryAttempt
+          ) {
+            throw new Error(
+              "AI_GRADING_OPERATIONAL_BOUNDARY_REPOSITORY_UNAVAILABLE",
+            );
+          }
+          await dependencies.repository.recordOperationalBoundaryAttempt(
+            job.workflowRunId,
+            claimToken,
+            operationalFault.injectionToken,
+          );
+          throw operationalDefiniteProviderFailure();
+        }
         output = await dependencies.operations.generate(job, prepared, {
           workflowAttempt: claim.attemptCount,
         });
@@ -313,6 +377,9 @@ export async function processAiGradingDelivery(
         claimToken,
         "persistence_started",
       );
+    if (injectsOnceAtAttempt(operationalFault, "persistence_retry")) {
+      return "operational_non_ack";
+    }
     await dependencies.operations.persist(job, prepared, output);
     if (operationalRun)
       await dependencies.repository.recordTransition?.(
@@ -330,6 +397,9 @@ export async function processAiGradingDelivery(
     await dependencies.operations
       .afterComplete?.(job, prepared)
       .catch(() => undefined);
+    if (injectsOnceAtAttempt(operationalFault, "duplicate_delivery")) {
+      return "operational_non_ack";
+    }
     return "completed";
   } catch (error) {
     const domainFatal = dependencies.isFatalError?.(error) ?? false;

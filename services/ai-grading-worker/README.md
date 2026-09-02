@@ -121,3 +121,29 @@ old genuine 429/schema failure therefore cannot release a later claim.
 
 This job adds no Vercel route, function, queue, cron, webhook, or Workflow
 entrypoint.
+
+## Staging operational evidence
+
+The fault-injection harness is compiled into the worker but disabled unless a
+dedicated smoke revision sets all of:
+
+- `AI_GRADING_OPERATIONAL_FAULT_INJECTION_ENABLED=true`
+- `AI_GRADING_OPERATIONAL_ATTESTATION_ENABLED=true`
+- `AI_GRADING_OPERATIONAL_ENVIRONMENT=preview|staging`
+- `AI_GRADING_OPERATIONAL_FAULT_INJECTION_TOKENS` from the protected scenario
+  state file
+- `AI_GRADING_OPERATIONAL_DATABASE_REF` for the smoke database and
+  `AI_GRADING_PRODUCTION_DATABASE_REF` for the production database
+
+The worker loads the scenario and its one-shot token from the protected
+`ai_grading_operational_claims` row after the ordinary worker claim is fenced.
+It also verifies the immutable database-owned environment marker before any
+claim/source/provider work. The operator-provided project refs alone cannot
+enable injection. No scenario value is accepted from the Pub/Sub message.
+Production, an absent/mismatched DB marker, or an unmatched token fails closed
+before an injected transition. Simulated provider-boundary attempts are counted
+atomically against the fenced worker/scenario claim; this validates spend
+fencing and retry state, not the upstream provider's SLA. Operators use
+`npm run operational:evidence -w @thinkfy/ai-grading-worker -- <command>` with
+`begin`, `declare`, `poll`, `finalize`, and `seal`; see the GCP runbook. There is
+no cleanup command because evidence and scenario results are immutable.
