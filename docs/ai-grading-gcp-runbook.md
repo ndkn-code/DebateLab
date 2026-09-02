@@ -239,7 +239,7 @@ synchronous compatibility route are unaffected.
 
 Before setting the web environment to `gcp`:
 
-1. Apply migrations through `20260902090000` in preview and verify all new RPCs
+1. Apply migrations through `20260902101000` in preview and verify all new RPCs
    reject `anon` and `authenticated` while service role succeeds.
    Before applying, confirm `20260901200000` is absent from
    `supabase_migrations.schema_migrations`. The `2000`/`2010`/`2020` sequence

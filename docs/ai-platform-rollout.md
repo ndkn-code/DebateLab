@@ -12,7 +12,7 @@ Pub/Sub. Dispatch is fail-closed unless `AI_GRADING_BACKEND` is explicitly
    `supabase/migrations/20260829110000_ai_knowledge_platform.sql` and
    `supabase/migrations/20260829120000_ai_knowledge_operations.sql`, followed by
    `supabase/migrations/20260830160000_ai_grading_gcp_runtime.sql` and migrations
-   `20260901130000` through `20260902090000` for retry consistency, immutable
+   `20260901130000` through `20260902101000` for retry consistency, immutable
    benchmark slices, third-attempt recovery, linked operational evidence,
    worker-authored runtime/repeat-run attestations, protected benchmark claims,
    study integrity, and withdrawal verification.

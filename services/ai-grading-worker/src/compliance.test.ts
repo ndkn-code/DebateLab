@@ -142,6 +142,96 @@ test("completed redelivery is observed before returning without a new claim", ()
   assert.doesNotMatch(completedBranch, /workflow_attempt_count\s*=/);
 });
 
+test("successful output snapshots the provider-attempt fence and recovery cannot add a paid call", () => {
+  const migration = read(
+    "supabase/migrations/20260902100000_ai_grading_output_attempt_fence.sql",
+  );
+  assert.match(
+    migration,
+    /add column if not exists provider_attempt_count_at_output integer/,
+  );
+  assert.match(
+    migration,
+    /old\.provider_attempt_count_at_output is not null[\s\S]*new\.provider_attempt_count_at_output is distinct from[\s\S]*old\.provider_attempt_count_at_output/,
+  );
+  assert.match(
+    migration,
+    /tg_op = 'INSERT'[\s\S]*provider_attempt_count_at_output is not null[\s\S]*must start empty/,
+  );
+  assert.match(
+    migration,
+    /new\.provider_attempt_count_at_output is distinct from[\s\S]*v_current_attempt_count/,
+  );
+  assert.match(
+    migration,
+    /select run\.provider_attempt_count into v_provider_attempt_count[\s\S]*worker_claim_token = p_claim_token[\s\S]*lease_expires_at > now\(\)[\s\S]*for share/,
+  );
+  assert.match(
+    migration,
+    /provider_attempt_count_at_output = coalesce\([\s\S]*provider_attempt_count_at_output,[\s\S]*when v_provider_attempt_count >= 1 then v_provider_attempt_count[\s\S]*else null/,
+  );
+  assert.match(
+    migration,
+    /provider_attempt_count_at_output >= v_success_provider_calls/,
+  );
+  assert.match(
+    migration,
+    /v_run\.provider_attempt_count = v_checkpoint\.provider_attempt_count_at_output/,
+  );
+  assert.match(
+    migration,
+    /when 'provider_timeout'[\s\S]*v_run\.provider_attempt_count = 1[\s\S]*provider_attempt_count_at_output is null/,
+  );
+  assert.match(
+    migration,
+    /when 'retry_exhaustion'[\s\S]*v_run\.provider_attempt_count = 3[\s\S]*provider_failure_count = 3[\s\S]*provider_attempt_count_at_output is null/,
+  );
+  assert.match(migration, /ai_grading_runtime_attestations/);
+  assert.match(migration, /v_first_output_at < v_second_claim_at/);
+  assert.match(migration, /v_first_persistence_at < v_second_claim_at/);
+  assert.match(
+    migration,
+    /grant execute on function public\.checkpoint_ai_grading_output\([\s\S]*to service_role/,
+  );
+  assert.match(
+    migration,
+    /grant execute on function public\.finalize_ai_grading_operational_scenario\([\s\S]*to service_role/,
+  );
+  assert.ok(
+    migration.indexOf("create trigger ai_grading_output_attempt_count_immutable") <
+      migration.indexOf("update public.ai_grading_checkpoints checkpoint"),
+    "immutability DDL must precede the one-time backfill DML",
+  );
+});
+
+test("ordinary output checkpointing does not depend on best-effort attempt accounting", () => {
+  const migration = read(
+    "supabase/migrations/20260902100000_ai_grading_output_attempt_fence.sql",
+  );
+  const checkpointFunction = migration.match(
+    /create or replace function public\.checkpoint_ai_grading_output\(([\s\S]*?)revoke all on function public\.checkpoint_ai_grading_output/,
+  )?.[1];
+  assert.ok(checkpointFunction);
+  assert.match(
+    checkpointFunction,
+    /when v_provider_attempt_count >= 1 then v_provider_attempt_count\s+else null/,
+  );
+  assert.match(checkpointFunction, /output_payload = coalesce\(output_payload, p_payload\)/);
+  assert.match(checkpointFunction, /return true/);
+  assert.doesNotMatch(
+    checkpointFunction,
+    /v_provider_attempt_count\s*<\s*1[\s\S]*raise exception/,
+  );
+  const finalizer = migration.match(
+    /create or replace function public\.finalize_ai_grading_operational_scenario\(([\s\S]*?)revoke all on function public\.finalize_ai_grading_operational_scenario/,
+  )?.[1];
+  assert.ok(finalizer);
+  assert.match(
+    finalizer,
+    /provider_attempt_count_at_output >= v_success_provider_calls/,
+  );
+});
+
 test("operational simulation is bound to an immutable DB marker and counts only fenced boundaries", () => {
   const migration = read(
     "supabase/migrations/20260902090000_ai_grading_completed_redelivery_observation.sql",
