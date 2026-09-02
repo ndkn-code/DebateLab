@@ -54,11 +54,53 @@ export const IELTS_BENCHMARK_STUDY_DESIGN_V1 = {
   minimumCasesPerBandTaskCriterionCell: 15,
 } as const;
 
-export const benchmarkStudyDesignIdentitySchema = z.object({
+/**
+ * V2 makes the three Vietnamese regional accent strata release-critical.
+ * `vi_general` remains an allowed legacy/unknown-region label, but it cannot
+ * satisfy V2 pronunciation calibration coverage.
+ */
+export const IELTS_BENCHMARK_STUDY_DESIGN_V2 = {
+  ...IELTS_BENCHMARK_STUDY_DESIGN_V1,
+  version: 2,
+  strata: {
+    ...IELTS_BENCHMARK_STUDY_DESIGN_V1.strata,
+    releaseAccentGroups: ["vi_north", "vi_central", "vi_south"],
+  },
+} as const;
+
+export const IELTS_BENCHMARK_STUDY_DESIGN_CURRENT =
+  IELTS_BENCHMARK_STUDY_DESIGN_V2;
+
+const benchmarkStudyDesignIdentityV1Schema = z.object({
   id: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_V1.id),
   version: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_V1.version),
 });
 
+export const currentBenchmarkStudyDesignIdentitySchema = z.object({
+  id: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.id),
+  version: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.version),
+});
+
+/** Historical records may identify either immutable design version. */
+export const benchmarkStudyDesignIdentitySchema = z.union([
+  benchmarkStudyDesignIdentityV1Schema,
+  currentBenchmarkStudyDesignIdentitySchema,
+]);
+
+export type BenchmarkStudyDesignIdentity = z.infer<
+  typeof benchmarkStudyDesignIdentitySchema
+>;
+
 export function assertBenchmarkStudyDesignIdentity(value: unknown) {
   return benchmarkStudyDesignIdentitySchema.parse(value);
+}
+
+export function assertCurrentBenchmarkStudyDesignIdentity(value: unknown) {
+  return currentBenchmarkStudyDesignIdentitySchema.parse(value);
+}
+
+export function getBenchmarkStudyDesign(version: 1 | 2) {
+  return version === 1
+    ? IELTS_BENCHMARK_STUDY_DESIGN_V1
+    : IELTS_BENCHMARK_STUDY_DESIGN_V2;
 }

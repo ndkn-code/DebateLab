@@ -20,6 +20,24 @@ export type ProviderReservation =
   | "output_ready"
   | "outcome_unknown";
 
+export class AiGradingRpcError extends Error {
+  readonly gradingCode: string | null;
+
+  constructor(label: string, message: string) {
+    super(`${label}: ${message}`);
+    this.name = "AiGradingRpcError";
+    this.gradingCode = message.match(/\b(AI_GRADING_[A-Z0-9_]+)\b/)?.[1] ?? null;
+  }
+}
+
+export type ProvisionalCheckpoint = {
+  payload: unknown;
+  hash: string;
+  version: number;
+  workflowAttempt: number;
+  providerAttemptCount: number;
+};
+
 export interface AiGradingRepository {
   claim(delivery: AiGradingDelivery): Promise<ClaimResult>;
   loadOperationalEnvironmentMarker?(): Promise<{
@@ -60,6 +78,17 @@ export interface AiGradingRepository {
     payload: unknown,
     hash: string,
   ): Promise<void>;
+  loadProvisional?(
+    runId: string,
+    claimToken: string,
+  ): Promise<ProvisionalCheckpoint | null>;
+  checkpointProvisional?(
+    runId: string,
+    claimToken: string,
+    payload: unknown,
+    hash: string,
+    workflowAttempt: number,
+  ): Promise<"created" | "replayed">;
   reserveProvider(
     runId: string,
     claimToken: string,
@@ -119,7 +148,7 @@ function parseClaim(value: unknown): ClaimResult {
 }
 
 function assertRpc(error: { message: string } | null, label: string): void {
-  if (error) throw new Error(`${label}: ${error.message}`);
+  if (error) throw new AiGradingRpcError(label, error.message);
 }
 
 export function createProductionRepository(): AiGradingRepository {
@@ -231,6 +260,58 @@ export function createProductionRepository(): AiGradingRepository {
         p_hash: hash,
       });
       assertRpc(error, "checkpoint AI grading preparation");
+    },
+    async loadProvisional(runId, claimToken) {
+      const { data, error } = await supabase.rpc(
+        "load_ai_grading_provisional",
+        { p_run_id: runId, p_claim_token: claimToken },
+      );
+      assertRpc(error, "load AI grading provisional checkpoint");
+      const row = firstRow(data);
+      if (!row) return null;
+      if (
+        typeof row.payload_hash !== "string" ||
+        !/^[0-9a-f]{64}$/.test(row.payload_hash) ||
+        !Number.isInteger(Number(row.payload_version)) ||
+        Number(row.payload_version) < 1 ||
+        !Number.isInteger(Number(row.workflow_attempt)) ||
+        Number(row.workflow_attempt) < 1 ||
+        !Number.isInteger(Number(row.provider_attempt_count)) ||
+        Number(row.provider_attempt_count) < 1
+      ) {
+        throw new Error("AI_GRADING_PROVISIONAL_CHECKPOINT_INVALID");
+      }
+      return {
+        payload: row.payload,
+        hash: row.payload_hash,
+        version: Number(row.payload_version),
+        workflowAttempt: Number(row.workflow_attempt),
+        providerAttemptCount: Number(row.provider_attempt_count),
+      };
+    },
+    async checkpointProvisional(
+      runId,
+      claimToken,
+      payload,
+      hash,
+      workflowAttempt,
+    ) {
+      const { data, error } = await supabase.rpc(
+        "checkpoint_ai_grading_provisional",
+        {
+          p_run_id: runId,
+          p_claim_token: claimToken,
+          p_payload: payload,
+          p_hash: hash,
+          p_version: 1,
+          p_workflow_attempt: workflowAttempt,
+        },
+      );
+      assertRpc(error, "checkpoint AI grading provisional output");
+      if (data !== "created" && data !== "replayed") {
+        throw new Error("AI_GRADING_PROVISIONAL_CHECKPOINT_OUTCOME_INVALID");
+      }
+      return data;
     },
     async reserveProvider(runId, claimToken) {
       const { data, error } = await supabase.rpc(

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 
 import {
   AI_GRADING_BENCHMARK_PRIVATE_BUCKET,
+  countDuplicatePaidScoringAttempts,
   parseGradingPrediction,
   parseOperationalSafetyEvidence,
   countInvalidStoredBenchmarkRows,
@@ -19,6 +20,7 @@ import {
   type ReleaseGateResult,
 } from "@/lib/ai/benchmarks/evaluate";
 import { verifyStudyLeadBenchmarkAttestation } from "@/lib/ai/benchmarks/study-attestation";
+import { assertCurrentBenchmarkStudyDesignRows } from "@/lib/ai/benchmarks/study-validation";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 type JsonRecord = Record<string, unknown>;
@@ -316,12 +318,17 @@ function verifyStoredModelInputs(params: {
 function operationalScenario(value: unknown) {
   const row = record(value);
   const workflow = firstRecord(row.workflow);
+  const checkpoint = firstRecord(workflow.checkpoint);
   return {
     workflowRunId: row.workflow_run_id,
     scenario: row.scenario,
     expectedProviderCalls: row.expected_provider_calls,
     observedProviderCalls: row.observed_provider_calls,
     actualProviderCalls: workflow.provider_attempt_count,
+    providerAttemptCountAtOutput:
+      checkpoint.provider_attempt_count_at_output ?? null,
+    providerAttemptCountAtProvisional:
+      checkpoint.provider_attempt_count_at_provisional ?? null,
     terminalStatus: row.terminal_status,
     actualWorkflowStatus: workflow.status,
     invalidAuthoritativeCitationCount: row.invalid_authoritative_citation_count,
@@ -342,7 +349,7 @@ async function loadOperationalEvidence(params: {
   const { data, error } = await client
     .from("ai_grading_operational_evidence")
     .select(
-      "run_id,grader_version,corpus_version,environment,deployment_id,image_digest,started_at,verified_at,expires_at,evidence_hash,scenarios:ai_grading_operational_scenarios(workflow_run_id,scenario,expected_provider_calls,observed_provider_calls,terminal_status,invalid_authoritative_citation_count,passed,details_hash,workflow:ai_workflow_runs!ai_grading_operational_scenarios_workflow_run_id_fkey(status,provider_attempt_count))",
+      "run_id,grader_version,corpus_version,environment,deployment_id,image_digest,started_at,verified_at,expires_at,evidence_hash,scenarios:ai_grading_operational_scenarios(workflow_run_id,scenario,expected_provider_calls,observed_provider_calls,terminal_status,invalid_authoritative_citation_count,passed,details_hash,workflow:ai_workflow_runs!ai_grading_operational_scenarios_workflow_run_id_fkey(status,provider_attempt_count,checkpoint:ai_grading_checkpoints!ai_grading_checkpoints_workflow_run_id_fkey(provider_attempt_count_at_output,provider_attempt_count_at_provisional)))",
     )
     .eq("grader_version", params.graderVersion)
     .eq("corpus_version", params.corpusVersion)
@@ -593,6 +600,9 @@ async function main() {
   if (error) throw new Error(`grading gate query failed: ${error.message}`);
 
   const benchmarkRows = (data ?? []).map(record);
+  // V1 remains readable as history but can never silently satisfy V2 release
+  // coverage, accent, or accuracy requirements.
+  assertCurrentBenchmarkStudyDesignRows(benchmarkRows);
   verifyStudyLeadReleaseAttestations({
     rows: benchmarkRows,
     trustSet: JSON.parse(studyLeadTrustSetJson),
@@ -679,16 +689,7 @@ async function main() {
       (sum, scenario) => sum + scenario.invalidAuthoritativeCitationCount,
       0,
     ) ?? 0;
-  const duplicatePaidScoringCount =
-    safety?.scenarios.reduce(
-      (sum, scenario) =>
-        sum +
-        Math.max(
-          0,
-          scenario.observedProviderCalls - scenario.expectedProviderCalls,
-        ),
-      0,
-    ) ?? 0;
+  const duplicatePaidScoringCount = countDuplicatePaidScoringAttempts(safety);
   const strandedWorkflowCount =
     safety && safetyFresh
       ? await countStrandedCohortRuns({ client, safety })

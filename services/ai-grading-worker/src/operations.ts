@@ -48,7 +48,26 @@ type PreparedWriting = Awaited<ReturnType<typeof prepareIeltsWritingScore>>;
 type SpeakingFinal = Awaited<ReturnType<typeof generateIeltsSpeakingScore>> & {
   gradingMetadata?: Json;
 };
-type WritingFinal = Awaited<ReturnType<typeof generateIeltsWritingScore>> & {
+type GeneratedWritingResult = Awaited<
+  ReturnType<typeof generateIeltsWritingScore>
+>;
+type DeterministicWritingResult = {
+  output: PreparedWriting["deterministicLowEvidence"] extends infer Decision
+    ? Decision extends { output: infer Output }
+      ? Output
+      : never
+    : never;
+  text: string;
+  provider: "deterministic";
+  model: string;
+  usage: Record<string, never>;
+  latencyMs: 0;
+  traceId: string;
+  fallbackUsed: false;
+  attempts: [];
+  providerRequestIds: [];
+};
+type WritingFinal = (GeneratedWritingResult | DeterministicWritingResult) & {
   gradingMetadata?: Json;
 };
 
@@ -67,6 +86,13 @@ type WritingOutput = {
   kind: "ielts_writing_score";
   final: WritingFinal;
   criterionEvidence: ReturnType<typeof buildWritingCriterionEvidence>;
+};
+
+type IeltsProvisionalEnvelope = {
+  schemaVersion: 1;
+  kind: "ielts_speaking_score" | "ielts_writing_score";
+  workflowAttempt: number;
+  result: SpeakingFinal | WritingFinal;
 };
 
 function assertKind<T extends AiGradingJob["kind"]>(
@@ -122,13 +148,307 @@ function commonEvidenceContext(params: {
     promptVersion: params.promptVersion,
     confidence: params.confidence,
     workflowAttempt: params.workflowAttempt,
-    providerAttempt: Math.max(1, params.result.attempts.length),
+    providerAttempt:
+      params.result.provider === "deterministic"
+        ? 0
+        : Math.max(1, params.result.attempts.length),
     validatedOutputSnapshot: params.result.output as Json,
   } as const;
 }
 
+function provisionalEnvelope(
+  job: AiGradingJob,
+  workflowAttempt: number,
+  result: SpeakingFinal | WritingFinal,
+): IeltsProvisionalEnvelope {
+  if (
+    (job.kind !== "ielts_speaking_score" &&
+      job.kind !== "ielts_writing_score") ||
+    !Number.isInteger(workflowAttempt) ||
+    workflowAttempt < 1
+  ) {
+    throw new AiGradingFatalError("IELTS provisional identity is invalid");
+  }
+  return { schemaVersion: 1, kind: job.kind, workflowAttempt, result };
+}
+
+function parseProvisionalEnvelope(
+  job: AiGradingJob,
+  value: unknown,
+): IeltsProvisionalEnvelope {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new AiGradingFatalError("IELTS provisional checkpoint is invalid");
+  }
+  const envelope = value as Partial<IeltsProvisionalEnvelope>;
+  const result = envelope.result as Record<string, unknown> | undefined;
+  if (
+    envelope.schemaVersion !== 1 ||
+    envelope.kind !== job.kind ||
+    !Number.isInteger(envelope.workflowAttempt) ||
+    Number(envelope.workflowAttempt) < 1 ||
+    !result ||
+    typeof result.output !== "object" ||
+    result.output === null ||
+    typeof result.traceId !== "string" ||
+    typeof result.provider !== "string" ||
+    typeof result.model !== "string" ||
+    !Array.isArray(result.attempts)
+  ) {
+    throw new AiGradingFatalError("IELTS provisional checkpoint is invalid");
+  }
+  return envelope as IeltsProvisionalEnvelope;
+}
+
+async function finalizeSpeaking(params: {
+  job: AiGradingJob & { kind: "ielts_speaking_score" };
+  prepared: PreparedSpeaking;
+  provisional: SpeakingFinal;
+  workflowAttempt: number;
+  provisionalWorkflowAttempt: number;
+  adjudicate: boolean;
+}): Promise<SpeakingOutput> {
+  const { job, prepared: value, provisional } = params;
+  const final = params.adjudicate
+    ? await adjudicateIeltsSpeakingScore({
+        workflowRunId: job.workflowRunId,
+        speakingResponseId: job.sourceId,
+        userId: value.userId,
+        questionId: value.questionId,
+        questionType: value.questionType,
+        retrievalQuery: value.retrievalQuery,
+        prompt: value.prompt,
+        provisionalOutput: provisional.output,
+        provisionalTraceId: provisional.traceId,
+        baseEvidence: value.baseEvidence,
+        baseCorpusVersion: value.baseCorpusVersion,
+        acousticEvidenceAvailable: value.acousticEvidenceAvailable,
+      })
+    : {
+        ...provisional,
+        gradingMetadata: createStagedGradingMetadata({
+          evidence: value.baseEvidence,
+          gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+          runId: job.workflowRunId,
+          corpusVersion: value.baseCorpusVersion,
+          provisionalTraceId: provisional.traceId,
+          adjudicationTraceId: provisional.traceId,
+          acousticEvidenceAvailable: value.acousticEvidenceAvailable,
+          retrievalSkippedReason: "adjacent_band_adjudication_disabled",
+        }) as unknown as Json,
+      };
+  const criterionEvidence = buildSpeakingCriterionEvidence({
+    score: normalizeSpeakingScore(provisional.output),
+    context: commonEvidenceContext({
+      job,
+      workflowAttempt: params.provisionalWorkflowAttempt,
+      result: provisional,
+      stage: "provisional",
+      gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+      rubricVersion: "ielts-speaking-rubric-v1",
+      promptVersion: "ielts_speaking_scorer@1",
+      confidence: 0.5,
+    }),
+  });
+  if (final.traceId !== provisional.traceId) {
+    criterionEvidence.push(
+      ...buildSpeakingCriterionEvidence({
+        score: normalizeSpeakingScore(final.output),
+        context: commonEvidenceContext({
+          job,
+          workflowAttempt: params.workflowAttempt,
+          result: final,
+          stage: "adjudicated",
+          gradingVersion: IELTS_GRADING_VERSION,
+          rubricVersion: "ielts-speaking-rubric-v1",
+          promptVersion: "ielts_speaking_adjudication@1",
+          confidence: 0.7,
+        }),
+      }),
+    );
+  }
+  return { kind: "ielts_speaking_score", final, criterionEvidence };
+}
+
+async function finalizeWriting(params: {
+  job: AiGradingJob & { kind: "ielts_writing_score" };
+  prepared: PreparedWriting;
+  provisional: WritingFinal;
+  workflowAttempt: number;
+  provisionalWorkflowAttempt: number;
+  adjudicate: boolean;
+}): Promise<WritingOutput> {
+  const { job, prepared: value, provisional } = params;
+  const lowEvidence = value.deterministicLowEvidence;
+  const final = lowEvidence
+    ? {
+        ...provisional,
+        gradingMetadata: createStagedGradingMetadata({
+          evidence: [],
+          gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+          runId: job.workflowRunId,
+          corpusVersion: null,
+          provisionalTraceId: provisional.traceId,
+          adjudicationTraceId: provisional.traceId,
+          retrievalSkippedReason: "deterministic_low_evidence",
+          additionalLimitations: [
+            "writing_low_evidence_rule_applied",
+            "bands_2_3_require_qualitative_assessment",
+          ],
+          deterministicDecision: {
+            kind: "writing_low_evidence",
+            ruleVersion: lowEvidence.ruleVersion,
+            reason: lowEvidence.reason,
+            wordCount: lowEvidence.wordCount,
+          },
+        }) as unknown as Json,
+      }
+    : params.adjudicate
+      ? await adjudicateIeltsWritingScore({
+          workflowRunId: job.workflowRunId,
+          writingResponseId: job.sourceId,
+          userId: value.userId,
+          questionId: value.questionId,
+          questionType: value.questionType,
+          retrievalQuery: value.retrievalQuery,
+          prompt: value.prompt,
+          provisionalOutput: provisional.output,
+          provisionalTraceId: provisional.traceId,
+          baseEvidence: value.baseEvidence,
+          baseCorpusVersion: value.baseCorpusVersion,
+        })
+      : {
+          ...provisional,
+          gradingMetadata: createStagedGradingMetadata({
+            evidence: value.baseEvidence,
+            gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+            runId: job.workflowRunId,
+            corpusVersion: value.baseCorpusVersion,
+            provisionalTraceId: provisional.traceId,
+            adjudicationTraceId: provisional.traceId,
+            retrievalSkippedReason: "adjacent_band_adjudication_disabled",
+          }) as unknown as Json,
+        };
+  const criterionEvidence = buildWritingCriterionEvidence({
+    score: normalizeWritingScore(provisional.output),
+    context: commonEvidenceContext({
+      job,
+      workflowAttempt: params.provisionalWorkflowAttempt,
+      result: provisional,
+      stage: "provisional",
+      gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+      rubricVersion: lowEvidence
+        ? lowEvidence.ruleVersion
+        : "ielts-writing-rubric-v1",
+      promptVersion: lowEvidence
+        ? lowEvidence.ruleVersion
+        : "ielts_writing_scorer@1",
+      confidence: lowEvidence ? 1 : 0.5,
+    }),
+  });
+  if (!lowEvidence && final.traceId !== provisional.traceId) {
+    criterionEvidence.push(
+      ...buildWritingCriterionEvidence({
+        score: normalizeWritingScore(final.output),
+        context: commonEvidenceContext({
+          job,
+          workflowAttempt: params.workflowAttempt,
+          result: final,
+          stage: "adjudicated",
+          gradingVersion: IELTS_GRADING_VERSION,
+          rubricVersion: "ielts-writing-rubric-v1",
+          promptVersion: "ielts_writing_adjudication@1",
+          confidence: 0.7,
+        }),
+      }),
+    );
+  }
+  return { kind: "ielts_writing_score", final, criterionEvidence };
+}
+
 export function createProductionOperations(): AiGradingOperations {
   return {
+    requiresProvider(job, prepared) {
+      if (job.kind !== "ielts_writing_score") return true;
+      const value = prepared as PreparedWriting;
+      // Prepared checkpoints written before the deterministic rule was added
+      // omit this field. They still require the normal paid-provider fence.
+      return value.deterministicLowEvidence == null;
+    },
+
+    usesProvisionalCheckpoint(job, prepared) {
+      if (!isIeltsEvidenceAdjudicationEnabled()) return false;
+      if (job.kind === "ielts_speaking_score") return true;
+      if (job.kind !== "ielts_writing_score") return false;
+      // A missing field is a legacy provider-backed checkpoint, never an
+      // explicit provider-free decision.
+      return (prepared as PreparedWriting).deterministicLowEvidence == null;
+    },
+
+    async generateProvisional(job, prepared, context) {
+      if (job.kind === "ielts_speaking_score") {
+        const value = prepared as PreparedSpeaking;
+        const result = await generateIeltsSpeakingScore({
+          workflowRunId: job.workflowRunId,
+          speakingResponseId: job.sourceId,
+          userId: value.userId,
+          prompt: value.prompt,
+        });
+        return provisionalEnvelope(job, context.workflowAttempt, result);
+      }
+      if (job.kind === "ielts_writing_score") {
+        const value = prepared as PreparedWriting;
+        if (value.deterministicLowEvidence) {
+          throw new AiGradingFatalError(
+            "Deterministic Writing must not enter staged provider scoring",
+          );
+        }
+        const result = await generateIeltsWritingScore({
+          workflowRunId: job.workflowRunId,
+          writingResponseId: job.sourceId,
+          userId: value.userId,
+          prompt: value.prompt,
+        });
+        return provisionalEnvelope(job, context.workflowAttempt, result);
+      }
+      throw new AiGradingFatalError(
+        "Practice grading does not support a provisional checkpoint",
+      );
+    },
+
+    async generateFromProvisional(job, prepared, checkpoint, context) {
+      const envelope = parseProvisionalEnvelope(job, checkpoint);
+      if (envelope.workflowAttempt !== context.provisionalWorkflowAttempt) {
+        throw new AiGradingFatalError(
+          "IELTS provisional workflow attempt does not match its checkpoint",
+        );
+      }
+      if (job.kind === "ielts_speaking_score") {
+        assertKind(job, "ielts_speaking_score");
+        return finalizeSpeaking({
+          job,
+          prepared: prepared as PreparedSpeaking,
+          provisional: envelope.result as SpeakingFinal,
+          workflowAttempt: context.workflowAttempt,
+          provisionalWorkflowAttempt: envelope.workflowAttempt,
+          adjudicate: true,
+        });
+      }
+      if (job.kind === "ielts_writing_score") {
+        assertKind(job, "ielts_writing_score");
+        return finalizeWriting({
+          job,
+          prepared: prepared as PreparedWriting,
+          provisional: envelope.result as WritingFinal,
+          workflowAttempt: context.workflowAttempt,
+          provisionalWorkflowAttempt: envelope.workflowAttempt,
+          adjudicate: true,
+        });
+      }
+      throw new AiGradingFatalError(
+        "Practice grading does not support staged adjudication",
+      );
+    },
+
     runtimeIdentity(job, prepared) {
       const value = prepared as { baseCorpusVersion?: unknown };
       const corpusVersion = Number(value.baseCorpusVersion ?? 1);
@@ -293,13 +613,50 @@ export function createProductionOperations(): AiGradingOperations {
       }
 
       const value = prepared as PreparedWriting;
-      const provisional = await generateIeltsWritingScore({
-        workflowRunId: job.workflowRunId,
-        writingResponseId: job.sourceId,
-        userId: value.userId,
-        prompt: value.prompt,
-      });
-      const final = isIeltsEvidenceAdjudicationEnabled()
+      const lowEvidence = value.deterministicLowEvidence;
+      const provisional: WritingFinal = lowEvidence
+        ? {
+            output: lowEvidence.output,
+            text: JSON.stringify(lowEvidence.output),
+            provider: "deterministic",
+            model: lowEvidence.ruleVersion,
+            usage: {},
+            latencyMs: 0,
+            traceId: `${job.workflowRunId}:writing-low-evidence`,
+            fallbackUsed: false,
+            attempts: [],
+            providerRequestIds: [],
+          }
+        : await generateIeltsWritingScore({
+            workflowRunId: job.workflowRunId,
+            writingResponseId: job.sourceId,
+            userId: value.userId,
+            prompt: value.prompt,
+          });
+      const final = lowEvidence
+        ? {
+            ...provisional,
+            gradingMetadata: createStagedGradingMetadata({
+              evidence: [],
+              gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
+              runId: job.workflowRunId,
+              corpusVersion: null,
+              provisionalTraceId: provisional.traceId,
+              adjudicationTraceId: provisional.traceId,
+              retrievalSkippedReason: "deterministic_low_evidence",
+              additionalLimitations: [
+                "writing_low_evidence_rule_applied",
+                "bands_2_3_require_qualitative_assessment",
+              ],
+              deterministicDecision: {
+                kind: "writing_low_evidence",
+                ruleVersion: lowEvidence.ruleVersion,
+                reason: lowEvidence.reason,
+                wordCount: lowEvidence.wordCount,
+              },
+            }) as unknown as Json,
+          }
+        : isIeltsEvidenceAdjudicationEnabled()
         ? await adjudicateIeltsWritingScore({
             workflowRunId: job.workflowRunId,
             writingResponseId: job.sourceId,
@@ -333,12 +690,16 @@ export function createProductionOperations(): AiGradingOperations {
           result: provisional,
           stage: "provisional",
           gradingVersion: IELTS_PROVISIONAL_EVIDENCE_VERSION,
-          rubricVersion: "ielts-writing-rubric-v1",
-          promptVersion: "ielts_writing_scorer@1",
-          confidence: 0.5,
+          rubricVersion: lowEvidence
+            ? lowEvidence.ruleVersion
+            : "ielts-writing-rubric-v1",
+          promptVersion: lowEvidence
+            ? lowEvidence.ruleVersion
+            : "ielts_writing_scorer@1",
+          confidence: lowEvidence ? 1 : 0.5,
         }),
       });
-      if (final.traceId !== provisional.traceId) {
+      if (!lowEvidence && final.traceId !== provisional.traceId) {
         criterionEvidence.push(
           ...buildWritingCriterionEvidence({
             score: normalizeWritingScore(final.output),

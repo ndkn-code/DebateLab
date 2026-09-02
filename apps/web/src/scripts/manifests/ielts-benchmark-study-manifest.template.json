@@ -2,7 +2,7 @@
   "manifestVersion": 1,
   "studyDesign": {
     "id": "debatelab-ielts-examiner-study",
-    "version": 1
+    "version": 2
   },
   "createdAt": "2026-09-01T12:00:00.000Z",
   "sources": [
@@ -159,7 +159,7 @@
         "sourceGroupKey": "source-group-synthetic-0001",
         "captureSessionKey": "capture-synthetic-0001",
         "studyDesignId": "debatelab-ielts-examiner-study",
-        "studyDesignVersion": 1,
+        "studyDesignVersion": 2,
         "protectedOfflineEvaluationOnly": true
       }
     }

@@ -8,8 +8,8 @@ import {
   type IeltsBenchmarkSkill,
 } from "./evaluate";
 import {
-  IELTS_BENCHMARK_STUDY_DESIGN_V1,
-  assertBenchmarkStudyDesignIdentity,
+  IELTS_BENCHMARK_STUDY_DESIGN_CURRENT,
+  assertCurrentBenchmarkStudyDesignIdentity,
 } from "./study-design";
 
 const finiteBandSchema = z.number().finite().min(0).max(9);
@@ -66,6 +66,8 @@ const operationalScenarioSchema = z.object({
   expectedProviderCalls: z.number().int().nonnegative(),
   observedProviderCalls: z.number().int().nonnegative(),
   actualProviderCalls: z.number().int().nonnegative(),
+  providerAttemptCountAtOutput: z.number().int().positive().nullable(),
+  providerAttemptCountAtProvisional: z.number().int().positive().nullable(),
   terminalStatus: z.enum(["completed", "failed"]),
   actualWorkflowStatus: z.enum(["completed", "failed"]),
   invalidAuthoritativeCitationCount: z.number().int().nonnegative(),
@@ -122,7 +124,7 @@ const operationalSafetyEvidenceSchema = z
       });
     }
     value.scenarios.forEach((scenario, index) => {
-      const expectedProviderCalls =
+      const minimumProviderCalls =
         scenario.scenario === "retry_exhaustion"
           ? 3
           : scenario.scenario === "provider_timeout"
@@ -135,10 +137,29 @@ const operationalSafetyEvidenceSchema = z
         scenario.scenario === "retry_exhaustion"
           ? "failed"
           : "completed";
+      const isSuccessfulRecovery = expectedTerminalStatus === "completed";
+      const stageFenceValid =
+        value.graderVersion === "evidence-adjudicated-v1"
+          ? scenario.providerAttemptCountAtProvisional !== null &&
+            scenario.providerAttemptCountAtOutput !== null &&
+            scenario.providerAttemptCountAtOutput >
+              scenario.providerAttemptCountAtProvisional
+          : scenario.providerAttemptCountAtProvisional === null;
+      const countersMatch = isSuccessfulRecovery
+        ? stageFenceValid &&
+          scenario.expectedProviderCalls === minimumProviderCalls &&
+          scenario.observedProviderCalls === scenario.actualProviderCalls &&
+          scenario.providerAttemptCountAtOutput !== null &&
+          scenario.actualProviderCalls ===
+            scenario.providerAttemptCountAtOutput &&
+          scenario.providerAttemptCountAtOutput >= minimumProviderCalls
+        : scenario.expectedProviderCalls === minimumProviderCalls &&
+          scenario.observedProviderCalls === scenario.actualProviderCalls &&
+          scenario.actualProviderCalls === minimumProviderCalls &&
+          scenario.providerAttemptCountAtOutput === null &&
+          scenario.providerAttemptCountAtProvisional === null;
       if (
-        scenario.expectedProviderCalls !== expectedProviderCalls ||
-        scenario.observedProviderCalls !== scenario.actualProviderCalls ||
-        scenario.observedProviderCalls !== expectedProviderCalls ||
+        !countersMatch ||
         scenario.terminalStatus !== expectedTerminalStatus
       ) {
         context.addIssue({
@@ -157,6 +178,24 @@ const operationalSafetyEvidenceSchema = z
       }
     });
   });
+
+/**
+ * Counts only provider work that happened after a validated output checkpoint.
+ * Definite failures before that checkpoint are legitimate bounded retries, not
+ * duplicate scoring. Failed scenarios have no output fence and are locked to
+ * exact counters by the parser above.
+ */
+export function countDuplicatePaidScoringAttempts(
+  evidence: OperationalSafetyEvidence | null,
+): number {
+  return (
+    evidence?.scenarios.reduce((sum, scenario) => {
+      const fence =
+        scenario.providerAttemptCountAtOutput ?? scenario.expectedProviderCalls;
+      return sum + Math.max(0, scenario.actualProviderCalls - fence);
+    }, 0) ?? 0
+  );
+}
 
 export type OperationalSafetyEvidence = z.infer<
   typeof operationalSafetyEvidenceSchema
@@ -1060,8 +1099,8 @@ const benchmarkCaseSchema = z
       promptFamilyKey: studyKeySchema,
       sourceGroupKey: studyKeySchema,
       captureSessionKey: studyKeySchema,
-      studyDesignId: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_V1.id),
-      studyDesignVersion: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_V1.version),
+      studyDesignId: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.id),
+      studyDesignVersion: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.version),
       /** Required for Speaking slice analysis and accent-bias checks. */
       l1Group: z.string().min(1).max(100).optional(),
       audioQualityGroup: z
@@ -1320,8 +1359,8 @@ export function countInvalidStoredBenchmarkRows(values: unknown[]): number {
 export const gradingBenchmarkImportFileSchema = z.object({
   manifestVersion: z.literal(1),
   studyDesign: z.object({
-    id: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_V1.id),
-    version: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_V1.version),
+    id: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.id),
+    version: z.literal(IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.version),
   }),
   createdAt: z.string().datetime({ offset: true }),
   sources: z.array(approvedBenchmarkSourceSchema).min(1).max(10_000),
@@ -1342,7 +1381,7 @@ export function parseGradingBenchmarkImport(
   value: unknown,
 ): GradingBenchmarkImportFile {
   const parsed = gradingBenchmarkImportFileSchema.parse(value);
-  assertBenchmarkStudyDesignIdentity(parsed.studyDesign);
+  assertCurrentBenchmarkStudyDesignIdentity(parsed.studyDesign);
   const manifestCreatedAt = new Date(parsed.createdAt).getTime();
   for (const benchmark of parsed.benchmarks) {
     const consent = benchmark.protectedLabel.consent;
@@ -1536,7 +1575,7 @@ export function parseGradingBenchmarkImport(
     }
     if (
       benchmark.accentGroup &&
-      !IELTS_BENCHMARK_STUDY_DESIGN_V1.strata.accentGroups.includes(
+      !IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.strata.accentGroups.includes(
         benchmark.accentGroup as never,
       )
     ) {
@@ -1546,7 +1585,7 @@ export function parseGradingBenchmarkImport(
     }
     if (
       benchmark.metadata.l1Group &&
-      !IELTS_BENCHMARK_STUDY_DESIGN_V1.strata.l1Groups.includes(
+      !IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.strata.l1Groups.includes(
         benchmark.metadata.l1Group as never,
       )
     ) {

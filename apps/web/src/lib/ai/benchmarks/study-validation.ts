@@ -2,8 +2,30 @@ import {
   parseGradingBenchmarkImport,
   type GradingBenchmarkImportFile,
 } from "./contracts";
-import { IELTS_BENCHMARK_STUDY_DESIGN_V1 } from "./study-design";
+import { IELTS_BENCHMARK_STUDY_DESIGN_CURRENT } from "./study-design";
 import { verifyStudyLeadManifest } from "./study-attestation";
+
+export function assertCurrentBenchmarkStudyDesignRows(
+  rows: Array<{ benchmark_key?: unknown; metadata?: unknown }>,
+): void {
+  const incompatible = rows
+    .filter((row) => {
+      const metadata =
+        row.metadata && typeof row.metadata === "object"
+          ? (row.metadata as Record<string, unknown>)
+          : {};
+      return (
+        metadata.studyDesignVersion !==
+        IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.version
+      );
+    })
+    .map((row) => String(row.benchmark_key ?? "unknown"));
+  if (incompatible.length > 0) {
+    throw new Error(
+      `IELTS_BENCHMARK_STUDY_DESIGN_MISMATCH:${incompatible.join(",")}`,
+    );
+  }
+}
 
 export interface BenchmarkStudyDeficit {
   skill: "ielts_speaking" | "ielts_writing";
@@ -55,7 +77,7 @@ export function validateBenchmarkStudyManifest(
       .map((benchmark) => benchmark.accentGroup)
       .filter((value): value is string => Boolean(value)),
   );
-  for (const required of IELTS_BENCHMARK_STUDY_DESIGN_V1.strata
+  for (const required of IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.strata
     .releaseAccentGroups) {
     representedAccents.add(required);
   }
@@ -82,9 +104,9 @@ export function validateBenchmarkStudyManifest(
   for (const skill of ["ielts_speaking", "ielts_writing"] as const) {
     const accentGroups: Array<string | null> =
       skill === "ielts_speaking" ? [...representedAccents].sort() : [null];
-    for (const taskType of IELTS_BENCHMARK_STUDY_DESIGN_V1.taskTypes[skill]) {
-      for (const criterion of IELTS_BENCHMARK_STUDY_DESIGN_V1.criteria[skill]) {
-        for (const band of IELTS_BENCHMARK_STUDY_DESIGN_V1.requiredBands) {
+    for (const taskType of IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.taskTypes[skill]) {
+      for (const criterion of IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.criteria[skill]) {
+        for (const band of IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.requiredBands) {
           for (const accentGroup of accentGroups) {
             const identity = {
               skill,
@@ -95,7 +117,7 @@ export function validateBenchmarkStudyManifest(
             };
             const count = observed.get(cellKey(identity))?.size ?? 0;
             const required =
-              IELTS_BENCHMARK_STUDY_DESIGN_V1
+              IELTS_BENCHMARK_STUDY_DESIGN_CURRENT
                 .minimumCasesPerBandTaskCriterionCell;
             if (count < required) {
               deficits.push({ ...identity, observed: count, required });

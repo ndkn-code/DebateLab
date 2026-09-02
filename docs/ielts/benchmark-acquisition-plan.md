@@ -1,11 +1,12 @@
 # IELTS examiner benchmark acquisition
 
 This is the acquisition path for the locked IELTS Speaking/Writing benchmark.
-It is not a source list for learner-facing retrieval. Exa research reviewed 180
-result slots across official data-access, assessment-research, examiner, and
-Vietnam partnership routes. No public downloadable dataset met the commercial
-rights, IELTS-criterion, audio, independent-double-marking, and adjudication
-requirements together.
+It is not a source list for learner-facing retrieval. The latest Exa pass
+reviewed 210 result slots across four workstreams and deep-read 18 shortlisted
+official, assessment-research, licensing, dataset, and partnership sources. No
+public downloadable dataset met the commercial rights, IELTS-criterion, audio,
+independent-double-marking, source-isolation, and adjudication requirements
+together.
 
 ## Required partnership
 
@@ -94,17 +95,42 @@ labels, but it counts once per cell regardless of repeated imports.
 - Public Hugging Face/Kaggle IELTS datasets found in the search lacked adequate
   examiner provenance, commercial rights, or source integrity.
 - CEFR learner corpora cannot substitute for IELTS criterion labels.
+- Official IELTS sample responses and recordings are sparse overall-band
+  anchors, not complete criterion-labelled cases, and IELTS's copyright terms
+  do not grant commercial corpus or benchmark use without written permission.
+- A newly published corpus claiming expert IELTS Writing labels is not eligible
+  until its authors provide an explicit commercial licence, consent/source
+  chain, independently verifiable rater credentials, original blind marks,
+  adjudication records, and a band-distribution audit.
 
 The new grader stays disabled until the acquired holdout passes the repository's
 release gate. Public official examples may inform methodology or preliminary
 research but cannot prove examiner-equivalent accuracy by themselves.
 
+## Deterministic low-evidence boundary
+
+The current official Writing descriptors permit only two automatic low-band
+decisions that do not require a qualitative examiner judgement:
+
+- a genuine non-attempt is Band 0;
+- a response of 20 words or fewer is Band 1 across the Writing criteria.
+
+Bands 2 and 3 describe qualitative task relevance, communication,
+organisation, vocabulary, and sentence-form evidence. Word count alone must not
+assign them. Speaking Bands 1–3 are also qualitative, and an empty ASR
+transcript can represent a recognition failure rather than a non-attempt. Those
+cases stay in the human-labelled calibration study and use explicit
+limited-confidence/manual-review handling when the evidence is insufficient.
+
 ## Examiner-team start packet
 
 The checked-in files are synthetic schemas, not participant material:
 
-- `apps/web/src/scripts/manifests/ielts-benchmark-study-design.v1.json` is the
-  versioned task, band, accent, L1, audio-quality, and minimum-cell design.
+- `apps/web/src/scripts/manifests/ielts-benchmark-study-design.v2.json` is the
+  current task, band, accent, L1, audio-quality, and minimum-cell design. V2
+  requires separate `vi_north`, `vi_central`, and `vi_south` release strata;
+  `vi_general` no longer satisfies pronunciation calibration coverage. The V1
+  file remains checked in only to interpret historical records.
 - `ielts-benchmark-study-manifest.template.json` is a redacted end-to-end
   example. Copy it outside the repository; never commit a completed manifest.
 - `ielts-benchmark-study-rater-marks.template.csv` and
@@ -155,8 +181,11 @@ contain a name, email, phone number, account ID, or test-centre candidate number
   not edited in place.
 
 Speaking uses the controlled accent and L1 codes from the study-design file.
-`other_documented` requires a protected study note but prevents spelling
-variants from silently creating a new statistical slice.
+New Vietnamese cases must record `vi_north`, `vi_central`, or `vi_south` when
+the protected recruitment record supports that classification. `vi_general`
+is retained for historical or region-unknown cases but does not count toward a
+V2 release stratum. `other_documented` requires a protected study note but
+prevents spelling variants from silently creating a new statistical slice.
 
 ### Blind marking and adjudication SOP
 

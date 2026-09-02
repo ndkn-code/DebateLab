@@ -80,6 +80,67 @@ test("the retry-consistency migration distinguishes definite failures and atomic
   );
 });
 
+test("IELTS provisional checkpoints are immutable, claim-fenced, and replay-safe", () => {
+  const migration = read(
+    "supabase/migrations/20260902120000_ai_grading_provisional_checkpoint.sql",
+  );
+  assert.match(migration, /add column if not exists provisional_payload jsonb/);
+  assert.match(
+    migration,
+    /add column if not exists provider_attempt_count_at_provisional integer/,
+  );
+  assert.match(
+    migration,
+    /before update or delete on public\.ai_grading_checkpoints/,
+  );
+  assert.match(migration, /AI_GRADING_PROVISIONAL_IMMUTABLE/);
+  assert.match(
+    migration,
+    /revoke insert, update, delete, truncate on public\.ai_grading_checkpoints\s+from service_role/,
+  );
+  assert.match(
+    migration,
+    /load_ai_grading_provisional\([\s\S]*worker_claim_token = p_claim_token[\s\S]*lease_expires_at > now\(\)/,
+  );
+  assert.match(
+    migration,
+    /checkpoint_ai_grading_provisional\([\s\S]*provider_claim_token is distinct from p_claim_token/,
+  );
+  assert.match(
+    migration,
+    /private\.canonical_ai_grading_json\(p_payload\)[\s\S]*v_computed_hash is distinct from p_hash/,
+  );
+  assert.match(
+    migration,
+    /p_payload ->> 'workflowAttempt'[\s\S]*p_workflow_attempt/,
+  );
+  assert.match(
+    migration,
+    /provisional_hash is distinct from p_hash[\s\S]*provisional_payload is distinct from p_payload[\s\S]*AI_GRADING_PROVISIONAL_CONFLICT/,
+  );
+  assert.match(migration, /return 'replayed'/);
+  assert.match(
+    migration,
+    /provisional_workflow_attempt = p_workflow_attempt[\s\S]*provider_started_at = null[\s\S]*provider_claim_token = null/,
+  );
+  assert.match(
+    migration,
+    /provider_attempt_count_at_provisional = v_run\.provider_attempt_count/,
+  );
+  assert.match(
+    migration,
+    /provider_attempt_count_at_output >[\s\S]*provider_attempt_count_at_provisional/,
+  );
+  assert.match(
+    migration,
+    /grant execute on function public\.load_ai_grading_provisional\(uuid, uuid\)[\s\S]*to service_role/,
+  );
+  assert.match(
+    migration,
+    /grant execute on function public\.checkpoint_ai_grading_provisional\([\s\S]*to service_role/,
+  );
+});
+
 test("benchmark labels and release slices remain immutable", () => {
   const migration = read(
     "supabase/migrations/20260901140000_lock_ai_grading_benchmark_metadata.sql",
@@ -359,6 +420,56 @@ test("operational runtime identity fails closed without a real revision and dige
     if (previousDigest === undefined)
       delete process.env.AI_GRADING_IMAGE_DIGEST;
     else process.env.AI_GRADING_IMAGE_DIGEST = previousDigest;
+  }
+});
+
+test("the production provisional checkpoint path follows the adjudication flag", () => {
+  const previous = process.env.IELTS_EVIDENCE_ADJUDICATION_ENABLED;
+  const operations = createProductionOperations();
+  const speakingJob = {
+    schemaVersion: 1 as const,
+    kind: "ielts_speaking_score" as const,
+    sourceId: "00000000-0000-4000-8000-000000000001",
+    workflowRunId: "00000000-0000-4000-8000-000000000002",
+  };
+  const writingJob = { ...speakingJob, kind: "ielts_writing_score" as const };
+  try {
+    delete process.env.IELTS_EVIDENCE_ADJUDICATION_ENABLED;
+    assert.equal(
+      operations.usesProvisionalCheckpoint?.(speakingJob, {}),
+      false,
+    );
+    process.env.IELTS_EVIDENCE_ADJUDICATION_ENABLED = "true";
+    assert.equal(
+      operations.usesProvisionalCheckpoint?.(speakingJob, {}),
+      true,
+    );
+    assert.equal(
+      operations.usesProvisionalCheckpoint?.(writingJob, {
+        deterministicLowEvidence: null,
+      }),
+      true,
+    );
+    assert.equal(
+      operations.requiresProvider?.(writingJob, {}),
+      true,
+      "legacy prepared checkpoints must retain the paid-call fence",
+    );
+    assert.equal(
+      operations.usesProvisionalCheckpoint?.(writingJob, {}),
+      true,
+      "legacy prepared checkpoints must resume through staged scoring",
+    );
+    assert.equal(
+      operations.usesProvisionalCheckpoint?.(writingJob, {
+        deterministicLowEvidence: { reason: "no_response" },
+      }),
+      false,
+    );
+  } finally {
+    if (previous === undefined)
+      delete process.env.IELTS_EVIDENCE_ADJUDICATION_ENABLED;
+    else process.env.IELTS_EVIDENCE_ADJUDICATION_ENABLED = previous;
   }
 });
 

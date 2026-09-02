@@ -3,7 +3,7 @@ import type {
   AiGradingDelivery,
   AiGradingJob,
 } from "@/lib/ai/grading/contracts";
-import type { AiGradingRepository } from "./repository";
+import { AiGradingRpcError, type AiGradingRepository } from "./repository";
 import {
   injectsDefiniteFailure,
   injectsOnceAtAttempt,
@@ -28,6 +28,27 @@ export interface AiGradingOperations {
     graderVersion: string;
     corpusVersion: number;
   };
+  /**
+   * Explicit provider-free decisions (for example, the official Writing
+   * low-evidence rule) bypass the paid-call reservation entirely. The default
+   * is true so every existing operation remains fenced as before.
+   */
+  requiresProvider?(job: AiGradingJob, prepared: unknown): boolean;
+  usesProvisionalCheckpoint?(job: AiGradingJob, prepared: unknown): boolean;
+  generateProvisional?(
+    job: AiGradingJob,
+    prepared: unknown,
+    context: { workflowAttempt: number },
+  ): Promise<unknown>;
+  generateFromProvisional?(
+    job: AiGradingJob,
+    prepared: unknown,
+    provisional: unknown,
+    context: {
+      workflowAttempt: number;
+      provisionalWorkflowAttempt: number;
+    },
+  ): Promise<unknown>;
   generate(
     job: AiGradingJob,
     prepared: unknown,
@@ -160,6 +181,22 @@ function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+class CheckpointResponseUnknownError extends Error {
+  constructor(stage: "provisional" | "output", cause: unknown) {
+    super(`AI_GRADING_${stage.toUpperCase()}_CHECKPOINT_RESPONSE_UNKNOWN`, {
+      cause,
+    });
+    this.name = "CheckpointResponseUnknownError";
+  }
+}
+
+function isDefinitiveCheckpointError(error: unknown): boolean {
+  return (
+    (error instanceof AiGradingRpcError && error.gradingCode !== null) ||
+    /^AI_GRADING_[A-Z0-9_]+$/.test(errorMessage(error))
+  );
+}
+
 /**
  * One fenced run. Duplicate Pub/Sub deliveries either see an active lease or
  * a validated output checkpoint; neither path can invoke the provider again.
@@ -197,6 +234,120 @@ export async function processAiGradingDelivery(
     process.env.AI_GRADING_OPERATIONAL_ATTESTATION_ENABLED === "true";
   let operationalRun = false;
   let operationalFault: OperationalFaultPlan | null = null;
+
+  const checkpointWithExactReplay = async <T>(
+    stage: "provisional" | "output",
+    write: () => Promise<T>,
+  ): Promise<T> => {
+    try {
+      return await write();
+    } catch (firstError) {
+      if (isDefinitiveCheckpointError(firstError)) throw firstError;
+      try {
+        // These RPCs are hash-checked and idempotent. Repeating the exact
+        // write resolves commit-succeeded/response-lost ambiguity without a
+        // second provider call.
+        return await write();
+      } catch (secondError) {
+        if (isDefinitiveCheckpointError(secondError)) throw secondError;
+        // Leave the run and source untouched. Redelivery can load a checkpoint
+        // that committed even if neither response reached this worker.
+        throw new CheckpointResponseUnknownError(stage, secondError);
+      }
+    }
+  };
+
+  const reserveProviderPhase = async (): Promise<
+    "reserved" | "provider_outcome_unknown" | "claim_lost"
+  > => {
+    const reservation = await dependencies.repository.reserveProvider(
+      job.workflowRunId,
+      claimToken,
+    );
+    if (reservation === "outcome_unknown") {
+      const failure = await dependencies.repository.fail(
+        job.workflowRunId,
+        claimToken,
+        {
+          code: "PROVIDER_OUTCOME_UNKNOWN",
+          message:
+            "A previous provider call may have completed without a validated checkpoint.",
+          retryable: false,
+        },
+      );
+      if (failure !== "claim_lost") {
+        await dependencies.operations
+          .failSource(
+            job,
+            false,
+            "A previous provider call has an unknown outcome.",
+          )
+          .catch(() => undefined);
+      }
+      return failure === "claim_lost"
+        ? "claim_lost"
+        : "provider_outcome_unknown";
+    }
+    if (reservation === "output_ready") {
+      throw new Error("AI_GRADING_OUTPUT_CHECKPOINT_STALE_READ");
+    }
+    providerReserved = true;
+    if (operationalRun)
+      await dependencies.repository.recordTransition?.(
+        job.workflowRunId,
+        claimToken,
+        "provider_reserved",
+      );
+    return "reserved";
+  };
+
+  const invokeProviderPhase = async (
+    generate: () => Promise<unknown>,
+  ): Promise<
+    | { outcome: "generated"; value: unknown }
+    | { outcome: "provider_outcome_unknown" | "claim_lost" }
+  > => {
+    const reservation = await reserveProviderPhase();
+    if (reservation !== "reserved") return { outcome: reservation };
+    try {
+      if (injectsOnceAtAttempt(operationalFault, "provider_timeout")) {
+        if (
+          !operationalFault ||
+          !dependencies.repository.recordOperationalBoundaryAttempt
+        ) {
+          throw new Error(
+            "AI_GRADING_OPERATIONAL_BOUNDARY_REPOSITORY_UNAVAILABLE",
+          );
+        }
+        await dependencies.repository.recordOperationalBoundaryAttempt(
+          job.workflowRunId,
+          claimToken,
+          operationalFault.injectionToken,
+        );
+        throw operationalAmbiguousTimeout();
+      }
+      if (injectsDefiniteFailure(operationalFault)) {
+        if (
+          !operationalFault ||
+          !dependencies.repository.recordOperationalBoundaryAttempt
+        ) {
+          throw new Error(
+            "AI_GRADING_OPERATIONAL_BOUNDARY_REPOSITORY_UNAVAILABLE",
+          );
+        }
+        await dependencies.repository.recordOperationalBoundaryAttempt(
+          job.workflowRunId,
+          claimToken,
+          operationalFault.injectionToken,
+        );
+        throw operationalDefiniteProviderFailure();
+      }
+      return { outcome: "generated", value: await generate() };
+    } catch (error) {
+      providerFailureDisposition = classifyProviderFailureDisposition(error);
+      throw error;
+    }
+  };
 
   try {
     if (operationalAttestationEnabled) {
@@ -271,84 +422,105 @@ export async function processAiGradingDelivery(
       );
     }
 
-    if (output === null) {
-      const reservation = await dependencies.repository.reserveProvider(
+    if (
+      output === null &&
+      dependencies.operations.requiresProvider?.(job, prepared) === false
+    ) {
+      output = await dependencies.operations.generate(job, prepared, {
+        workflowAttempt: claim.attemptCount,
+      });
+      const outputHash = checkpointHash(output);
+      await dependencies.repository.checkpointOutput(
         job.workflowRunId,
         claimToken,
+        output,
+        outputHash,
       );
-      if (reservation === "outcome_unknown") {
-        const failure = await dependencies.repository.fail(
-          job.workflowRunId,
-          claimToken,
-          {
-            code: "PROVIDER_OUTCOME_UNKNOWN",
-            message:
-              "A previous provider call may have completed without a validated checkpoint.",
-            retryable: false,
-          },
-        );
-        if (failure !== "claim_lost") {
-          await dependencies.operations
-            .failSource(
-              job,
-              false,
-              "A previous provider call has an unknown outcome.",
-            )
-            .catch(() => undefined);
-        }
-        if (failure === "claim_lost") return "claim_lost";
-        return "provider_outcome_unknown";
-      }
-      if (reservation === "output_ready") {
-        throw new Error("AI_GRADING_OUTPUT_CHECKPOINT_STALE_READ");
-      }
-      providerReserved = true;
       if (operationalRun)
         await dependencies.repository.recordTransition?.(
           job.workflowRunId,
           claimToken,
-          "provider_reserved",
+          "output_checkpointed",
         );
-      try {
-        if (injectsOnceAtAttempt(operationalFault, "provider_timeout")) {
-          if (
-            !operationalFault ||
-            !dependencies.repository.recordOperationalBoundaryAttempt
-          ) {
-            throw new Error(
-              "AI_GRADING_OPERATIONAL_BOUNDARY_REPOSITORY_UNAVAILABLE",
-            );
-          }
-          await dependencies.repository.recordOperationalBoundaryAttempt(
-            job.workflowRunId,
-            claimToken,
-            operationalFault.injectionToken,
-          );
-          throw operationalAmbiguousTimeout();
-        }
-        if (injectsDefiniteFailure(operationalFault)) {
-          if (
-            !operationalFault ||
-            !dependencies.repository.recordOperationalBoundaryAttempt
-          ) {
-            throw new Error(
-              "AI_GRADING_OPERATIONAL_BOUNDARY_REPOSITORY_UNAVAILABLE",
-            );
-          }
-          await dependencies.repository.recordOperationalBoundaryAttempt(
-            job.workflowRunId,
-            claimToken,
-            operationalFault.injectionToken,
-          );
-          throw operationalDefiniteProviderFailure();
-        }
-        output = await dependencies.operations.generate(job, prepared, {
-          workflowAttempt: claim.attemptCount,
-        });
-      } catch (error) {
-        providerFailureDisposition = classifyProviderFailureDisposition(error);
-        throw error;
+      outputCheckpointed = true;
+    }
+
+    const usesProvisionalCheckpoint =
+      output === null &&
+      dependencies.operations.usesProvisionalCheckpoint?.(job, prepared) ===
+        true;
+    let provisional: unknown | null = null;
+    let provisionalWorkflowAttempt = claim.attemptCount;
+    if (usesProvisionalCheckpoint) {
+      if (
+        !dependencies.repository.loadProvisional ||
+        !dependencies.repository.checkpointProvisional ||
+        !dependencies.operations.generateProvisional ||
+        !dependencies.operations.generateFromProvisional
+      ) {
+        throw new Error("AI_GRADING_PROVISIONAL_CHECKPOINT_UNAVAILABLE");
       }
+      const existing = await dependencies.repository.loadProvisional(
+        job.workflowRunId,
+        claimToken,
+      );
+      if (existing) {
+        if (existing.version !== 1) {
+          throw new Error("AI_GRADING_PROVISIONAL_CHECKPOINT_VERSION_UNSUPPORTED");
+        }
+        if (checkpointHash(existing.payload) !== existing.hash) {
+          throw new Error("AI_GRADING_PROVISIONAL_CHECKPOINT_HASH_MISMATCH");
+        }
+        provisional = existing.payload;
+        provisionalWorkflowAttempt = existing.workflowAttempt;
+      } else {
+        const generated = await invokeProviderPhase(() =>
+          dependencies.operations.generateProvisional!(job, prepared, {
+            workflowAttempt: claim.attemptCount,
+          }),
+        );
+        if (generated.outcome !== "generated") return generated.outcome;
+        provisional = generated.value;
+        let provisionalHash: string;
+        try {
+          provisionalHash = checkpointHash(provisional);
+        } catch (error) {
+          providerFailureDisposition = "retryable";
+          throw error;
+        }
+        await checkpointWithExactReplay("provisional", () =>
+          dependencies.repository.checkpointProvisional!(
+            job.workflowRunId,
+            claimToken,
+            provisional,
+            provisionalHash,
+            claim.attemptCount,
+          ),
+        );
+        // The atomic provisional checkpoint closes only that stage's paid-call
+        // reservation. Adjudication must acquire a fresh reservation below.
+        providerReserved = false;
+      }
+    }
+
+    if (output === null) {
+      const generated = await invokeProviderPhase(() =>
+        usesProvisionalCheckpoint
+          ? dependencies.operations.generateFromProvisional!(
+              job,
+              prepared,
+              provisional,
+              {
+                workflowAttempt: claim.attemptCount,
+                provisionalWorkflowAttempt,
+              },
+            )
+          : dependencies.operations.generate(job, prepared, {
+              workflowAttempt: claim.attemptCount,
+            }),
+      );
+      if (generated.outcome !== "generated") return generated.outcome;
+      output = generated.value;
       let outputHash: string;
       try {
         outputHash = checkpointHash(output);
@@ -356,11 +528,13 @@ export async function processAiGradingDelivery(
         providerFailureDisposition = "retryable";
         throw error;
       }
-      await dependencies.repository.checkpointOutput(
-        job.workflowRunId,
-        claimToken,
-        output,
-        outputHash,
+      await checkpointWithExactReplay("output", () =>
+        dependencies.repository.checkpointOutput(
+          job.workflowRunId,
+          claimToken,
+          output,
+          outputHash,
+        ),
       );
       if (operationalRun)
         await dependencies.repository.recordTransition?.(
@@ -402,6 +576,10 @@ export async function processAiGradingDelivery(
     }
     return "completed";
   } catch (error) {
+    // A paid result may already be durably checkpointed even though both RPC
+    // responses were lost. Never turn that transport ambiguity into a
+    // terminal source failure or another provider charge.
+    if (error instanceof CheckpointResponseUnknownError) throw error;
     const domainFatal = dependencies.isFatalError?.(error) ?? false;
     let requestedRetryable =
       !domainFatal && (!providerReserved || outputCheckpointed);

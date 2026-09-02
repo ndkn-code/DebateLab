@@ -1,6 +1,6 @@
 # IELTS rollout checklist
 
-Last verified: 2026-09-01. IELTS is already learner- and teacher-visible in
+Last verified: 2026-09-02. IELTS is already learner- and teacher-visible in
 production. Durable grading runs on private Cloud Run + Pub/Sub; it does not use
 Vercel Workflow, Vercel Queues, or a Vercel grading cron.
 
@@ -46,7 +46,7 @@ Vercel Workflow, Vercel Queues, or a Vercel grading cron.
       failures still skip repair and move to the next declared candidate.
 - [x] Simulation Writing messages are published in deterministic task order and
       remain independently idempotent.
-- [x] Complete repository validation: all 75 test suites pass, TypeScript passes,
+- [x] Complete repository validation: all 77 test suites pass, TypeScript passes,
       and the production build generates 189 pages.
 - [x] Production commit `84a107c1` and private Cloud Run revision
       `ai-grading-worker-00007-g9v` passed a full Academic simulation on
@@ -56,8 +56,12 @@ Vercel Workflow, Vercel Queues, or a Vercel grading cron.
 - [x] Safe-pause readiness is verified: `AI_GRADING_BACKEND=legacy` rejects new
       IELTS Writing/Speaking scoring before charging or persistence, while prior
       private Cloud Run revisions remain available for an image rollback.
-- [ ] Perform an authorized traffic-switch rehearsal of the web-dispatch and
-      Cloud Run rollback controls during a maintenance window.
+- [x] Perform an authorized Cloud Run rollback rehearsal during a maintenance
+      window. Production briefly routed to the prior healthy revision, the
+      authenticated reconciliation probe passed, and 100% traffic was restored
+      to `ai-grading-worker-00008-vqj` with the production scheduler enabled.
+- [ ] Rehearse the separate web-dispatch kill-switch transition before changing
+      `AI_GRADING_BACKEND` in a future release.
 
 ## Content and accuracy gates
 
@@ -71,9 +75,11 @@ Vercel Workflow, Vercel Queues, or a Vercel grading cron.
       so they are coaching locators rather than benchmark ground truth.
 - [ ] Pass the locked grading thresholds in `docs/ai-platform-rollout.md` before
       enabling `IELTS_EVIDENCE_ADJUDICATION_ENABLED`.
-- [ ] Configure Azure Speech in the Cloud Run runtime and verify acoustic
-      pronunciation evidence. Without it, Speaking remains usable but correctly
-      reports limited pronunciation confidence.
+- [x] Configure Azure Speech in the Cloud Run runtime and verify acoustic
+      pronunciation evidence. Private readiness reports the capability and a
+      live synthetic assessment returned accuracy, fluency, prosody, and the
+      composite pronunciation score. Azure remains supporting evidence, not a
+      substitute for the human pronunciation benchmark.
 - [ ] Confirm Voyage credentials before publishing the English collections.
       Voyage is not required for the current safe fallback retrieval path.
 
@@ -95,5 +101,6 @@ Vercel Workflow, Vercel Queues, or a Vercel grading cron.
 - A second person must perform corpus rights/content approval.
 - A qualified human-labelled criterion benchmark is required to substantiate
   examiner-quality accuracy. Document discovery alone cannot prove that claim.
-- Azure and Voyage accounts/secrets must be funded and configured by an account
-  owner if those optional quality layers are to be activated.
+- Voyage must receive a persistent production secret before an independently
+  approved English collection is published. The Azure grading secret already
+  lives in GCP Secret Manager and must not be duplicated into Vercel.

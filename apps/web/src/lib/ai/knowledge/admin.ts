@@ -260,60 +260,20 @@ export async function reviewAiKnowledgeRecord(params: {
   kind: "source" | "item";
   id: string;
   reviewStatus: string;
-  reviewerId: string;
   reviewNotes?: string | null;
   authorityTier?: (typeof KNOWLEDGE_AUTHORITY_TIERS)[number];
   rightsStatus?: (typeof KNOWLEDGE_RIGHTS_STATUSES)[number];
 }) {
   assertReviewStatus(params.reviewStatus);
   const client = params.supabase as AdminClient;
-  const table =
-    params.kind === "source" ? "ai_knowledge_sources" : "ai_knowledge_items";
-  const { data: existing, error: existingError } = await client
-    .from(table)
-    .select("id, submitted_by, review_status, authority_tier, rights_status")
-    .eq("id", params.id)
-    .maybeSingle();
-  if (existingError || !existing) {
-    throw new Error(
-      `ai_knowledge_review_target:${existingError?.message ?? "not_found"}`,
-    );
-  }
-  if (existing.submitted_by && existing.submitted_by === params.reviewerId) {
-    throw new Error("ai_knowledge_importer_must_not_self_review");
-  }
-  const patch: Record<string, unknown> = {
-    review_status: params.reviewStatus,
-    reviewed_by: params.reviewerId,
-    reviewed_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  if (params.kind === "source") {
-    if (params.authorityTier) patch.authority_tier = params.authorityTier;
-    if (params.rightsStatus) patch.rights_status = params.rightsStatus;
-    const effectiveRights = params.rightsStatus ?? existing.rights_status;
-    if (
-      params.reviewStatus === "approved" &&
-      ![
-        "approved_for_derived_use",
-        "approved_for_excerpt",
-        "public_domain",
-      ].includes(effectiveRights)
-    ) {
-      throw new Error("ai_knowledge_approved_source_requires_cleared_rights");
-    }
-  }
-  if (params.kind === "source" && params.reviewNotes !== undefined) {
-    patch.review_notes = params.reviewNotes || null;
-  }
-  const { data, error } = await client
-    .from(table)
-    .update(patch)
-    .eq("id", params.id)
-    .select(
-      "id, review_status, submitted_by, reviewed_by, reviewed_at, updated_at",
-    )
-    .single();
+  const { data, error } = await client.rpc("review_ai_knowledge_record", {
+    p_kind: params.kind,
+    p_id: params.id,
+    p_review_status: params.reviewStatus,
+    p_review_notes: params.reviewNotes ?? null,
+    p_authority_tier: params.authorityTier ?? null,
+    p_rights_status: params.rightsStatus ?? null,
+  });
   if (error) throw new Error(`ai_knowledge_review:${error.message}`);
   return data;
 }

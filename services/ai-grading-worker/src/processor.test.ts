@@ -7,7 +7,11 @@ import {
   processAiGradingDelivery,
   type AiGradingOperations,
 } from "./processor";
-import type { AiGradingRepository, ClaimResult } from "./repository";
+import {
+  AiGradingRpcError,
+  type AiGradingRepository,
+  type ClaimResult,
+} from "./repository";
 
 const delivery: AiGradingDelivery = {
   job: {
@@ -33,6 +37,13 @@ function createFakeRepository() {
   let completed = false;
   let attempt = 0;
   let prepared: unknown | null = null;
+  let provisional: {
+    payload: unknown;
+    hash: string;
+    version: number;
+    workflowAttempt: number;
+    providerAttemptCount: number;
+  } | null = null;
   let output: unknown | null = null;
   let providerStarted = false;
   const repository: AiGradingRepository = {
@@ -74,6 +85,36 @@ function createFakeRepository() {
     },
     async checkpointPrepared(_run, _claim, value) {
       prepared = value;
+    },
+    async loadProvisional() {
+      return provisional;
+    },
+    async checkpointProvisional(
+      _run,
+      _claim,
+      payload,
+      hash,
+      workflowAttempt,
+    ) {
+      if (provisional) {
+        if (
+          provisional.hash !== hash ||
+          JSON.stringify(provisional.payload) !== JSON.stringify(payload) ||
+          provisional.workflowAttempt !== workflowAttempt
+        ) {
+          throw new Error("AI_GRADING_PROVISIONAL_CONFLICT");
+        }
+        return "replayed";
+      }
+      provisional = {
+        payload,
+        hash,
+        version: 1,
+        workflowAttempt,
+        providerAttemptCount: 1,
+      };
+      providerStarted = false;
+      return "created";
     },
     async reserveProvider() {
       if (providerStarted && output === null) return "outcome_unknown";
@@ -176,6 +217,351 @@ test("a persistence retry reuses the validated provider checkpoint", async () =>
   assert.equal(second, "completed");
   assert.equal(providerCalls, 1);
   assert.equal(persistCalls, 2);
+});
+
+test("a definite adjudication failure redelivery reuses the provisional checkpoint", async () => {
+  const fake = createFakeRepository();
+  let provisionalCalls = 0;
+  let adjudicationCalls = 0;
+  const seenAttempts: Array<[number, number]> = [];
+  const ops = operations({
+    usesProvisionalCheckpoint: () => true,
+    async generateProvisional(_job, _prepared, context) {
+      provisionalCalls += 1;
+      return {
+        schemaVersion: 1,
+        kind: "ielts_writing_score",
+        workflowAttempt: context.workflowAttempt,
+        result: { score: 6.5 },
+      };
+    },
+    async generateFromProvisional(_job, _prepared, value, context) {
+      adjudicationCalls += 1;
+      seenAttempts.push([
+        context.workflowAttempt,
+        context.provisionalWorkflowAttempt,
+      ]);
+      assert.equal(
+        (value as { workflowAttempt: number }).workflowAttempt,
+        context.provisionalWorkflowAttempt,
+      );
+      if (adjudicationCalls === 1) {
+        throw Object.assign(new Error("adjudication rate limited"), {
+          kind: "rate_limited",
+          status: 429,
+        });
+      }
+      return { score: 7 };
+    },
+  });
+
+  await assert.rejects(
+    () =>
+      processAiGradingDelivery(delivery, {
+        repository: fake.repository,
+        operations: ops,
+      }),
+    /adjudication rate limited/,
+  );
+  assert.equal(
+    await processAiGradingDelivery(
+      { ...delivery, messageId: "adjudication-redelivery", deliveryAttempt: 2 },
+      { repository: fake.repository, operations: ops },
+    ),
+    "completed",
+  );
+  assert.equal(provisionalCalls, 1);
+  assert.equal(adjudicationCalls, 2);
+  assert.deepEqual(seenAttempts, [
+    [1, 1],
+    [2, 1],
+  ]);
+});
+
+test("a committed provisional checkpoint with a lost response replays without another provider call", async () => {
+  const fake = createFakeRepository();
+  const original = fake.repository.checkpointProvisional!.bind(fake.repository);
+  let checkpointCalls = 0;
+  let provisionalCalls = 0;
+  let adjudicationCalls = 0;
+  const repository: AiGradingRepository = {
+    ...fake.repository,
+    async checkpointProvisional(...args) {
+      checkpointCalls += 1;
+      const result = await original(...args);
+      if (checkpointCalls === 1) throw new Error("connection reset after commit");
+      return result;
+    },
+  };
+
+  assert.equal(
+    await processAiGradingDelivery(delivery, {
+      repository,
+      operations: operations({
+        usesProvisionalCheckpoint: () => true,
+        async generateProvisional(_job, _prepared, context) {
+          provisionalCalls += 1;
+          return { stage: "provisional", workflowAttempt: context.workflowAttempt };
+        },
+        async generateFromProvisional() {
+          adjudicationCalls += 1;
+          return { score: 7 };
+        },
+      }),
+    }),
+    "completed",
+  );
+  assert.equal(checkpointCalls, 2);
+  assert.equal(provisionalCalls, 1);
+  assert.equal(adjudicationCalls, 1);
+});
+
+test("an output checkpoint response ambiguity never terminalizes or repays the provider", async () => {
+  const fake = createFakeRepository();
+  const original = fake.repository.checkpointOutput.bind(fake.repository);
+  let checkpointCalls = 0;
+  let providerCalls = 0;
+  let failCalls = 0;
+  const repository: AiGradingRepository = {
+    ...fake.repository,
+    async checkpointOutput(...args) {
+      checkpointCalls += 1;
+      await original(...args);
+      if (checkpointCalls <= 2) throw new Error("database response was lost");
+    },
+    async fail(...args) {
+      failCalls += 1;
+      return fake.repository.fail(...args);
+    },
+  };
+  const ops = operations({
+    async generate() {
+      providerCalls += 1;
+      return { score: 7 };
+    },
+  });
+
+  await assert.rejects(
+    () => processAiGradingDelivery(delivery, { repository, operations: ops }),
+    /OUTPUT_CHECKPOINT_RESPONSE_UNKNOWN/,
+  );
+  assert.equal(failCalls, 0);
+  fake.expireLease();
+  assert.equal(
+    await processAiGradingDelivery(
+      { ...delivery, messageId: "checkpoint-redelivery", deliveryAttempt: 2 },
+      { repository, operations: ops },
+    ),
+    "completed",
+  );
+  assert.equal(providerCalls, 1);
+  assert.equal(failCalls, 0);
+});
+
+test("an ambiguous adjudication timeout never repays either stage", async () => {
+  const fake = createFakeRepository();
+  let provisionalCalls = 0;
+  let adjudicationCalls = 0;
+  const ops = operations({
+    usesProvisionalCheckpoint: () => true,
+    async generateProvisional(_job, _prepared, context) {
+      provisionalCalls += 1;
+      return { stage: "provisional", workflowAttempt: context.workflowAttempt };
+    },
+    async generateFromProvisional() {
+      adjudicationCalls += 1;
+      throw Object.assign(new Error("adjudication timed out"), {
+        kind: "deadline_exceeded",
+      });
+    },
+  });
+
+  assert.equal(
+    await processAiGradingDelivery(delivery, {
+      repository: fake.repository,
+      operations: ops,
+    }),
+    "provider_outcome_unknown",
+  );
+  assert.equal(
+    await processAiGradingDelivery(
+      { ...delivery, messageId: "timeout-redelivery", deliveryAttempt: 2 },
+      { repository: fake.repository, operations: ops },
+    ),
+    "provider_outcome_unknown",
+  );
+  assert.equal(provisionalCalls, 1);
+  assert.equal(adjudicationCalls, 1);
+});
+
+test("a stale provisional checkpoint writer cannot mutate source state", async () => {
+  const fake = createFakeRepository();
+  let sourceFailureCalls = 0;
+  const repository: AiGradingRepository = {
+    ...fake.repository,
+    async checkpointProvisional() {
+      throw new AiGradingRpcError(
+        "checkpoint AI grading provisional output",
+        "AI_GRADING_CLAIM_LOST",
+      );
+    },
+    async fail() {
+      return "claim_lost";
+    },
+  };
+  assert.equal(
+    await processAiGradingDelivery(delivery, {
+      repository,
+      operations: operations({
+        usesProvisionalCheckpoint: () => true,
+        async generateProvisional() {
+          return { stage: "provisional" };
+        },
+        async generateFromProvisional() {
+          throw new Error("must not adjudicate after a lost claim");
+        },
+        async failSource() {
+          sourceFailureCalls += 1;
+        },
+      }),
+    }),
+    "claim_lost",
+  );
+  assert.equal(sourceFailureCalls, 0);
+});
+
+test("a prefixed checkpoint conflict is definitive and is not replayed", async () => {
+  const fake = createFakeRepository();
+  let checkpointCalls = 0;
+  const repository: AiGradingRepository = {
+    ...fake.repository,
+    async checkpointProvisional() {
+      checkpointCalls += 1;
+      throw new AiGradingRpcError(
+        "checkpoint AI grading provisional output",
+        "AI_GRADING_PROVISIONAL_CONFLICT",
+      );
+    },
+  };
+  assert.equal(
+    await processAiGradingDelivery(delivery, {
+      repository,
+      operations: operations({
+        usesProvisionalCheckpoint: () => true,
+        async generateProvisional() {
+          return { stage: "provisional" };
+        },
+        async generateFromProvisional() {
+          throw new Error("must not adjudicate after a conflict");
+        },
+      }),
+    }),
+    "provider_outcome_unknown",
+  );
+  assert.equal(checkpointCalls, 1);
+});
+
+test("a conflicting provisional hash is rejected before adjudication reservation", async () => {
+  const fake = createFakeRepository();
+  let reservations = 0;
+  let adjudicationCalls = 0;
+  const repository: AiGradingRepository = {
+    ...fake.repository,
+    async loadProvisional() {
+      return {
+        payload: { stage: "provisional", workflowAttempt: 1 },
+        hash: "0".repeat(64),
+        version: 1,
+        workflowAttempt: 1,
+        providerAttemptCount: 1,
+      };
+    },
+    async reserveProvider() {
+      reservations += 1;
+      return "reserved";
+    },
+  };
+  await assert.rejects(
+    () =>
+      processAiGradingDelivery(delivery, {
+        repository,
+        operations: operations({
+          usesProvisionalCheckpoint: () => true,
+          async generateProvisional() {
+            throw new Error("must not regenerate a conflicting checkpoint");
+          },
+          async generateFromProvisional() {
+            adjudicationCalls += 1;
+            return { score: 7 };
+          },
+        }),
+      }),
+    /PROVISIONAL_CHECKPOINT_HASH_MISMATCH/,
+  );
+  assert.equal(reservations, 0);
+  assert.equal(adjudicationCalls, 0);
+});
+
+test("flag-off scoring keeps the original single-stage provider path", async () => {
+  const fake = createFakeRepository();
+  let stagedRepositoryCalls = 0;
+  let singleStageCalls = 0;
+  const repository: AiGradingRepository = {
+    ...fake.repository,
+    async loadProvisional() {
+      stagedRepositoryCalls += 1;
+      return null;
+    },
+    async checkpointProvisional() {
+      stagedRepositoryCalls += 1;
+      return "created";
+    },
+  };
+  assert.equal(
+    await processAiGradingDelivery(delivery, {
+      repository,
+      operations: operations({
+        usesProvisionalCheckpoint: () => false,
+        async generate() {
+          singleStageCalls += 1;
+          return { score: 7 };
+        },
+      }),
+    }),
+    "completed",
+  );
+  assert.equal(singleStageCalls, 1);
+  assert.equal(stagedRepositoryCalls, 0);
+});
+
+test("an explicit provider-free decision checkpoints without reserving a paid call", async () => {
+  const fake = createFakeRepository();
+  let reservationCalls = 0;
+  let generationCalls = 0;
+  const repository: AiGradingRepository = {
+    ...fake.repository,
+    async reserveProvider() {
+      reservationCalls += 1;
+      return "reserved";
+    },
+  };
+  const outcome = await processAiGradingDelivery(delivery, {
+    repository,
+    operations: operations({
+      requiresProvider: () => false,
+      async generate() {
+        generationCalls += 1;
+        return {
+          score: 1,
+          decision: "official-writing-low-evidence",
+        };
+      },
+    }),
+  });
+
+  assert.equal(outcome, "completed");
+  assert.equal(reservationCalls, 0);
+  assert.equal(generationCalls, 1);
 });
 
 test("mandatory post-persist finalization retries before marking the run complete", async () => {

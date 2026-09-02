@@ -1,4 +1,4 @@
-import { IELTS_BENCHMARK_STUDY_DESIGN_V1 } from "./study-design";
+import { IELTS_BENCHMARK_STUDY_DESIGN_CURRENT } from "./study-design";
 
 /** A criterion-level prediction from a protected benchmark label. */
 export interface BenchmarkObservation {
@@ -600,10 +600,10 @@ export function evaluateDerivedReleaseGate(
   const accuracyBySlice = new Map<string, Map<string, boolean>>();
   for (const criterion of IELTS_BENCHMARK_REQUIREMENTS.ielts_speaking
     .criteria) {
-    for (const group of IELTS_BENCHMARK_STUDY_DESIGN_V1.strata.l1Groups) {
+    for (const group of IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.strata.l1Groups) {
       accuracyBySlice.set(`l1:${group}|criterion:${criterion}`, new Map());
     }
-    for (const group of IELTS_BENCHMARK_STUDY_DESIGN_V1.strata
+    for (const group of IELTS_BENCHMARK_STUDY_DESIGN_CURRENT.strata
       .audioQualityGroups) {
       accuracyBySlice.set(
         `audio_quality:${group}|criterion:${criterion}`,

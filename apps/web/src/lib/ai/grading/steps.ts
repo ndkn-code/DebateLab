@@ -77,6 +77,7 @@ import {
 } from "@/lib/ielts/scoring-adjudication";
 import type { Json } from "@/types/supabase";
 import type { IeltsCriterionEvidenceContract } from "@/lib/ielts/criterion-evidence-contract";
+import { decideWritingLowEvidence } from "@/lib/ielts/low-evidence";
 
 type IeltsSpeakingModelOutput = z.infer<typeof ieltsSpeakingModelOutputSchema>;
 type IeltsWritingModelOutput = z.infer<typeof ieltsWritingModelOutputSchema>;
@@ -540,6 +541,28 @@ export async function prepareIeltsWritingScore(params: {
     throw new AiGradingFatalError("Writing response no longer exists");
   const { response, question } = context;
 
+  const lowEvidence = decideWritingLowEvidence(response.essay);
+  if (lowEvidence.kind === "deterministic_score") {
+    return {
+      status: "prepared" as const,
+      attemptId: response.attempt_id,
+      userId: response.user_id,
+      writingResponseId: response.id,
+      questionId: question.id,
+      questionType: question.question_type,
+      retrievalQuery: "",
+      baseEvidence: [] as ReturnType<typeof evidenceReferences>,
+      baseCorpusVersion: null,
+      prompt: "",
+      deterministicLowEvidence: {
+        output: lowEvidence.output,
+        ruleVersion: lowEvidence.ruleVersion,
+        reason: lowEvidence.reason,
+        wordCount: lowEvidence.wordCount,
+      },
+    };
+  }
+
   const [grounding, rubric, broadExamples] = await Promise.all([
     loadWritingExemplars(admin, {
       questionId: question.id,
@@ -588,6 +611,7 @@ export async function prepareIeltsWritingScore(params: {
       ...broadExamples.evidence,
     ]),
     baseCorpusVersion: resultCorpusVersion(broadExamples),
+    deterministicLowEvidence: null,
     prompt: buildWritingScorerPrompt({
       taskNumber: writingTaskNumberForQuestionType(question.question_type),
       taskType: question.question_type,

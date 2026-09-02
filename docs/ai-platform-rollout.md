@@ -16,6 +16,10 @@ Pub/Sub. Dispatch is fail-closed unless `AI_GRADING_BACKEND` is explicitly
    benchmark slices, third-attempt recovery, linked operational evidence,
    worker-authored runtime/repeat-run attestations, protected benchmark claims,
    study integrity, and withdrawal verification.
+   Apply `20260902110000` through `20260902130000` before the next worker
+   release as well: they invalidate stale corpus approvals, add an immutable
+   provisional-score checkpoint between paid IELTS stages, and require the V2
+   regional-accent calibration design for all new benchmark records.
    Regenerate Supabase types afterward. All migrations are forward-only.
 2. Confirm the `ai_workflow_runs` row-level-security policy lets a learner read
    only their own runs and lets only the service role create or update runs.

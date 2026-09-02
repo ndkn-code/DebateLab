@@ -48,6 +48,25 @@ assert.deepEqual(
 );
 assert.equal(sanitizeLearnerGradingMetadata({}), null);
 
+const deterministic = createStagedGradingMetadata({
+  evidence: [],
+  gradingVersion: "provisional-v1",
+  runId: "run-low-evidence",
+  provisionalTraceId: "deterministic-trace",
+  adjudicationTraceId: "deterministic-trace",
+  retrievalSkippedReason: "deterministic_low_evidence",
+  additionalLimitations: ["writing_low_evidence_rule_applied"],
+  deterministicDecision: {
+    kind: "writing_low_evidence",
+    ruleVersion: "official-writing-band-descriptors-2023-low-evidence",
+    reason: "one_to_twenty_words",
+    wordCount: 20,
+  },
+});
+assert.equal(deterministic.confidence, "limited");
+assert.equal(deterministic.deterministicDecision?.wordCount, 20);
+assert.deepEqual(sanitizeLearnerGradingMetadata(deterministic), deterministic);
+
 const boundaryRationale =
   "LOWER_BOUNDARY: clears 6. UPPER_BOUNDARY: does not clear 7. EVIDENCE: approved example e1.";
 const adjudication = {

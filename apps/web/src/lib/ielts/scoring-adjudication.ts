@@ -36,6 +36,12 @@ export interface StagedGradingMetadata {
   runId: string;
   provisionalTraceId: string;
   adjudicationTraceId: string;
+  deterministicDecision?: {
+    kind: "writing_low_evidence";
+    ruleVersion: string;
+    reason: "no_attempt" | "one_to_twenty_words";
+    wordCount: number;
+  };
 }
 
 const learnerGradingMetadataSchema = z.object({
@@ -60,6 +66,15 @@ const learnerGradingMetadataSchema = z.object({
   runId: z.string().min(1).max(200),
   provisionalTraceId: z.string().min(1).max(200),
   adjudicationTraceId: z.string().min(1).max(200),
+  deterministicDecision: z
+    .object({
+      kind: z.literal("writing_low_evidence"),
+      ruleVersion: z.string().min(1).max(200),
+      reason: z.enum(["no_attempt", "one_to_twenty_words"]),
+      wordCount: z.number().int().min(0).max(20),
+    })
+    .strict()
+    .optional(),
 });
 
 export type LearnerGradingMetadata = z.infer<
@@ -182,6 +197,8 @@ export function createStagedGradingMetadata(params: {
   adjudicationTraceId: string;
   acousticEvidenceAvailable?: boolean;
   retrievalSkippedReason?: string;
+  additionalLimitations?: string[];
+  deterministicDecision?: StagedGradingMetadata["deterministicDecision"];
 }): StagedGradingMetadata {
   const limitations: string[] = [];
   if (params.evidence.length === 0)
@@ -192,6 +209,7 @@ export function createStagedGradingMetadata(params: {
   if (params.acousticEvidenceAvailable === false) {
     limitations.push("pronunciation_acoustic_evidence_unavailable");
   }
+  limitations.push(...(params.additionalLimitations ?? []));
   return {
     gradingVersion: params.gradingVersion ?? IELTS_GRADING_VERSION,
     corpusVersion: params.corpusVersion ?? null,
@@ -206,5 +224,8 @@ export function createStagedGradingMetadata(params: {
     runId: params.runId,
     provisionalTraceId: params.provisionalTraceId,
     adjudicationTraceId: params.adjudicationTraceId,
+    ...(params.deterministicDecision
+      ? { deterministicDecision: params.deterministicDecision }
+      : {}),
   };
 }

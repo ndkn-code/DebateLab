@@ -98,11 +98,12 @@ export async function PATCH(request: NextRequest) {
       );
     }
     const record = await reviewAiKnowledgeRecord({
-      supabase: tryCreateAdminClient() ?? auth.supabase,
+      // The review RPC derives reviewer identity from this signed-in session;
+      // never use the service-role client for an approval decision.
+      supabase: auth.supabase,
       kind,
       id,
       reviewStatus,
-      reviewerId: auth.user.id,
       reviewNotes,
       authorityTier,
       rightsStatus,

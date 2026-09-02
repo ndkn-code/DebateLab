@@ -1,0 +1,16 @@
+{
+  "id": "debatelab-ielts-examiner-study",
+  "version": 2,
+  "minimumCasesPerBandTaskCriterionCell": 15,
+  "requiredBands": [4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9],
+  "taskTypes": {
+    "ielts_speaking": ["speaking_part1", "speaking_part2_cuecard", "speaking_part3"],
+    "ielts_writing": ["writing_task1_academic", "writing_task1_general", "writing_task2_essay"]
+  },
+  "strata": {
+    "allowedAccentGroups": ["vi_general", "vi_north", "vi_central", "vi_south", "other_documented"],
+    "releaseAccentGroups": ["vi_north", "vi_central", "vi_south"],
+    "allowedL1Groups": ["vi", "other_documented"],
+    "audioQualityGroups": ["studio", "quiet_room", "typical_device", "degraded"]
+  }
+}

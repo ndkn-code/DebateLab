@@ -13,6 +13,7 @@ import {
   countInvalidStoredBenchmarkRows,
   isReleaseEligibleStoredBenchmark,
   parseOperationalSafetyEvidence,
+  countDuplicatePaidScoringAttempts,
   parseGradingBenchmarkImport,
   verifyBenchmarkReleaseAttestation,
 } from "./contracts";
@@ -174,7 +175,7 @@ const writingMetadata = {
   sourceGroupKey: "source-group-study-0001",
   captureSessionKey: "capture-writing-0001",
   studyDesignId: "debatelab-ielts-examiner-study" as const,
-  studyDesignVersion: 1 as const,
+  studyDesignVersion: 2 as const,
   protectedOfflineEvaluationOnly: true,
 };
 
@@ -227,7 +228,7 @@ const validManifest = {
   manifestVersion: 1 as const,
   studyDesign: {
     id: "debatelab-ielts-examiner-study" as const,
-    version: 1 as const,
+    version: 2 as const,
   },
   createdAt: "2026-08-31T12:00:00.000Z",
   sources: [source],
@@ -237,6 +238,19 @@ const validManifest = {
 assert.equal(
   parseGradingBenchmarkImport(validManifest).benchmarks[0]?.benchmarkKey,
   writingBenchmark.benchmarkKey,
+);
+assert.throws(
+  () =>
+    parseGradingBenchmarkImport({
+      ...validManifest,
+      studyDesign: { ...validManifest.studyDesign, version: 1 },
+      benchmarks: validManifest.benchmarks.map((benchmark) => ({
+        ...benchmark,
+        metadata: { ...benchmark.metadata, studyDesignVersion: 1 },
+      })),
+    }),
+  /Invalid literal value|Invalid input/,
+  "new imports must use the current V2 study design",
 );
 
 const duplicateWritingArtifact: any = structuredClone(writingBenchmark);
@@ -722,7 +736,7 @@ const speakingMetadata = {
   sourceGroupKey: "source-group-study-0001",
   captureSessionKey: "capture-speaking-0001",
   studyDesignId: "debatelab-ielts-examiner-study" as const,
-  studyDesignVersion: 1 as const,
+  studyDesignVersion: 2 as const,
   l1Group: "vi",
   audioQualityGroup: "typical_device" as const,
 };
@@ -733,7 +747,7 @@ const speakingBenchmark = {
   collectionSlug: "ielts.speaking" as const,
   skill: "ielts_speaking" as const,
   taskType: "speaking_part2_cuecard",
-  accentGroup: "vi_general",
+  accentGroup: "vi_north",
   protectedLabel: {
     ...writingBenchmark.protectedLabel,
     criteria: {
@@ -1211,6 +1225,11 @@ const operationalScenarios = [
   expectedProviderCalls: scenario === "retry_exhaustion" ? 3 : 1,
   observedProviderCalls: scenario === "retry_exhaustion" ? 3 : 1,
   actualProviderCalls: scenario === "retry_exhaustion" ? 3 : 1,
+  providerAttemptCountAtOutput:
+    scenario === "provider_timeout" || scenario === "retry_exhaustion"
+      ? null
+      : 1,
+  providerAttemptCountAtProvisional: null,
   terminalStatus:
     scenario === "provider_timeout" || scenario === "retry_exhaustion"
       ? "failed"
@@ -1223,21 +1242,20 @@ const operationalScenarios = [
   passed: true,
   detailsHash: "f".repeat(64),
 }));
-assert.ok(
-  parseOperationalSafetyEvidence({
-    runId: "preview-fault-injection-1",
-    graderVersion: "provisional-v1",
-    corpusVersion: 1,
-    environment: "preview",
-    deploymentId: "preview-deployment-1",
-    imageDigest: `sha256:${"1".repeat(64)}`,
-    startedAt: "2026-09-01T10:00:00.000Z",
-    verifiedAt: "2026-09-01T10:30:00.000Z",
-    expiresAt: "2026-09-08T10:30:00.000Z",
-    evidenceHash: "a".repeat(64),
-    scenarios: operationalScenarios,
-  }),
-);
+const provisionalOperationalEvidence = {
+  runId: "preview-fault-injection-1",
+  graderVersion: "provisional-v1" as const,
+  corpusVersion: 1,
+  environment: "preview" as const,
+  deploymentId: "preview-deployment-1",
+  imageDigest: `sha256:${"1".repeat(64)}`,
+  startedAt: "2026-09-01T10:00:00.000Z",
+  verifiedAt: "2026-09-01T10:30:00.000Z",
+  expiresAt: "2026-09-08T10:30:00.000Z",
+  evidenceHash: "a".repeat(64),
+  scenarios: operationalScenarios,
+};
+assert.ok(parseOperationalSafetyEvidence(provisionalOperationalEvidence));
 assert.ok(
   parseOperationalSafetyEvidence({
     runId: "preview-adjudicated-fault-injection-1",
@@ -1262,6 +1280,16 @@ assert.ok(
         expectedProviderCalls: calls,
         observedProviderCalls: calls,
         actualProviderCalls: calls,
+        providerAttemptCountAtOutput:
+          scenario.scenario === "provider_timeout" ||
+          scenario.scenario === "retry_exhaustion"
+            ? null
+            : calls,
+        providerAttemptCountAtProvisional:
+          scenario.scenario === "provider_timeout" ||
+          scenario.scenario === "retry_exhaustion"
+            ? null
+            : 1,
       };
     }),
   }),
@@ -1282,6 +1310,148 @@ assert.equal(
   }),
   null,
 );
+
+const safeEarlierRetries = parseOperationalSafetyEvidence({
+  runId: "preview-fault-injection-safe-retries",
+  graderVersion: "evidence-adjudicated-v1",
+  corpusVersion: 1,
+  environment: "preview",
+  deploymentId: "preview-deployment-1",
+  imageDigest: `sha256:${"3".repeat(64)}`,
+  startedAt: "2026-09-01T10:00:00.000Z",
+  verifiedAt: "2026-09-01T10:30:00.000Z",
+  expiresAt: "2026-09-08T10:30:00.000Z",
+  evidenceHash: "b".repeat(64),
+  scenarios: operationalScenarios.map((scenario) => {
+    const failed =
+      scenario.scenario === "provider_timeout" ||
+      scenario.scenario === "retry_exhaustion";
+    const calls =
+      scenario.scenario === "retry_exhaustion"
+        ? 3
+        : scenario.scenario === "provider_timeout"
+          ? 1
+          : 4;
+    return {
+      ...scenario,
+      expectedProviderCalls:
+        scenario.scenario === "retry_exhaustion"
+          ? 3
+          : scenario.scenario === "provider_timeout"
+            ? 1
+            : 2,
+      observedProviderCalls: calls,
+      actualProviderCalls: calls,
+      providerAttemptCountAtOutput: failed ? null : calls,
+      providerAttemptCountAtProvisional: failed ? null : calls - 1,
+    };
+  }),
+});
+assert.ok(safeEarlierRetries);
+assert.equal(countDuplicatePaidScoringAttempts(safeEarlierRetries), 0);
+assert.equal(
+  countDuplicatePaidScoringAttempts({
+    ...safeEarlierRetries,
+    scenarios: safeEarlierRetries.scenarios.map((scenario, index) =>
+      index === 0
+        ? {
+            ...scenario,
+            observedProviderCalls: scenario.observedProviderCalls + 1,
+            actualProviderCalls: scenario.actualProviderCalls + 1,
+          }
+        : scenario,
+    ),
+  }),
+  1,
+  "only a provider attempt after the immutable output fence is duplicate spend",
+);
+
+assert.equal(
+  parseOperationalSafetyEvidence({
+    runId: "preview-fault-injection-old-evidence",
+    graderVersion: "provisional-v1",
+    corpusVersion: 1,
+    environment: "preview",
+    deploymentId: "preview-deployment-1",
+    imageDigest: `sha256:${"4".repeat(64)}`,
+    startedAt: "2026-09-01T10:00:00.000Z",
+    verifiedAt: "2026-09-01T10:30:00.000Z",
+    expiresAt: "2026-09-08T10:30:00.000Z",
+    evidenceHash: "c".repeat(64),
+    scenarios: operationalScenarios.map(
+      ({
+        providerAttemptCountAtOutput: _,
+        providerAttemptCountAtProvisional: __,
+        ...scenario
+      }) => scenario,
+    ),
+  }),
+  null,
+  "old evidence without an immutable output-attempt fence must fail closed",
+);
+
+assert.equal(
+  parseOperationalSafetyEvidence({
+    runId: "preview-fault-injection-post-output-call",
+    graderVersion: "provisional-v1",
+    corpusVersion: 1,
+    environment: "preview",
+    deploymentId: "preview-deployment-1",
+    imageDigest: `sha256:${"5".repeat(64)}`,
+    startedAt: "2026-09-01T10:00:00.000Z",
+    verifiedAt: "2026-09-01T10:30:00.000Z",
+    expiresAt: "2026-09-08T10:30:00.000Z",
+    evidenceHash: "d".repeat(64),
+    scenarios: operationalScenarios.map((scenario, index) =>
+      index === 0
+        ? {
+            ...scenario,
+            observedProviderCalls: 2,
+            actualProviderCalls: 2,
+            providerAttemptCountAtOutput: 1,
+          }
+        : scenario,
+    ),
+  }),
+  null,
+  "a provider call after the validated output fence must fail closed",
+);
+
+assert.equal(
+  parseOperationalSafetyEvidence({
+    ...provisionalOperationalEvidence,
+    runId: "preview-fault-injection-timeout-with-output",
+    scenarios: operationalScenarios.map((scenario) =>
+      scenario.scenario === "provider_timeout"
+        ? { ...scenario, providerAttemptCountAtOutput: 1 }
+        : scenario,
+    ),
+  }),
+  null,
+  "an outcome-unknown timeout cannot claim a validated output",
+);
+
+assert.equal(
+  parseOperationalSafetyEvidence({
+    ...provisionalOperationalEvidence,
+    runId: "preview-fault-injection-over-cap",
+    scenarios: operationalScenarios.map((scenario) =>
+      scenario.scenario === "retry_exhaustion"
+        ? {
+            ...scenario,
+            observedProviderCalls: 4,
+            actualProviderCalls: 4,
+          }
+        : scenario,
+    ),
+  }),
+  null,
+  "retry exhaustion remains locked to exactly three attempts",
+);
+
+assert.match(releaseGate, /provider_attempt_count_at_output/);
+assert.match(releaseGate, /provider_attempt_count_at_provisional/);
+assert.match(releaseGate, /countDuplicatePaidScoringAttempts\(safety\)/);
 assert.equal(
   parseOperationalSafetyEvidence({
     runId: "preview-fault-injection-counter-mismatch",
