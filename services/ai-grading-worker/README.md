@@ -17,6 +17,12 @@ Runtime endpoints:
 - `GET /readyz` — secret-safe deployment readiness; returns 503 when required
   runtime identity/provider configuration is missing or invalid.
 
+When `AI_GRADING_REQUIRE_AZURE_PRONUNCIATION=true`, readiness requires an
+explicit Azure key and region plus `AI_GRADING_AZURE_EXPECTED_REGION`. The
+configured and expected regions must match (for the current Azure for Students
+resource, both are `centralus`). Readiness returns variable names only and never
+secret values. A custom endpoint alone cannot satisfy this release check.
+
 ## Locked IELTS calibration job
 
 The protected IELTS release benchmark is a Cloud Run **Job**, not an HTTP

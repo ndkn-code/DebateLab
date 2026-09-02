@@ -70,8 +70,8 @@ gcloud run deploy ai-grading-worker \
   --image="$AI_GRADING_IMAGE" \
   --service-account=debatelab-ai-grading-worker@thinkfy-debatelab-prod.iam.gserviceaccount.com \
   --no-allow-unauthenticated --concurrency=1 --timeout=3600 --max-instances=10 \
-  --set-env-vars=GCP_PROJECT_ID=thinkfy-debatelab-prod,GCP_AI_GRADING_TOPIC=ai-grading-jobs,AI_GRADING_IMAGE_DIGEST="$AI_GRADING_IMAGE_DIGEST",AZURE_SPEECH_REGION=southeastasia,AI_GRADING_REQUIRE_AZURE_PRONUNCIATION=true \
-  --set-secrets=NEXT_PUBLIC_SUPABASE_URL=debatelab-supabase-url:latest,SUPABASE_SERVICE_ROLE_KEY=debatelab-supabase-service-role:latest,GROQ_API_KEY=debatelab-groq-api-key:latest,DEEPSEEK_API_KEY=debatelab-deepseek-api-key:latest,DEEPGRAM_API_KEY=debatelab-deepgram-api-key:latest,AZURE_SPEECH_KEY=debatelab-azure-speech-key:latest
+  --set-env-vars=GCP_PROJECT_ID=thinkfy-debatelab-prod,GCP_AI_GRADING_TOPIC=ai-grading-jobs,AI_GRADING_IMAGE_DIGEST="$AI_GRADING_IMAGE_DIGEST",AZURE_SPEECH_REGION=centralus,AI_GRADING_AZURE_EXPECTED_REGION=centralus,AI_GRADING_REQUIRE_AZURE_PRONUNCIATION=true \
+  --set-secrets=NEXT_PUBLIC_SUPABASE_URL=supabase-url:latest,SUPABASE_SERVICE_ROLE_KEY=supabase-service-role-key:latest,GROQ_API_KEY=debatelab-groq-api-key:latest,DEEPSEEK_API_KEY=debatelab-deepseek-api-key:latest,DEEPGRAM_API_KEY=debatelab-deepgram-api-key:latest,VOYAGE_API_KEY=debatelab-voyage-api-key:latest,AZURE_SPEECH_KEY=debatelab-azure-speech-key:latest
 ```
 
 Also set `DEBATE_CORPUS_EMBEDDING_URL`,

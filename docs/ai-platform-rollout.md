@@ -31,7 +31,9 @@ Pub/Sub. Dispatch is fail-closed unless `AI_GRADING_BACKEND` is explicitly
    Configure grading-provider secrets on the private Cloud Run worker instead:
    - bind `GROQ_API_KEY`, `DEEPGRAM_API_KEY`, and `AZURE_SPEECH_KEY` from GCP
      Secret Manager;
-   - set `AZURE_SPEECH_REGION=southeastasia` as a Cloud Run environment variable;
+   - set `AZURE_SPEECH_REGION=centralus` and
+     `AI_GRADING_AZURE_EXPECTED_REGION=centralus` as Cloud Run environment
+     variables; readiness rejects a mismatch without exposing the key;
    - optionally set `GROQ_IELTS_SCORING_FALLBACK_MODEL` (defaults to the fast
      Groq `openai/gpt-oss-20b` model);
    - add `VOYAGE_API_KEY` only when a reviewed English collection is ready to

@@ -27,6 +27,11 @@ function present(env: Environment, name: string): boolean {
   return Boolean(env[name]?.trim());
 }
 
+function normalizedRegion(env: Environment, name: string): string | null {
+  const value = env[name]?.trim().toLowerCase();
+  return value || null;
+}
+
 /** Pure, secret-safe deployment preflight used by the private readiness route. */
 export function checkWorkerReadiness(
   env: Environment = process.env,
@@ -66,16 +71,32 @@ export function checkWorkerReadiness(
   }
   const azureRegion =
     azure.status === "configured" ? azure.config.region?.toLowerCase() : null;
-  if (azureRegion && azureRegion !== "southeastasia") {
+  const expectedAzureRegion = normalizedRegion(
+    env,
+    "AI_GRADING_AZURE_EXPECTED_REGION",
+  );
+  const expectedAzureRegionValid =
+    expectedAzureRegion !== null && /^[a-z0-9-]+$/.test(expectedAzureRegion);
+  if (expectedAzureRegion && !expectedAzureRegionValid) {
+    invalid.push("AI_GRADING_AZURE_EXPECTED_REGION");
+  }
+  if (
+    azureRegion &&
+    expectedAzureRegionValid &&
+    azureRegion !== expectedAzureRegion
+  ) {
     invalid.push("AZURE_SPEECH_REGION");
   }
   if (env.AI_GRADING_REQUIRE_AZURE_PRONUNCIATION?.trim() === "true") {
-    if (!azurePronunciation) {
+    const hasExplicitKey =
+      present(env, "AZURE_SPEECH_KEY") || present(env, "SPEECH_KEY");
+    const hasExplicitRegion =
+      present(env, "AZURE_SPEECH_REGION") || present(env, "SPEECH_REGION");
+    if (!hasExplicitKey || !hasExplicitRegion || !azurePronunciation) {
       missing.push("AZURE_SPEECH_KEY+AZURE_SPEECH_REGION");
-    } else if (azureRegion !== "southeastasia") {
-      // A custom endpoint can be usable but does not prove the Singapore data
-      // boundary. Release mode therefore requires the explicit Azure region.
-      missing.push("AZURE_SPEECH_REGION");
+    }
+    if (!expectedAzureRegion) {
+      missing.push("AI_GRADING_AZURE_EXPECTED_REGION");
     }
   }
   return {
