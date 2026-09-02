@@ -332,7 +332,7 @@ export function MockFinishedNotice({
   return (
     <div className="flex min-h-[60vh] items-center justify-center p-6">
       <div className="flex w-full max-w-md flex-col gap-4 rounded-2xl border border-outline-variant bg-surface-container p-6 text-center">
-        <p className="type-title-md text-on-surface">{t("timerSubmitted")}</p>
+        <p className="type-title text-on-surface">{t("timerSubmitted")}</p>
         <p className="type-body-sm text-on-surface-variant">{t("asyncScoring")}</p>
         <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
           <Link

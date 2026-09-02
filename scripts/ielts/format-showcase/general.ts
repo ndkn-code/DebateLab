@@ -151,7 +151,7 @@ const writingQuestions: AuthoredQuestion[] = [
       "Your neighbour is having building work done on their house, and the noise is causing you problems. Write a letter to your neighbour. In your letter: explain what the problem is, say how it is affecting you, and suggest what could be done about it. Write at least 150 words. You do NOT need to write any addresses. Begin your letter as follows: Dear ...,",
     wordLimit: 150,
     letter: {
-      recipient: "your neighbour",
+      recipient: "Mr Okafor",
       register: "semi_formal",
       bullets: ["explain what the problem is", "say how it is affecting you", "suggest what could be done about it"],
     },

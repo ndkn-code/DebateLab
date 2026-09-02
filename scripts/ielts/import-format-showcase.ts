@@ -20,7 +20,7 @@ import { fileURLToPath } from "node:url";
 import type { IeltsDbClient } from "../../apps/web/src/lib/api/ielts/client";
 import type { IeltsTest } from "../../apps/web/src/lib/api/ielts/tests-repository";
 import { loadWebEnv } from "./format-showcase/env";
-import { FORMAT_SHOWCASE_BATCH_KEY, FORMAT_SHOWCASE_TESTS } from "./format-showcase";
+import { FORMAT_SHOWCASE_BATCH_KEY, FORMAT_SHOWCASE_EXTRA_TESTS, FORMAT_SHOWCASE_TESTS } from "./format-showcase";
 import type {
   AuthoredBankOption,
   AuthoredGroup,
@@ -121,14 +121,15 @@ async function ensureTest(test: AuthoredTest, client: IeltsDbClient): Promise<Ie
   const existing = await getIeltsTestBySlug(test.slug, client);
   const input = {
     slug: test.slug, title: test.title, kind: test.kind, module: test.module,
+    skill: test.skill ?? null,
     status: "in_qa" as const, timeLimitSeconds: test.timeLimitSeconds,
     description: test.description, metadata: metadataForTest(test),
   };
   if (!existing) return createIeltsTest(input, {}, client);
   return updateIeltsTest(
     existing.id,
-    { title: test.title, kind: test.kind, module: test.module, timeLimitSeconds: test.timeLimitSeconds,
-      description: test.description, metadata: metadataForTest(test) },
+    { title: test.title, kind: test.kind, module: test.module, skill: test.skill ?? null,
+      timeLimitSeconds: test.timeLimitSeconds, description: test.description, metadata: metadataForTest(test) },
     client,
   );
 }
@@ -337,7 +338,8 @@ async function main(): Promise<void> {
   const flags = parseFlags(process.argv.slice(2));
   await loadServerModules();
   const client = createTypedAdminClient();
-  const tests = FORMAT_SHOWCASE_TESTS.filter((t) => !flags.only || t.slug === flags.only);
+  const pool = flags.only ? [...FORMAT_SHOWCASE_TESTS, ...FORMAT_SHOWCASE_EXTRA_TESTS] : FORMAT_SHOWCASE_TESTS;
+  const tests = pool.filter((t) => !flags.only || t.slug === flags.only);
   if (tests.length === 0) throw new Error(`no test matches --only ${flags.only}`);
   for (const test of tests) await importTest(test, flags, client);
 }

@@ -250,6 +250,11 @@ function buildParts(
 }
 
 /** Group objective questions into per-skill review sections (R/L), numbered. */
+/** Marks a review row is worth: its max points, never fewer than one. */
+function marksFor(item: { maxPoints: number }): number {
+  return item.maxPoints > 0 ? item.maxPoints : 1;
+}
+
 export function buildObjectiveReview(
   input: AttemptResultsInput,
 ): ObjectiveReviewSection[] {
@@ -277,9 +282,13 @@ export function buildObjectiveReview(
     sections.push({
       skill,
       label: SKILL_LABELS[skill],
-      // Official raw score: a "21–22" row is worth two marks, so count points.
-      correctCount: items.reduce((sum, item) => sum + item.awardedPoints, 0),
-      totalCount: items.reduce((sum, item) => sum + item.maxPoints, 0),
+      // Official raw score: a "21–22" row is worth two marks, so count marks
+      // (a fully correct row earns its span; partial credit keeps its points).
+      correctCount: items.reduce(
+        (sum, item) => sum + (item.isCorrect ? marksFor(item) : item.awardedPoints),
+        0,
+      ),
+      totalCount: items.reduce((sum, item) => sum + marksFor(item), 0),
       items,
       parts: buildParts(questions, items, skill),
     });

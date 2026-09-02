@@ -191,7 +191,9 @@ export interface AuthoredTest {
   title: string;
   description: string;
   module: "academic" | "general_training";
-  kind: "full_mock";
+  kind: "full_mock" | "skill_set";
+  /** Required for skill_set tests. */
+  skill?: ShowcaseSkill;
   /** ielts_tests.metadata.band_conversion_key. */
   bandConversionKey: string;
   timeLimitSeconds: number;
