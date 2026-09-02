@@ -1,12 +1,14 @@
 "use client";
 
 /**
- * A run of `mcq_multi` rows ("Questions 21–22: choose TWO letters"). Each row
- * keeps the family renderer; the group header carries the shared rubric.
+ * A run of choice rows — `mcq_multi` ("Questions 21–22: choose TWO letters"),
+ * `mcq_single`, True/False/Not Given, Yes/No/Not Given. Each row keeps its
+ * family tile renderer; the group header carries the shared rubric.
  */
 import { coerceObjectiveAnswer } from "../../question-renderer-registry";
 import { FlagToggle } from "../FlagToggle";
 import { MultiSelectRenderer } from "../MultiSelectRenderer";
+import { SingleSelectRenderer } from "../SingleSelectRenderer";
 import { useGroupContext } from "./group-context";
 import { NumberBadge } from "./NumberedBlank";
 
@@ -31,13 +33,23 @@ export function MultiSelectGroup({
               {ctx.mode === "answer" ? <FlagToggle questionId={question.id} /> : null}
             </div>
             <div className="min-w-0 flex-1">
-              <MultiSelectRenderer
-                question={{ ...question, groupInstructions: null }}
-                value={coerceObjectiveAnswer(question, ctx.responses[question.id])}
-                onChange={(next) => onAnswer(question.id, next)}
-                disabled={ctx.locked}
-                verdict={ctx.verdicts?.[question.id] ?? null}
-              />
+              {question.family === "single_select" ? (
+                <SingleSelectRenderer
+                  question={{ ...question, groupInstructions: null }}
+                  value={coerceObjectiveAnswer(question, ctx.responses[question.id])}
+                  onChange={(next) => onAnswer(question.id, next)}
+                  disabled={ctx.locked}
+                  verdict={ctx.verdicts?.[question.id] ?? null}
+                />
+              ) : (
+                <MultiSelectRenderer
+                  question={{ ...question, groupInstructions: null }}
+                  value={coerceObjectiveAnswer(question, ctx.responses[question.id])}
+                  onChange={(next) => onAnswer(question.id, next)}
+                  disabled={ctx.locked}
+                  verdict={ctx.verdicts?.[question.id] ?? null}
+                />
+              )}
             </div>
           </div>
         );

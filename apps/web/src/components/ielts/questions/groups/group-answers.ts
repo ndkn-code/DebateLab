@@ -36,9 +36,14 @@ export interface GroupBlockLike {
  * matching list.
  */
 export function resolveGroupLayout(block: GroupBlockLike): GroupLayout {
+  // Choice families (mcq_multi, mcq_single, T/F/NG, Y/N/NG) keep their tile
+  // renderers under a shared rubric; a bank-less group must never fall back to
+  // free-text slots for them.
   if (
     block.questions.length > 0 &&
-    block.questions.every((question) => question.family === "multi_select")
+    block.questions.every(
+      (question) => question.family === "multi_select" || question.family === "single_select",
+    )
   ) {
     return "multi_select";
   }
