@@ -5,13 +5,17 @@ attributable submitter and never publishes automatically:
 
 ```sh
 npm run ai:knowledge-prepare-ielts-release -w @thinkfy/web -- \
-  --collection-version <future-version> \
+  --collection-version 5 \
   --submitted-by <admin-user-uuid>
 ```
 
 The submitted-by UUID is written to the version, every newly inserted source,
 and every item. A different reviewer must approve the source and item, clear
 rights, and produce current embeddings before publication can pass preflight.
+
+Version 5 is the minimum clean release after the incomplete Speaking v4 staging
+draft. Do not delete, overwrite, resume, or publish either existing v4 draft;
+prepare both Writing and Speaking again as v5.
 
 Purpose policy is fail-closed:
 

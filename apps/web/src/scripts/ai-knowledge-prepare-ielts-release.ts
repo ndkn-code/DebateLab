@@ -12,8 +12,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 async function main() {
   const args = parseKnowledgeDraftArgs(process.argv.slice(2), {
-    minimumVersion: 4,
-    defaultVersion: 4,
+    minimumVersion: 5,
+    defaultVersion: 5,
   });
   const client = createAdminClient();
   // This projection intentionally cannot read answer keys, explanations,

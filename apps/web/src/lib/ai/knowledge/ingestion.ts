@@ -122,6 +122,24 @@ export type ValidatedKnowledgeItem = z.infer<typeof KnowledgeItemSchema> & {
   embeddingText: string;
   contentHash: string;
 };
+type PreparedKnowledgeItem = Omit<ValidatedKnowledgeItem, "contentHash">;
+
+export interface CanonicalKnowledgeItemIdentity {
+  schema: "ai_knowledge_item_identity_v2";
+  collection: KnowledgeCollectionKey;
+  collectionVersion: number;
+  sourceRevision:
+    | { canonicalUrl: string; checksum: string }
+    | { sourceId: string };
+  itemType: string;
+  criterion: string | null;
+  bandMin: number | null;
+  bandMax: number | null;
+  taskType: string | null;
+  sourceLocator: string | null;
+  insight: Record<string, unknown>;
+  permittedExcerpt: string | null;
+}
 
 export interface KnowledgeIngestionPlan {
   importKey: string;
@@ -183,8 +201,23 @@ export function canonicalizeSourceUrl(value: string) {
   return url.toString();
 }
 
+function canonicalizeHashValue(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(canonicalizeHashValue);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, nested]) => nested !== undefined)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nested]) => [key, canonicalizeHashValue(nested)]),
+    );
+  }
+  return value;
+}
+
 function digest(value: unknown) {
-  return createHash("sha256").update(JSON.stringify(value)).digest("hex");
+  return createHash("sha256")
+    .update(JSON.stringify(canonicalizeHashValue(value)))
+    .digest("hex");
 }
 
 function deterministicUuid(value: unknown) {
@@ -237,12 +270,58 @@ function validateItem(input: KnowledgeItemInput) {
   return {
     ...parsed,
     embeddingText,
-    contentHash: digest({
-      collection: parsed.collection,
-      insight: parsed.insight,
-      permittedExcerpt: parsed.permittedExcerpt,
-    }),
-  } as ValidatedKnowledgeItem;
+  } as PreparedKnowledgeItem;
+}
+
+function normalizeIdentityText(value: string | undefined) {
+  const normalized = value?.normalize("NFKC").replace(/\s+/g, " ").trim();
+  return normalized || null;
+}
+
+export function buildCanonicalKnowledgeItemIdentity(params: {
+  item: PreparedKnowledgeItem;
+  collectionVersion: number;
+  source: { canonicalUrl: string; checksum: string } | { sourceId: string };
+}): CanonicalKnowledgeItemIdentity {
+  return {
+    schema: "ai_knowledge_item_identity_v2",
+    collection: params.item.collection,
+    collectionVersion: params.collectionVersion,
+    sourceRevision:
+      "canonicalUrl" in params.source
+        ? {
+            canonicalUrl: canonicalizeSourceUrl(params.source.canonicalUrl),
+            checksum: params.source.checksum.toLowerCase(),
+          }
+        : { sourceId: params.source.sourceId },
+    itemType: params.item.itemType,
+    criterion: normalizeIdentityText(params.item.criterion),
+    bandMin: params.item.bandMin ?? null,
+    bandMax: params.item.bandMax ?? null,
+    taskType: normalizeIdentityText(params.item.taskType),
+    sourceLocator: normalizeIdentityText(params.item.sourceLocator),
+    insight: params.item.insight,
+    permittedExcerpt: normalizeIdentityText(params.item.permittedExcerpt),
+  };
+}
+
+export function assertUniqueKnowledgePlanItemIds(
+  plan: Pick<KnowledgeIngestionPlan, "items">,
+) {
+  const counts = new Map<string, number>();
+  for (const item of plan.items) {
+    counts.set(item.id, (counts.get(item.id) ?? 0) + 1);
+  }
+  const duplicateGroups = [...counts.values()].filter((count) => count > 1);
+  if (duplicateGroups.length > 0) {
+    const duplicateRows = duplicateGroups.reduce(
+      (total, count) => total + count,
+      0,
+    );
+    throw new Error(
+      `knowledge_plan_duplicate_item_ids:groups=${duplicateGroups.length}:rows=${duplicateRows}`,
+    );
+  }
 }
 
 export function buildKnowledgeIngestionPlan(input: {
@@ -307,14 +386,21 @@ export function buildKnowledgeIngestionPlan(input: {
     ) {
       throw new Error("knowledge_item_source_authority_mismatch");
     }
-    const id = deterministicUuid({
-      collection: item.collection,
+    const identity = buildCanonicalKnowledgeItemIdentity({
+      item,
       collectionVersion: input.collectionVersion,
-      sourceId,
-      contentHash: item.contentHash,
+      source: linkedSource
+        ? {
+            canonicalUrl: linkedSource.canonicalUrl,
+            checksum: linkedSource.checksum,
+          }
+        : { sourceId: sourceId ?? "missing" },
     });
-    return { ...item, id, sourceId };
+    const contentHash = digest(identity);
+    const id = deterministicUuid(identity);
+    return { ...item, contentHash, id, sourceId };
   });
+  assertUniqueKnowledgePlanItemIds({ items });
   const importKey =
     input.importKey ??
     digest({
@@ -354,6 +440,7 @@ export async function ingestKnowledgePlan(params: {
   /** Optional independent reviewer for an already-reviewed manifest. */
   reviewedBy?: string | null;
 }) {
+  assertUniqueKnowledgePlanItemIds(params.plan);
   if (
     params.reviewedBy &&
     params.submittedBy &&
@@ -520,17 +607,11 @@ export async function ingestKnowledgePlan(params: {
       throw new Error(
         `knowledge_source_id_unresolved:${item.sourceId ?? "missing"}`,
       );
-    const itemId = deterministicUuid({
-      collection: item.collection,
-      collectionVersion: params.plan.collectionVersion,
-      sourceId,
-      contentHash: item.contentHash,
-    });
     return {
-      id: itemId,
+      id: item.id,
       collection_id: draft.collection_id,
       source_id: sourceId,
-      external_key: itemId,
+      external_key: item.id,
       collection_version: draft.version,
       item_kind: item.itemType,
       language,

@@ -10,10 +10,10 @@ test("admin preflight selects the newest draft rather than a hardcoded version",
       versions: [
         { version: 3, status: "published" },
         { version: 4, status: "draft" },
-        { version: 6, status: "draft" },
+        { version: 5, status: "draft" },
       ],
     }),
-    { version: 6, status: "draft" },
+    { version: 5, status: "draft" },
   );
 });
 
