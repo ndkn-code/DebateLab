@@ -25,6 +25,7 @@ import {
   normalizeYnngToken,
   parseWordLimit,
   splitPipeList,
+  verdictOptionId,
 } from "./normalize";
 
 export type IeltsQuestionType = (typeof IELTS_QUESTION_TYPES)[number];
@@ -207,9 +208,36 @@ function requireToken(
   return fallback;
 }
 
-/** `TRUE` → `true`, `NOT GIVEN` → `not_given` (the registry option ids). */
-function verdictOptionId(token: string): string {
-  return token.trim().toLowerCase().replace(/\s+/g, "_");
+
+/** TFNG / YNNG keys are stored as registry OPTION IDS, not display tokens; null otherwise. */
+function normalizeVerdictAnswer(type: IeltsQuestionType, single: string, add: Add): string | null {
+  const token =
+    type === "true_false_notgiven"
+      ? requireToken(normalizeTfngToken(single), single, "TRUE / FALSE / NOT GIVEN", add)
+      : type === "yes_no_notgiven"
+        ? requireToken(normalizeYnngToken(single), single, "YES / NO / NOT GIVEN", add)
+        : null;
+  return token === null ? null : verdictOptionId(token);
+}
+
+function normalizeRecordAnswer(
+  type: IeltsQuestionType,
+  raw: Record<string, unknown>,
+  add: Add,
+): Json {
+  const out: Record<string, string | string[]> = {};
+  for (const [blankId, value] of Object.entries(raw)) {
+    const cleanId = normalizeWhitespace(blankId);
+    if (!cleanId) continue;
+    if (Array.isArray(value)) {
+      out[cleanId] = dedupeStrings(value.map(String).map(normalizeWhitespace).filter(Boolean));
+    } else {
+      const clean = normalizeWhitespace(String(value));
+      out[cleanId] = normalizeVerdictAnswer(type, clean, () => undefined) ?? clean;
+    }
+  }
+  if (Object.keys(out).length === 0) add("correctAnswer", `${type} requires a correct answer`);
+  return out as Json;
 }
 
 function normalizeCorrectAnswer(
@@ -218,24 +246,7 @@ function normalizeCorrectAnswer(
   add: Add,
 ): Json {
   if (questionCategory(type) !== "objective") return {};
-  if (isPlainRecord(raw)) {
-    const verdictType = type === "true_false_notgiven" || type === "yes_no_notgiven";
-    const out: Record<string, string | string[]> = {};
-    for (const [blankId, value] of Object.entries(raw)) {
-      const cleanId = normalizeWhitespace(blankId);
-      if (!cleanId) continue;
-      if (Array.isArray(value)) {
-        out[cleanId] = dedupeStrings(value.map(normalizeWhitespace).filter(Boolean));
-      } else {
-        const clean = normalizeWhitespace(value);
-        out[cleanId] = verdictType ? verdictOptionId(clean) : clean;
-      }
-    }
-    if (Object.keys(out).length === 0) {
-      add("correctAnswer", `${type} requires a correct answer`);
-    }
-    return out as Json;
-  }
+  if (isPlainRecord(raw)) return normalizeRecordAnswer(type, raw, add);
   if (type === "mcq_multi") {
     const arr = toStringArray(raw);
     if (arr.length === 0) add("correctAnswer", "mcq_multi needs at least one correct option");
@@ -244,18 +255,8 @@ function normalizeCorrectAnswer(
   const single = Array.isArray(raw)
     ? normalizeWhitespace(raw[0] ?? "")
     : normalizeWhitespace(raw ?? "");
-  // Fixed-option families store the OPTION ID (registry TFNG_OPTIONS / YNNG_OPTIONS),
-  // never the display token, so the select grader matches what the learner picked.
-  if (type === "true_false_notgiven") {
-    return verdictOptionId(
-      requireToken(normalizeTfngToken(single), single, "TRUE / FALSE / NOT GIVEN", add),
-    );
-  }
-  if (type === "yes_no_notgiven") {
-    return verdictOptionId(
-      requireToken(normalizeYnngToken(single), single, "YES / NO / NOT GIVEN", add),
-    );
-  }
+  const verdict = normalizeVerdictAnswer(type, single, add);
+  if (verdict !== null) return verdict;
   if (single.length === 0) add("correctAnswer", `${type} requires a correct answer`);
   return single;
 }

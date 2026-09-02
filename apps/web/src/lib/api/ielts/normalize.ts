@@ -110,3 +110,8 @@ export function normalizeAnswerKey(value: string): string {
     .toLowerCase()
     .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
 }
+
+/** `TRUE` → `true`, `NOT GIVEN` → `not_given` (the registry verdict option ids). */
+export function verdictOptionId(token: string): string {
+  return token.trim().toLowerCase().replace(/\s+/g, "_");
+}
