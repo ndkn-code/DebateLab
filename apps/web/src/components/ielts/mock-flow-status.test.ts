@@ -63,8 +63,8 @@ assert.equal(statuses.filter((status) => status.current).length, 1);
 
 // counts
 assert.deepEqual(summarizeMockQuestionStatuses(statuses), {
-  total: 22,
-  answered: 2,
+  total: 23,
+  answered: 3,
   unanswered: 20,
   flagged: 1,
 });

@@ -15,6 +15,12 @@ interface Props {
   headingId: string;
 }
 
+/** "Questions 1–10" authored as the title duplicates the computed range label. */
+function sameRange(a: string, b: string): boolean {
+  const norm = (v: string) => v.toLowerCase().replace(/[\u2012\u2013\u2014-]/g, "-").replace(/\s+/g, " ").trim();
+  return norm(a) === norm(b);
+}
+
 export function GroupHeader({ block, selectMode, compact, mode, selectCount, headingId }: Props) {
   const t = useTranslations("ielts.player.groups");
   const { first, last } = blockNumberRange(block);
@@ -29,7 +35,7 @@ export function GroupHeader({ block, selectMode, compact, mode, selectCount, hea
     <header className="flex flex-col gap-1">
       <h3 id={headingId} className="type-body font-semibold text-on-surface">
         {rangeLabel}
-        {block.group.title ? (
+        {block.group.title && !sameRange(block.group.title, rangeLabel) ? (
           <span className="font-normal text-on-surface-variant"> · {block.group.title}</span>
         ) : null}
       </h3>

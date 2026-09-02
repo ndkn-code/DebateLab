@@ -263,7 +263,7 @@ export function MockSectionView({
   );
 
   return (
-    <section className="flex h-full min-h-0 flex-col bg-background text-on-surface">
+    <section className="flex h-dvh max-h-dvh min-h-0 flex-col bg-background text-on-surface">
       <ExamSectionHeader
         testTitle={testTitle}
         sectionLabel={sectionLabel}

@@ -225,7 +225,8 @@ export function MockTestPlayer({
           pending.current.delete(questionId);
           answerSaveErrorShown.current = false;
           const now = Date.now();
-          if (now - lastAnswerToastAt.current > 12000) {
+          // CD-IELTS never confirms saves; only guided practice shows the toast.
+          if (assessmentMode !== "simulation" && now - lastAnswerToastAt.current > 12000) {
             lastAnswerToastAt.current = now;
             showToast(t("toastAnswerSaved"), "success");
           }
@@ -238,7 +239,7 @@ export function MockTestPlayer({
         /* keep pending for retry */
       }
     },
-    [attemptId, t],
+    [attemptId, t, assessmentMode],
   );
 
   // Drain all debounced saves NOW — called before every state transition so no
@@ -397,7 +398,7 @@ export function MockTestPlayer({
 
   return (
     <div
-      className="relative flex h-full min-h-0 flex-col bg-background"
+      className="relative flex h-dvh max-h-dvh min-h-0 flex-col bg-background"
       data-ielts-exam="player"
     >
       {error ? (

@@ -6,10 +6,49 @@
  * slot on the right. `question.prompt` is the row label ("Paragraph A", the
  * statement, the sentence stem).
  */
+import type { QuestionNumber } from "@/lib/ielts/question-groups";
+import { parsePromptSegments } from "@/lib/ielts/question-types/prompt";
 import { FlagToggle } from "../FlagToggle";
 import { GroupBank } from "./GroupBank";
 import { useGroupContext } from "./group-context";
 import { NumberBadge, SlotControl } from "./NumberedBlank";
+
+/**
+ * A sentence stem authored with an inline `__BLANK_0__` marker renders the
+ * control in place ("Early roofs were covered in [____]."); every other row
+ * keeps the label-left / slot-right layout.
+ */
+function InlineStem({
+  questionId,
+  number,
+  prompt,
+  wordLimit,
+}: {
+  questionId: string;
+  number: QuestionNumber;
+  prompt: string;
+  wordLimit: number | null;
+}) {
+  const segments = parsePromptSegments(prompt);
+  return (
+    <p className="col-span-full col-start-2 min-w-0 type-body leading-8 text-on-surface sm:col-start-2">
+      {segments.map((segment, index) =>
+        segment.type === "text" ? (
+          <span key={index}>{segment.text}</span>
+        ) : (
+          <span key={index} className="mx-1 inline-block align-middle">
+            <SlotControl
+              questionId={questionId}
+              number={number}
+              layout="inline"
+              wordLimit={wordLimit}
+            />
+          </span>
+        ),
+      )}
+    </p>
+  );
+}
 
 export function MatchingGroup() {
   const ctx = useGroupContext();
@@ -29,15 +68,26 @@ export function MatchingGroup() {
                 <FlagToggle questionId={ref.questionId} size="sm" />
               ) : null}
             </div>
-            <p className="min-w-0 type-body text-on-surface">{ref.prompt}</p>
-            <div className="col-start-2 min-w-0 sm:col-start-3">
-              <SlotControl
+            {ref.prompt.includes("__BLANK_") ? (
+              <InlineStem
                 questionId={ref.questionId}
                 number={ref.number}
-                layout="block"
+                prompt={ref.prompt}
                 wordLimit={ref.wordLimit}
               />
-            </div>
+            ) : (
+              <>
+                <p className="min-w-0 type-body text-on-surface">{ref.prompt}</p>
+                <div className="col-start-2 min-w-0 sm:col-start-3">
+                  <SlotControl
+                    questionId={ref.questionId}
+                    number={ref.number}
+                    layout="block"
+                    wordLimit={ref.wordLimit}
+                  />
+                </div>
+              </>
+            )}
           </li>
         ))}
       </ol>

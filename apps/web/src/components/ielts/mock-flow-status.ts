@@ -14,6 +14,8 @@ export interface MockQuestionStatus {
   number: number;
   /** Official label as printed on the paper: "7", or "21–22" for a span. */
   numberLabel: string;
+  /** How many official question numbers this row occupies (2 for "21–22"). */
+  span: number;
   partIndex: number;
   partTitle: string;
   answered: boolean;
@@ -54,6 +56,7 @@ export function buildMockQuestionStatuses({
         questionId: question.id,
         number: assigned?.start ?? fallback,
         numberLabel: assigned?.label ?? String(fallback),
+        span: assigned ? assigned.end - assigned.start + 1 : 1,
         partIndex,
         partTitle: part.title,
         answered: isAnsweredResponse(responses[question.id]),
@@ -67,12 +70,17 @@ export function buildMockQuestionStatuses({
 export function summarizeMockQuestionStatuses(
   statuses: readonly MockQuestionStatus[],
 ): MockQuestionCounts {
-  const answered = statuses.filter((status) => status.answered).length;
+  // Counts are in official question numbers ("x of 40"), so a "21–22" row
+  // contributes two to both the total and, once answered, the answered count.
+  const total = statuses.reduce((sum, status) => sum + status.span, 0);
+  const answered = statuses
+    .filter((status) => status.answered)
+    .reduce((sum, status) => sum + status.span, 0);
   const flagged = statuses.filter((status) => status.flagged).length;
   return {
-    total: statuses.length,
+    total,
     answered,
-    unanswered: Math.max(0, statuses.length - answered),
+    unanswered: Math.max(0, total - answered),
     flagged,
   };
 }
