@@ -3,59 +3,46 @@
 ## Comparison target
 
 - Source visual truth:
-  - `/Users/jacknguyen/Downloads/HP15H7gaIAAWvm3.jpeg` — calendar density, view controls, accessible class coloring.
-  - `/Users/jacknguyen/Downloads/HQy1RbubwAAoYeT.jpeg` — persistent right-side detail drawer.
-- Rendered implementation:
-  - `artifacts/teacher-qa/calendar-1440x900-final.png`
-  - `artifacts/teacher-qa/drawer-1440x900-final.png`
-  - Responsive evidence at 1280×800, 1024×768, 768×1024, and 390×844 in `artifacts/teacher-qa/`.
-- Browser state: explicit non-production teacher presentation fixture, Aug 31–Sep 6 2026, Week view on desktop, Agenda on compact widths, light theme unless the filename says dark, English unless the filename says `vi`.
+  - `/Users/jacknguyen/Downloads/HP15H7gaIAAWvm3.jpeg` for compact calendar density, view controls, time rhythm, and overlap treatment.
+  - `/Users/jacknguyen/Downloads/HQy1RbubwAAoYeT.jpeg` for the anchored right-side event detail pattern.
+- Implementation evidence is stored in `/Users/jacknguyen/.codex/visualizations/2026/09/02/01a063e7-a000-7c00-9fd7-89d693e7ce5f/thinkfy-teacher-ui/`.
+- Both references are 3200×2400 pixels. Browser captures use deviceScaleFactor 1, so image pixels equal CSS viewport pixels.
+- `reference-comparison.png` puts both references and the 1440×900 implementation in one visual input. `drawer-reference-comparison.png` compares the source detail panel and implementation drawer in one input. Pixel geometry was measured from the live DOM before normalization.
 
-## Normalization
+## Pattern adoption
 
-- Both source images are 3200×2400 pixels.
-- Desktop implementation captures are 1440×900 CSS pixels at deviceScaleFactor 1 and are 1440×900 image pixels.
-- Full-view comparison: `artifacts/teacher-qa/comparison-calendar-final.png` (1800×675). Each input was aspect-fit into a 900×675 panel; no crop or density interpolation was used to judge one-pixel geometry.
-- Focused drawer comparison: `artifacts/teacher-qa/comparison-drawer-desktop-final.png` (1800×675), normalized with the same 900×675 panel treatment.
-- Exact alignment and positioning were judged from browser DOM geometry at native CSS pixels, not from the normalized montage.
+- Adopted: 64 px hourly rhythm, compact time gutter, Day/Week/Month/Agenda control, accessible per-class accents, deterministic overlap lanes, current-time line, and a fixed right event drawer.
+- Reframed: source appointment details became class, lesson, roster/attendance, materials, homework/review, announcements, and permitted teacher actions.
+- Rejected: appointment commerce, KPI-heavy cards, checkout/payment content, drag-to-reschedule, and color-only meaning.
 
-## Full-view comparison evidence
+## Passed
 
-- Information density and hierarchy match the source intent: compact toolbar, anchored timezone gutter, clear day headers, 64 px hourly rhythm, overlapping pastel event blocks, and a stable navigation rail.
-- The implementation intentionally omits the appointment source's KPI cards, service commerce, customer data, and checkout content. Those areas were out of scope; teacher class, lesson, attendance, review, and materials content replaces them.
-- The source's single dominant pink category was adapted into semantic teal, amber, and violet class colors with text labels and status treatments so meaning never depends on color alone.
+- 1440×900 calendar headers align to event columns with 0 px x/width delta.
+- Every hour label aligns to its grid line with 0 px center delta.
+- Every rendered event top and height matches its start/end minute geometry with 0 px delta.
+- Overlap lanes are deterministic in unit tests and visibly non-overlapping at all desktop widths.
+- Drawer geometry is x=1008, width=432, right=1440 at 1440×900; x=0, width=390, right=390 at 390×844 after the opening transition. It does not resize or shift the calendar grid.
+- Drawer focus enters the heading, all 18 tested Tab advances remain trapped inside, Escape closes it, and focus returns to the originating event.
+- Day, Week, Month, and Agenda render; the Week preference is the wide default. Compact 768×1024 and 390×844 presentations normalize to Agenda instead of compressed week columns.
+- Class and status URL filters preserve Week as the view and reduce the rendered event set correctly.
+- No document-level horizontal overflow at 1440×900, 1280×800, 1024×768, 768×1024, or 390×844. At 1024, any excess calendar width is contained by the calendar panel; at 390, the Head Teacher table scrolls inside its frame.
+- English/Vietnamese, light/dark, and reduced-motion states were rendered. Reduced-motion transition duration resolves to Chromium's 0.000001 s normalization.
+- Representative dark-theme contrast is 19.27:1 for the page heading and 8.15–9.23:1 for calendar event text. Scheduled/planned copy, cancelled strike-through, completed double borders, and accessible labels keep status non-color-dependent.
+- Head Teacher Organization, People, Curriculum, and Reports routes render without 404 or denial in the explicit demo. The dedicated rail includes the pending Review Queue badge and omits Duel and AI Coach.
 
-## Focused drawer comparison evidence
+## Evidence
 
-- A focused comparison was required because dividers, compact metadata, close placement, and sticky action rows are too small in the full calendar view.
-- The implementation preserves the source pattern: fixed right edge, stable width, compact identity header, strong metadata grouping, divided content regions, close affordance, and persistent bottom actions.
-- Teacher-specific actions replace appointment checkout and payment content by design.
-- At 1440×900 the drawer is x=1008, width=432, right=1440; at 390×844 it is x=0, width=390, right=390. No drawer controls overflow either viewport.
+- `calendar-1440x900.png`, `calendar-1280x800.png`, `calendar-1024x768.png`, `calendar-768x1024.png`, `calendar-390x844.png`
+- `calendar-drawer-1440x900.png`
+- `organization-dark-1440x900.png`
+- `reports-vi-dark-390x844.png`
+- `reference-comparison.png`, `drawer-reference-comparison.png`
 
-## Required fidelity surfaces
+## Blocked or external
 
-- Fonts and typography: existing Thinkfy type utilities are used throughout; display, label, body, and caption hierarchy remains readable in dense events. English/Vietnamese expansion and 200% root text sizing produce no document-level horizontal overflow.
-- Spacing and layout rhythm: headers and columns align exactly; toolbar and filter controls have zero center-line spread within each desktop row; compact widths wrap into deliberate rows and switch to Agenda rather than compressing seven columns.
-- Colors and tokens: existing semantic surface/status tokens are used. Dark event contrast measured 8.41:1. Cancelled and completed states add strike-through/double-border cues in addition to color.
-- Image quality and asset fidelity: the workspace uses the existing Thinkfy logo and icon library. No source product imagery, custom SVG approximation, CSS art, emoji asset, or gradient substitute was introduced.
-- Copy and content: all content is teacher/LMS-specific and coherent without source appointment commerce. Visible and screen-reader copy was checked in English and Vietnamese.
-- Accessibility and interaction: focus enters the drawer heading and Escape returns to the originating lesson; class tabs use one-item roving focus with Arrow/Home/End behavior and a linked tabpanel; reduced motion resolves animations/transitions to Chromium's 0.000001 s normalization; no duplicate IDs were found.
+- The subject-neutral student class-week presentation is implemented on the existing `/ielts/classes` learner route, not the manager-only legacy class route. Local browser rendering is blocked by the existing student data path returning `permission denied for table ielts_study_plans` under the development bypass. This is an authorization/backend contract defect and was not changed in this presentation-only scope.
+- Live reschedule/cancel/complete mutations remain disabled. The existing mutation repository requires an `expectedUpdatedAt` concurrency token, but the teacher event/detail projection does not expose one and provides no mutation action URL. The explicit demo validates and demonstrates these states; the UI does not invent a production token or bypass the server contract.
+- Toggling the existing shared theme control while Chromium simultaneously emulates reduced motion applies the requested theme, but the development runtime logs its existing `Transition was aborted because of timeout in DOM update` rejection. Stable light, dark, and reduced-motion reloads render correctly; the shared transition infrastructure was not changed in this workspace patch.
+- Full repository lint remains red on pre-existing unrelated scoring, IELTS mock/coach, AI benchmark, and admin workbench files. Targeted lint for every touched TS/TSX file passes.
 
-## Comparison history
-
-1. Initial responsive comparison found three P2 issues: the 768 px layout still exposed the dense seven-column grid, the drawer close/action edge could clip during its opening transition, and event geometry used a 1 px top/2 px height inset. Fixes: moved the compact breakpoint to 900 px, added a bounded custom close affordance with stable full-width compact geometry, waited for the transition before measurement, and made event top/height equal the start/end minute geometry exactly. Post-fix evidence: all five final viewport captures plus zero header/time/event geometry error at desktop widths.
-2. Independent QA found class-data leakage, stale demo range navigation, incomplete reschedule date updates, owner persona discoverability, incomplete tab semantics, duplicate Agenda IDs, Vietnamese copy gaps, and compact Month semantics. Fixes: scoped all class surfaces, constrained fixture events to the authoritative normalized range, updated event date with validated timestamps, loaded capability navigation across protected routes, implemented roving tabs/tabpanel linkage, prefixed desktop/mobile Agenda IDs, localized drawer/loading/error states, and normalized compact Week/Month to Agenda without overwriting the remembered desktop view.
-3. Independent recheck found one remaining P2: empty Debate attendance/gradebook tabs exposed irrelevant IELTS context or header-only controls. Fix: added localized empty states and removed mutation/table controls when the scoped class has no contract data. Final independent recheck at 1440×900 and 390×844 reports no P0–P2 findings.
-
-## Browser verification
-
-- Primary interactions tested: Day/Week/Month/Agenda; Today/previous/next/date jump; class/program/status filters; view persistence; event open/close; keyboard focus entry/return; validated reschedule including date movement; review publish; assignment creation; bounded grade entry; attendance save; material add/open; announcement publish; class tab keyboard navigation.
-- Console/event check: the final EgoLite navigation produced no console exception/error events. Local preview requests to unrelated analytics, smart-popups, and maintenance endpoints return expected 401/503 responses under the isolated dummy backend and do not affect the workspace.
-- Page-level horizontal overflow: none at 1440×900, 1280×800, 1024×768, 768×1024, or 390×844. The 1024 desktop calendar alone has an intentional internal scroller (client 738, scroll 940).
-
-## Findings
-
-- No actionable P0, P1, or P2 findings remain.
-- P3 follow-up: production mutations and richer roster/gradebook projections remain gated by server contracts and are intentionally read-only outside the explicit demo adapter.
-
-final result: passed
+final result: passed with external blockers documented above

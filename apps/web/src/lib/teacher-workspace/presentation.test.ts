@@ -29,3 +29,26 @@ test("demo calendar fixtures are constrained to the requested presentation range
   assert.deepEqual(previousWeek.eventDetails, {});
   assert.equal(previousWeek.calendar.range.startDate, "2026-08-24");
 });
+
+test("demo event details preserve permitted action destinations", () => {
+  const presentation = buildTeacherWorkspaceDemoPresentation({
+    locale: "en",
+    surface: "calendar",
+    range: {
+      startDate: "2026-08-31",
+      endDate: "2026-09-06",
+      view: "week",
+      timezone: "America/New_York",
+    },
+  });
+  const event = presentation.calendar.events[0];
+  const detail = presentation.eventDetails[event.id];
+
+  assert.equal(
+    detail.actionUrls.viewClass,
+    `/dashboard/teacher/classes/${event.classId}`,
+  );
+  assert.match(detail.actionUrls.takeAttendance ?? "", /tab=attendance/);
+  assert.match(detail.actionUrls.planLesson ?? "", /tab=lessons/);
+  assert.match(detail.actionUrls.manageMaterials ?? "", /teacher\/materials/);
+});

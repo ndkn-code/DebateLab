@@ -1,4 +1,5 @@
 import type {
+  TeacherCalendarActionPermissions,
   TeacherCalendarEvent,
   TeacherCalendarRangeResult,
   TeacherCalendarStatus,
@@ -15,7 +16,27 @@ export type TeacherWorkspaceSurface =
   | "attendance"
   | "materials"
   | "announcements"
+  | "organization"
+  | "people"
+  | "curriculum"
+  | "reports"
   | "class-detail";
+
+export const HEAD_TEACHER_WORKSPACE_SURFACES = [
+  "organization",
+  "people",
+  "curriculum",
+  "reports",
+] as const satisfies readonly TeacherWorkspaceSurface[];
+
+export type HeadTeacherWorkspaceSurface =
+  (typeof HEAD_TEACHER_WORKSPACE_SURFACES)[number];
+
+export function isHeadTeacherWorkspaceSurface(
+  value: TeacherWorkspaceSurface,
+): value is HeadTeacherWorkspaceSurface {
+  return (HEAD_TEACHER_WORKSPACE_SURFACES as readonly string[]).includes(value);
+}
 
 export type TeacherWorkspaceNavigationItem = {
   key:
@@ -64,6 +85,7 @@ export interface TeacherWorkspaceClassPresentation {
 
 export interface TeacherEventDetailPresentation {
   eventId: string;
+  actionUrls: Partial<Record<keyof TeacherCalendarActionPermissions, string>>;
   roster: Array<{
     id: string;
     name: string;
@@ -434,6 +456,15 @@ function detailFor(
     ["present", "late", "present", "absent", "unmarked"];
   return {
     eventId: eventItem.id,
+    actionUrls: {
+      viewClass: `/dashboard/teacher/classes/${eventItem.classId}`,
+      takeAttendance: `/dashboard/teacher/classes/${eventItem.classId}?tab=attendance&date=${eventItem.date}`,
+      reviewHomework: `/dashboard/teacher/review-queue?classId=${eventItem.classId}`,
+      viewGradebook: `/dashboard/teacher/classes/${eventItem.classId}?tab=gradebook`,
+      planLesson: `/dashboard/teacher/classes/${eventItem.classId}?tab=lessons&plan=${encodeURIComponent(eventItem.id)}`,
+      manageMaterials: `/dashboard/teacher/materials?classId=${eventItem.classId}`,
+      postAnnouncement: `/dashboard/teacher/classes/${eventItem.classId}?tab=announcements`,
+    },
     rosterCount:
       DEMO_CLASSES.find((item) => item.id === eventItem.classId)
         ?.studentCount ?? rosterNames.length,

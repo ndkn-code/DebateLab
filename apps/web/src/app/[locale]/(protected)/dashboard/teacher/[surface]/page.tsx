@@ -11,6 +11,10 @@ const SURFACES = new Set<TeacherWorkspaceSurface>([
   "attendance",
   "materials",
   "announcements",
+  "organization",
+  "people",
+  "curriculum",
+  "reports",
 ]);
 
 export default async function TeacherWorkspaceSurfacePage({

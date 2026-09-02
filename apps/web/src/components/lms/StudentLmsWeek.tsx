@@ -198,7 +198,7 @@ function AssignmentRow({
         </Link>
       </div>
       {assignment.feedback || assignment.score != null ? (
-        <div className="rounded-lg bg-success-container/45 px-3 py-2 type-caption text-on-success-container sm:basis-full">
+        <div className="rounded-lg bg-success-container px-3 py-2 type-caption text-on-success-container sm:basis-full">
           {assignment.score != null ? (
             <p className="font-semibold">
               {vi ? "Điểm" : "Score"}: {assignment.score}
@@ -321,7 +321,7 @@ function OccurrenceCard({
           ) : null}
         </div>
         <span className="inline-flex h-5 shrink-0 items-center justify-center rounded-md border border-outline-variant px-1.5 type-caption font-semibold text-on-surface-variant">
-          {vi ? "Lớp IELTS" : "IELTS class"}
+          {vi ? "Buổi học" : "Class session"}
         </span>
       </div>
 
@@ -465,7 +465,7 @@ export function StudentLmsWeek({
         <header className="flex flex-col gap-3 border-b border-outline-variant pb-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="type-label font-semibold uppercase tracking-widest text-primary">
-              {vi ? "Không gian học IELTS" : "IELTS learner workspace"}
+              {vi ? "Không gian học tập" : "Student workspace"}
             </p>
             <h1 className="mt-1 type-heading-md font-semibold text-on-surface">
               {vi ? "Lịch học tuần này" : "My learning week"}
@@ -582,7 +582,7 @@ export function StudentLmsWeek({
                   <li
                     key={date}
                     aria-current={isToday ? "date" : undefined}
-                    className={`min-h-11 border-l border-outline-variant px-2 py-2 first:border-l-0 ${isToday ? "bg-primary-container/45" : "bg-surface"}`}
+                    className={`min-h-11 border-l border-outline-variant px-2 py-2 first:border-l-0 ${isToday ? "bg-primary-container" : "bg-surface"}`}
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div>

@@ -35,11 +35,23 @@ import type {
   TeacherWorkspacePresentation,
   TeacherWorkspaceSurface,
 } from "@/lib/teacher-workspace/presentation";
+import { isHeadTeacherWorkspaceSurface } from "@/lib/teacher-workspace/presentation";
 import { cn } from "@/lib/utils";
+import { HeadTeacherOperations } from "./HeadTeacherOperations";
 import { TeacherCalendar } from "./TeacherCalendar";
 
+type CoreTeacherSurface = Exclude<
+  TeacherWorkspaceSurface,
+  | "calendar"
+  | "class-detail"
+  | "organization"
+  | "people"
+  | "curriculum"
+  | "reports"
+>;
+
 const SURFACE_COPY: Record<
-  Exclude<TeacherWorkspaceSurface, "calendar" | "class-detail">,
+  CoreTeacherSurface,
   { en: [string, string]; vi: [string, string] }
 > = {
   classes: {
@@ -132,7 +144,7 @@ function SurfaceHeader({
   locale,
   action,
 }: {
-  surface: Exclude<TeacherWorkspaceSurface, "calendar" | "class-detail">;
+  surface: CoreTeacherSurface;
   locale: string;
   action?: React.ReactNode;
 }) {
@@ -1617,10 +1629,20 @@ export function TeacherWorkspaceScreen({
   data: TeacherWorkspacePresentation;
   classId?: string;
 }) {
-  if (data.state === "denied" || data.state === "error")
+  if (
+    data.state === "denied" ||
+    data.state === "error" ||
+    (isHeadTeacherWorkspaceSurface(data.surface) && !data.isHeadTeacher)
+  )
     return (
       <ProductPageShell>
-        <StateScreen data={data} />
+        <StateScreen
+          data={
+            isHeadTeacherWorkspaceSurface(data.surface) && !data.isHeadTeacher
+              ? { ...data, state: "denied" }
+              : data
+          }
+        />
       </ProductPageShell>
     );
   return (
@@ -1660,6 +1682,9 @@ export function TeacherWorkspaceScreen({
         {data.surface === "materials" ? <MaterialsSurface data={data} /> : null}
         {data.surface === "announcements" ? (
           <AnnouncementsSurface data={data} />
+        ) : null}
+        {isHeadTeacherWorkspaceSurface(data.surface) ? (
+          <HeadTeacherOperations data={data} surface={data.surface} />
         ) : null}
         {data.surface === "class-detail" ? (
           <ClassDetailSurface data={data} classId={classId} />

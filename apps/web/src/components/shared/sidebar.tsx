@@ -80,6 +80,59 @@ type SidebarNavItem = {
   requiresEnrollment?: boolean;
 };
 
+const DEMO_HEAD_TEACHER_NAVIGATION: TeacherWorkspaceNavigation["items"] = [
+  {
+    key: "organization",
+    label: "Organization",
+    href: "/dashboard/teacher/organization",
+    badge: null,
+  },
+  {
+    key: "people",
+    label: "People",
+    href: "/dashboard/teacher/people",
+    badge: null,
+  },
+  {
+    key: "curriculum",
+    label: "Curriculum",
+    href: "/dashboard/teacher/curriculum",
+    badge: null,
+  },
+  {
+    key: "reports",
+    label: "Reports",
+    href: "/dashboard/teacher/reports",
+    badge: null,
+  },
+];
+
+function withExplicitTeacherDemoNavigation(
+  navigation: TeacherWorkspaceNavigation | undefined,
+  explicitDemo: boolean,
+) {
+  if (!navigation || !explicitDemo || process.env.NODE_ENV === "production") {
+    return navigation;
+  }
+  const keys = new Set(navigation.items.map((item) => item.key));
+  return {
+    ...navigation,
+    isAdminPreview: true,
+    isHeadTeacher: true,
+    hasIeltsEntitlement: true,
+    classCount: Math.max(3, navigation.classCount),
+    pendingReviewCount: Math.max(12, navigation.pendingReviewCount),
+    items: [
+      ...navigation.items.map((item) =>
+        item.key === "review_queue"
+          ? { ...item, badge: Math.max(12, item.badge ?? 0) }
+          : item,
+      ),
+      ...DEMO_HEAD_TEACHER_NAVIGATION.filter((item) => !keys.has(item.key)),
+    ],
+  } satisfies TeacherWorkspaceNavigation;
+}
+
 function SpeakingRehearsalIcon({ className }: { className?: string }) {
   return <ProductIcon name="micStage" weight="duotone" className={className} />;
 }
@@ -607,10 +660,15 @@ export function Sidebar({
   const [collapsed, setCollapsed] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const currentLocale = coerceAppLocale(useLocale());
   const tc = useTranslations("common");
   const useDashboardRail = !pathname.startsWith("/dashboard/admin");
   const isTeacherPersona = pathname.startsWith("/dashboard/teacher");
+  const effectiveTeacherNavigation = withExplicitTeacherDemoNavigation(
+    teacherNavigation,
+    isTeacherPersona && searchParams.get("demo") === "teacher",
+  );
   const isAdmin = profile?.role === "admin";
   const canDuel = DUEL_ENABLED || isAdmin;
   const debateNavItems: DashboardNavItem[] = [
@@ -640,7 +698,7 @@ export function Sidebar({
     { key: "resources", href: "/resources", status: "live" },
   ];
   const dashboardNavItems: DashboardSidebarNavItem[] = isTeacherPersona
-    ? (teacherNavigation?.items ?? []).map((item) => ({
+    ? (effectiveTeacherNavigation?.items ?? []).map((item) => ({
         key: item.key,
         href: item.href,
         status: "live" as const,
@@ -690,7 +748,7 @@ export function Sidebar({
           activeSubject={activeSubject}
           notificationInbox={notificationInbox}
           notificationOperations={notificationOperations}
-          teacherNavigation={teacherNavigation}
+          teacherNavigation={effectiveTeacherNavigation}
         />
       ) : (
         <aside
@@ -710,7 +768,7 @@ export function Sidebar({
             isEnrolledIeltsStudent={isEnrolledIeltsStudent}
             notificationInbox={notificationInbox}
             notificationOperations={notificationOperations}
-            teacherNavigation={teacherNavigation}
+            teacherNavigation={effectiveTeacherNavigation}
           />
           {/* Collapse toggle */}
           <button
@@ -757,7 +815,7 @@ export function Sidebar({
               isEnrolledIeltsStudent={isEnrolledIeltsStudent}
               notificationInbox={notificationInbox}
               notificationOperations={notificationOperations}
-              teacherNavigation={teacherNavigation}
+              teacherNavigation={effectiveTeacherNavigation}
               onNavClick={() => {
                 // Sheet auto-closes when navigation happens via link click
               }}
@@ -772,7 +830,7 @@ export function Sidebar({
           ieltsAvailable={
             IELTS_ENABLED ||
             isAdmin ||
-            Boolean(teacherNavigation?.hasIeltsEntitlement)
+            Boolean(effectiveTeacherNavigation?.hasIeltsEntitlement)
           }
         />
         <ThemeToggle variant="mobile" className="ml-auto" />

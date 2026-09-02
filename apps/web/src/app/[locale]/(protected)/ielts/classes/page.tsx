@@ -24,7 +24,7 @@ import { normalizeStreakTimezone } from "@/lib/streaks/model";
 import { createTypedServerClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "My IELTS classes" };
+export const metadata = { title: "My classes" };
 
 function normalizeProcessingStatus(value: string): MaterialProcessingStatus {
   if (value === "awaiting_upload") return "uploading";
@@ -125,7 +125,7 @@ async function loadMaterialsByOccurrence({
     }
     return { byOccurrence: grouped, general };
   } catch (error) {
-    console.error("load learner materials for IELTS week failed", error);
+    console.error("load learner materials for class week failed", error);
     return { byOccurrence: {}, general: [] };
   }
 }

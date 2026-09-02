@@ -236,6 +236,15 @@ function teacherHref(path: string, demo: boolean) {
   return `${path}${path.includes("?") ? "&" : "?"}demo=teacher`;
 }
 
+function eventActionHref(
+  detail: TeacherEventDetailPresentation | undefined,
+  action: keyof TeacherEventDetailPresentation["actionUrls"],
+  fallback: string,
+  demo: boolean,
+) {
+  return teacherHref(detail?.actionUrls[action] ?? fallback, demo);
+}
+
 function statusLabel(status: TeacherCalendarStatus, vi: boolean) {
   const labels = vi
     ? {
@@ -371,7 +380,8 @@ function CalendarSelect({
   options: CalendarSelectOption[];
   onChange: (value: string) => void;
 }) {
-  const current = options.find((option) => option.value === value) ?? options[0];
+  const current =
+    options.find((option) => option.value === value) ?? options[0];
   if (!current) return null;
   return (
     <DropdownMenu>
@@ -449,7 +459,10 @@ function CalendarDatePicker({
   const today = dateInTimezone(new Date(), timezone);
   const monthLabelId = `teacher-calendar-datepicker-${value}`;
 
-  const gridStart = addDays(month, -((new Date(`${month}T12:00:00Z`).getUTCDay() + 6) % 7));
+  const gridStart = addDays(
+    month,
+    -((new Date(`${month}T12:00:00Z`).getUTCDay() + 6) % 7),
+  );
   const weeks = Array.from({ length: 6 }, (_, week) =>
     Array.from({ length: 7 }, (_, day) => addDays(gridStart, week * 7 + day)),
   );
@@ -497,7 +510,9 @@ function CalendarDatePicker({
     }
     if (keyEvent.key === "PageUp" || keyEvent.key === "PageDown") {
       keyEvent.preventDefault();
-      moveFocus(shiftMonthKeepingDay(focusDate, keyEvent.key === "PageUp" ? -1 : 1));
+      moveFocus(
+        shiftMonthKeepingDay(focusDate, keyEvent.key === "PageUp" ? -1 : 1),
+      );
     }
   }
 
@@ -540,11 +555,7 @@ function CalendarDatePicker({
           aria-hidden="true"
         />
       </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        showArrow={false}
-        className="w-auto p-3"
-      >
+      <PopoverContent align="start" showArrow={false} className="w-auto p-3">
         <div className="flex items-center justify-between gap-2">
           <Button
             variant="ghost"
@@ -632,7 +643,9 @@ function CalendarDatePicker({
                         ? "text-on-surface-variant opacity-60"
                         : "text-on-surface",
                       !selected && "hover:bg-surface-container-high",
-                      day === today && !selected && "font-semibold text-primary",
+                      day === today &&
+                        !selected &&
+                        "font-semibold text-primary",
                       selected && "bg-primary font-semibold text-on-primary",
                     )}
                   >
@@ -1519,7 +1532,9 @@ function EventDrawer({
                   nativeButton={false}
                   render={
                     <Link
-                      href={teacherHref(
+                      href={eventActionHref(
+                        detail,
+                        "takeAttendance",
                         `/dashboard/teacher/classes/${event.classId}?tab=attendance`,
                         isDemo,
                       )}
@@ -1533,7 +1548,9 @@ function EventDrawer({
                   nativeButton={false}
                   render={
                     <Link
-                      href={teacherHref(
+                      href={eventActionHref(
+                        detail,
+                        "viewClass",
                         `/dashboard/teacher/classes/${event.classId}`,
                         isDemo,
                       )}
@@ -1547,7 +1564,9 @@ function EventDrawer({
                   nativeButton={false}
                   render={
                     <Link
-                      href={teacherHref(
+                      href={eventActionHref(
+                        detail,
+                        "reviewHomework",
                         `/dashboard/teacher/review-queue?classId=${event.classId}`,
                         isDemo,
                       )}
@@ -1561,7 +1580,9 @@ function EventDrawer({
                   nativeButton={false}
                   render={
                     <Link
-                      href={teacherHref(
+                      href={eventActionHref(
+                        detail,
+                        "viewGradebook",
                         `/dashboard/teacher/gradebook?classId=${event.classId}`,
                         isDemo,
                       )}
@@ -1573,15 +1594,31 @@ function EventDrawer({
                 </Button>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={
-                    !event.actions.planLesson ||
-                    (!isDemo && !event.occurrenceId)
-                  }
-                  onClick={() => {
-                    if (isDemo) {
+                {!isDemo &&
+                event.actions.planLesson &&
+                detail?.actionUrls.planLesson ? (
+                  <Button
+                    nativeButton={false}
+                    render={
+                      <Link
+                        href={eventActionHref(
+                          detail,
+                          "planLesson",
+                          `/dashboard/teacher/classes/${event.classId}?tab=lessons&plan=${encodeURIComponent(event.id)}`,
+                          false,
+                        )}
+                      />
+                    }
+                    variant="outline"
+                  >
+                    {vi ? "Soạn bài" : "Plan lesson"}
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!event.actions.planLesson || !isDemo}
+                    onClick={() => {
                       onDemoChange(event.id, {
                         occurrenceId:
                           event.occurrenceId ?? `preview-${event.id}`,
@@ -1591,16 +1628,18 @@ function EventDrawer({
                           ? "Đã đánh dấu buổi học là đã soạn trong bản xem trước."
                           : "Lesson marked planned in this preview.",
                       );
-                    }
-                  }}
-                >
-                  {vi ? "Soạn bài" : "Plan lesson"}
-                </Button>
+                    }}
+                  >
+                    {vi ? "Soạn bài" : "Plan lesson"}
+                  </Button>
+                )}
                 <Button
                   nativeButton={false}
                   render={
                     <Link
-                      href={teacherHref(
+                      href={eventActionHref(
+                        detail,
+                        "manageMaterials",
                         `/dashboard/teacher/classes/${event.classId}?tab=materials`,
                         isDemo,
                       )}
@@ -1614,7 +1653,9 @@ function EventDrawer({
                   nativeButton={false}
                   render={
                     <Link
-                      href={teacherHref(
+                      href={eventActionHref(
+                        detail,
+                        "postAnnouncement",
                         `/dashboard/teacher/classes/${event.classId}?tab=announcements`,
                         isDemo,
                       )}
