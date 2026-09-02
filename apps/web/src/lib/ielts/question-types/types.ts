@@ -21,6 +21,7 @@
  */
 import type { Enums } from "@/types/supabase";
 import type { IeltsVisual as AuthoredIeltsVisual } from "@/lib/api/ielts/visual";
+import type { IeltsCueCard, IeltsLetterBrief } from "./metadata";
 
 export type IeltsQuestionType = Enums<"ielts_question_type">;
 export type IeltsSkill = Enums<"ielts_skill">;
@@ -35,7 +36,7 @@ export type BlankMode = "select" | "multi_select" | "text";
 export type IeltsQuestionFamily =
   | "single_select" // mcq_single, true_false_notgiven, yes_no_notgiven
   | "multi_select" // mcq_multi
-  | "matching" // matching_headings, matching_information, matching_features
+  | "matching" // matching_headings, matching_information, matching_features, matching_sentence_endings
   | "completion" // sentence/summary/note_table_form_flowchart/short_answer
   | "labeling"; // diagram_label, map_plan_label
 
@@ -133,6 +134,16 @@ export interface IeltsQuestionView {
   visual: IeltsVisual | null;
   /** multi_select: how many choices to pick. */
   selectCount: number | null;
+  /** Which blank / hotspot of the question's group this row answers. */
+  slot: string | null;
+  /** One mcq_multi row occupying N question numbers ("21–22"). */
+  numberSpan: number | null;
+  /** "AND/OR A NUMBER": numeric tokens are free under the word limit. */
+  allowNumber: boolean | null;
+  /** Speaking Part 2 cue card, when authored. */
+  cueCard: IeltsCueCard | null;
+  /** General Training Task 1 letter brief, when authored. */
+  letter: IeltsLetterBrief | null;
 }
 
 // ── Learner answer (non-secret) ──────────────────────────────────────────────

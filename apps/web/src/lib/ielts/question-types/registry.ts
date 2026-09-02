@@ -44,6 +44,7 @@ const REGISTRY: Record<IeltsQuestionType, RegistryEntry> = {
   matching_headings: { family: "matching", fixedOptions: [] },
   matching_information: { family: "matching", fixedOptions: [] },
   matching_features: { family: "matching", fixedOptions: [] },
+  matching_sentence_endings: { family: "matching", fixedOptions: [] },
   sentence_completion: { family: "completion", fixedOptions: [] },
   summary_completion: { family: "completion", fixedOptions: [] },
   note_table_form_flowchart_completion: {
@@ -71,6 +72,7 @@ export const OBJECTIVE_QUESTION_TYPES: IeltsQuestionType[] = [
   "matching_headings",
   "matching_information",
   "matching_features",
+  "matching_sentence_endings",
   "sentence_completion",
   "summary_completion",
   "note_table_form_flowchart_completion",

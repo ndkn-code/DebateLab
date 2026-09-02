@@ -13,6 +13,7 @@ import {
   type IeltsVisual as AuthoredIeltsVisual,
 } from "@/lib/api/ielts/visual";
 import { getFixedOptions, getQuestionFamily } from "./registry";
+import { parseQuestionMetadata } from "./metadata";
 import type {
   BlankValue,
   IeltsAnswer,
@@ -49,12 +50,6 @@ function normalizeOptions(raw: unknown): IeltsOption[] {
       : { ...entry, label: entry.label ?? defaultOptionLabel(index) },
   );
 }
-
-const MatchItemSchema = z.object({
-  id: z.string().min(1),
-  label: z.string().optional(),
-  text: z.string().default(""),
-});
 
 const TableCellSchema = z.object({
   text: z.string().optional(),
@@ -119,13 +114,6 @@ function parseVisual(raw: unknown): IeltsVisual | null {
   return { ...legacy.data, alt: legacy.data.alt ?? "", hotspots: legacy.data.hotspots };
 }
 
-const MetadataSchema = z
-  .object({
-    items: z.array(MatchItemSchema).optional(),
-    selectCount: z.number().int().positive().optional(),
-  })
-  .catch({});
-
 /**
  * Parse a non-secret `ielts_questions` row into the renderer-facing view.
  * `family` and any fixed options (T/F/NG, Y/N/NG) come from the registry.
@@ -147,7 +135,7 @@ export function parseQuestionView(
 ): IeltsQuestionView {
   const fixed = getFixedOptions(row.question_type);
   const options = fixed.length > 0 ? fixed : normalizeOptions(row.options);
-  const meta = MetadataSchema.parse(row.metadata ?? {});
+  const meta = parseQuestionMetadata(row.metadata);
   const visual = row.visual == null ? null : parseVisual(row.visual);
 
   return {
@@ -163,6 +151,11 @@ export function parseQuestionView(
     items: meta.items ?? [],
     visual,
     selectCount: meta.selectCount ?? null,
+    slot: meta.slot ?? null,
+    numberSpan: meta.numberSpan ?? null,
+    allowNumber: meta.allowNumber ?? null,
+    cueCard: meta.cueCard ?? null,
+    letter: meta.letter ?? null,
   };
 }
 

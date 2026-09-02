@@ -4,3 +4,5 @@ export * from "./registry";
 export * from "./schemas";
 export * from "./answer-helpers";
 export * from "./prompt";
+export * from "./metadata";
+export * from "./groups";

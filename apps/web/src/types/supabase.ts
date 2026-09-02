@@ -6251,6 +6251,104 @@ export type Database = {
           },
         ]
       }
+      ielts_attempt_question_group_blueprints: {
+        Row: {
+          answer_mode: string | null
+          any_order: boolean
+          attempt_id: string
+          bank: Json
+          bank_reuse: boolean
+          created_at: string
+          group_id: string | null
+          group_key: string
+          id: string
+          instructions: string | null
+          listening_section_id: string | null
+          metadata: Json
+          order_index: number
+          passage_id: string | null
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          source_updated_at: string
+          stimulus: Json | null
+          test_id: string
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          answer_mode?: string | null
+          any_order?: boolean
+          attempt_id: string
+          bank?: Json
+          bank_reuse?: boolean
+          created_at?: string
+          group_id?: string | null
+          group_key: string
+          id?: string
+          instructions?: string | null
+          listening_section_id?: string | null
+          metadata?: Json
+          order_index?: number
+          passage_id?: string | null
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          source_updated_at: string
+          stimulus?: Json | null
+          test_id: string
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          answer_mode?: string | null
+          any_order?: boolean
+          attempt_id?: string
+          bank?: Json
+          bank_reuse?: boolean
+          created_at?: string
+          group_id?: string | null
+          group_key?: string
+          id?: string
+          instructions?: string | null
+          listening_section_id?: string | null
+          metadata?: Json
+          order_index?: number
+          passage_id?: string | null
+          skill?: Database["public"]["Enums"]["ielts_skill"]
+          source_updated_at?: string
+          stimulus?: Json | null
+          test_id?: string
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_attempt_question_group_blueprints_attempt_id_fkey"
+            columns: ["attempt_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_attempts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempt_question_group_blueprints_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_question_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempt_question_group_blueprints_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_tests"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_attempt_question_group_blueprints_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ielts_attempt_question_keys: {
         Row: {
           accept_variants: Json
@@ -7054,6 +7152,88 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ielts_question_groups: {
+        Row: {
+          answer_mode: string | null
+          any_order: boolean
+          bank: Json
+          bank_reuse: boolean
+          created_at: string
+          group_key: string
+          id: string
+          instructions: string | null
+          listening_section_id: string | null
+          metadata: Json
+          order_index: number
+          passage_id: string | null
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          stimulus: Json | null
+          test_id: string
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          answer_mode?: string | null
+          any_order?: boolean
+          bank?: Json
+          bank_reuse?: boolean
+          created_at?: string
+          group_key: string
+          id?: string
+          instructions?: string | null
+          listening_section_id?: string | null
+          metadata?: Json
+          order_index?: number
+          passage_id?: string | null
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          stimulus?: Json | null
+          test_id: string
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          answer_mode?: string | null
+          any_order?: boolean
+          bank?: Json
+          bank_reuse?: boolean
+          created_at?: string
+          group_key?: string
+          id?: string
+          instructions?: string | null
+          listening_section_id?: string | null
+          metadata?: Json
+          order_index?: number
+          passage_id?: string | null
+          skill?: Database["public"]["Enums"]["ielts_skill"]
+          stimulus?: Json | null
+          test_id?: string
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ielts_question_groups_listening_section_id_fkey"
+            columns: ["listening_section_id"]
+            isOneToOne: false
+            referencedRelation: "listening_sections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_question_groups_passage_id_fkey"
+            columns: ["passage_id"]
+            isOneToOne: false
+            referencedRelation: "passages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ielts_question_groups_test_id_fkey"
+            columns: ["test_id"]
+            isOneToOne: false
+            referencedRelation: "ielts_tests"
             referencedColumns: ["id"]
           },
         ]
@@ -17366,6 +17546,7 @@ export type Database = {
         | "matching_headings"
         | "matching_information"
         | "matching_features"
+        | "matching_sentence_endings"
         | "sentence_completion"
         | "summary_completion"
         | "note_table_form_flowchart_completion"
@@ -17574,6 +17755,7 @@ export const Constants = {
         "matching_headings",
         "matching_information",
         "matching_features",
+        "matching_sentence_endings",
         "sentence_completion",
         "summary_completion",
         "note_table_form_flowchart_completion",

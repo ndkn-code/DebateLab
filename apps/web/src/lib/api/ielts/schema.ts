@@ -47,6 +47,7 @@ export const IELTS_QUESTION_TYPES = [
   "matching_headings",
   "matching_information",
   "matching_features",
+  "matching_sentence_endings",
   "sentence_completion",
   "summary_completion",
   "note_table_form_flowchart_completion",
