@@ -249,13 +249,12 @@ ok({
   visual: { type: "image", url: "https://x.test/map.png", alt: "Map" },
 });
 ok({ skill: "listening", questionType: "diagram_label", prompt: "Part 1", correctAnswer: "valve", groupKey: "diagram-1" });
-rejects(
-  { skill: "listening", questionType: "map_plan_label", prompt: "The cafe", options: "A|B|C", correctAnswer: "C" },
-  /image visual/,
-  "labeling without an image",
-);
+// legacy authoring: a letter bank in options with positions described in the prompt
+ok({ skill: "listening", questionType: "map_plan_label", prompt: "The cafe (north-west corner)", options: "A|B|C", correctAnswer: "C" });
+// legacy authoring: positions described in the prompt only
+ok({ skill: "listening", questionType: "map_plan_label", prompt: "The cafe (north-west corner)", correctAnswer: "C" });
 
-// speaking part 2 requires a cue card (defaults applied); part 1 does not
+// speaking part 2 cue card gets timing defaults when authored; part 1 has none
 {
   const q = ok({
     skill: "speaking", questionType: "speaking_part2_cuecard", prompt: "Describe a place",
@@ -266,23 +265,17 @@ rejects(
   assert.equal(cue.speakSeconds, 120);
 }
 ok({ skill: "speaking", questionType: "speaking_part1", prompt: "Do you work or study?" });
-rejects(
-  { skill: "speaking", questionType: "speaking_part2_cuecard", prompt: "Describe a place" },
-  /cueCard/,
-  "cue card required",
-);
+// the structured cue card is optional — legacy rows carry it in the prompt
+ok({ skill: "speaking", questionType: "speaking_part2_cuecard", prompt: "Describe a place. You should say: ..." });
 
-// writing task 1 general requires a letter brief; academic does not
+// writing task 1 general letter brief is typed when authored; academic has none
 ok({
   skill: "writing", questionType: "writing_task1_general", prompt: "Write a letter",
   metadata: { letter: { recipient: "your landlord", register: "formal", bullets: ["explain the problem"] } },
 });
 ok({ skill: "writing", questionType: "writing_task1_academic", prompt: "The chart shows" });
-rejects(
-  { skill: "writing", questionType: "writing_task1_general", prompt: "Write a letter" },
-  /letter/,
-  "letter required",
-);
+// the structured letter brief is optional — legacy rows carry it in the prompt
+ok({ skill: "writing", questionType: "writing_task1_general", prompt: "Write a letter to your landlord ..." });
 
 // auto-derive wordLimit + allowNumber from instructions; explicit values win
 {

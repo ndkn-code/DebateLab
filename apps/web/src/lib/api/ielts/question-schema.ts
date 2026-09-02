@@ -54,7 +54,6 @@ const COMPLETION_TYPES = new Set<IeltsQuestionType>([
   "note_table_form_flowchart_completion",
   "short_answer",
 ]);
-const LABELING_TYPES = new Set<IeltsQuestionType>(["diagram_label", "map_plan_label"]);
 
 export type QuestionCategory = "writing" | "speaking" | "objective";
 
@@ -321,12 +320,6 @@ function validateCompletion(v: Q, add: Add): void {
   }
 }
 
-function validateLabeling(v: Q, add: Add): void {
-  if (v.visual?.type !== "image" && !v.groupKey) {
-    add("visual", `${v.questionType} needs an image visual or a groupKey (shared image stimulus)`);
-  }
-}
-
 /** Per-type invariants on the normalized question (metadata already strict). */
 function validateTypeRules(v: Q, add: Add): void {
   const meta = parseQuestionMetadata(v.metadata);
@@ -334,13 +327,11 @@ function validateTypeRules(v: Q, add: Add): void {
   if (type === "mcq_multi") validateMcqMulti(v, meta, add);
   if (MATCHING_TYPES.has(type)) validateMatching(v, meta, add);
   if (COMPLETION_TYPES.has(type)) validateCompletion(v, add);
-  if (LABELING_TYPES.has(type)) validateLabeling(v, add);
-  if (type === "speaking_part2_cuecard" && !meta.cueCard) {
-    add("metadata.cueCard", "speaking_part2_cuecard requires metadata.cueCard");
-  }
-  if (type === "writing_task1_general" && !meta.letter) {
-    add("metadata.letter", "writing_task1_general requires metadata.letter");
-  }
+  // Labelling rows may carry their figure on the group (shared image), on the
+  // row (visual), or — legacy authoring — only in the prompt; none is required.
+  // `metadata.cueCard` (Part 2) and `metadata.letter` (GT Task 1) are optional:
+  // legacy rows carry the card / brief inside the prompt and the renderers
+  // fall back to the plain prompt when the structured block is absent.
 }
 
 /** Fill `wordLimit` / `metadata.allowNumber` from the instructions when unset. */

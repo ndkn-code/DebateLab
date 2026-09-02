@@ -325,8 +325,8 @@ export function MockFinishedNotice({
   returnLabel,
 }: {
   resultsHref: string;
-  returnHref: string;
-  returnLabel: string;
+  returnHref?: string;
+  returnLabel?: string;
 }) {
   const t = useTranslations("ielts.player.exam");
   return (
@@ -341,12 +341,14 @@ export function MockFinishedNotice({
           >
             {t("seeResults")}
           </Link>
-          <Link
-            href={returnHref}
-            className="inline-flex min-h-10 items-center justify-center rounded-xl border border-outline-variant px-4 text-sm font-semibold text-on-surface"
-          >
-            {returnLabel}
-          </Link>
+          {returnHref && returnLabel ? (
+            <Link
+              href={returnHref}
+              className="inline-flex min-h-10 items-center justify-center rounded-xl border border-outline-variant px-4 text-sm font-semibold text-on-surface"
+            >
+              {returnLabel}
+            </Link>
+          ) : null}
         </div>
       </div>
     </div>
