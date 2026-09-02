@@ -223,6 +223,25 @@ async function testNetworkThrow() {
   assert.equal(h.logs[0]?.level, "warn");
 }
 
+async function testHungHttpRequestTimesOutAndAborts() {
+  const capturedSignals: AbortSignal[] = [];
+  const h = harness({
+    fetchImpl: async (_url, init) => {
+      capturedSignals.push(init?.signal as AbortSignal);
+      return await new Promise<Response>(() => undefined);
+    },
+  });
+  const startedAt = Date.now();
+  const out = await assessPronunciation(
+    { ...BASE_INPUT, httpTimeoutMs: 20 },
+    h.deps,
+  );
+  assert.equal(reasonOf(out), "azure_timeout");
+  assert.equal(capturedSignals[0]?.aborted, true);
+  assert.ok(Date.now() - startedAt < 500);
+  assert.equal(h.recorded[0]?.errorCode, "azure_timeout");
+}
+
 async function testLongAudioUsesContinuousUnscriptedAssessment() {
   const longAudio = encodeWavPcm16(
     new Float32Array(IELTS_PRONUNCIATION_SAMPLE_RATE * 26),
@@ -268,6 +287,34 @@ async function testLongAudioUsesContinuousUnscriptedAssessment() {
   assert.equal(continuousCalls, 1);
   assert.equal(h.fetchCalls(), 0);
   if (out.status === "ok") assert.equal(out.pronunciationBand, null);
+}
+
+async function testHungContinuousAssessmentTimesOut() {
+  const longAudio = encodeWavPcm16(
+    new Float32Array(IELTS_PRONUNCIATION_SAMPLE_RATE * 26),
+    IELTS_PRONUNCIATION_SAMPLE_RATE,
+  );
+  const capturedSignals: AbortSignal[] = [];
+  const h = harness({
+    assessContinuous: async (input) => {
+      if (input.signal) capturedSignals.push(input.signal);
+      return await new Promise(() => undefined);
+    },
+  });
+  const startedAt = Date.now();
+  const out = await assessPronunciation(
+    {
+      ...BASE_INPUT,
+      audio: longAudio,
+      audioContentType: "audio/wav; codecs=audio/pcm; samplerate=16000",
+      continuousTimeoutMs: 20,
+    },
+    h.deps,
+  );
+  assert.equal(reasonOf(out), "azure_timeout");
+  assert.equal(capturedSignals[0]?.aborted, true);
+  assert.ok(Date.now() - startedAt < 500);
+  assert.equal(h.recorded[0]?.errorCode, "azure_timeout");
 }
 
 async function testLoggingFailureSwallowed() {
@@ -326,7 +373,9 @@ async function main() {
   await testHttpError();
   await testNoAssessment();
   await testNetworkThrow();
+  await testHungHttpRequestTimesOutAndAborts();
   await testLongAudioUsesContinuousUnscriptedAssessment();
+  await testHungContinuousAssessmentTimesOut();
   await testLoggingFailureSwallowed();
   await testDefaultDepsNoEnv();
 }

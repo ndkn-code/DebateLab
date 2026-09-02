@@ -8,6 +8,10 @@ import {
   submitSpeakingResponseForScoring,
 } from "@/lib/ielts/speaking-scorer/service";
 import { IeltsSubmissionConflictError } from "@/lib/ielts/submission-replay";
+import {
+  AiGradingConfigurationError,
+  AiGradingPausedError,
+} from "@/lib/ai/grading/backend";
 
 /**
  * POST /api/ielts/speaking-responses — submit a recording for async AI band
@@ -45,6 +49,19 @@ export async function POST(request: NextRequest) {
     }
     if (error instanceof IeltsSubmissionConflictError) {
       return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+    if (
+      error instanceof AiGradingPausedError ||
+      error instanceof AiGradingConfigurationError
+    ) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: "ai_grading_paused",
+          retryable: true,
+        },
+        { status: 503 },
+      );
     }
     console.error("IELTS speaking submit failed", error);
     return NextResponse.json(

@@ -110,6 +110,7 @@ export interface ContinuousPronunciationInput {
   config: AzureSpeechConfig;
   locale: string;
   timeoutMs?: number;
+  signal?: AbortSignal;
 }
 
 /**
@@ -153,11 +154,15 @@ export async function assessContinuousPronunciation(
       let settled = false;
       let finishing = false;
       let stopWatchdog: ReturnType<typeof setTimeout> | undefined;
+      let abort: (() => void) | undefined;
       const settle = (error?: Error) => {
         if (settled) return;
         settled = true;
         clearTimeout(timeout);
         if (stopWatchdog) clearTimeout(stopWatchdog);
+        if (input.signal && abort) {
+          input.signal.removeEventListener("abort", abort);
+        }
         if (error) reject(error);
         else resolve();
       };
@@ -186,6 +191,9 @@ export async function assessContinuousPronunciation(
         () => finish(new Error("AZURE_PRONUNCIATION_CONTINUOUS_TIMEOUT")),
         timeoutMs,
       );
+      abort = () => finish(new Error("AZURE_PRONUNCIATION_CONTINUOUS_ABORTED"));
+      if (input.signal?.aborted) abort();
+      else input.signal?.addEventListener("abort", abort, { once: true });
       recognizer.recognized = (_sender, event) => {
         if (event.result.reason !== SpeechSDK.ResultReason.RecognizedSpeech)
           return;
@@ -215,13 +223,15 @@ export async function assessContinuousPronunciation(
           );
       };
       recognizer.sessionStopped = () => finish();
-      recognizer.startContinuousRecognitionAsync(
-        () => {
-          pushStream.write(wav.pcm);
-          pushStream.close();
-        },
-        (message) => finish(new Error(message)),
-      );
+      if (!settled && !finishing) {
+        recognizer.startContinuousRecognitionAsync(
+          () => {
+            pushStream.write(wav.pcm);
+            pushStream.close();
+          },
+          (message) => finish(new Error(message)),
+        );
+      }
     });
   } finally {
     recognizer.close();

@@ -4,6 +4,13 @@ import {
   requireRequestAuth,
   shouldConsumeUserRateLimit,
 } from "@/lib/api/request-auth";
+import { authorizeGeminiLiveBenchmark } from "@/lib/stt/gemini-live-access";
+import {
+  createGeminiLiveTranscriptionSetup,
+  GEMINI_LIVE_TRANSCRIPTION_AUDIO_REQUIREMENTS,
+  GEMINI_LIVE_TRANSCRIPTION_WEBSOCKET_URL,
+} from "@/lib/stt/gemini-live-contract";
+import { provisionGeminiLiveBenchmarkToken } from "@/lib/stt/gemini-live-token";
 
 type DeepgramGrantResponse = {
   access_token?: string;
@@ -27,7 +34,7 @@ function createRequestId() {
 function logDeepgramToken(
   level: "info" | "warn" | "error",
   event: string,
-  metadata: Record<string, unknown> = {}
+  metadata: Record<string, unknown> = {},
 ) {
   const line = JSON.stringify({
     scope: "api/deepgram-token",
@@ -73,7 +80,7 @@ export async function GET(request: NextRequest) {
       logDeepgramToken("warn", "unauthorized", { requestId });
       return NextResponse.json(
         { error: "Unauthorized", code: "unauthorized", requestId },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -105,7 +112,72 @@ export async function GET(request: NextRequest) {
           {
             status: 429,
             headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-          }
+          },
+        );
+      }
+    }
+
+    if (
+      request.nextUrl.searchParams.get("provider") === "gemini_live_benchmark"
+    ) {
+      const access = await authorizeGeminiLiveBenchmark({
+        supabase,
+        userId: authUser.id,
+        enabled: process.env.GEMINI_LIVE_TRANSCRIPTION_BENCHMARK_ENABLED,
+        allowlist: process.env.GEMINI_LIVE_TRANSCRIPTION_BENCHMARK_ALLOWLIST,
+      });
+      if (!access.ok) {
+        logDeepgramToken("warn", "gemini_live_benchmark_forbidden", {
+          requestId,
+          userId: authUser.id,
+          reason: access.reason,
+        });
+        return NextResponse.json(
+          {
+            error: "Live transcription benchmark access is unavailable.",
+            code: "gemini_live_benchmark_forbidden",
+            requestId,
+          },
+          { status: 403 },
+        );
+      }
+
+      try {
+        const token = await provisionGeminiLiveBenchmarkToken({
+          seed: `${authUser.id}:${requestId}`,
+        });
+        logDeepgramToken("info", "gemini_live_benchmark_grant_succeeded", {
+          requestId,
+          userId: authUser.id,
+          model: token.model,
+          expiresAt: token.expiresAt,
+        });
+        return NextResponse.json({
+          provider: "gemini_live_benchmark",
+          accessToken: token.accessToken,
+          authScheme: token.authScheme,
+          expiresAt: token.expiresAt,
+          newSessionExpiresAt: token.newSessionExpiresAt,
+          model: token.model,
+          websocketUrl: GEMINI_LIVE_TRANSCRIPTION_WEBSOCKET_URL,
+          setup: createGeminiLiveTranscriptionSetup(),
+          audioRequirements: GEMINI_LIVE_TRANSCRIPTION_AUDIO_REQUIREMENTS,
+          requestId,
+        });
+      } catch (error) {
+        logDeepgramToken("error", "gemini_live_benchmark_grant_failed", {
+          requestId,
+          userId: authUser.id,
+          errorName:
+            error instanceof Error ? error.name : "UnknownProvisionError",
+        });
+        return NextResponse.json(
+          {
+            error: "Live transcription benchmark service is unavailable.",
+            code: "gemini_live_benchmark_grant_failed",
+            requestId,
+          },
+          { status: 502 },
         );
       }
     }
@@ -122,7 +194,7 @@ export async function GET(request: NextRequest) {
           code: "deepgram_missing_api_key",
           requestId,
         },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -145,7 +217,8 @@ export async function GET(request: NextRequest) {
 
     if (!response.ok) {
       const summary = summarizeDeepgramError(responseBody);
-      const isPermissionError = response.status === 401 || response.status === 403;
+      const isPermissionError =
+        response.status === 401 || response.status === 403;
       logDeepgramToken("error", "grant_failed", {
         requestId,
         userId: authUser.id,
@@ -161,7 +234,7 @@ export async function GET(request: NextRequest) {
             : "deepgram_grant_failed",
           requestId,
         },
-        { status: 502 }
+        { status: 502 },
       );
     }
 
@@ -180,7 +253,7 @@ export async function GET(request: NextRequest) {
           code: "deepgram_grant_missing_access_token",
           requestId,
         },
-        { status: 502 }
+        { status: 502 },
       );
     }
 
@@ -208,7 +281,7 @@ export async function GET(request: NextRequest) {
         code: "deepgram_token_unexpected",
         requestId,
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

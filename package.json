@@ -79,6 +79,8 @@
     "test:practice-judge-reliability": "npm run test:practice-judge-reliability -w @thinkfy/web",
     "test:stt": "npm run test:stt -w @thinkfy/web",
     "stt:repair:eval": "tsx scripts/stt-repair-shadow-eval.ts",
+    "stt:gemini-live:benchmark": "node scripts/ai/gemini-live-benchmark.mjs",
+    "test:stt-gemini-live-benchmark": "node --test scripts/ai/gemini-live-benchmark-core.test.mjs",
     "ai:opponent:shadow": "cd apps/web && tsx ../../scripts/ai-opponent-shadow-test.ts",
     "practice:judge:shadow": "cd apps/web && tsx ../../scripts/practice-judge-shadow-test.ts",
     "duel:shadow": "cd apps/web && tsx ../../scripts/duel-shadow-test.ts",

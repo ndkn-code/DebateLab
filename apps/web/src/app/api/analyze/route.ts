@@ -29,9 +29,7 @@ import {
   markPracticeAnalysisProcessing,
 } from "@/lib/practice-analysis/service";
 import { enqueuePracticeAnalysis } from "@/lib/queues/practice-analysis";
-import {
-  ensureAiWorkflowRun,
-} from "@/lib/ai/workflow-runs";
+import { ensureAiWorkflowRun } from "@/lib/ai/workflow-runs";
 import { isGcpAiGradingEnabled } from "@/lib/ai/grading/backend";
 import { parseTranscriptionArtifact } from "@/lib/practice-analysis/request";
 import { createTranscriptionQualityMetadata } from "@/lib/stt/prompt";
@@ -318,29 +316,6 @@ export async function POST(req: NextRequest) {
     const body = parseAnalyzeRequest(
       await readJsonObject(req, { maxBytes: 96 * 1024 }),
     );
-    const configuredProvider = getPracticeFeedbackModelProvider(
-      body.practiceTrack || "debate",
-    );
-    const hasConfiguredProvider =
-      configuredProvider === "deepseek"
-        ? Boolean(process.env.DEEPSEEK_API_KEY)
-        : Boolean(process.env.GEMINI_API_KEY || process.env.GEMINI_API_KEYS);
-
-    if (!hasConfiguredProvider) {
-      console.error(
-        JSON.stringify({
-          scope: "api/analyze",
-          requestId,
-          event: "missing_ai_provider_key",
-          provider: configuredProvider,
-        }),
-      );
-      return NextResponse.json(
-        { error: "Something went wrong. Please try again." },
-        { status: 500 },
-      );
-    }
-
     const {
       transcript,
       topic,
@@ -887,8 +862,10 @@ export async function POST(req: NextRequest) {
           outputType: "practice_judging",
           status: "error",
           sourceRoute: "/api/analyze",
-          provider: configuredProvider,
-          requestedProvider: configuredProvider,
+          provider: getPracticeFeedbackModelProvider(practiceTrack || "debate"),
+          requestedProvider: getPracticeFeedbackModelProvider(
+            practiceTrack || "debate",
+          ),
           model: getPracticeFeedbackModelName(practiceTrack || "debate"),
           promptBundleKey:
             durableAnalysis?.attempt.prompt_bundle_key ?? "practice_feedback",

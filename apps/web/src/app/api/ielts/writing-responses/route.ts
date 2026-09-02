@@ -8,6 +8,10 @@ import {
   submitWritingResponseForScoring,
 } from "@/lib/ielts/writing-scorer/service";
 import { IeltsSubmissionConflictError } from "@/lib/ielts/submission-replay";
+import {
+  AiGradingConfigurationError,
+  AiGradingPausedError,
+} from "@/lib/ai/grading/backend";
 
 /**
  * POST /api/ielts/writing-responses — submit an essay for async AI band scoring
@@ -44,6 +48,19 @@ export async function POST(request: NextRequest) {
     }
     if (error instanceof IeltsSubmissionConflictError) {
       return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+    if (
+      error instanceof AiGradingPausedError ||
+      error instanceof AiGradingConfigurationError
+    ) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          code: "ai_grading_paused",
+          retryable: true,
+        },
+        { status: 503 },
+      );
     }
     console.error("IELTS writing submit failed", error);
     return NextResponse.json(

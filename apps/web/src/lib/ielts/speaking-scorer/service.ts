@@ -34,7 +34,10 @@ import {
 } from "@/lib/api/ielts/speaking-responses-repository";
 import { enqueueIeltsSpeakingScoring } from "@/lib/queues/ielts-speaking";
 import { ensureAiWorkflowRun } from "@/lib/ai/workflow-runs";
-import { isGcpAiGradingEnabled } from "@/lib/ai/grading/backend";
+import {
+  isGcpAiGradingEnabled,
+  requireGcpAiGradingForSubmission,
+} from "@/lib/ai/grading/backend";
 import {
   IELTS_SPEAKING_AUDIO_BUCKET,
   type IeltsSpeakingQueueMessage,
@@ -97,6 +100,12 @@ export async function submitSpeakingResponseForScoring(params: {
     existing?.audio_storage_path === input.audioStoragePath &&
     existing?.feedback_language === input.feedbackLanguage;
   if (existing && !samePayload) throw new IeltsSubmissionConflictError();
+
+  // `legacy` is an operational pause switch. It deliberately has no hidden
+  // fallback queue, so reject before charging or creating a pending response.
+  if (!existing || !isTerminalSpeakingStatus(existing.status)) {
+    requireGcpAiGradingForSubmission();
+  }
 
   const entitlement = await getUserEntitlement(params.supabase, params.userId);
   const usage = await meterFeature(

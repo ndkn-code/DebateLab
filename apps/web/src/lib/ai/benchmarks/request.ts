@@ -221,9 +221,12 @@ export function buildIeltsBenchmarkRequest(
           wordCount: wordCount(response),
           feedbackLanguage: "en",
           grounding: {
-            questionModelAnswer: source.input.grounding.questionReferenceAnswer,
-            examinerNotes: source.input.grounding.examinerNotes,
-            peerModelAnswers: source.input.grounding.peerReferenceAnswers,
+            // Protected benchmark-adjacent notes and reference answers are
+            // provenance only. Runtime evidence must come from the pinned,
+            // source-split knowledge retrieval passed as `evidenceContext`.
+            questionModelAnswer: null,
+            examinerNotes: [],
+            peerModelAnswers: [],
           },
           evidenceContext: options.evidenceContext,
         })
@@ -238,10 +241,11 @@ export function buildIeltsBenchmarkRequest(
           sttWarnings: source.input.scoringContext?.sttWarnings,
           feedbackLanguage: "en",
           grounding: {
-            questionSampleAnswer:
-              source.input.grounding.questionReferenceAnswer,
-            examinerNotes: source.input.grounding.examinerNotes,
-            peerSampleAnswers: source.input.grounding.peerReferenceAnswers,
+            // Never place examiner material adjacent to the holdout artifact
+            // in the request. This prevents semantic label/rationale leakage.
+            questionSampleAnswer: null,
+            examinerNotes: [],
+            peerSampleAnswers: [],
           },
           pronunciation: source.input.scoringContext?.pronunciation ?? null,
           evidenceContext: options.evidenceContext,

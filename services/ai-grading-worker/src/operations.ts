@@ -37,10 +37,7 @@ import {
 import { normalizeSpeakingScore } from "@/lib/scoring/ielts-speaking/normalize";
 import { normalizeWritingScore } from "@/lib/scoring/ielts-writing/normalize";
 import type { AiGradingJob } from "@/lib/ai/grading/contracts";
-import type {
-  AiGradingOperations,
-  SourceClaim,
-} from "./processor";
+import type { AiGradingOperations, SourceClaim } from "./processor";
 
 type PreparedPractice = Extract<
   Awaited<ReturnType<typeof preparePracticeAnalysis>>,
@@ -76,7 +73,8 @@ function assertKind<T extends AiGradingJob["kind"]>(
   job: AiGradingJob,
   kind: T,
 ): asserts job is AiGradingJob & { kind: T } {
-  if (job.kind !== kind) throw new AiGradingFatalError("AI grading kind mismatch");
+  if (job.kind !== kind)
+    throw new AiGradingFatalError("AI grading kind mismatch");
 }
 
 async function practiceAttemptId(jobId: string): Promise<string> {
@@ -182,7 +180,9 @@ export function createProductionOperations(): AiGradingOperations {
       const result = await claimIeltsWritingScore({
         writingResponseId: job.sourceId,
       });
-      return result.status === "already_scored" ? "already_completed" : "claimed";
+      return result.status === "already_scored"
+        ? "already_completed"
+        : "claimed";
     },
 
     async prepare(job) {
@@ -252,8 +252,7 @@ export function createProductionOperations(): AiGradingOperations {
                 provisionalTraceId: provisional.traceId,
                 adjudicationTraceId: provisional.traceId,
                 acousticEvidenceAvailable: value.acousticEvidenceAvailable,
-                retrievalSkippedReason:
-                  "adjacent_band_adjudication_disabled",
+                retrievalSkippedReason: "adjacent_band_adjudication_disabled",
               }) as unknown as Json,
             };
         const criterionEvidence = buildSpeakingCriterionEvidence({
@@ -323,8 +322,7 @@ export function createProductionOperations(): AiGradingOperations {
               corpusVersion: value.baseCorpusVersion,
               provisionalTraceId: provisional.traceId,
               adjudicationTraceId: provisional.traceId,
-              retrievalSkippedReason:
-                "adjacent_band_adjudication_disabled",
+              retrievalSkippedReason: "adjacent_band_adjudication_disabled",
             }) as unknown as Json,
           };
       const criterionEvidence = buildWritingCriterionEvidence({
@@ -412,13 +410,21 @@ export function createProductionOperations(): AiGradingOperations {
       if (job.kind === "ielts_speaking_score") {
         const value = prepared as PreparedSpeaking;
         await recomputeSpeakingAttempt(value.attemptId, value.userId);
+      } else if (job.kind === "ielts_writing_score") {
+        const value = prepared as PreparedWriting;
+        await recomputeWritingAttempt(value.attemptId, value.userId);
+      }
+    },
+
+    async afterComplete(job, prepared) {
+      if (job.kind === "ielts_speaking_score") {
+        const value = prepared as PreparedSpeaking;
         await replanSpeakingAttempt({
           userId: value.userId,
           speakingResponseId: job.sourceId,
         });
       } else if (job.kind === "ielts_writing_score") {
         const value = prepared as PreparedWriting;
-        await recomputeWritingAttempt(value.attemptId, value.userId);
         await replanWritingAttempt({
           userId: value.userId,
           writingResponseId: job.sourceId,

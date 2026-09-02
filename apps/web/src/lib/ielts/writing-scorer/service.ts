@@ -29,7 +29,10 @@ import {
 } from "@/lib/api/ielts/writing-responses-repository";
 import { enqueueIeltsWritingScoring } from "@/lib/queues/ielts-writing";
 import { ensureAiWorkflowRun } from "@/lib/ai/workflow-runs";
-import { isGcpAiGradingEnabled } from "@/lib/ai/grading/backend";
+import {
+  isGcpAiGradingEnabled,
+  requireGcpAiGradingForSubmission,
+} from "@/lib/ai/grading/backend";
 import type { IeltsWritingQueueMessage } from "./constants";
 import { buildWritingScorerPrompt } from "./prompt";
 import { adjudicateWritingModel, runWritingModel } from "./provider";
@@ -118,6 +121,12 @@ export async function submitWritingResponseForScoring(params: {
     throw new IeltsSubmissionConflictError();
   }
 
+  // `legacy` is an operational pause switch. It deliberately has no hidden
+  // fallback queue, so reject before charging or creating a pending response.
+  if (!existing || !isTerminalWritingStatus(existing.status)) {
+    requireGcpAiGradingForSubmission();
+  }
+
   const entitlement = await getUserEntitlement(params.supabase, params.userId);
   const usage = await meterFeature(
     createPaymentRepository(),
@@ -162,6 +171,7 @@ export async function enqueueWritingResponseForScoring(params: {
   raw: unknown;
   userId: string;
 }): Promise<EnqueueWritingResponseResult> {
+  requireGcpAiGradingForSubmission();
   const response = await createWritingResponse(params.raw, params.userId);
   if (isTerminalWritingStatus(response.status)) {
     return { writingResponseId: response.id, status: response.status };

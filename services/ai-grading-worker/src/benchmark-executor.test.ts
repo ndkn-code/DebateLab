@@ -325,8 +325,10 @@ test("the shared request is deterministic and contains no protected score labels
   assert.deepEqual(first, second);
   assert.equal(ieltsBenchmarkModelInputSha256(first), input.modelInputSha256);
   assert.match(first.messages[0]!.content, /Cities provide more work/);
-  assert.match(first.messages[0]!.content, /exact-question reference answer/);
-  assert.match(first.messages[0]!.content, /Address both views/);
+  assert.doesNotMatch(
+    first.messages[0]!.content,
+    /exact-question reference answer|Address both views/,
+  );
   assert.doesNotMatch(first.messages[0]!.content, /labelLocator|expectedBand/);
   assert.throws(
     () =>
@@ -337,6 +339,25 @@ test("the shared request is deterministic and contains no protected score labels
         input,
       }),
     /current scoring rubric/,
+  );
+});
+
+test("benchmark-adjacent examiner rationale never enters the model request", () => {
+  const input = protectedInput();
+  input.grounding.examinerNotes = [
+    "Band 7 because the response develops a position but has occasional lapses.",
+  ];
+  input.grounding.questionReferenceAnswer =
+    "This protected reference was authored beside the scored artifact.";
+  const request = buildIeltsBenchmarkRequest({
+    skill: "ielts_writing",
+    taskType: "writing_task2_essay",
+    rubricVersion: "ielts-writing-rubric-v1",
+    input,
+  });
+  assert.doesNotMatch(
+    request.messages[0]!.content,
+    /Band 7|protected reference|occasional lapses/,
   );
 });
 
@@ -380,8 +401,7 @@ test("a Speaking request binds and carries locked acoustic evidence into preflig
       pronunciation: {
         ...azureConfigIdentity,
         configSha256: ieltsBenchmarkAzureConfigSha256(azureConfigIdentity),
-        reportObjectPath:
-          "ai-grading-benchmarks-private/azure/report-001.json",
+        reportObjectPath: "ai-grading-benchmarks-private/azure/report-001.json",
         reportStorageVersion: "report-v1",
         reportEtag: "report-etag-v1",
         reportSha256: sha256(azureReportBytes),
@@ -390,13 +410,11 @@ test("a Speaking request binds and carries locked acoustic evidence into preflig
       },
       acousticAttestation: acousticAttestation({
         benchmarkKey: "protected-speaking-holdout-001",
-        audioObjectPath:
-          "ai-grading-benchmarks-private/speaking/response.wav",
+        audioObjectPath: "ai-grading-benchmarks-private/speaking/response.wav",
         audioSha256: "b".repeat(64),
         transcriptSha256: sha256(transcript),
         configSha256: ieltsBenchmarkAzureConfigSha256(azureConfigIdentity),
-        reportObjectPath:
-          "ai-grading-benchmarks-private/azure/report-001.json",
+        reportObjectPath: "ai-grading-benchmarks-private/azure/report-001.json",
         reportSha256: sha256(azureReportBytes),
         transcriptReview: reviewedTranscript(transcript),
         audioStorageVersion: "audio-v1",
@@ -527,8 +545,7 @@ test("Speaking request rejects audio and transcript provenance mismatches", () =
       pronunciation: {
         ...azureConfigIdentity,
         configSha256: ieltsBenchmarkAzureConfigSha256(azureConfigIdentity),
-        reportObjectPath:
-          "ai-grading-benchmarks-private/azure/report-001.json",
+        reportObjectPath: "ai-grading-benchmarks-private/azure/report-001.json",
         reportStorageVersion: "report-v1",
         reportEtag: "report-etag-v1",
         reportSha256: sha256(azureReportBytes),
@@ -536,13 +553,11 @@ test("Speaking request rejects audio and transcript provenance mismatches", () =
       },
       acousticAttestation: acousticAttestation({
         benchmarkKey: "protected-speaking-holdout-001",
-        audioObjectPath:
-          "ai-grading-benchmarks-private/speaking/response.wav",
+        audioObjectPath: "ai-grading-benchmarks-private/speaking/response.wav",
         audioSha256: "b".repeat(64),
         transcriptSha256: sha256(transcript),
         configSha256: ieltsBenchmarkAzureConfigSha256(azureConfigIdentity),
-        reportObjectPath:
-          "ai-grading-benchmarks-private/azure/report-001.json",
+        reportObjectPath: "ai-grading-benchmarks-private/azure/report-001.json",
         reportSha256: sha256(azureReportBytes),
         transcriptReview: reviewedTranscript(transcript),
         audioStorageVersion: "v1",
@@ -646,8 +661,7 @@ test("Speaking request rejects Azure config, report, and derived-score tampering
       pronunciation,
       acousticAttestation: acousticAttestation({
         benchmarkKey: "protected-speaking-holdout-001",
-        audioObjectPath:
-          "ai-grading-benchmarks-private/speaking/response.wav",
+        audioObjectPath: "ai-grading-benchmarks-private/speaking/response.wav",
         audioSha256: "b".repeat(64),
         transcriptSha256: sha256(transcript),
         configSha256: pronunciation.configSha256,

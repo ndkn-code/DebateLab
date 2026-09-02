@@ -25,7 +25,10 @@ export interface AiGradingOperations {
     context: { workflowAttempt: number },
   ): Promise<unknown>;
   persist(job: AiGradingJob, prepared: unknown, output: unknown): Promise<void>;
+  /** Mandatory domain finalization. A failure must retry from the output checkpoint. */
   afterPersist(job: AiGradingJob, prepared: unknown): Promise<void>;
+  /** Optional enrichment which may run only after the durable run is complete. */
+  afterComplete?(job: AiGradingJob, prepared: unknown): Promise<void>;
   failSource(
     job: AiGradingJob,
     retryable: boolean,
@@ -217,11 +220,12 @@ export async function processAiGradingDelivery(
         prepared,
         checkpointHash(prepared),
       );
-      if (operationalRun) await dependencies.repository.recordTransition?.(
-        job.workflowRunId,
-        claimToken,
-        "prepared_checkpointed",
-      );
+      if (operationalRun)
+        await dependencies.repository.recordTransition?.(
+          job.workflowRunId,
+          claimToken,
+          "prepared_checkpointed",
+        );
     }
 
     if (operationalRun && dependencies.operations.runtimeIdentity) {
@@ -267,11 +271,12 @@ export async function processAiGradingDelivery(
         throw new Error("AI_GRADING_OUTPUT_CHECKPOINT_STALE_READ");
       }
       providerReserved = true;
-      if (operationalRun) await dependencies.repository.recordTransition?.(
-        job.workflowRunId,
-        claimToken,
-        "provider_reserved",
-      );
+      if (operationalRun)
+        await dependencies.repository.recordTransition?.(
+          job.workflowRunId,
+          claimToken,
+          "provider_reserved",
+        );
       try {
         output = await dependencies.operations.generate(job, prepared, {
           workflowAttempt: claim.attemptCount,
@@ -293,34 +298,39 @@ export async function processAiGradingDelivery(
         output,
         outputHash,
       );
-      if (operationalRun) await dependencies.repository.recordTransition?.(
-        job.workflowRunId,
-        claimToken,
-        "output_checkpointed",
-      );
+      if (operationalRun)
+        await dependencies.repository.recordTransition?.(
+          job.workflowRunId,
+          claimToken,
+          "output_checkpointed",
+        );
       outputCheckpointed = true;
     }
 
-    if (operationalRun) await dependencies.repository.recordTransition?.(
-      job.workflowRunId,
-      claimToken,
-      "persistence_started",
-    );
+    if (operationalRun)
+      await dependencies.repository.recordTransition?.(
+        job.workflowRunId,
+        claimToken,
+        "persistence_started",
+      );
     await dependencies.operations.persist(job, prepared, output);
-    if (operationalRun) await dependencies.repository.recordTransition?.(
-      job.workflowRunId,
-      claimToken,
-      "persistence_completed",
-    );
-    await dependencies.operations
-      .afterPersist(job, prepared)
-      .catch(() => undefined);
+    if (operationalRun)
+      await dependencies.repository.recordTransition?.(
+        job.workflowRunId,
+        claimToken,
+        "persistence_completed",
+      );
+    await dependencies.operations.afterPersist(job, prepared);
     const completed = await dependencies.repository.complete(
       job.workflowRunId,
       claimToken,
       "completed",
     );
-    return completed ? "completed" : "claim_lost";
+    if (!completed) return "claim_lost";
+    await dependencies.operations
+      .afterComplete?.(job, prepared)
+      .catch(() => undefined);
+    return "completed";
   } catch (error) {
     const domainFatal = dependencies.isFatalError?.(error) ?? false;
     let requestedRetryable =

@@ -1,9 +1,5 @@
 import type { PracticeTrack } from "@/types";
-import {
-  getPracticeFeedbackProvider,
-  getProviderLabel,
-  getProviderModelName,
-} from "@/lib/ai/provider-selection";
+import { getAiTaskPolicy } from "@/lib/ai/core/policies";
 
 export {
   createPracticeAnalysisIdempotencyKey,
@@ -16,10 +12,17 @@ export {
   PRACTICE_FEEDBACK_RUBRIC_VERSION,
 } from "@thinkfy/shared/practice-analysis";
 
-export function getPracticeFeedbackModelProvider(track: PracticeTrack = "debate") {
-  return getProviderLabel(getPracticeFeedbackProvider(track));
+export function getPracticeFeedbackModelProvider(
+  track: PracticeTrack = "debate",
+) {
+  void track;
+  const provider = getAiTaskPolicy("practice_judging").candidates[0]?.provider;
+  return provider === "gemini" ? "google" : (provider ?? "unknown");
 }
 
 export function getPracticeFeedbackModelName(track: PracticeTrack = "debate") {
-  return getProviderModelName(getPracticeFeedbackProvider(track));
+  void track;
+  return (
+    getAiTaskPolicy("practice_judging").candidates[0]?.model ?? "unconfigured"
+  );
 }

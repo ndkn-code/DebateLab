@@ -178,6 +178,55 @@ test("a persistence retry reuses the validated provider checkpoint", async () =>
   assert.equal(persistCalls, 2);
 });
 
+test("mandatory post-persist finalization retries before marking the run complete", async () => {
+  const fake = createFakeRepository();
+  let providerCalls = 0;
+  let persistCalls = 0;
+  let finalizationCalls = 0;
+  let enrichmentCalls = 0;
+  const ops = operations({
+    async generate() {
+      providerCalls += 1;
+      return { score: 7.5 };
+    },
+    async persist() {
+      persistCalls += 1;
+    },
+    async afterPersist() {
+      finalizationCalls += 1;
+      if (finalizationCalls === 1) {
+        throw new Error("attempt aggregation temporarily unavailable");
+      }
+    },
+    async afterComplete() {
+      enrichmentCalls += 1;
+    },
+  });
+
+  await assert.rejects(
+    () =>
+      processAiGradingDelivery(delivery, {
+        repository: fake.repository,
+        operations: ops,
+      }),
+    /attempt aggregation temporarily unavailable/,
+  );
+  assert.equal(providerCalls, 1);
+  assert.equal(enrichmentCalls, 0);
+
+  assert.equal(
+    await processAiGradingDelivery(
+      { ...delivery, messageId: "message-finalize-retry", deliveryAttempt: 2 },
+      { repository: fake.repository, operations: ops },
+    ),
+    "completed",
+  );
+  assert.equal(providerCalls, 1);
+  assert.equal(persistCalls, 2);
+  assert.equal(finalizationCalls, 2);
+  assert.equal(enrichmentCalls, 1);
+});
+
 test("an expired uncertain provider phase fails closed without another call", async () => {
   const fake = createFakeRepository();
   fake.setProviderStarted();

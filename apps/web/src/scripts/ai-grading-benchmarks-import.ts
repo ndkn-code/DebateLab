@@ -73,9 +73,17 @@ interface StorageObjectQuery {
 
 interface UntypedMutationClient {
   from(table: string): {
-    upsert(
+    select(columns: string): {
+      in(
+        column: string,
+        values: string[],
+      ): PromiseLike<{
+        data: Record<string, unknown>[] | null;
+        error: { message: string } | null;
+      }>;
+    };
+    insert(
       rows: Record<string, unknown>[],
-      options: { onConflict: string },
     ): PromiseLike<{ error: { message: string } | null }>;
   };
 }
@@ -108,7 +116,9 @@ async function assertPrivateBenchmarkBucket(client: StorageMetadataClient) {
 async function verifyAcousticAttestation(
   client: ReturnType<typeof createAdminClient>,
   benchmarkKey: string,
-  input: ReturnType<typeof parseGradingBenchmarkImport>["benchmarks"][number]["protectedLabel"]["input"],
+  input: ReturnType<
+    typeof parseGradingBenchmarkImport
+  >["benchmarks"][number]["protectedLabel"]["input"],
 ) {
   const attestation = input.audioPreprocessing?.acousticAttestation;
   if (!attestation) return;
@@ -207,10 +217,7 @@ async function verifyBenchmarkArtifacts(
     const [reportBucket, ...reportNameParts] =
       report.reportObjectPath.split("/");
     const reportName = reportNameParts.join("/");
-    if (
-      reportBucket !== AI_GRADING_BENCHMARK_PRIVATE_BUCKET ||
-      !reportName
-    ) {
+    if (reportBucket !== AI_GRADING_BENCHMARK_PRIVATE_BUCKET || !reportName) {
       throw new Error(
         `Benchmark Azure report path must be bucket/object: ${benchmark.benchmarkKey}`,
       );
@@ -256,7 +263,12 @@ async function verifyBenchmarkArtifacts(
 async function main() {
   const filePath = process.env.AI_GRADING_BENCHMARKS_FILE;
   const trustSetPath = process.env.AI_GRADING_BENCHMARK_TRUST_SET_FILE;
-  if (!filePath || !trustSetPath || !isAbsolute(filePath) || !isAbsolute(trustSetPath)) {
+  if (
+    !filePath ||
+    !trustSetPath ||
+    !isAbsolute(filePath) ||
+    !isAbsolute(trustSetPath)
+  ) {
     throw new Error(
       "Absolute AI_GRADING_BENCHMARKS_FILE and AI_GRADING_BENCHMARK_TRUST_SET_FILE paths are required (along with the Supabase admin environment)",
     );
@@ -473,11 +485,49 @@ async function main() {
     expires_at: benchmark.releaseAttestation.envelope.expiresAt,
     updated_at: new Date().toISOString(),
   }));
-  const { error: attestationError } = await (
-    client as unknown as UntypedMutationClient
-  )
-    .from("ai_grading_benchmark_release_attestations")
-    .upsert(releaseAttestationRows, { onConflict: "benchmark_id" });
+  const mutationClient = client as unknown as UntypedMutationClient;
+  const { data: existingAttestations, error: attestationLookupError } =
+    await mutationClient
+      .from("ai_grading_benchmark_release_attestations")
+      .select(
+        "benchmark_id,key_id,envelope,signature_base64,verified_at,expires_at",
+      )
+      .in(
+        "benchmark_id",
+        releaseAttestationRows.map((row) => row.benchmark_id),
+      );
+  if (attestationLookupError) {
+    throw new Error(
+      `Benchmark release attestation lookup failed: ${attestationLookupError.message}`,
+    );
+  }
+  const existingById = new Map(
+    (existingAttestations ?? []).map((row) => [String(row.benchmark_id), row]),
+  );
+  for (const row of releaseAttestationRows) {
+    const existing = existingById.get(row.benchmark_id);
+    if (!existing) continue;
+    const unchanged =
+      existing.key_id === row.key_id &&
+      equalJson(existing.envelope, row.envelope) &&
+      existing.signature_base64 === row.signature_base64 &&
+      existing.verified_at === row.verified_at &&
+      existing.expires_at === row.expires_at;
+    if (!unchanged) {
+      throw new Error(
+        "Existing release attestations are immutable during import; use the signed attestation refresh command",
+      );
+    }
+  }
+  const newAttestationRows = releaseAttestationRows.filter(
+    (row) => !existingById.has(row.benchmark_id),
+  );
+  const { error: attestationError } =
+    newAttestationRows.length === 0
+      ? { error: null }
+      : await mutationClient
+          .from("ai_grading_benchmark_release_attestations")
+          .insert(newAttestationRows);
   if (attestationError) {
     throw new Error(
       `Benchmark release attestation upsert failed: ${attestationError.message}`,
@@ -488,7 +538,9 @@ async function main() {
       sourcesInserted: 0,
       benchmarksInserted: insertRows.length,
       benchmarksUnchanged: manifest.benchmarks.length - insertRows.length,
-      releaseAttestationsStored: releaseAttestationRows.length,
+      releaseAttestationsStored: newAttestationRows.length,
+      releaseAttestationsUnchanged:
+        releaseAttestationRows.length - newAttestationRows.length,
     })}\n`,
   );
 }

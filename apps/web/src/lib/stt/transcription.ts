@@ -36,6 +36,24 @@ type ProviderResult = {
   errorCode?: string;
 };
 
+export class PracticeTranscriptionProvidersError extends Error {
+  readonly code = "STT_ALL_PROVIDERS_FAILED";
+  readonly retryable = true;
+  readonly attempts: ReadonlyArray<{
+    provider: ProviderResult["provider"];
+    errorCode: string;
+  }>;
+
+  constructor(results: ProviderResult[]) {
+    super("All attempted speech-to-text providers failed operationally.");
+    this.name = "PracticeTranscriptionProvidersError";
+    this.attempts = results.map((result) => ({
+      provider: result.provider,
+      errorCode: result.errorCode ?? "unknown_provider_failure",
+    }));
+  }
+}
+
 export type TranscribePracticeAudioInput = {
   audioBuffer: ArrayBuffer;
   contentType: string;
@@ -74,7 +92,7 @@ async function fetchWithTimeout(
   url: URL | string,
   init: RequestInit,
   timeoutMs: number,
-  timeoutMessage: string
+  timeoutMessage: string,
 ) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -117,7 +135,7 @@ export function buildDeepgramSttUrl(input: {
 async function transcribeWithDeepgram(
   input: TranscribePracticeAudioInput,
   keyterms: string[],
-  timeoutMs: number
+  timeoutMs: number,
 ): Promise<ProviderResult> {
   const apiKey = process.env.DEEPGRAM_API_KEY;
   if (!apiKey) {
@@ -147,7 +165,7 @@ async function transcribeWithDeepgram(
         cache: "no-store",
       },
       timeoutMs,
-      "Deepgram speech recognition timed out."
+      "Deepgram speech recognition timed out.",
     );
 
     if (!response.ok) {
@@ -166,6 +184,19 @@ async function transcribeWithDeepgram(
 
     const parsed = parseJsonSafely<DeepgramResponse>(body);
     const alternative = parsed?.results?.channels?.[0]?.alternatives?.[0];
+    if (!alternative || typeof alternative.transcript !== "string") {
+      return {
+        provider: "deepgram",
+        model: STT_DEEPGRAM_MODEL,
+        transcript: "",
+        confidence: null,
+        requestId:
+          parsed?.metadata?.request_id ??
+          response.headers.get("dg-request-id") ??
+          null,
+        errorCode: "deepgram_invalid_response",
+      };
+    }
     return {
       provider: "deepgram",
       model: STT_DEEPGRAM_MODEL,
@@ -233,7 +264,7 @@ function buildGroqPrompt(keyterms: string[]) {
 async function transcribeWithGroq(
   input: TranscribePracticeAudioInput,
   keyterms: string[],
-  timeoutMs: number
+  timeoutMs: number,
 ): Promise<ProviderResult> {
   const apiKey = process.env.GROQ_API_KEY;
   const config = getSttConfig();
@@ -266,7 +297,7 @@ async function transcribeWithGroq(
       }),
       input.contentType.includes("mp4") || input.contentType.includes("m4a")
         ? "speech.m4a"
-        : "speech.webm"
+        : "speech.webm",
     );
 
     const { response, body } = await fetchWithTimeout(
@@ -280,7 +311,7 @@ async function transcribeWithGroq(
         cache: "no-store",
       },
       timeoutMs,
-      "Groq speech recognition timed out."
+      "Groq speech recognition timed out.",
     );
 
     if (!response.ok) {
@@ -300,6 +331,16 @@ async function transcribeWithGroq(
     }
 
     const parsed = parseJsonSafely<{ text?: string }>(body);
+    if (!parsed || typeof parsed.text !== "string") {
+      return {
+        provider: "groq",
+        model: config.groqModel,
+        transcript: "",
+        confidence: null,
+        requestId: response.headers.get("x-request-id"),
+        errorCode: "groq_invalid_response",
+      };
+    }
     if (input.durationSeconds > 0) {
       groqUsageState.seconds += input.durationSeconds;
     }
@@ -326,7 +367,7 @@ async function transcribeWithGroq(
 function toAlternative(
   result: ProviderResult,
   selected: boolean,
-  qualityFlags?: string[]
+  qualityFlags?: string[],
 ): PracticeTranscriptionAlternative {
   return {
     provider: result.provider,
@@ -353,7 +394,7 @@ function buildBaseWarnings(result: ProviderResult) {
 }
 
 export async function transcribePracticeAudio(
-  input: TranscribePracticeAudioInput
+  input: TranscribePracticeAudioInput,
 ): Promise<PracticeTranscriptionArtifact> {
   const config = getSttConfig();
   const keyterms = config.keytermPromptingEnabled
@@ -368,11 +409,20 @@ export async function transcribePracticeAudio(
   const deepgram = await transcribeWithDeepgram(
     input,
     keyterms,
-    config.deepgramTimeoutMs
+    config.deepgramTimeoutMs,
   );
   const groq = shouldUseGroq(input)
     ? await transcribeWithGroq(input, keyterms, config.groqTimeoutMs)
     : null;
+  const attemptedProviders = [deepgram, groq].filter(
+    (result): result is ProviderResult => Boolean(result),
+  );
+  if (
+    attemptedProviders.length > 0 &&
+    attemptedProviders.every((result) => Boolean(result.errorCode))
+  ) {
+    throw new PracticeTranscriptionProvidersError(attemptedProviders);
+  }
 
   const groqQuality =
     groq && !groq.errorCode
@@ -380,10 +430,14 @@ export async function transcribePracticeAudio(
       : null;
   const deepgramUsable = Boolean(deepgram.transcript && !deepgram.errorCode);
   const selected =
-    !deepgramUsable && groq && !groq.errorCode && groqQuality?.plausible
+    !deepgramUsable &&
+    groq &&
+    !groq.errorCode &&
+    (!groq.transcript || groqQuality?.plausible)
       ? groq
       : deepgram;
-  const rawTranscript = selected.transcript || deepgram.transcript || groq?.transcript || "";
+  const rawTranscript =
+    selected.transcript || deepgram.transcript || groq?.transcript || "";
   const normalization = config.normalizationEnabled
     ? normalizeTranscriptionText({
         transcript: rawTranscript,
@@ -398,18 +452,22 @@ export async function transcribePracticeAudio(
         warnings: [] as PracticeTranscriptionWarning[],
         wordCount: getSttWordCount(rawTranscript),
       };
-  const selectedTranscript = normalization.normalizedTranscript || rawTranscript;
-  const groqRejected =
-    Boolean(groq?.transcript && groqQuality && !groqQuality.plausible);
+  const selectedTranscript =
+    normalization.normalizedTranscript || rawTranscript;
+  const groqRejected = Boolean(
+    groq?.transcript && groqQuality && !groqQuality.plausible,
+  );
   const providerDisagreement = Boolean(
-    deepgram.transcript && groq?.transcript && groqRejected
+    deepgram.transcript && groq?.transcript && groqRejected,
   );
   const warnings = mergeWarnings(
     buildBaseWarnings(selected),
     normalization.warnings,
     groq && groq.errorCode ? ["groq_unavailable"] : [],
-    providerDisagreement ? ["provider_disagreement", "possible_stt_artifacts"] : [],
-    selected.provider === "groq" ? ["fallback_transcript_used"] : []
+    providerDisagreement
+      ? ["provider_disagreement", "possible_stt_artifacts"]
+      : [],
+    selected.provider === "groq" ? ["fallback_transcript_used"] : [],
   );
 
   const alternatives = [deepgram, groq]
@@ -418,8 +476,8 @@ export async function transcribePracticeAudio(
       toAlternative(
         item,
         item.provider === selected.provider,
-        item.provider === "groq" ? groqQuality?.qualityFlags : undefined
-      )
+        item.provider === "groq" ? groqQuality?.qualityFlags : undefined,
+      ),
     );
 
   const baseTranscription: PracticeTranscriptionArtifact = {
@@ -430,9 +488,7 @@ export async function transcribePracticeAudio(
     confidence: selected.confidence,
     wordCount: normalization.wordCount,
     provider: groq ? "deepgram_groq_shadow" : selected.provider,
-    model: groq
-      ? `${STT_DEEPGRAM_MODEL}+${groq.model}`
-      : selected.model,
+    model: groq ? `${STT_DEEPGRAM_MODEL}+${groq.model}` : selected.model,
     requestId: selected.requestId,
     language: input.practiceLanguage,
     warnings,

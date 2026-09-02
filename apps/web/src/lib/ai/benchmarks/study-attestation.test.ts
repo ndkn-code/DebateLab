@@ -323,6 +323,31 @@ assert.doesNotMatch(
 assert.doesNotMatch(refreshScript, /\.upsert\(/);
 assert.doesNotMatch(refreshScript, /protected_label\s*:/);
 
+const withdrawalMigration = await readFile(
+  resolve(
+    process.cwd(),
+    "../../supabase/migrations/20260901200000_external_benchmark_withdrawal_verification.sql",
+  ),
+  "utf8",
+);
+assert.match(
+  withdrawalMigration,
+  /revoke update on public\.ai_grading_benchmark_release_attestations\s+from service_role/,
+);
+
+const benchmarkImporter = await readFile(
+  resolve(process.cwd(), "src/scripts/ai-grading-benchmarks-import.ts"),
+  "utf8",
+);
+assert.doesNotMatch(
+  benchmarkImporter,
+  /ai_grading_benchmark_release_attestations"\)\s*\.upsert/,
+);
+assert.match(
+  benchmarkImporter,
+  /use the signed attestation refresh command/,
+);
+
 const releaseGateSource = await readFile(
   resolve(process.cwd(), "src/scripts/ai-grading-release-gate.ts"),
   "utf8",

@@ -545,4 +545,10 @@ revoke all on function public.refresh_ai_grading_benchmark_release_attestations(
 grant execute on function public.refresh_ai_grading_benchmark_release_attestations(jsonb)
   to service_role;
 
+-- Initial import may insert an attestation, but every subsequent mutation must
+-- pass through the monotonic refresh function above. Service role otherwise
+-- bypasses RLS and could replay an older signed-but-still-valid envelope.
+revoke update on public.ai_grading_benchmark_release_attestations
+  from service_role;
+
 commit;

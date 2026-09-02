@@ -55,6 +55,11 @@ export interface AssessPronunciationInput {
   speakingResponseId?: string | null;
   practiceAttemptId?: string | null;
   analysisJobId?: string | null;
+  /** Internal cancellation propagated by the grading worker. */
+  signal?: AbortSignal;
+  /** Test/ops override; production stays well below the 20-minute worker lease. */
+  httpTimeoutMs?: number;
+  continuousTimeoutMs?: number;
 }
 
 export type SkipReason =
@@ -92,6 +97,61 @@ const defaultDeps: AssessPronunciationDeps = {
   logger: console,
   assessContinuous: assessContinuousPronunciation,
 };
+
+const DEFAULT_HTTP_TIMEOUT_MS = 30_000;
+const DEFAULT_CONTINUOUS_TIMEOUT_MS = 180_000;
+
+class PronunciationTimeoutError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "PronunciationTimeoutError";
+  }
+}
+
+function boundedTimeout(value: number | undefined, fallback: number): number {
+  if (value == null) return fallback;
+  return Math.min(Math.max(value, 10), fallback);
+}
+
+async function runBounded<T>(params: {
+  timeoutMs: number;
+  parentSignal?: AbortSignal;
+  timeoutMessage: string;
+  operation: (signal: AbortSignal) => Promise<T>;
+}): Promise<T> {
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let parentAbort: (() => void) | undefined;
+  const abortError = () =>
+    new PronunciationTimeoutError(
+      params.parentSignal?.aborted
+        ? "AZURE_PRONUNCIATION_ABORTED"
+        : params.timeoutMessage,
+    );
+  const abortPromise = new Promise<never>((_resolve, reject) => {
+    const abort = () => {
+      controller.abort();
+      reject(abortError());
+    };
+    timeoutId = setTimeout(abort, params.timeoutMs);
+    if (params.parentSignal) {
+      parentAbort = abort;
+      if (params.parentSignal.aborted) abort();
+      else params.parentSignal.addEventListener("abort", abort, { once: true });
+    }
+  });
+  try {
+    return await Promise.race([
+      params.operation(controller.signal),
+      abortPromise,
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+    if (params.parentSignal && parentAbort) {
+      params.parentSignal.removeEventListener("abort", parentAbort);
+    }
+  }
+}
 
 interface LogArgs {
   input: AssessPronunciationInput;
@@ -134,14 +194,6 @@ function buildLog(args: LogArgs): AiProviderRequestInput {
   };
 }
 
-async function safeText(response: Response): Promise<string> {
-  try {
-    return (await response.text()).slice(0, 1000);
-  } catch {
-    return "";
-  }
-}
-
 function logSkip(
   logger: AssessPronunciationDeps["logger"],
   reason: SkipReason,
@@ -173,6 +225,8 @@ async function assessContinuousIfNeeded(params: {
   assessContinuous: AssessPronunciationDeps["assessContinuous"];
   recordRequest: AssessPronunciationDeps["recordRequest"];
   now: AssessPronunciationDeps["now"];
+  signal?: AbortSignal;
+  timeoutMs: number;
 }): Promise<AssessPronunciationOutcome | null> {
   if (
     !params.input.audioContentType.toLowerCase().includes("wav") ||
@@ -182,10 +236,18 @@ async function assessContinuousIfNeeded(params: {
   }
   const wav = parsePronunciationWav(params.input.audio);
   if (wav.durationSeconds <= 25) return null;
-  const report = await params.assessContinuous({
-    audio: params.input.audio,
-    config: params.config,
-    locale: params.locale,
+  const report = await runBounded({
+    timeoutMs: params.timeoutMs,
+    parentSignal: params.signal,
+    timeoutMessage: "AZURE_PRONUNCIATION_CONTINUOUS_TIMEOUT",
+    operation: (signal) =>
+      params.assessContinuous({
+        audio: params.input.audio,
+        config: params.config,
+        locale: params.locale,
+        timeoutMs: params.timeoutMs,
+        signal,
+      }),
   });
   if (report.status !== "scored") {
     throw new Error("AZURE_CONTINUOUS_NO_ASSESSMENT");
@@ -276,12 +338,26 @@ export async function assessPronunciation(
       assessContinuous,
       recordRequest,
       now,
+      signal: input.signal,
+      timeoutMs: boundedTimeout(
+        input.continuousTimeoutMs,
+        DEFAULT_CONTINUOUS_TIMEOUT_MS,
+      ),
     });
     if (continuousOutcome) return continuousOutcome;
-    const response = await fetchImpl(request.url, {
-      method: "POST",
-      headers: request.headers,
-      body: request.body as BodyInit,
+    const { response, responseBody } = await runBounded({
+      timeoutMs: boundedTimeout(input.httpTimeoutMs, DEFAULT_HTTP_TIMEOUT_MS),
+      parentSignal: input.signal,
+      timeoutMessage: "AZURE_PRONUNCIATION_HTTP_TIMEOUT",
+      operation: async (signal) => {
+        const response = await fetchImpl(request.url, {
+          method: "POST",
+          headers: request.headers,
+          body: request.body as BodyInit,
+          signal,
+        });
+        return { response, responseBody: await response.text() };
+      },
     });
     const latencyMs = now() - startedAt;
 
@@ -294,7 +370,7 @@ export async function assessPronunciation(
           latencyMs,
           responseStatus: response.status,
           errorCode: "azure_http_error",
-          errorMessage: await safeText(response),
+          errorMessage: responseBody.slice(0, 1000),
         }),
       );
       return {
@@ -304,7 +380,7 @@ export async function assessPronunciation(
       };
     }
 
-    const report = mapAzureAssessmentToReport(await response.json(), {
+    const report = mapAzureAssessmentToReport(JSON.parse(responseBody), {
       locale,
       provider: AZURE_PRONUNCIATION_PROVIDER,
       model: AZURE_PRONUNCIATION_MODEL,
@@ -349,19 +425,20 @@ export async function assessPronunciation(
       practiceAttemptId: input.practiceAttemptId ?? null,
       error: error instanceof Error ? error.message : String(error),
     });
+    const timedOut = error instanceof PronunciationTimeoutError;
     await recordRequest(
       buildLog({
         input,
         locale,
         status: "error",
         latencyMs: now() - startedAt,
-        errorCode: "azure_request_failed",
+        errorCode: timedOut ? "azure_timeout" : "azure_request_failed",
         errorMessage: error instanceof Error ? error.message : String(error),
       }),
     ).catch(() => null);
     return {
       status: "error",
-      reason: "azure_request_failed",
+      reason: timedOut ? "azure_timeout" : "azure_request_failed",
       report: EMPTY_PHONEME_REPORT,
     };
   }

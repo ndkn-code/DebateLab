@@ -194,8 +194,10 @@ The web app needs `@vercel/oidc`; it does not need a GCP private key.
 `AI_GRADING_BACKEND` is mandatory:
 
 - `gcp`: create/reuse the durable run and publish it.
-- `legacy`: do not publish new GCP work. This is the kill switch; saved jobs are
-  retained, and the existing `/api/analyze` compatibility path remains usable.
+- `legacy`: pause new durable grading. New IELTS Writing/Speaking submissions
+  receive an actionable 503 before metering or persistence; existing runs and
+  checkpoints are retained. The existing Debate `/api/analyze` compatibility
+  path remains usable.
 - missing/unknown: fail closed before a provider is selected.
 
 ## Release smoke tests
@@ -242,8 +244,10 @@ Before setting the web environment to `gcp`:
 
 ## Rollback
 
-Set `AI_GRADING_BACKEND=legacy` in the web environment. Do not delete the topic,
-run rows, checkpoint rows, or migration. Stop the push subscription if worker
-behavior itself is unsafe. Existing validated checkpoints remain replayable
-after a corrected image is deployed. Roll Cloud Run back to the prior image,
-run the smoke suite, then restore `gcp`. Database migrations are forward-only.
+Set `AI_GRADING_BACKEND=legacy` in the web environment to reject new IELTS
+Writing/Speaking grading before charging or persistence. Do not delete the
+topic, run rows, checkpoint rows, or migration. Stop the push subscription if
+worker behavior itself is unsafe. Existing validated checkpoints remain
+replayable after a corrected image is deployed. Roll Cloud Run back to the
+prior image, run the smoke suite, then restore `gcp`. Database migrations are
+forward-only.

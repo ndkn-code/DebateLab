@@ -57,6 +57,14 @@ const coachMockBankV2 = readFileSync(
   ),
   "utf8",
 );
+const speakingSubmissionService = readFileSync(
+  resolve(process.cwd(), "src/lib/ielts/speaking-scorer/service.ts"),
+  "utf8",
+);
+const writingSubmissionService = readFileSync(
+  resolve(process.cwd(), "src/lib/ielts/writing-scorer/service.ts"),
+  "utf8",
+);
 
 test("AI telemetry constraint preserves every runtime output type", () => {
   for (const outputType of [
@@ -242,5 +250,27 @@ test("IELTS Coach mock bank v2 covers every productive task without answer mater
   assert.equal(
     (coachMockBankV2.match(/\('speaking-v2', \d+/g) ?? []).length,
     15,
+  );
+});
+
+test("the grading kill switch runs before metering or response creation", () => {
+  const speakingGate = speakingSubmissionService.indexOf(
+    "requireGcpAiGradingForSubmission();",
+  );
+  assert.ok(speakingGate >= 0);
+  assert.ok(speakingGate < speakingSubmissionService.indexOf("meterFeature("));
+  assert.ok(
+    speakingGate <
+      speakingSubmissionService.indexOf("await createSpeakingResponse("),
+  );
+
+  const writingGate = writingSubmissionService.indexOf(
+    "requireGcpAiGradingForSubmission();",
+  );
+  assert.ok(writingGate >= 0);
+  assert.ok(writingGate < writingSubmissionService.indexOf("meterFeature("));
+  assert.ok(
+    writingGate <
+      writingSubmissionService.indexOf("await createWritingResponse("),
   );
 });
