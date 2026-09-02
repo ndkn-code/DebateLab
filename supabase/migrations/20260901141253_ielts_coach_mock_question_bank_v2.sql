@@ -44,6 +44,7 @@ on conflict (id) do update set
   metadata = excluded.metadata,
   updated_at = now();
 
+
 with prompt_rows(
   test_key, ordinal, question_type, prompt, word_limit,
   criteria, tags, difficulty, practice_focus
@@ -133,4 +134,3 @@ on conflict (id) do update set
   word_limit = excluded.word_limit,
   metadata = excluded.metadata,
   updated_at = now();
-
