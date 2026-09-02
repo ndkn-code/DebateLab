@@ -72,12 +72,32 @@ function keyFor(q: AuthoredQuestion): ObjectiveKey {
   };
 }
 
-/** The canonical (first) accepted answer, as a learner would type/select it. */
-function perfectResponse(q: AuthoredQuestion): unknown {
+/**
+ * A correct answer as a learner would type/select it. Members of an any-order
+ * group share one key ("laboratory/library"), so the i-th member takes the
+ * i-th alternative — answering the same word twice earns one mark, correctly.
+ */
+function perfectResponse(q: AuthoredQuestion, alternativeIndex = 0): unknown {
   const answer = q.correctAnswer;
   if (Array.isArray(answer)) return { values: { "0": answer } };
-  const first = String(answer ?? "").split("/")[0]?.trim() ?? "";
-  return { values: { "0": first } };
+  const alternatives = String(answer ?? "").split("/").map((s) => s.trim()).filter(Boolean);
+  return { values: { "0": alternatives[alternativeIndex % Math.max(alternatives.length, 1)] ?? "" } };
+}
+
+/** questionId → perfect response for every objective question. */
+function perfectResponses(test: AuthoredTest, questions: AuthoredQuestion[]): Map<string, unknown> {
+  const anyOrderKeys = new Set(test.groups.filter((g) => g.anyOrder).map((g) => g.groupKey));
+  const memberIndex = new Map<string, number>();
+  const out = new Map<string, unknown>();
+  for (const q of questions) {
+    let index = 0;
+    if (q.groupKey && anyOrderKeys.has(q.groupKey)) {
+      index = memberIndex.get(q.groupKey) ?? 0;
+      memberIndex.set(q.groupKey, index + 1);
+    }
+    out.set(q.importId, perfectResponse(q, index));
+  }
+  return out;
 }
 
 function groupsOf(test: AuthoredTest): Map<string, GradableGroup> {
@@ -102,42 +122,42 @@ function gradeWith(test: AuthoredTest, responses: Map<string, unknown>) {
 
 function verifyPerfectAndPartial(test: AuthoredTest): void {
   const questions = objectiveQuestions(test);
-  const perfect = gradeWith(test, new Map(questions.map((q) => [q.importId, perfectResponse(q)])));
+  const perfect = gradeWith(test, perfectResponses(test, questions));
   const hasListening = questions.some((q) => q.skill === "listening");
   const readingMax = questions.filter((q) => q.skill === "reading").reduce((s, q) => s + (q.maxPoints ?? 1), 0);
   if (hasListening) {
     assert.equal(perfect.listeningRaw, 40, `${test.slug}: perfect listening raw`);
-    assert.equal(perfect.bands.listening, 9, `${test.slug}: perfect listening band`);
+    assert.equal(perfect.bands.listeningBand, 9, `${test.slug}: perfect listening band`);
   }
   assert.equal(perfect.readingRaw, readingMax, `${test.slug}: perfect reading raw`);
-  if (readingMax === 40) assert.equal(perfect.bands.reading, 9, `${test.slug}: perfect reading band`);
+  if (readingMax === 40) assert.equal(perfect.bands.readingBand, 9, `${test.slug}: perfect reading band`);
   console.log(
-    `${test.slug}: perfect → L ${perfect.listeningRaw ?? "–"} (band ${perfect.bands.listening ?? "–"}), R ${perfect.readingRaw} (band ${perfect.bands.reading ?? "–"})`,
+    `${test.slug}: perfect → L ${perfect.listeningRaw ?? "–"} (band ${perfect.bands.listeningBand ?? "–"}), R ${perfect.readingRaw} (band ${perfect.bands.readingBand ?? "–"})`,
   );
 
   if (hasListening && readingMax === 40) {
     // Drop 10 listening points and 12 reading points → 30 → 7.0 and 28 → 6.5.
-    const responses = new Map<string, unknown>();
+    const responses = perfectResponses(test, questions);
     let lDropped = 0;
     let rDropped = 0;
     for (const q of questions) {
       const points = q.maxPoints ?? 1;
-      if (q.skill === "listening" && lDropped + points <= 10) { lDropped += points; continue; }
-      if (q.skill === "reading" && rDropped + points <= 12) { rDropped += points; continue; }
-      responses.set(q.importId, perfectResponse(q));
+      if (q.skill === "listening" && lDropped + points <= 10) { lDropped += points; responses.delete(q.importId); continue; }
+      if (q.skill === "reading" && rDropped + points <= 12) { rDropped += points; responses.delete(q.importId); continue; }
     }
     assert.equal(lDropped, 10); assert.equal(rDropped, 12);
     const partial = gradeWith(test, responses);
     assert.equal(partial.listeningRaw, 30, "partial listening raw");
-    assert.equal(partial.bands.listening, 7, "partial listening band");
+    assert.equal(partial.bands.listeningBand, 7, "partial listening band");
     assert.equal(partial.readingRaw, 28, "partial reading raw");
-    assert.equal(partial.bands.reading, 6.5, "partial reading band");
+    assert.equal(partial.bands.readingBand, 6.5, "partial reading band");
     console.log(`${test.slug}: partial → L 30 (7.0), R 28 (6.5) ✓`);
   }
 }
 
 function verifyMarkingCases(test: AuthoredTest): number {
   let checked = 0;
+  const failures: string[] = [];
   const questions = objectiveQuestions(test);
   for (const q of questions) {
     for (const c of q.markingCases ?? []) {
@@ -147,14 +167,15 @@ function verifyMarkingCases(test: AuthoredTest): number {
       const grade = gradeWith(test, responses);
       const row = grade.graded.find((g) => g.questionId === q.importId);
       const awarded = row?.awardedPoints ?? 0;
-      assert.equal(
-        awarded,
-        c.expectedPoints,
-        `${test.slug} ${q.importId} [${c.note}]: input ${JSON.stringify(c.input)} → ${awarded}, expected ${c.expectedPoints}`,
-      );
+      if (awarded !== c.expectedPoints) {
+        failures.push(
+          `${test.slug} ${q.importId} [${c.note}]: input ${JSON.stringify(c.input)} → ${awarded}, expected ${c.expectedPoints}`,
+        );
+      }
       checked++;
     }
   }
+  assert.equal(failures.length, 0, `marking cases failed:\n${failures.join("\n")}`);
   return checked;
 }
 
@@ -162,7 +183,12 @@ function verifyAnyOrderGroups(test: AuthoredTest): void {
   for (const group of test.groups.filter((g) => g.anyOrder)) {
     const members = objectiveQuestions(test).filter((q) => q.groupKey === group.groupKey);
     if (members.length < 2) continue;
-    const answers = members.map((q) => String(q.correctAnswer ?? "").split("/")[0].trim());
+    // The i-th member takes the i-th alternative of the shared key, then the
+    // order is reversed — a real learner writing the pair the other way round.
+    const answers = members.map((q, i) => {
+      const alternatives = String(q.correctAnswer ?? "").split("/").map((s) => s.trim()).filter(Boolean);
+      return alternatives[i % alternatives.length] ?? "";
+    });
     // Reverse the order: every member still earns its point.
     const reversed = new Map<string, unknown>(
       members.map((q, i) => [q.importId, { values: { "0": answers[answers.length - 1 - i] } }]),

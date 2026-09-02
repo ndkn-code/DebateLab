@@ -91,7 +91,7 @@ async function verifyStructure(admin: Admin, test: AuthoredTest) {
     admin.from("passages").select("id, metadata").eq("test_id", row.id),
     admin.from("listening_sections").select("id, metadata, audio_asset_id, section_number").eq("test_id", row.id),
     admin.from("ielts_question_groups").select("id, group_key, skill, stimulus, bank").eq("test_id", row.id),
-    admin.from("ielts_questions").select("id, group_key, metadata, question_type, skill, max_points").eq("test_id", row.id),
+    admin.from("ielts_questions").select("id, group_key, metadata, question_type, skill, max_points, order_index").eq("test_id", row.id),
   ]);
   for (const r of [passages, sections, groups, questions]) if (r.error) throw new Error(r.error.message);
 
@@ -136,15 +136,16 @@ async function verifyStructure(admin: Admin, test: AuthoredTest) {
   return { testRow: row, questions: questions.data ?? [] };
 }
 
-function perfectResponse(q: AuthoredQuestion): unknown {
+function perfectResponse(q: AuthoredQuestion, alternativeIndex = 0): unknown {
   const answer = q.correctAnswer;
   if (Array.isArray(answer)) return { values: { "0": answer } };
-  return { values: { "0": String(answer ?? "").split("/")[0]?.trim() ?? "" } };
+  const alternatives = String(answer ?? "").split("/").map((s) => s.trim()).filter(Boolean);
+  return { values: { "0": alternatives[alternativeIndex % Math.max(alternatives.length, 1)] ?? "" } };
 }
 
 async function verifyAttempt(
   admin: Admin, test: AuthoredTest, testRow: { id: string; module: "academic" | "general_training"; kind: "full_mock" | "skill_set" | "drill"; skill: string | null; assessment_mode: string },
-  dbQuestions: Array<{ id: string; metadata: unknown; skill: string }>, userId: string, keep: boolean,
+  dbQuestions: Array<{ id: string; metadata: unknown; skill: string; order_index?: number | null }>, userId: string, keep: boolean,
 ) {
   const skillsWithContent = await getSkillsWithContent(testRow.id);
   const blueprint = buildMockBlueprint({
@@ -174,15 +175,22 @@ async function verifyAttempt(
         deadline_at: new Date(now.getTime() + s.time_limit_seconds * 1000).toISOString(),
       }).eq("id", s.id);
     }
+    const anyOrderKeys = new Set(test.groups.filter((g) => g.anyOrder).map((g) => g.groupKey));
+    const memberIndex = new Map<string, number>();
     const rows = [];
-    for (const dbq of dbQuestions) {
+    for (const dbq of [...dbQuestions].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0))) {
       const authored = byImportId.get(importIdOf(dbq.metadata) ?? "");
       if (!authored || !isObjectiveQuestionType(authored.questionType as IeltsQuestionType)) continue;
       const section = sectionBySkill.get(dbq.skill as never);
       if (!section) continue;
+      let index = 0;
+      if (authored.groupKey && anyOrderKeys.has(authored.groupKey)) {
+        index = memberIndex.get(authored.groupKey) ?? 0;
+        memberIndex.set(authored.groupKey, index + 1);
+      }
       rows.push({
         attempt_id: attempt.id, user_id: userId, question_id: dbq.id, section_id: section.id,
-        response: perfectResponse(authored) as never, test_version: attempt.test_version,
+        response: perfectResponse(authored, index) as never, test_version: attempt.test_version,
       });
     }
     const { error: insertError } = await admin.from("ielts_question_responses").insert(rows);

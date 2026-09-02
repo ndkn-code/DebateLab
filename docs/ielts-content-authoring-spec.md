@@ -156,3 +156,14 @@ Blanks are written as `__BLANK_<slot>__`; the slot must match a member's `Slot` 
 ```json
 {"kind":"image","url":"https://…/storage/v1/object/public/ielts-question-media/tests/<testId>/map.png","alt":"Sports centre plan","hotspots":[{"slot":"11","x":22,"y":40,"label":"A"},{"slot":"12","x":68,"y":55,"label":"B"}]}
 ```
+
+### Answer-key alternatives (`/`)
+
+A `/` in a text key separates **complete** alternative answers: `wooden fences/timber fences`,
+`roof-top/rooftop`, `15 percent/15%`. Do not write word-level alternation inside a phrase
+(`wooden/timber fences` would be read as "wooden" or "timber fences"). Optional words go in
+parentheses: `(the) garden`. Numerals only split when a side contains a letter, so `1/2` stays
+a fraction. Marking also tolerates one leading article, hyphen⇄space, number words ⇄ digits and
+ordinal suffixes — but the word limit is counted **before** any tolerance, exactly as in the
+official test ("an apron" is two words under a ONE WORD limit).
+

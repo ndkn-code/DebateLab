@@ -1,0 +1,84 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-labelledby="t">
+  <title id="t">Alder Bank sports park plan</title>
+  <style>
+    .lbl{font-family:Inter,Arial,sans-serif;font-size:16px;fill:#333}
+    .sq{fill:#fff;stroke:#333;stroke-width:2}
+    .sqt{font-family:Inter,Arial,sans-serif;font-size:22px;font-weight:700;fill:#222;text-anchor:middle;dominant-baseline:central}
+    .pin{fill:#333}
+    .pint{font-family:Inter,Arial,sans-serif;font-size:13px;font-weight:700;fill:#fff;text-anchor:middle;dominant-baseline:central}
+    .key{font-family:Inter,Arial,sans-serif;font-size:14px;fill:#444}
+  </style>
+  <rect width="800" height="600" fill="#f4f5f7"/>
+  <!-- park boundary -->
+  <rect x="40" y="20" width="560" height="560" fill="#e9ecef" stroke="#9aa0a6" stroke-width="2"/>
+  <!-- river along the north edge -->
+  <path d="M40 40 C 200 25, 400 60, 600 40 L600 80 C 400 100, 200 65, 40 80 Z" fill="#c9dbea" stroke="#8fb0cc" stroke-width="1.5"/>
+  <text class="lbl" x="300" y="65" text-anchor="middle" fill="#3b5f7d">River</text>
+  <!-- lake on the east side -->
+  <ellipse cx="500" cy="300" rx="70" ry="60" fill="#c9dbea" stroke="#8fb0cc" stroke-width="1.5"/>
+  <text class="lbl" x="500" y="305" text-anchor="middle" fill="#3b5f7d">Lake</text>
+  <!-- loop path -->
+  <rect x="100" y="110" width="440" height="410" rx="60" fill="none" stroke="#b0b4ba" stroke-width="14"/>
+  <rect x="100" y="110" width="440" height="410" rx="60" fill="none" stroke="#e1e3e6" stroke-width="8"/>
+  <!-- cross paths -->
+  <line x1="320" y1="110" x2="320" y2="520" stroke="#b0b4ba" stroke-width="10"/>
+  <line x1="320" y1="110" x2="320" y2="520" stroke="#e1e3e6" stroke-width="5"/>
+  <line x1="100" y1="300" x2="540" y2="300" stroke="#b0b4ba" stroke-width="10"/>
+  <line x1="100" y1="300" x2="540" y2="300" stroke="#e1e3e6" stroke-width="5"/>
+  <!-- entrance -->
+  <rect x="290" y="520" width="60" height="60" fill="#d7dadf" stroke="#9aa0a6" stroke-width="2"/>
+  <text class="lbl" x="320" y="596" text-anchor="middle">Main entrance (south)</text>
+  <!-- trees NW -->
+  <g fill="#cfd8cf" stroke="#9fae9f">
+    <circle cx="70" cy="110" r="10"/><circle cx="95" cy="98" r="10"/><circle cx="120" cy="118" r="10"/><circle cx="75" cy="140" r="10"/>
+  </g>
+  <!-- running track -->
+  <rect x="150" y="360" width="120" height="70" rx="35" fill="none" stroke="#b0b4ba" stroke-width="3"/>
+  <text class="key" x="210" y="400" text-anchor="middle">Running track</text>
+  <!-- lettered squares -->
+  <g class="sq">
+    <rect x="130" y="470" width="44" height="44"/>
+    <rect x="250" y="440" width="44" height="44"/>
+    <rect x="60" y="280" width="44" height="44"/>
+    <rect x="60" y="150" width="44" height="44"/>
+    <rect x="298" y="120" width="44" height="44"/>
+    <rect x="520" y="120" width="44" height="44"/>
+    <rect x="478" y="400" width="44" height="44"/>
+    <rect x="336" y="240" width="44" height="44"/>
+  </g>
+  <g class="sqt">
+    <text x="152" y="492">A</text>
+    <text x="272" y="462">B</text>
+    <text x="82" y="302">C</text>
+    <text x="82" y="172">D</text>
+    <text x="320" y="142">E</text>
+    <text x="542" y="142">F</text>
+    <text x="500" y="422">G</text>
+    <text x="358" y="262">H</text>
+  </g>
+  <!-- compass -->
+  <g transform="translate(560,540)">
+    <line x1="0" y1="20" x2="0" y2="-20" stroke="#333" stroke-width="2"/>
+    <polygon points="0,-26 -6,-12 6,-12" fill="#333"/>
+    <text class="key" x="0" y="38" text-anchor="middle">N</text>
+  </g>
+  <!-- answer panel: numbered pins at hotspot percentages (x 82% = 656; y 30/38/46/54/62/70% = 180/228/276/324/372/420) -->
+  <rect x="620" y="130" width="160" height="330" rx="8" fill="#fff" stroke="#9aa0a6" stroke-width="1.5"/>
+  <text class="key" x="700" y="156" text-anchor="middle" font-weight="700">Questions 11–16</text>
+  <g class="pin">
+    <circle cx="656" cy="180" r="14"/><circle cx="656" cy="228" r="14"/><circle cx="656" cy="276" r="14"/>
+    <circle cx="656" cy="324" r="14"/><circle cx="656" cy="372" r="14"/><circle cx="656" cy="420" r="14"/>
+  </g>
+  <g class="pint">
+    <text x="656" y="180">11</text><text x="656" y="228">12</text><text x="656" y="276">13</text>
+    <text x="656" y="324">14</text><text x="656" y="372">15</text><text x="656" y="420">16</text>
+  </g>
+  <g class="key">
+    <text x="680" y="185">Café</text>
+    <text x="680" y="233">Changing rooms</text>
+    <text x="680" y="281">Bike hire</text>
+    <text x="680" y="329">First-aid point</text>
+    <text x="680" y="377">Climbing wall</text>
+    <text x="680" y="425">Picnic area</text>
+  </g>
+</svg>
