@@ -158,11 +158,11 @@ returns table (
 )
 language sql stable security definer
 set search_path = public, private, extensions as $$
-  select q.id, q.lesson_id, q.question_text, q.question_type, q.options, q.order_index
+  select q.id, q.lesson_id, q.question_text, q.question_type, q.options, q.sort_order as order_index
   from public.quiz_questions q
   where q.lesson_id = p_lesson_id
     and private.can_read_curriculum_lesson(q.lesson_id, (select auth.uid()))
-  order by q.order_index, q.id;
+  order by q.sort_order, q.id;
 $$;
 revoke all on function public.load_curriculum_quiz_questions(uuid) from public, anon;
 grant execute on function public.load_curriculum_quiz_questions(uuid) to authenticated;
@@ -178,7 +178,7 @@ set search_path = public, private, extensions as $$
   from public.quiz_questions q
   where q.lesson_id = p_lesson_id
     and private.can_read_curriculum_lesson(q.lesson_id, (select auth.uid()))
-  order by q.order_index, q.id;
+  order by q.sort_order, q.id;
 $$;
 revoke all on function public.grade_curriculum_quiz_submission(uuid,jsonb) from public, anon;
 grant execute on function public.grade_curriculum_quiz_submission(uuid,jsonb) to authenticated;
