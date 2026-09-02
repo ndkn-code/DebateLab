@@ -7,6 +7,7 @@
  */
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
   IELTS_CONTENT_STATUSES,
@@ -48,6 +49,39 @@ export function TextArea({
       )}
       {...props}
     />
+  );
+}
+
+/** Labelled boolean row (workbench density) — wraps the design-system Switch. */
+export function ToggleRow({
+  label,
+  hint,
+  checked,
+  onCheckedChange,
+}: {
+  label: string;
+  hint?: string;
+  checked: boolean;
+  onCheckedChange: (next: boolean) => void;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-outline-variant px-3 py-2">
+      <div className="flex min-w-0 flex-col">
+        <span className="type-label text-on-surface">{label}</span>
+        {hint ? <span className="type-caption text-on-surface-variant">{hint}</span> : null}
+      </div>
+      <Switch checked={checked} onCheckedChange={onCheckedChange} aria-label={label} />
+    </div>
+  );
+}
+
+/** Inline validation error (the authoring actions throw with a message). */
+export function InlineError({ message }: { message: string | null }) {
+  if (!message) return null;
+  return (
+    <p role="alert" className="rounded-xl bg-error-container px-3 py-2 type-body-sm text-error">
+      {message}
+    </p>
   );
 }
 
@@ -101,6 +135,7 @@ export const QUESTION_TYPE_GROUPS: Array<{ label: string; types: IeltsQuestionTy
       "matching_headings",
       "matching_information",
       "matching_features",
+      "matching_sentence_endings",
       "sentence_completion",
       "summary_completion",
       "note_table_form_flowchart_completion",

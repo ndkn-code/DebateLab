@@ -25,6 +25,7 @@ import { ImportPanel } from "./ImportPanel";
 import { ListeningPanel } from "./ListeningPanel";
 import { MicroItemDraftPanel } from "./MicroItemDraftPanel";
 import { PassagePanel } from "./PassagePanel";
+import { QuestionGroupPanel } from "./QuestionGroupPanel";
 import { QuestionPanel } from "./QuestionPanel";
 import { VersionHistory } from "./VersionHistory";
 import { AdminV2Frame } from "@/components/admin/AdminV2Frame";
@@ -41,6 +42,7 @@ type Tab =
   | "settings"
   | "passages"
   | "listening"
+  | "groups"
   | "questions"
   | "micro_items"
   | "versions"
@@ -50,6 +52,7 @@ const TABS: Array<{ id: Tab; label: string }> = [
   { id: "settings", label: "Settings" },
   { id: "passages", label: "Passages" },
   { id: "listening", label: "Listening" },
+  { id: "groups", label: "Groups" },
   { id: "questions", label: "Questions" },
   { id: "micro_items", label: "Micro-items" },
   { id: "versions", label: "Versions" },
@@ -220,12 +223,22 @@ export function IeltsTestEditor({
           audioBySection={tree.audioBySection}
         />
       ) : null}
+      {tab === "groups" ? (
+        <QuestionGroupPanel
+          testId={test.id}
+          groups={tree.questionGroups}
+          passages={tree.passages}
+          listeningSections={tree.listeningSections}
+          questions={tree.questions}
+        />
+      ) : null}
       {tab === "questions" ? (
         <QuestionPanel
           testId={test.id}
           questions={tree.questions}
           passages={tree.passages}
           listeningSections={tree.listeningSections}
+          groups={tree.questionGroups}
         />
       ) : null}
       {tab === "micro_items" ? (
