@@ -62,6 +62,42 @@ assert.equal(report.words[0]?.errorType, "None");
 assert.equal(report.words[0]?.phonemes[0]?.phoneme, "ɡ");
 assert.equal(report.words[0]?.phonemes[0]?.accuracy, 95);
 
+// --- current Azure response shape: scores are direct, not nested ------------
+const directScoreReport = mapAzureAssessmentToReport(
+  {
+    RecognitionStatus: "Success",
+    DisplayText: "A good answer.",
+    NBest: [
+      {
+        Display: "A good answer.",
+        AccuracyScore: 91.4,
+        FluencyScore: 88.2,
+        CompletenessScore: 100,
+        PronScore: 90.6,
+        ProsodyScore: 86.7,
+        Words: [
+          {
+            Word: "good",
+            AccuracyScore: 93.2,
+            ErrorType: "None",
+            Phonemes: [{ Phoneme: "ɡ", AccuracyScore: 94.8 }],
+          },
+        ],
+      },
+    ],
+  },
+  OPTIONS,
+);
+assert.equal(directScoreReport.status, "scored");
+assert.equal(directScoreReport.overall?.accuracy, 91);
+assert.equal(directScoreReport.overall?.fluency, 88);
+assert.equal(directScoreReport.overall?.completeness, 100);
+assert.equal(directScoreReport.overall?.prosody, 87);
+assert.equal(directScoreReport.overall?.pronunciation, 91);
+assert.equal(directScoreReport.words[0]?.accuracy, 93);
+assert.equal(directScoreReport.words[0]?.errorType, "None");
+assert.equal(directScoreReport.words[0]?.phonemes[0]?.accuracy, 95);
+
 // --- clamping (out-of-range) + missing-field handling -----------------------
 const clamped = mapAzureAssessmentToReport(
   azureResponse({

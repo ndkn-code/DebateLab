@@ -3,11 +3,12 @@
  * {@link PhonemeReport}. Kept pure (no I/O) so the score-mapping meets the
  * scoring coverage bar; the network call lives in `lib/ielts/pronunciation`.
  *
- * Azure returns a detailed STT response: `NBest[0].PronunciationAssessment`
- * holds the overall accuracy / fluency / completeness / prosody / PronScore
- * (0–100), and each Word / Phoneme carries its own AccuracyScore. We clamp+round
- * every value into 0–100 and shape it to the contract. The provider payload is
- * untrusted, so it is parsed through a tolerant Zod schema first.
+ * Azure has returned two detailed-response shapes over time. Older responses
+ * nest scores under `PronunciationAssessment`; current responses can put the
+ * same scores directly on `NBest[0]`, Word, and Phoneme objects. We accept both,
+ * prefer the nested value when both are present, and clamp+round every score
+ * into 0–100. The provider payload is untrusted, so it is parsed through a
+ * tolerant Zod schema first.
  */
 import { z } from "zod";
 import {
@@ -29,6 +30,7 @@ const azureScores = z
 const azurePhonemeSchema = z
   .object({
     Phoneme: z.string(),
+    AccuracyScore: z.number().optional(),
     PronunciationAssessment: z
       .object({ AccuracyScore: z.number() })
       .partial()
@@ -39,6 +41,8 @@ const azurePhonemeSchema = z
 const azureWordSchema = z
   .object({
     Word: z.string(),
+    AccuracyScore: z.number().optional(),
+    ErrorType: z.string().optional(),
     PronunciationAssessment: z
       .object({ AccuracyScore: z.number(), ErrorType: z.string() })
       .partial()
@@ -51,6 +55,11 @@ const azureNBestSchema = z
   .object({
     Display: z.string().optional(),
     Lexical: z.string().optional(),
+    AccuracyScore: z.number().optional(),
+    FluencyScore: z.number().optional(),
+    CompletenessScore: z.number().optional(),
+    PronScore: z.number().optional(),
+    ProsodyScore: z.number().optional(),
     PronunciationAssessment: azureScores.optional(),
     Words: z.array(azureWordSchema).optional(),
   })
@@ -108,22 +117,34 @@ export function mapAzureAssessmentToReport(
   if (!nbest) return EMPTY_PHONEME_REPORT;
 
   // Need overall scores to be useful; missing-everything payloads no-op.
-  const scores = nbest.PronunciationAssessment;
+  const nestedScores = nbest.PronunciationAssessment;
+  const scores = {
+    AccuracyScore: nestedScores?.AccuracyScore ?? nbest.AccuracyScore,
+    FluencyScore: nestedScores?.FluencyScore ?? nbest.FluencyScore,
+    CompletenessScore:
+      nestedScores?.CompletenessScore ?? nbest.CompletenessScore,
+    PronScore: nestedScores?.PronScore ?? nbest.PronScore,
+    ProsodyScore: nestedScores?.ProsodyScore ?? nbest.ProsodyScore,
+  };
   if (
-    !scores ||
-    (!Number.isFinite(scores.AccuracyScore) &&
-      !Number.isFinite(scores.PronScore))
+    !Number.isFinite(scores.AccuracyScore) &&
+    !Number.isFinite(scores.PronScore)
   ) {
     return EMPTY_PHONEME_REPORT;
   }
 
   const words = (nbest.Words ?? []).map((word) => ({
     word: word.Word,
-    accuracy: clampScore(word.PronunciationAssessment?.AccuracyScore),
-    errorType: word.PronunciationAssessment?.ErrorType ?? "None",
+    accuracy: clampScore(
+      word.PronunciationAssessment?.AccuracyScore ?? word.AccuracyScore,
+    ),
+    errorType:
+      word.PronunciationAssessment?.ErrorType ?? word.ErrorType ?? "None",
     phonemes: (word.Phonemes ?? []).map((phoneme) => ({
       phoneme: phoneme.Phoneme,
-      accuracy: clampScore(phoneme.PronunciationAssessment?.AccuracyScore),
+      accuracy: clampScore(
+        phoneme.PronunciationAssessment?.AccuracyScore ?? phoneme.AccuracyScore,
+      ),
     })),
   }));
 
