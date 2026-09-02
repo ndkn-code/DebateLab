@@ -24,6 +24,7 @@ export const IELTS_IMPORT_TABS = {
   readingQuestions: "Reading Questions",
   listeningScripts: "Listening Scripts",
   listeningQuestions: "Listening Questions",
+  questionGroups: "Question Groups",
   writingPrompts: "Writing Prompts",
   speakingPrompts: "Speaking Prompts",
 } as const;

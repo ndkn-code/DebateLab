@@ -192,4 +192,182 @@ assert.deepEqual(
   ],
 );
 
+// ---- any-order groups -------------------------------------------------------
+const anyOrder = new Map([["g1", { anyOrder: true }]]);
+function saq(id: string, extra: Partial<GradableQuestion> = {}): GradableQuestion {
+  return q({
+    id,
+    questionType: "short_answer",
+    family: "completion",
+    wordLimit: 1,
+    groupKey: "g1",
+    ...extra,
+  });
+}
+const setKeys = new Map<string, ObjectiveKey>([
+  ["s1", key("garden")],
+  ["s2", key("kitchen")],
+  ["s3", key("roof")],
+]);
+function gradeSet(
+  responses: Map<string, unknown>,
+  groups: ReadonlyMap<string, { anyOrder: boolean }> | null = anyOrder,
+  questions: GradableQuestion[] = [saq("s1"), saq("s2"), saq("s3")],
+  keys: ReadonlyMap<string, ObjectiveKey> = setKeys,
+) {
+  // `null` = legacy caller that passes no `groups` at all.
+  const grade = gradeObjectiveAttempt({
+    questions,
+    keys,
+    responses,
+    module: "academic",
+    bandRows,
+    ...(groups ? { groups } : {}),
+  });
+  return {
+    raw: grade.readingRaw,
+    graded: grade.graded.map((g) => [g.questionId, g.isCorrect, g.awardedPoints]),
+  };
+}
+
+// answers in a different order than the key → full marks
+assert.deepEqual(
+  gradeSet(new Map<string, unknown>([["s1", "roof"], ["s2", "garden"], ["s3", "kitchen"]])),
+  { raw: 3, graded: [["s1", true, 1], ["s2", true, 1], ["s3", true, 1]] },
+);
+// a duplicated learner answer counts once; credit goes to the first answered rows
+assert.deepEqual(
+  gradeSet(new Map<string, unknown>([["s1", "garden"], ["s2", "Garden"], ["s3", "sky"]])),
+  { raw: 1, graded: [["s1", true, 1], ["s2", false, 0], ["s3", false, 0]] },
+);
+// three correct alternatives but only two rows → capped at 2
+assert.deepEqual(
+  gradeSet(
+    new Map<string, unknown>([["s1", "roof"], ["s2", "garden"]]),
+    anyOrder,
+    [saq("s1"), saq("s2")],
+    new Map([
+      ["s1", key("garden/kitchen/roof")],
+      ["s2", key("garden/kitchen/roof")],
+    ]),
+  ),
+  { raw: 2, graded: [["s1", true, 1], ["s2", true, 1]] },
+);
+// alternatives of ONE answer never earn two marks
+assert.deepEqual(
+  gradeSet(
+    new Map<string, unknown>([["s1", "colour"], ["s2", "color"]]),
+    anyOrder,
+    [saq("s1"), saq("s2")],
+    new Map([
+      ["s1", key("colour", ["color"])],
+      ["s2", key("kitchen")],
+    ]),
+  ),
+  { raw: 1, graded: [["s1", true, 1], ["s2", false, 0]] },
+);
+// unanswered first row still lets row 2 earn credit (and stays out of graded[])
+assert.deepEqual(
+  gradeSet(new Map<string, unknown>([["s2", "garden"], ["s3", "sky"]])),
+  { raw: 1, graded: [["s2", true, 1], ["s3", false, 0]] },
+);
+// an over-limit value is excluded from the pool match
+assert.deepEqual(
+  gradeSet(new Map<string, unknown>([["s1", "the big garden"], ["s2", "garden"], ["s3", "roof"]])),
+  { raw: 2, graded: [["s1", true, 1], ["s2", true, 1], ["s3", false, 0]] },
+);
+// …unless the row grants "AND/OR A NUMBER" and the extra token is a number
+assert.deepEqual(
+  gradeSet(
+    new Map<string, unknown>([["s1", "3 weeks"], ["s2", "garden"]]),
+    anyOrder,
+    [saq("s1", { allowNumber: true }), saq("s2", { allowNumber: true })],
+    new Map([
+      ["s1", key("garden")],
+      ["s2", key("3 weeks")],
+    ]),
+  ),
+  { raw: 2, graded: [["s1", true, 1], ["s2", true, 1]] },
+);
+// a group that is NOT any-order keeps row-wise marking
+assert.deepEqual(
+  gradeSet(
+    new Map<string, unknown>([["s1", "kitchen"], ["s2", "garden"], ["s3", "roof"]]),
+    new Map([["g1", { anyOrder: false }]]),
+  ),
+  { raw: 1, graded: [["s1", false, 0], ["s2", false, 0], ["s3", true, 1]] },
+);
+// no groups map at all (legacy caller) → row-wise
+assert.deepEqual(
+  gradeSet(new Map<string, unknown>([["s1", "kitchen"], ["s2", "garden"]]), null),
+  { raw: 0, graded: [["s1", false, 0], ["s2", false, 0]] },
+);
+// a single-row any-order group is row-wise
+assert.deepEqual(
+  gradeSet(new Map<string, unknown>([["s1", "kitchen"]]), anyOrder, [saq("s1")]),
+  { raw: 0, graded: [["s1", false, 0]] },
+);
+// select-mode set ("choose TWO letters, in either order", one row per number)
+assert.deepEqual(
+  gradeSet(
+    new Map<string, unknown>([["s1", "d"], ["s2", "b"]]),
+    anyOrder,
+    [
+      q({ id: "s1", hasOptionBank: true, groupKey: "g1" }),
+      q({ id: "s2", hasOptionBank: true, groupKey: "g1" }),
+    ],
+    new Map([
+      ["s1", key("b")],
+      ["s2", key("d")],
+    ]),
+  ),
+  { raw: 2, graded: [["s1", true, 1], ["s2", true, 1]] },
+);
+// a numberSpan mcq_multi row is untouched by the any-order pass
+assert.deepEqual(
+  gradeSet(
+    new Map<string, unknown>([["m1", ["c", "a"]], ["s1", "garden"]]),
+    anyOrder,
+    [
+      q({
+        id: "m1",
+        questionType: "mcq_multi",
+        maxPoints: 2,
+        family: "multi_select",
+        hasOptionBank: true,
+        selectCount: 2,
+        numberSpan: 2,
+        groupKey: "g1",
+      }),
+      saq("s1"),
+    ],
+    new Map([
+      ["m1", key(["a", "c"])],
+      ["s1", key("garden")],
+    ]),
+  ),
+  { raw: 3, graded: [["m1", true, 2], ["s1", true, 1]] },
+);
+
+// ---- allowNumber reaches the text grader -----------------------------------
+{
+  const weeks = gradeObjectiveAttempt({
+    questions: [
+      saq("w1", { groupKey: null, allowNumber: true }),
+      saq("w2", { groupKey: null, allowNumber: false }),
+    ],
+    keys: new Map([
+      ["w1", key("3 weeks")],
+      ["w2", key("3 weeks")],
+    ]),
+    responses: new Map<string, unknown>([["w1", "3 weeks"], ["w2", "3 weeks"]]),
+    module: "academic",
+    bandRows,
+  });
+  assert.deepEqual(
+    weeks.graded.map((g) => [g.questionId, g.isCorrect, g.awardedPoints]),
+    [["w1", true, 1], ["w2", false, 0]],
+  );
+}
+
 console.log("scoring/ielts/grade-objective tests passed");

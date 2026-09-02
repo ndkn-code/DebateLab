@@ -9,6 +9,11 @@ import { createTypedServerClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/supabase";
 import type { IeltsSkill } from "@/lib/ielts/mock-blueprint";
 import type { IeltsQuestionView } from "@/lib/ielts/question-contract";
+import {
+  parseQuestionGroupView,
+  type IeltsQuestionGroupRowLike,
+  type IeltsQuestionGroupView,
+} from "@/lib/ielts/question-types/groups";
 import { toQuestionView } from "./mock-schema";
 
 const QUESTION_COLUMNS =
@@ -27,6 +32,83 @@ export interface MockStructure {
     Pick<Tables<"audio_assets">, "id" | "status" | "version" | "storage_path">
   >;
   questions: IeltsQuestionView[];
+  /**
+   * Set-level question groups (shared banks, summary/table/flow-chart/diagram
+   * stimuli) ordered by `order_index`. Empty for legacy tests/attempts.
+   */
+  questionGroups: IeltsQuestionGroupView[];
+}
+
+/** Group columns read from `ielts_question_groups` (live) for the player. */
+export type LiveGroupRow = Pick<
+  Tables<"ielts_question_groups">,
+  | "id"
+  | "group_key"
+  | "skill"
+  | "passage_id"
+  | "listening_section_id"
+  | "order_index"
+  | "title"
+  | "instructions"
+  | "stimulus"
+  | "bank"
+  | "bank_reuse"
+  | "answer_mode"
+  | "any_order"
+>;
+
+/** Group columns read from the per-attempt snapshot. */
+export type FrozenGroupBlueprintRow = Pick<
+  Tables<"ielts_attempt_question_group_blueprints">,
+  | "id"
+  | "group_id"
+  | "group_key"
+  | "skill"
+  | "passage_id"
+  | "listening_section_id"
+  | "order_index"
+  | "title"
+  | "instructions"
+  | "stimulus"
+  | "bank"
+  | "bank_reuse"
+  | "answer_mode"
+  | "any_order"
+>;
+
+const GROUP_COLUMNS =
+  "id, group_key, skill, passage_id, listening_section_id, order_index, title, instructions, stimulus, bank, bank_reuse, answer_mode, any_order";
+const FROZEN_GROUP_COLUMNS = `${GROUP_COLUMNS}, group_id`;
+
+/**
+ * Pure projection: group rows + the test's questions (already in display
+ * order) → renderer-facing group views. Members are the questions sharing the
+ * row's `group_key`; groups are ordered by `order_index`.
+ */
+export function buildQuestionGroups(
+  rows: readonly IeltsQuestionGroupRowLike[],
+  questions: readonly IeltsQuestionView[],
+): IeltsQuestionGroupView[] {
+  const membersByKey = new Map<string, IeltsQuestionView[]>();
+  for (const question of questions) {
+    if (!question.groupKey) continue;
+    const list = membersByKey.get(question.groupKey) ?? [];
+    list.push(question);
+    membersByKey.set(question.groupKey, list);
+  }
+  return [...rows]
+    .sort((a, b) => a.order_index - b.order_index)
+    .map((row) =>
+      parseQuestionGroupView(
+        row,
+        // The view already carries the parsed `metadata.slot`; re-wrap it so the
+        // shared slot resolver (which reads metadata) sees the same value.
+        (membersByKey.get(row.group_key) ?? []).map((question) => ({
+          id: question.id,
+          metadata: question.slot ? { slot: question.slot } : {},
+        })),
+      ),
+    );
 }
 
 export interface AttemptState {
@@ -51,7 +133,7 @@ export async function loadMockStructure(
   if (error) throw new Error(`loadMockStructure(test): ${error.message}`);
   if (!test) return null;
 
-  const [passages, listeningSections, audioAssets, questions] = await Promise.all([
+  const [passages, listeningSections, audioAssets, questions, groups] = await Promise.all([
     supabase.from("passages").select().eq("test_id", testId).order("order_index"),
     supabase
       .from("listening_sections")
@@ -64,18 +146,28 @@ export async function loadMockStructure(
       .select(QUESTION_COLUMNS)
       .eq("test_id", testId)
       .order("order_index"),
+    supabase
+      .from("ielts_question_groups")
+      .select(GROUP_COLUMNS)
+      .eq("test_id", testId)
+      .order("order_index"),
   ]);
 
-  for (const result of [passages, listeningSections, audioAssets, questions]) {
+  for (const result of [passages, listeningSections, audioAssets, questions, groups]) {
     if (result.error) throw new Error(`loadMockStructure: ${result.error.message}`);
   }
 
+  const questionViews = (questions.data ?? []).map(toQuestionView);
   return {
     test,
     passages: passages.data ?? [],
     listeningSections: listeningSections.data ?? [],
     audioAssets: audioAssets.data ?? [],
-    questions: (questions.data ?? []).map(toQuestionView),
+    questions: questionViews,
+    questionGroups: buildQuestionGroups(
+      (groups.data ?? []) as LiveGroupRow[],
+      questionViews,
+    ),
   };
 }
 
@@ -129,6 +221,7 @@ function questionFromFrozenBlueprint(row: FrozenBlueprintRow): IeltsQuestionView
 export function buildMockStructureFromFrozenBlueprint(
   test: Tables<"ielts_tests">,
   blueprints: FrozenBlueprintRow[],
+  groupBlueprints: FrozenGroupBlueprintRow[] = [],
 ): MockStructure {
   const passages = new Map<
     string,
@@ -145,6 +238,7 @@ export function buildMockStructureFromFrozenBlueprint(
     string,
     Pick<Tables<"audio_assets">, "id" | "status" | "version" | "storage_path">
   >();
+  const questions = blueprints.map(questionFromFrozenBlueprint);
   for (const row of blueprints) {
     if (row.passage_id && row.source_body !== null) {
       passages.set(row.passage_id, {
@@ -182,7 +276,8 @@ export function buildMockStructureFromFrozenBlueprint(
       (a, b) => a.order_index - b.order_index,
     ),
     audioAssets: [...audioAssets.values()],
-    questions: blueprints.map(questionFromFrozenBlueprint),
+    questions,
+    questionGroups: buildQuestionGroups(groupBlueprints, questions),
   };
 }
 
@@ -205,7 +300,7 @@ export async function loadAttemptStructure(
 
   if (!attempt.blueprint_frozen_at) return loadMockStructure(attempt.test_id);
 
-  const [testResult, blueprintResult] = await Promise.all([
+  const [testResult, blueprintResult, groupResult] = await Promise.all([
     supabase.from("ielts_tests").select().eq("id", attempt.test_id).maybeSingle(),
     supabase
       .from("ielts_attempt_question_blueprints")
@@ -214,15 +309,24 @@ export async function loadAttemptStructure(
       )
       .eq("attempt_id", attemptId)
       .order("question_order"),
+    supabase
+      .from("ielts_attempt_question_group_blueprints")
+      .select(FROZEN_GROUP_COLUMNS)
+      .eq("attempt_id", attemptId)
+      .order("order_index"),
   ]);
   if (testResult.error) throw new Error(`loadAttemptStructure(test): ${testResult.error.message}`);
   if (blueprintResult.error)
     throw new Error(`loadAttemptStructure(blueprint): ${blueprintResult.error.message}`);
+  if (groupResult.error)
+    throw new Error(`loadAttemptStructure(groups): ${groupResult.error.message}`);
   if (!testResult.data) return null;
   const blueprints = (blueprintResult.data ?? []) as FrozenBlueprintRow[];
   if (blueprints.length === 0) throw new Error("loadAttemptStructure: frozen blueprint missing");
+  // Legacy attempts (frozen before groups existed) simply have no group rows.
+  const groupBlueprints = (groupResult.data ?? []) as FrozenGroupBlueprintRow[];
 
-  return buildMockStructureFromFrozenBlueprint(testResult.data, blueprints);
+  return buildMockStructureFromFrozenBlueprint(testResult.data, blueprints, groupBlueprints);
 }
 
 /** Distinct skills that have authored questions in a test (drives the blueprint). */

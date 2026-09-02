@@ -185,8 +185,57 @@ async function loadBankQuestions(
 
   const { data, error } = await query;
   if (error) throw new Error(`skillDrill(bank questions): ${error.message}`);
-  return ((data ?? []) as unknown as SourceQuestion[]).filter(
+  const rows = ((data ?? []) as unknown as SourceQuestion[]).filter(
     (row) => !isGeneratedDrillMetadata(row.ielts_tests?.metadata ?? null),
+  );
+  const groups = await loadGroupsForQuestions(client, rows);
+  return rows.filter((row) =>
+    isStandaloneRenderable(
+      row,
+      row.group_key ? groups.get(`${row.test_id}:${row.group_key}`) : undefined,
+    ),
+  );
+}
+
+type DrillGroupRow = Pick<
+  Tables<"ielts_question_groups">,
+  "test_id" | "group_key" | "any_order" | "stimulus" | "bank"
+>;
+
+function isRenderableBank(bank: unknown): boolean {
+  return Array.isArray(bank) && bank.length > 0;
+}
+
+/**
+ * A drill clones single questions, not their groups, so a question whose
+ * meaning lives in the set (a blank inside a shared summary/table/diagram, an
+ * any-order set, or a row that draws its choices from the group bank) is
+ * unrenderable alone and must not be selected.
+ */
+function isStandaloneRenderable(row: SourceQuestion, group: DrillGroupRow | undefined): boolean {
+  if (!group) return true;
+  if (group.any_order) return false;
+  if (group.stimulus !== null) return false;
+  const ownOptions = Array.isArray(row.options) ? row.options.length : 0;
+  if (isRenderableBank(group.bank) && ownOptions === 0) return false;
+  return true;
+}
+
+async function loadGroupsForQuestions(
+  client: IeltsDbClient,
+  rows: SourceQuestion[],
+): Promise<Map<string, DrillGroupRow>> {
+  const testIds = orderedUnique(
+    rows.flatMap((row) => (row.group_key ? [row.test_id] : [])),
+  );
+  if (testIds.length === 0) return new Map();
+  const { data, error } = await client
+    .from("ielts_question_groups")
+    .select("test_id, group_key, any_order, stimulus, bank")
+    .in("test_id", testIds);
+  if (error) throw new Error(`skillDrill(groups): ${error.message}`);
+  return new Map(
+    ((data ?? []) as DrillGroupRow[]).map((row) => [`${row.test_id}:${row.group_key}`, row]),
   );
 }
 

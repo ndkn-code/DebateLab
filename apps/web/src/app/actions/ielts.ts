@@ -18,6 +18,8 @@ import { z } from "zod";
 import type { Json } from "@/types/supabase";
 import { parseInput } from "@/lib/api/boundary";
 import { createTypedServerClient } from "@/lib/supabase/server";
+import { createTypedAdminClient } from "@/lib/supabase/admin";
+import { uploadQuestionMedia } from "@/lib/ielts/question-media/upload";
 import { generateListeningSectionAudio } from "@/lib/ielts/listening-audio/generate";
 import { backfillListeningSectionAudio } from "@/lib/ielts/listening-audio/backfill";
 import { gradeQuestionResponse } from "@/lib/api/ielts/grading-repository";
@@ -36,7 +38,13 @@ import {
 import { createPassage, deletePassage, updatePassage } from "@/lib/api/ielts/passages-repository";
 import { createQuestion, deleteQuestion, updateQuestion } from "@/lib/api/ielts/questions-repository";
 import {
+  createQuestionGroup,
+  deleteQuestionGroup,
+  updateQuestionGroup,
+} from "@/lib/api/ielts/question-groups-repository";
+import {
   createIeltsTest,
+  getIeltsTestForAdmin,
   transitionIeltsTestStatus,
   updateIeltsTest,
 } from "@/lib/api/ielts/tests-repository";
@@ -289,6 +297,85 @@ export async function deleteQuestionAction(questionId: string, testId: string) {
   await deleteQuestion(questionId, supabase);
   await logIelts(supabase, adminId, "delete_ielts_question", "ielts_question", questionId);
   revalidateTest(testId);
+}
+
+// --- Question groups ------------------------------------------------------
+
+export async function createQuestionGroupAction(input: unknown) {
+  const { supabase, adminId } = await requireAdmin();
+  const group = await createQuestionGroup(input, supabase);
+  await logIelts(supabase, adminId, "create_ielts_question_group", "ielts_question_group", group.id, {
+    groupKey: group.group_key,
+    skill: group.skill,
+  });
+  revalidateTest(group.test_id);
+  return group;
+}
+
+export async function updateQuestionGroupAction(input: unknown) {
+  const { supabase, adminId } = await requireAdmin();
+  const group = await updateQuestionGroup(input, supabase);
+  await logIelts(supabase, adminId, "update_ielts_question_group", "ielts_question_group", group.id, {
+    groupKey: group.group_key,
+  });
+  revalidateTest(group.test_id);
+  return group;
+}
+
+const DeleteQuestionGroupSchema = z.object({
+  testId: z.string().uuid(),
+  groupId: z.string().uuid(),
+});
+
+export async function deleteQuestionGroupAction(input: { testId: string; groupId: string }) {
+  const { supabase, adminId } = await requireAdmin();
+  const { testId, groupId } = parseInput(DeleteQuestionGroupSchema, input);
+  await deleteQuestionGroup(groupId, supabase);
+  await logIelts(supabase, adminId, "delete_ielts_question_group", "ielts_question_group", groupId, {
+    testId,
+  });
+  revalidateTest(testId);
+}
+
+// --- Question media -------------------------------------------------------
+
+export type UploadIeltsQuestionMediaResult =
+  | { ok: true; url: string; path: string }
+  | { ok: false; error: string };
+
+/**
+ * Upload one stimulus image (diagram / map / plan / Task-1 visual) for a test.
+ * FormData fields: `testId` (uuid) + `file` (File). Storage is written under the
+ * service-role client; this action gates on admin, verifies the test exists,
+ * and returns the public URL to paste into a visual / group stimulus.
+ */
+export async function uploadIeltsQuestionMediaAction(
+  formData: FormData,
+): Promise<UploadIeltsQuestionMediaResult> {
+  const { supabase, adminId } = await requireAdmin();
+  try {
+    const testId = z.string().uuid().parse(formData.get("testId"));
+    const file = formData.get("file");
+    if (!(file instanceof File)) return { ok: false, error: "Missing file" };
+    const test = await getIeltsTestForAdmin(testId, supabase);
+    if (!test) return { ok: false, error: "Test not found" };
+
+    const result = await uploadQuestionMedia(createTypedAdminClient(), {
+      testId,
+      bytes: new Uint8Array(await file.arrayBuffer()),
+      contentType: file.type,
+      fileName: file.name,
+    });
+    await logIelts(supabase, adminId, "upload_ielts_question_media", "ielts_test", testId, {
+      path: result.path,
+      contentType: file.type,
+      bytes: file.size,
+    });
+    revalidateTest(testId);
+    return { ok: true, url: result.url, path: result.path };
+  } catch (error) {
+    return { ok: false, error: error instanceof Error ? error.message : "Upload failed" };
+  }
 }
 
 // --- Micro-item draft queue -----------------------------------------------

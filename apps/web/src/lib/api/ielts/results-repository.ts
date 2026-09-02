@@ -23,6 +23,13 @@ import { isObjectiveQuestionType } from "@/lib/ielts/question-types/registry";
 import type { BandConversionRow } from "@/lib/scoring/ielts/band-conversion";
 import { sanitizeLearnerGradingMetadata } from "@/lib/ielts/scoring-adjudication";
 import { projectEffectiveBands } from "./effective-score-contract";
+import {
+  parseQuestionGroupView,
+  type IeltsQuestionGroupRowLike,
+  type IeltsQuestionGroupView,
+} from "@/lib/ielts/question-types/groups";
+import { publicListeningAudioUrl } from "@/lib/ielts/listening-audio/storage-paths";
+import { IELTS_SPEAKING_AUDIO_BUCKET } from "@/lib/ielts/speaking-scorer/constants";
 import type {
   AttemptResultsInput,
   IeltsSkillKey,
@@ -32,11 +39,15 @@ import type {
 } from "@/lib/ielts/results/types";
 
 const QUESTION_COLUMNS =
-  "id, question_type, skill, prompt, group_instructions, word_limit, max_points, options, visual, metadata, passage_id, listening_section_id, order_index";
+  "id, question_type, skill, prompt, group_instructions, group_key, word_limit, max_points, options, visual, metadata, passage_id, listening_section_id, order_index";
+const GROUP_COLUMNS =
+  "id, group_key, skill, passage_id, listening_section_id, order_index, title, instructions, stimulus, bank, bank_reuse, answer_mode, any_order";
+/** Signed-URL lifetime for the learner's own Speaking recordings. */
+const SPEAKING_AUDIO_URL_TTL_SECONDS = 60 * 60;
 const WRITING_COLUMNS =
   "id, revision, question_id, task_number, status, essay, word_count, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, task_band, criteria_feedback, inline_corrections, paragraph_feedback, model_answer, feedback_language, grading_metadata";
 const SPEAKING_COLUMNS =
-  "id, revision, question_id, part_number, status, transcript, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, feedback_language, phoneme_report, grading_metadata";
+  "id, revision, question_id, part_number, status, transcript, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, feedback_language, phoneme_report, grading_metadata, audio_storage_path";
 
 type ResponseRow = Pick<
   Tables<"ielts_question_responses">,
@@ -59,6 +70,7 @@ type QuestionRow = Pick<
   | "skill"
   | "prompt"
   | "group_instructions"
+  | "group_key"
   | "word_limit"
   | "max_points"
   | "options"
@@ -75,6 +87,7 @@ type FrozenQuestionRow = Pick<
   | "skill"
   | "prompt"
   | "group_instructions"
+  | "group_key"
   | "word_limit"
   | "max_points"
   | "options"
@@ -128,11 +141,23 @@ type SpeakingRow = Pick<
   | "feedback_language"
   | "phoneme_report"
   | "grading_metadata"
+  | "audio_storage_path"
 >;
 type PassageRow = Pick<Tables<"passages">, "id" | "title" | "body">;
 type ListeningSectionRow = Pick<
   Tables<"listening_sections">,
   "id" | "title" | "script"
+> & {
+  /** Public, cache-busted URL of the section's READY audio; null otherwise. */
+  audioUrl: string | null;
+};
+type LiveListeningSectionRow = Pick<
+  Tables<"listening_sections">,
+  "id" | "title" | "script" | "audio_asset_id"
+>;
+type LiveAudioAssetRow = Pick<
+  Tables<"audio_assets">,
+  "id" | "status" | "version" | "storage_path"
 >;
 type ObjectiveSource = ResultsObjectiveQuestion["source"];
 type PublishedReview = {
@@ -235,13 +260,21 @@ function sourceForQuestion(
   listening: ListeningSectionRow | null,
 ): ObjectiveSource {
   if (question.skill === "reading" && passage) {
-    return { kind: "reading", title: passage.title, text: passage.body };
+    return {
+      kind: "reading",
+      title: passage.title,
+      text: passage.body,
+      partId: passage.id,
+      audioUrl: null,
+    };
   }
   if (question.skill === "listening" && listening) {
     return {
       kind: "listening",
       title: listening.title,
       text: listening.script,
+      partId: listening.id,
+      audioUrl: listening.audioUrl,
     };
   }
   return null;
@@ -305,7 +338,79 @@ function toObjectiveQuestion(params: {
     ...objectiveKeyFields(key),
     source: sourceForQuestion(question, passage, listening),
     sourceHints: sourceHintsForQuestion(question, key),
+    groupKey: question.group_key,
   };
+}
+
+/**
+ * Project group rows (frozen snapshot or live) into renderer views. Members are
+ * the attempt's questions sharing the row's `group_key`, in question order.
+ */
+function buildQuestionGroups(
+  rows: IeltsQuestionGroupRowLike[],
+  questions: QuestionRow[],
+): IeltsQuestionGroupView[] {
+  const membersByKey = new Map<string, QuestionRow[]>();
+  for (const question of questions) {
+    if (!question.group_key) continue;
+    const list = membersByKey.get(question.group_key) ?? [];
+    list.push(question);
+    membersByKey.set(question.group_key, list);
+  }
+  return [...rows]
+    .sort((a, b) => a.order_index - b.order_index)
+    .map((row) =>
+      parseQuestionGroupView(row, membersByKey.get(row.group_key) ?? []),
+    );
+}
+
+/** Public URL for a section's generated audio (only when the take is READY). */
+function listeningAudioUrl(
+  storagePath: string | null,
+  version: number | null,
+  status: string | null,
+): string | null {
+  if (!storagePath || (status !== null && status !== "ready")) return null;
+  return publicListeningAudioUrl(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    storagePath,
+    version ?? 1,
+  );
+}
+
+/**
+ * Short-lived signed URLs for the learner's own Speaking recordings. The
+ * caller has already proven ownership via the RLS attempt read; the bucket is
+ * private, so the service-role client signs. Never throws — null on failure.
+ */
+async function signSpeakingAudioUrls(
+  rows: SpeakingRow[],
+): Promise<Map<string, string | null>> {
+  const urls = new Map<string, string | null>();
+  const withAudio = rows.filter((row) => row.audio_storage_path);
+  if (withAudio.length === 0) return urls;
+  let admin: ReturnType<typeof createTypedAdminClient>;
+  try {
+    admin = createTypedAdminClient();
+  } catch {
+    return urls;
+  }
+  await Promise.all(
+    withAudio.map(async (row) => {
+      try {
+        const { data, error } = await admin.storage
+          .from(IELTS_SPEAKING_AUDIO_BUCKET)
+          .createSignedUrl(
+            row.audio_storage_path as string,
+            SPEAKING_AUDIO_URL_TTL_SECONDS,
+          );
+        urls.set(row.id, error || !data?.signedUrl ? null : data.signedUrl);
+      } catch {
+        urls.set(row.id, null);
+      }
+    }),
+  );
+  return urls;
 }
 
 function mapWritingTask(
@@ -358,6 +463,7 @@ function mapSpeakingPart(
   question: QuestionRow | undefined,
   key: KeyRow | undefined,
   review: PublishedReview | undefined,
+  audioUrl: string | null,
 ): ResultsSpeakingPart {
   return {
     questionId: row.question_id,
@@ -365,6 +471,7 @@ function mapSpeakingPart(
     partNumber: row.part_number,
     status: row.status,
     transcript: row.transcript,
+    audioUrl,
     fluencyCoherenceBand: effectivePublishedBand(
       review,
       "fluency_coherence_band",
@@ -450,28 +557,19 @@ interface AttemptReads {
   speaking: SpeakingRow[];
   effectiveScore: Record<string, unknown> | null;
   publishedReviews: PublishedReview[];
+  /** Frozen group snapshot (or live rows for legacy attempts), unsorted. */
+  groups: IeltsQuestionGroupRowLike[];
 }
 
-function mapAttemptContent(
-  questions: Array<QuestionRow | FrozenQuestionRow>,
-  frozen: boolean,
-  sourcePassages: PassageRow[],
-  sourceListeningSections: ListeningSectionRow[],
-): Pick<AttemptReads, "questions" | "passages" | "listeningSections"> {
-  if (!frozen) {
-    return {
-      questions: questions as QuestionRow[],
-      passages: sourcePassages,
-      listeningSections: sourceListeningSections,
-    };
-  }
-  const frozenQuestions = questions as FrozenQuestionRow[];
-  const mappedQuestions = frozenQuestions.map((row) => ({
+/** Frozen blueprint row → the live-shaped question row the builders consume. */
+function questionFromFrozenRow(row: FrozenQuestionRow): QuestionRow {
+  return {
     id: row.question_id,
     question_type: row.question_type,
     skill: row.skill,
     prompt: row.prompt,
     group_instructions: row.group_instructions,
+    group_key: row.group_key,
     word_limit: row.word_limit,
     max_points: row.max_points,
     options: row.options,
@@ -480,77 +578,136 @@ function mapAttemptContent(
     passage_id: row.passage_id,
     listening_section_id: row.listening_section_id,
     order_index: row.question_order,
-  }));
+  };
+}
+
+/** Passages + listening sections (with audio URL) copied into the frozen rows. */
+function collectFrozenSources(rows: FrozenQuestionRow[]): {
+  passages: PassageRow[];
+  listeningSections: ListeningSectionRow[];
+} {
   const passages = new Map<string, PassageRow>();
-  const listeningSections = new Map<string, ListeningSectionRow>();
-  for (const row of frozenQuestions) {
-    if (row.passage_id && row.source_body !== null) {
+  const listening = new Map<string, ListeningSectionRow>();
+  for (const row of rows) {
+    if (row.source_body === null) continue;
+    if (row.passage_id) {
       passages.set(row.passage_id, {
         id: row.passage_id,
         title: row.source_title ?? "",
         body: row.source_body,
       });
     }
-    if (row.listening_section_id && row.source_body !== null) {
-      listeningSections.set(row.listening_section_id, {
+    if (row.listening_section_id) {
+      listening.set(row.listening_section_id, {
         id: row.listening_section_id,
         title: row.source_title,
         script: row.source_body,
+        audioUrl: listeningAudioUrl(
+          row.source_audio_storage_path,
+          row.source_audio_version,
+          row.source_audio_status,
+        ),
       });
     }
   }
   return {
-    questions: mappedQuestions,
     passages: [...passages.values()],
-    listeningSections: [...listeningSections.values()],
+    listeningSections: [...listening.values()],
   };
 }
 
-function loadQuestionRead(
+/** Live listening sections joined to their READY audio asset. */
+function liveListeningRows(
+  sections: LiveListeningSectionRow[],
+  assets: LiveAudioAssetRow[],
+): ListeningSectionRow[] {
+  const assetById = new Map(assets.map((row) => [row.id, row]));
+  return sections.map((row) => {
+    const asset = row.audio_asset_id ? assetById.get(row.audio_asset_id) : undefined;
+    return {
+      id: row.id,
+      title: row.title,
+      script: row.script,
+      audioUrl: asset
+        ? listeningAudioUrl(asset.storage_path, asset.version, asset.status)
+        : null,
+    };
+  });
+}
+
+type EmptyRead<T> = Promise<{ data: T[]; error: null }>;
+function emptyRead<T>(): EmptyRead<T> {
+  return Promise.resolve({ data: [] as T[], error: null });
+}
+
+/** Source rows are only read live; frozen attempts carry them in the blueprint. */
+function readLiveSources(supabase: SessionClient, testId: string, frozen: boolean) {
+  return {
+    passages: frozen
+      ? emptyRead<PassageRow>()
+      : supabase
+          .from("passages")
+          .select("id, title, body")
+          .eq("test_id", testId)
+          .order("order_index"),
+    listeningSections: frozen
+      ? emptyRead<LiveListeningSectionRow>()
+      : supabase
+          .from("listening_sections")
+          .select("id, title, script, audio_asset_id")
+          .eq("test_id", testId)
+          .order("section_number"),
+    audioAssets: frozen
+      ? emptyRead<LiveAudioAssetRow>()
+      : supabase
+          .from("audio_assets")
+          .select("id, status, version, storage_path")
+          .eq("test_id", testId),
+  };
+}
+
+/** Questions + groups come from the frozen snapshot, or live for legacy attempts. */
+function readContent(
   supabase: SessionClient,
   testId: string,
   attemptId: string,
   frozen: boolean,
 ) {
-  if (frozen) {
-    return supabase
-      .from("ielts_attempt_question_blueprints")
-      .select(
-        "question_id, question_type, skill, prompt, group_instructions, word_limit, max_points, options, visual, metadata, passage_id, listening_section_id, question_order, source_title, source_body, source_audio_asset_id, source_audio_storage_path, source_audio_version, source_audio_status",
-      )
-      .eq("attempt_id", attemptId)
-      .order("question_order");
-  }
-  return supabase
-    .from("ielts_questions")
-    .select(QUESTION_COLUMNS)
-    .eq("test_id", testId)
-    .order("order_index");
+  return {
+    questions: frozen
+      ? supabase
+          .from("ielts_attempt_question_blueprints")
+          .select(
+            "question_id, question_type, skill, prompt, group_instructions, group_key, word_limit, max_points, options, visual, metadata, passage_id, listening_section_id, question_order, source_title, source_body, source_audio_asset_id, source_audio_storage_path, source_audio_version, source_audio_status",
+          )
+          .eq("attempt_id", attemptId)
+          .order("question_order")
+      : supabase
+          .from("ielts_questions")
+          .select(QUESTION_COLUMNS)
+          .eq("test_id", testId)
+          .order("order_index"),
+    groups: frozen
+      ? supabase
+          .from("ielts_attempt_question_group_blueprints")
+          .select(GROUP_COLUMNS)
+          .eq("attempt_id", attemptId)
+          .order("order_index")
+      : supabase
+          .from("ielts_question_groups")
+          .select(GROUP_COLUMNS)
+          .eq("test_id", testId)
+          .order("order_index"),
+  };
 }
 
-function loadAttemptPassages(supabase: SessionClient, testId: string, frozen: boolean) {
-  return frozen
-    ? Promise.resolve({ data: [], error: null })
-    : supabase
-        .from("passages")
-        .select("id, title, body")
-        .eq("test_id", testId)
-        .order("order_index");
+function rowsOf<T>(result: { data: T[] | null }): T[] {
+  return result.data ?? [];
 }
 
-function loadAttemptListeningSections(
-  supabase: SessionClient,
-  testId: string,
-  frozen: boolean,
-) {
-  return frozen
-    ? Promise.resolve({ data: [], error: null })
-    : supabase
-        .from("listening_sections")
-        .select("id, title, script")
-        .eq("test_id", testId)
-        .order("section_number");
-}
+
+
+
 
 function validateAttemptReads(
   results: Array<{ error: { message: string } | null }>,
@@ -570,7 +727,8 @@ async function runAttemptReads(
   conversionKey: string,
   frozen: boolean,
 ): Promise<AttemptReads> {
-  const questionRead = loadQuestionRead(supabase, testId, attemptId, frozen);
+  const content = readContent(supabase, testId, attemptId, frozen);
+  const liveSources = readLiveSources(supabase, testId, frozen);
   const [
     bandScore,
     sections,
@@ -579,10 +737,12 @@ async function runAttemptReads(
     conversions,
     passages,
     listeningSections,
+    audioAssets,
     writing,
     speaking,
     effectiveScore,
     publishedReviews,
+    groups,
   ] = await Promise.all([
     supabase
       .from("attempt_band_scores")
@@ -600,14 +760,15 @@ async function runAttemptReads(
       .from("ielts_question_responses")
       .select("question_id, response, is_correct, awarded_points")
       .eq("attempt_id", attemptId),
-    questionRead,
+    content.questions,
     supabase
       .from("band_conversions")
       .select("conversion_key, skill, module, band, raw_min, raw_max")
       .in("conversion_key", [...new Set(["default", conversionKey])])
       .in("skill", ["listening", "reading"]),
-    loadAttemptPassages(supabase, testId, frozen),
-    loadAttemptListeningSections(supabase, testId, frozen),
+    liveSources.passages,
+    liveSources.listeningSections,
+    liveSources.audioAssets,
     supabase
       .from("writing_responses")
       .select(WRITING_COLUMNS)
@@ -631,6 +792,7 @@ async function runAttemptReads(
       .eq("attempt_id", attemptId)
       .eq("status", "published")
       .order("published_at", { ascending: false }),
+    content.groups,
   ]);
 
   validateAttemptReads([
@@ -640,34 +802,37 @@ async function runAttemptReads(
     conversions,
     passages,
     listeningSections,
+    audioAssets,
     writing,
     speaking,
     effectiveScore,
     publishedReviews,
+    groups,
   ]);
 
-  const questionRows = (questions.data ?? []) as Array<
-    QuestionRow | FrozenQuestionRow
-  >;
-  const content = mapAttemptContent(
-    questionRows,
-    frozen,
-    passages.data ?? [],
-    listeningSections.data ?? [],
-  );
+  const questionRows = rowsOf<QuestionRow | FrozenQuestionRow>(questions);
+  const frozenQuestions = frozen ? (questionRows as FrozenQuestionRow[]) : [];
+  const frozenSources = collectFrozenSources(frozenQuestions);
   return {
-    bandScore: bandScore.data ?? null,
-    sections: sections.data ?? [],
-    responses: responses.data ?? [],
-    questions: content.questions,
-    conversions: (conversions.data ?? []) as BandConversionRow[],
-    passages: content.passages,
-    listeningSections: content.listeningSections,
-    writing: writing.data ?? [],
-    speaking: speaking.data ?? [],
-    effectiveScore:
-      (effectiveScore.data as Record<string, unknown> | null) ?? null,
-    publishedReviews: (publishedReviews.data ?? []) as PublishedReview[],
+    bandScore: bandScore.data,
+    sections: rowsOf(sections),
+    responses: rowsOf(responses),
+    questions: frozen
+      ? frozenQuestions.map(questionFromFrozenRow)
+      : (questionRows as QuestionRow[]),
+    conversions: rowsOf<BandConversionRow>(conversions),
+    passages: frozen ? frozenSources.passages : rowsOf(passages),
+    listeningSections: frozen
+      ? frozenSources.listeningSections
+      : liveListeningRows(
+          rowsOf<LiveListeningSectionRow>(listeningSections),
+          rowsOf<LiveAudioAssetRow>(audioAssets),
+        ),
+    writing: rowsOf(writing),
+    speaking: rowsOf(speaking),
+    effectiveScore: effectiveScore.data as Record<string, unknown> | null,
+    publishedReviews: rowsOf<PublishedReview>(publishedReviews),
+    groups: rowsOf<IeltsQuestionGroupRowLike>(groups),
   };
 }
 
@@ -786,6 +951,7 @@ export async function loadAttemptResults(
   // Reveal keys only once the sitting has been submitted (never mid-attempt).
   const keys = await loadSubmittedQuestionKeys(attempt, reads, attemptId);
   const keyByQuestion = new Map(keys.map((key) => [key.question_id, key]));
+  const speakingAudioUrls = await signSpeakingAudioUrls(reads.speaking);
   const effective = projectEffectiveBands(
     reads.effectiveScore,
     reads.bandScore as unknown as Record<string, unknown> | null,
@@ -829,7 +995,9 @@ export async function loadAttemptResults(
         questionById.get(row.question_id),
         keyByQuestion.get(row.question_id),
         reviewIndexes.byResponse.get(`${row.id}:${row.revision}`),
+        speakingAudioUrls.get(row.id) ?? null,
       ),
     ),
+    questionGroups: buildQuestionGroups(reads.groups, reads.questions),
   };
 }

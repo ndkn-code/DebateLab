@@ -9,6 +9,8 @@ import { meterFeature } from "@/lib/payments/meter";
 import { METERED_FEATURES } from "@/lib/payments/metering";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/types/supabase";
+import { VisualSchema } from "@/lib/api/ielts/visual";
+import { parseQuestionMetadata } from "@/lib/ielts/question-types/metadata";
 import {
   findIeltsBandExamples,
   getIeltsRubric,
@@ -286,6 +288,8 @@ export async function runIeltsWritingScoringJob(
       feedbackLanguage: response.feedback_language === "vi" ? "vi" : "en",
       grounding,
       evidenceContext: joinKnowledgeContext(rubric, broadExamples),
+      visual: VisualSchema.safeParse(question.visual).data ?? null,
+      letter: parseQuestionMetadata(question.metadata).letter ?? null,
     });
     const provisional = await runWritingModel({
       prompt,

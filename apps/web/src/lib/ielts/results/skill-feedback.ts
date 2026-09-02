@@ -310,6 +310,7 @@ function toSpeakingPartResult(part: ResultsSpeakingPart): SpeakingPartResult {
     summary: feedback.summary?.trim() || null,
     modelAnswer: part.modelAnswer,
     pronunciationHeatmap: toPronunciationHeatmap(part.phonemeReport),
+    audioUrl: part.audioUrl ?? null,
     gradingMetadata: part.gradingMetadata,
     teacherFeedback: part.teacherFeedback,
     teacherCriterionFeedback: part.teacherCriterionFeedback,

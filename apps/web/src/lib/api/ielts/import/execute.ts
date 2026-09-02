@@ -10,12 +10,14 @@ import type { Json } from "@/types/supabase";
 import type { IeltsDbClient } from "../client";
 import { createListeningSection } from "../listening-repository";
 import { createPassage } from "../passages-repository";
+import { createQuestionGroup } from "../question-groups-repository";
 import { createQuestion } from "../questions-repository";
 import type { ImportPlan } from "./plan";
 import type {
   ImportReport,
   ImportRowResult,
   MappedQuestion,
+  MappedQuestionGroup,
   MappedPassage,
   MappedSection,
 } from "./types";
@@ -37,14 +39,16 @@ function importIdSet(rows: Array<{ metadata: Json }> | null): Set<string> {
 }
 
 async function loadExistingImportIds(supabase: IeltsDbClient, testId: string) {
-  const [passages, sections, questions] = await Promise.all([
+  const [passages, sections, groups, questions] = await Promise.all([
     supabase.from("passages").select("metadata").eq("test_id", testId),
     supabase.from("listening_sections").select("metadata").eq("test_id", testId),
+    supabase.from("ielts_question_groups").select("metadata").eq("test_id", testId),
     supabase.from("ielts_questions").select("metadata").eq("test_id", testId),
   ]);
   return {
     passages: importIdSet(passages.data),
     sections: importIdSet(sections.data),
+    groups: importIdSet(groups.data),
     questions: importIdSet(questions.data),
   };
 }
@@ -126,6 +130,37 @@ function resolveLink(
   return id;
 }
 
+/** Groups go in BEFORE questions so member rows are checked against their group. */
+async function importGroups(
+  items: MappedQuestionGroup[],
+  testId: string,
+  supabase: IeltsDbClient,
+  existing: Set<string>,
+  passageMap: Map<string, string>,
+  sectionMap: Map<string, string>,
+  warnings: string[],
+) {
+  const rows: ImportRowResult[] = [];
+  let created = 0;
+  for (const item of items) {
+    const base = { tab: "Question Groups", rowNumber: item.rowNumber, importId: item.importId, entity: "question_group" as const };
+    if (item.importId && existing.has(item.importId)) {
+      rows.push({ ...base, outcome: "skipped", message: "already imported" });
+      continue;
+    }
+    const passageId = resolveLink(item.passageImportId, passageMap, item.rowNumber, "passage", warnings);
+    const listeningSectionId = resolveLink(item.sectionImportId, sectionMap, item.rowNumber, "script", warnings);
+    try {
+      await createQuestionGroup({ testId, passageId, listeningSectionId, ...item.input }, supabase);
+      created++;
+      rows.push({ ...base, outcome: "created" });
+    } catch (error) {
+      rows.push({ ...base, outcome: "error", message: errorMessage(error) });
+    }
+  }
+  return { rows, created };
+}
+
 async function importQuestions(
   items: MappedQuestion[],
   testId: string,
@@ -165,6 +200,15 @@ export async function executeImportPlan(
   const warnings = [...plan.warnings];
   const passageResult = await importPassages(plan.passages, testId, supabase, existing.passages);
   const sectionResult = await importSections(plan.listeningSections, testId, supabase, existing.sections);
+  const groupResult = await importGroups(
+    plan.questionGroups,
+    testId,
+    supabase,
+    existing.groups,
+    passageResult.map,
+    sectionResult.map,
+    warnings,
+  );
   const questionResult = await importQuestions(
     plan.questions,
     testId,
@@ -174,12 +218,18 @@ export async function executeImportPlan(
     sectionResult.map,
     warnings,
   );
-  const rows = [...passageResult.rows, ...sectionResult.rows, ...questionResult.rows];
+  const rows = [
+    ...passageResult.rows,
+    ...sectionResult.rows,
+    ...groupResult.rows,
+    ...questionResult.rows,
+  ];
   return {
     testId,
     created: {
       passages: passageResult.created,
       listeningSections: sectionResult.created,
+      questionGroups: groupResult.created,
       questions: questionResult.created,
     },
     skipped: rows.filter((r) => r.outcome === "skipped").length,

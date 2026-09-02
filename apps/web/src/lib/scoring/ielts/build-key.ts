@@ -7,6 +7,10 @@
  * write correct values: select families grade option ids; completion/labeling
  * grade text unless the question carries an option bank (e.g. a word list), in
  * which case they grade the chosen option id.
+ *
+ * Text keys are also expanded the way an official answer key reads them:
+ * `roof-top/rooftop` lists two alternatives and `(the) garden` marks an
+ * optional word — see {@link expandKeyAlternatives}.
  */
 import type {
   BlankKey,
@@ -50,6 +54,61 @@ function dedupe(values: string[]): string[] {
   return [...new Set(values)];
 }
 
+function collapseSpaces(value: string): string {
+  return value.replace(/\s+/g, " ").trim();
+}
+
+const OPTIONAL_GROUP = /\(([^()]*)\)/;
+const MAX_OPTIONAL_GROUPS = 4;
+
+/** `(the) garden` → [`the garden`, `garden`] (cartesian over up to 4 groups). */
+function expandOptionalGroups(value: string): string[] {
+  let forms = [value];
+  for (let round = 0; round < MAX_OPTIONAL_GROUPS; round += 1) {
+    const next: string[] = [];
+    let expanded = false;
+    for (const form of forms) {
+      const match = OPTIONAL_GROUP.exec(form);
+      if (!match || match.index === undefined) {
+        next.push(form);
+        continue;
+      }
+      expanded = true;
+      const before = form.slice(0, match.index);
+      const after = form.slice(match.index + match[0].length);
+      next.push(collapseSpaces(`${before}${match[1]}${after}`));
+      next.push(collapseSpaces(`${before} ${after}`));
+    }
+    forms = next;
+    if (!expanded) break;
+  }
+  return forms;
+}
+
+/** `roof-top/rooftop` → both; `1/2` and `12/05` stay intact (no letters). */
+function expandSlashAlternatives(value: string): string[] {
+  if (!value.includes("/")) return [value];
+  const parts = value.split("/").map(collapseSpaces);
+  const hasLetter = parts.some((part) => /\p{L}/u.test(part));
+  if (!hasLetter) return [value];
+  return parts;
+}
+
+/**
+ * Expand one authored text key into every string it stands for, the way the
+ * official key notation is read: `/` separates alternatives (only when at least
+ * one side has a letter, so fractions and dates like `1/2`, `12/05` survive),
+ * and a parenthesised word is optional. The original string is always kept
+ * first; results are trimmed, non-empty, and de-duplicated.
+ */
+export function expandKeyAlternatives(value: string): string[] {
+  const out = [value];
+  for (const form of expandOptionalGroups(value)) {
+    out.push(...expandSlashAlternatives(form));
+  }
+  return dedupe(out.map(collapseSpaces).filter((entry) => entry.length > 0));
+}
+
 function buildBlankKey(
   mode: BlankMode,
   correct: BlankValue,
@@ -60,9 +119,12 @@ function buildBlankKey(
     const accept = dedupe(toStringArray(correct));
     return { mode, accept, select: selectCount ?? accept.length };
   }
-  // select + text both accept the canonical value(s) plus any variants.
-  const accept = dedupe([...toStringArray(correct), ...variants]);
-  return { mode, accept };
+  const authored = [...toStringArray(correct), ...variants];
+  if (mode === "text") {
+    return { mode, accept: dedupe(authored.flatMap(expandKeyAlternatives)) };
+  }
+  // select accepts the canonical option id(s) plus any variants verbatim.
+  return { mode, accept: dedupe(authored) };
 }
 
 export function buildAnswerKey(

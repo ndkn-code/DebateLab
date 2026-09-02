@@ -19,16 +19,65 @@ import {
   parseQuestionView,
   parseRawAnswerKey,
 } from "@/lib/ielts/question-types/schemas";
+import { parseQuestionMetadata } from "@/lib/ielts/question-types/metadata";
 import type {
   IeltsAnswer,
   IeltsVerdict,
 } from "@/lib/ielts/question-types/types";
 import { buildAnswerKey } from "@/lib/scoring/ielts/build-key";
 import { gradeQuestion } from "@/lib/scoring/ielts/grade-question";
+import { parseAllowNumber } from "@/lib/scoring/ielts/text-normalize";
 
 /** Non-secret columns needed to grade (everything bar the key itself). */
 const QUESTION_COLUMNS =
-  "id, question_type, skill, prompt, group_instructions, word_limit, max_points, options, visual, metadata";
+  "id, question_type, skill, prompt, group_instructions, word_limit, max_points, options, visual, metadata, test_id, group_key";
+
+interface GradingQuestionRow {
+  test_id: string;
+  group_key: string | null;
+}
+
+/**
+ * Instructions of the groups these questions belong to, keyed by
+ * `${test_id}:${group_key}`. Only fetched when some question has a group.
+ * Note: the group's `any_order` flag is deliberately NOT consulted here —
+ * any-order marking is a set-level rule over several rows, so it can only be
+ * applied by the attempt grader (`grade-attempt.ts`), never when grading one
+ * question in isolation.
+ */
+async function loadGroupInstructions(
+  supabase: ReturnType<typeof createTypedAdminClient>,
+  questions: readonly GradingQuestionRow[],
+): Promise<Map<string, string | null>> {
+  const testIds = [
+    ...new Set(questions.filter((q) => q.group_key).map((q) => q.test_id)),
+  ];
+  if (testIds.length === 0) return new Map();
+  const { data, error } = await supabase
+    .from("ielts_question_groups")
+    .select("test_id, group_key, instructions")
+    .in("test_id", testIds);
+  if (error) {
+    throw new Error(`gradeQuestionResponses (groups): ${error.message}`);
+  }
+  return new Map(
+    (data ?? []).map((row) => [`${row.test_id}:${row.group_key}`, row.instructions]),
+  );
+}
+
+/** `metadata.allowNumber` wins; else the row's or its group's instructions. */
+function resolveAllowNumber(params: {
+  metadata: unknown;
+  groupInstructions: string | null;
+  groupSetInstructions: string | null | undefined;
+}): boolean {
+  const explicit = parseQuestionMetadata(params.metadata).allowNumber;
+  if (typeof explicit === "boolean") return explicit;
+  return (
+    parseAllowNumber(params.groupInstructions) ||
+    parseAllowNumber(params.groupSetInstructions)
+  );
+}
 
 export const GradeResponseInputSchema = z.object({
   questionId: z.string().uuid(),
@@ -66,9 +115,11 @@ export async function gradeQuestionResponses(
   const keyByQuestion = new Map(
     (keysResult.data ?? []).map((row) => [row.question_id, row]),
   );
+  const questionRows = questionsResult.data ?? [];
+  const groupInstructions = await loadGroupInstructions(supabase, questionRows);
 
   const verdicts: Record<string, IeltsVerdict> = {};
-  for (const question of questionsResult.data ?? []) {
+  for (const question of questionRows) {
     const keyRow = keyByQuestion.get(question.id);
     if (!keyRow || !isObjectiveQuestionType(question.question_type)) continue;
 
@@ -80,7 +131,16 @@ export async function gradeQuestionResponses(
       selectCount: view.selectCount,
     });
     verdicts[question.id] = gradeQuestion(
-      { wordLimit: view.wordLimit },
+      {
+        wordLimit: view.wordLimit,
+        allowNumber: resolveAllowNumber({
+          metadata: question.metadata,
+          groupInstructions: question.group_instructions,
+          groupSetInstructions: question.group_key
+            ? groupInstructions.get(`${question.test_id}:${question.group_key}`)
+            : undefined,
+        }),
+      },
       key,
       answers[question.id],
     );

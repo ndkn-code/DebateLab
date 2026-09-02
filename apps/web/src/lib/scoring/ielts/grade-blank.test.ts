@@ -49,4 +49,53 @@ assert.deepEqual(gradeBlank({ mode: "text", accept: ["3.0"] }, "3", null), {
   correct: true,
 });
 
+// allowNumber: "3 weeks" is 1 word with the allowance, 2 without
+const weeks: BlankKey = { mode: "text", accept: ["3 weeks"] };
+assert.deepEqual(gradeBlank(weeks, "3 weeks", 1), { awarded: 0, max: 1, correct: false });
+assert.deepEqual(gradeBlank(weeks, "3 weeks", 1, { allowNumber: true }), {
+  awarded: 1,
+  max: 1,
+  correct: true,
+});
+// the allowance frees numerals only — "three weeks" is still two words
+assert.deepEqual(gradeBlank(weeks, "three weeks", 1, { allowNumber: true }), {
+  awarded: 0,
+  max: 1,
+  correct: false,
+});
+assert.deepEqual(gradeBlank(weeks, "three weeks", 2, { allowNumber: true }), {
+  awarded: 1, // within the limit, "three" ≡ "3" for matching
+  max: 1,
+  correct: true,
+});
+// allowNumber over the limit → 0 even though the text matches
+assert.deepEqual(gradeBlank(weeks, "about 3 whole weeks", 2, { allowNumber: true }), {
+  awarded: 0,
+  max: 1,
+  correct: false,
+});
+// canonical tolerance: number words, hyphens, leading article
+assert.deepEqual(gradeBlank({ mode: "text", accept: ["20"] }, "twenty", null), {
+  awarded: 1,
+  max: 1,
+  correct: true,
+});
+assert.deepEqual(gradeBlank({ mode: "text", accept: ["part time"] }, "part-time", null), {
+  awarded: 1,
+  max: 1,
+  correct: true,
+});
+assert.deepEqual(gradeBlank({ mode: "text", accept: ["garden"] }, "the garden", 1), {
+  awarded: 0, // "the garden" is still TWO words against a 1-word limit
+  max: 1,
+  correct: false,
+});
+assert.deepEqual(gradeBlank({ mode: "text", accept: ["garden"] }, "the garden", 2), {
+  awarded: 1,
+  max: 1,
+  correct: true,
+});
+// select ignores allowNumber
+assert.deepEqual(gradeBlank(sel, "b", 1, { allowNumber: true }), { awarded: 1, max: 1, correct: true });
+
 console.log("scoring/ielts/grade-blank tests passed");

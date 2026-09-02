@@ -50,6 +50,27 @@ export function parseLeadingInt(value: string | null | undefined): number | null
   return Number.isFinite(n) ? n : null;
 }
 
+const NUMBER_WORDS: Record<string, number> = { one: 1, two: 2, three: 3, four: 4, five: 5 };
+
+/**
+ * Word limit implied by official-style instructions ("Write NO MORE THAN TWO
+ * WORDS AND/OR A NUMBER", "no more than 3 words"). Null when absent.
+ */
+export function parseWordLimit(instructions: string | null | undefined): number | null {
+  if (!instructions) return null;
+  const match = instructions.toLowerCase().match(/no more than\s+([\w-]+)\s+word/);
+  if (!match) return null;
+  const token = match[1];
+  return parseLeadingInt(token) ?? NUMBER_WORDS[token] ?? null;
+}
+
+const ALLOW_NUMBER_PATTERN = /and\s*\/?\s*or\s+a\s+number|and\s+a\s+number|or\s+a\s+number/i;
+
+/** Whether instructions permit a number that does not count toward the word limit. */
+export function instructionsAllowNumber(instructions: string | null | undefined): boolean {
+  return Boolean(instructions) && ALLOW_NUMBER_PATTERN.test(instructions as string);
+}
+
 export type TfngToken = "TRUE" | "FALSE" | "NOT GIVEN";
 export type YnngToken = "YES" | "NO" | "NOT GIVEN";
 

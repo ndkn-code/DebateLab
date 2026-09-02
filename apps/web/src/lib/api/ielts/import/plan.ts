@@ -8,17 +8,20 @@ import { IELTS_IMPORT_TABS, sheetRows, type ParsedWorkbook } from "./workbook";
 import {
   mapListeningQuestionRow,
   mapPassageRow,
+  mapQuestionGroupRow,
   mapReadingQuestionRow,
   mapSectionRow,
   mapSpeakingRow,
   mapWritingRow,
 } from "./column-map";
-import type { MappedPassage, MappedQuestion, MappedSection } from "./types";
+import type { MappedPassage, MappedQuestion, MappedQuestionGroup, MappedSection } from "./types";
 import type { Row as CellRow } from "./cells";
 
 export interface ImportPlan {
   passages: MappedPassage[];
   listeningSections: MappedSection[];
+  /** Imported before questions so member rows can be checked against their group. */
+  questionGroups: MappedQuestionGroup[];
   questions: MappedQuestion[];
   warnings: string[];
 }
@@ -57,6 +60,10 @@ export function planWorkbookImport(workbook: ParsedWorkbook): ImportPlan {
     sheetRows(workbook, IELTS_IMPORT_TABS.listeningScripts),
     mapSectionRow,
   );
+  const questionGroups = mapRows(
+    sheetRows(workbook, IELTS_IMPORT_TABS.questionGroups),
+    mapQuestionGroupRow,
+  );
   const questions = [
     ...mapRows(sheetRows(workbook, IELTS_IMPORT_TABS.readingQuestions), mapReadingQuestionRow),
     ...mapRows(sheetRows(workbook, IELTS_IMPORT_TABS.listeningQuestions), mapListeningQuestionRow),
@@ -65,14 +72,20 @@ export function planWorkbookImport(workbook: ParsedWorkbook): ImportPlan {
   ];
 
   const warnings: string[] = [];
+  questionGroups.forEach((g) =>
+    g.warnings.forEach((w) => warnings.push(`Question Groups row ${g.rowNumber}: ${w}`)),
+  );
+  questions.forEach((q) =>
+    (q.warnings ?? []).forEach((w) => warnings.push(`Question row ${q.rowNumber}: ${w}`)),
+  );
   const sets = collectSets(passages, listeningSections, questions);
   if (sets.length > 1) {
     warnings.push(
       `Workbook spans ${sets.length} sets (${sets.join(", ")}); all rows import into the one target test.`,
     );
   }
-  if (passages.length + listeningSections.length + questions.length === 0) {
+  if (passages.length + listeningSections.length + questionGroups.length + questions.length === 0) {
     warnings.push("No importable rows found — check the tab names match the template.");
   }
-  return { passages, listeningSections, questions, warnings };
+  return { passages, listeningSections, questionGroups, questions, warnings };
 }

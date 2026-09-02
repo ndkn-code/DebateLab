@@ -6,6 +6,8 @@
  *                   choosing MORE than required scores 0 (standard IELTS rule).
  *  - text         → variant-tolerant match, with the word limit enforced
  *                   (over the limit = wrong, per the official marking guidance).
+ *                   With `allowNumber` ("ONE WORD AND/OR A NUMBER") numeric
+ *                   tokens are free under the limit.
  */
 import type {
   BlankKey,
@@ -13,6 +15,11 @@ import type {
   BlankVerdict,
 } from "@/lib/ielts/question-types/types";
 import { exceedsWordLimit, textMatches } from "./text-normalize";
+
+export interface GradeBlankOptions {
+  /** Numeric tokens do not count toward the word limit (default false). */
+  allowNumber?: boolean;
+}
 
 function asString(value: BlankValue | undefined): string {
   return typeof value === "string" ? value : "";
@@ -49,10 +56,13 @@ function gradeText(
   key: BlankKey,
   value: BlankValue | undefined,
   wordLimit: number | null,
+  options: GradeBlankOptions,
 ): BlankVerdict {
   const max = key.points ?? 1;
   const answer = asString(value);
-  if (exceedsWordLimit(answer, wordLimit)) return { awarded: 0, max, correct: false };
+  if (exceedsWordLimit(answer, wordLimit, { allowNumber: options.allowNumber })) {
+    return { awarded: 0, max, correct: false };
+  }
   const correct = textMatches(answer, key.accept);
   return { awarded: correct ? max : 0, max, correct };
 }
@@ -61,6 +71,7 @@ export function gradeBlank(
   key: BlankKey,
   value: BlankValue | undefined,
   wordLimit: number | null,
+  options: GradeBlankOptions = {},
 ): BlankVerdict {
   switch (key.mode) {
     case "select":
@@ -68,6 +79,6 @@ export function gradeBlank(
     case "multi_select":
       return gradeMultiSelect(key, value);
     case "text":
-      return gradeText(key, value, wordLimit);
+      return gradeText(key, value, wordLimit, options);
   }
 }

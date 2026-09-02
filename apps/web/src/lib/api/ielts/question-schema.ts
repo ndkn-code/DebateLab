@@ -7,15 +7,23 @@
  */
 import { z } from "zod";
 import type { Database, Json } from "@/types/supabase";
-import { validateAdaptiveQuestionMetadata } from "@/lib/ielts/adaptive/evidence";
+import { AdaptiveQuestionMetadataSchema } from "@/lib/ielts/adaptive/evidence";
+import {
+  IeltsQuestionMetadataSchema,
+  parseQuestionMetadata,
+  type IeltsQuestionMetadata,
+} from "@/lib/ielts/question-types/metadata";
+import { promptBlankIds } from "@/lib/ielts/question-types/prompt";
 import { IELTS_QUESTION_TYPES, IELTS_SKILLS } from "./schema";
 import { JsonSchema } from "./json";
 import { VisualSchema, type IeltsVisual } from "./visual";
 import {
   dedupeStrings,
+  instructionsAllowNumber,
   normalizeTfngToken,
   normalizeWhitespace,
   normalizeYnngToken,
+  parseWordLimit,
   splitPipeList,
 } from "./normalize";
 
@@ -33,6 +41,19 @@ const SPEAKING_TYPES = new Set<IeltsQuestionType>([
   "speaking_part3",
 ]);
 const MCQ_TYPES = new Set<IeltsQuestionType>(["mcq_single", "mcq_multi"]);
+const MATCHING_TYPES = new Set<IeltsQuestionType>([
+  "matching_headings",
+  "matching_information",
+  "matching_features",
+  "matching_sentence_endings",
+]);
+const COMPLETION_TYPES = new Set<IeltsQuestionType>([
+  "sentence_completion",
+  "summary_completion",
+  "note_table_form_flowchart_completion",
+  "short_answer",
+]);
+const LABELING_TYPES = new Set<IeltsQuestionType>(["diagram_label", "map_plan_label"]);
 
 export type QuestionCategory = "writing" | "speaking" | "objective";
 
@@ -58,10 +79,33 @@ const AcceptVariantsPayload = z.union([
   z.record(z.string(), z.array(z.string())),
 ]);
 
+/**
+ * Strict metadata: JSON-only values, the typed player/grader fields
+ * (`items`, `selectCount`, `slot`, `numberSpan`, `allowNumber`, `cueCard`,
+ * `letter`) validated with defaults applied, and the adaptive tags checked
+ * (same rules as `validateAdaptiveQuestionMetadata`, issues scoped to this
+ * field). Output stays a plain JSON record for the jsonb column.
+ */
 const MetadataSchema = z
   .record(z.string(), JsonSchema)
   .default({})
-  .superRefine(validateAdaptiveQuestionMetadata);
+  .transform((raw, ctx) => {
+    const parsed = IeltsQuestionMetadataSchema.safeParse(raw);
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        ctx.addIssue({ code: "custom", message: issue.message, path: issue.path });
+      }
+      return z.NEVER;
+    }
+    const adaptive = AdaptiveQuestionMetadataSchema.safeParse(parsed.data);
+    if (!adaptive.success) {
+      for (const issue of adaptive.error.issues) {
+        ctx.addIssue({ code: "custom", message: issue.message, path: issue.path });
+      }
+      return z.NEVER;
+    }
+    return parsed.data as Record<string, Json>;
+  });
 
 const BaseQuestion = z.object({
   testId: z.string().uuid(),
@@ -218,6 +262,86 @@ function normalizeAcceptVariants(
   return toStringArray(raw) as Json;
 }
 
+type Q = NormalizedQuestionInput;
+type Meta = IeltsQuestionMetadata;
+
+function validateMcqMulti(v: Q, meta: Meta, add: Add): void {
+  const want = meta.selectCount ?? meta.numberSpan;
+  if (want == null) return;
+  if (want > v.options.length) {
+    add("metadata.selectCount", `mcq_multi asks for ${want} choices but has ${v.options.length} options`);
+  }
+  const chosen = Array.isArray(v.correctAnswer) ? v.correctAnswer.length : -1;
+  if (meta.selectCount != null && chosen !== meta.selectCount) {
+    add("correctAnswer", `mcq_multi key must list exactly ${meta.selectCount} correct options`);
+  }
+  if (meta.numberSpan != null) {
+    if (chosen !== meta.numberSpan) {
+      add("correctAnswer", `mcq_multi key must list exactly ${meta.numberSpan} correct options (numberSpan)`);
+    }
+    if (v.maxPoints !== meta.numberSpan) {
+      add("maxPoints", `maxPoints must equal numberSpan (${meta.numberSpan})`);
+    }
+  }
+}
+
+function validateMatching(v: Q, meta: Meta, add: Add): void {
+  const hasItems = (meta.items?.length ?? 0) > 0;
+  if (v.options.length === 0 && !hasItems && !v.groupKey) {
+    add("options", `${v.questionType} needs options, metadata.items, or a groupKey (shared bank)`);
+  }
+}
+
+function validateCompletion(v: Q, add: Add): void {
+  const markers = promptBlankIds(v.prompt);
+  const isRecord = isPlainRecord(v.correctAnswer);
+  if (markers.length >= 2 && !isRecord) {
+    add("correctAnswer", "a prompt with several __BLANK_ markers needs a { blankId: answer } key");
+    return;
+  }
+  if (!isRecord) return;
+  const key = v.correctAnswer as Record<string, Json>;
+  const missing = markers.filter((id) => !(id in key));
+  if (missing.length > 0) {
+    add("correctAnswer", `key is missing blank(s): ${missing.join(", ")}`);
+  }
+}
+
+function validateLabeling(v: Q, add: Add): void {
+  if (v.visual?.type !== "image" && !v.groupKey) {
+    add("visual", `${v.questionType} needs an image visual or a groupKey (shared image stimulus)`);
+  }
+}
+
+/** Per-type invariants on the normalized question (metadata already strict). */
+function validateTypeRules(v: Q, add: Add): void {
+  const meta = parseQuestionMetadata(v.metadata);
+  const type = v.questionType;
+  if (type === "mcq_multi") validateMcqMulti(v, meta, add);
+  if (MATCHING_TYPES.has(type)) validateMatching(v, meta, add);
+  if (COMPLETION_TYPES.has(type)) validateCompletion(v, add);
+  if (LABELING_TYPES.has(type)) validateLabeling(v, add);
+  if (type === "speaking_part2_cuecard" && !meta.cueCard) {
+    add("metadata.cueCard", "speaking_part2_cuecard requires metadata.cueCard");
+  }
+  if (type === "writing_task1_general" && !meta.letter) {
+    add("metadata.letter", "writing_task1_general requires metadata.letter");
+  }
+}
+
+/** Fill `wordLimit` / `metadata.allowNumber` from the instructions when unset. */
+function deriveFromInstructions(
+  instructions: string | null,
+  wordLimit: number | null,
+  metadata: Record<string, Json>,
+): { wordLimit: number | null; metadata: Record<string, Json> } {
+  const derivedLimit = wordLimit ?? parseWordLimit(instructions);
+  if (metadata.allowNumber === undefined && instructionsAllowNumber(instructions)) {
+    return { wordLimit: derivedLimit, metadata: { ...metadata, allowNumber: true } };
+  }
+  return { wordLimit: derivedLimit, metadata };
+}
+
 function trimToNull(value: string | null | undefined): string | null {
   if (value == null) return null;
   const trimmed = value.trim();
@@ -237,13 +361,9 @@ function normalizeQuestion(
   const correctAnswer = normalizeCorrectAnswer(v.questionType, v.correctAnswer, add);
   const prompt = v.prompt.trim();
   if (prompt.length === 0) add("prompt", "prompt is required");
-
-  for (const [path, message] of problems) {
-    ctx.addIssue({ code: "custom", message, path: [path] });
-  }
-  if (problems.length > 0) return null;
-
-  return {
+  const groupInstructions = trimToNull(v.groupInstructions);
+  const derived = deriveFromInstructions(groupInstructions, v.wordLimit ?? null, v.metadata);
+  const out: NormalizedQuestionInput = {
     testId: v.testId,
     skill: v.skill,
     questionType: v.questionType,
@@ -252,12 +372,12 @@ function normalizeQuestion(
     listeningSectionId: v.listeningSectionId ?? null,
     orderIndex: v.orderIndex,
     groupKey: trimToNull(v.groupKey),
-    groupInstructions: trimToNull(v.groupInstructions),
+    groupInstructions,
     options,
     maxPoints: v.maxPoints,
-    wordLimit: v.wordLimit ?? null,
+    wordLimit: derived.wordLimit,
     visual: v.visual ?? null,
-    metadata: v.metadata,
+    metadata: derived.metadata,
     correctAnswer,
     acceptVariants: normalizeAcceptVariants(v.acceptVariants),
     explanationEn: trimToNull(v.explanationEn),
@@ -265,6 +385,12 @@ function normalizeQuestion(
     modelAnswer: trimToNull(v.modelAnswer),
     examinerNotes: v.examinerNotes,
   };
+  validateTypeRules(out, add);
+
+  for (const [path, message] of problems) {
+    ctx.addIssue({ code: "custom", message, path: path.split(".") });
+  }
+  return problems.length > 0 ? null : out;
 }
 
 export const CreateIeltsQuestionSchema = BaseQuestion.transform((v, ctx) => {

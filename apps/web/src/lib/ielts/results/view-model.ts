@@ -44,6 +44,7 @@ export function buildAttemptResultsViewModel(
     skills: buildSkillBandRows(input, derived),
     breakdowns: buildBandBreakdowns(input),
     objective: buildObjectiveReview(input),
+    groups: input.questionGroups ?? [],
     writing,
     speaking,
   };

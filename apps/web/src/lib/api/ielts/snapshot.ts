@@ -14,6 +14,8 @@ export interface IeltsContentSnapshot {
   passages: Json;
   listeningSections: Json;
   questions: Json;
+  /** Question groups (format-variety pass). Absent on snapshots taken before groups existed. */
+  questionGroups?: Json;
 }
 
 export function buildTestSnapshot(tree: IeltsTestTree): IeltsContentSnapshot {
@@ -24,5 +26,6 @@ export function buildTestSnapshot(tree: IeltsTestTree): IeltsContentSnapshot {
     passages: tree.passages as unknown as Json,
     listeningSections: tree.listeningSections as unknown as Json,
     questions: tree.questions as unknown as Json,
+    questionGroups: (tree.questionGroups ?? []) as unknown as Json,
   };
 }

@@ -32,17 +32,48 @@ export interface MappedSection {
   };
 }
 
+/**
+ * A "Question Groups" row — the shared bank / stimulus for a set of numbered
+ * questions. `importId` is the group key (unique per test); member questions
+ * reference it through their `Group Key` column.
+ */
+export interface MappedQuestionGroup {
+  importId: string;
+  rowNumber: number;
+  passageImportId: string | null;
+  sectionImportId: string | null;
+  /** Cell-level problems (e.g. unparseable stimulus JSON) surfaced as plan warnings. */
+  warnings: string[];
+  input: {
+    skill: string;
+    groupKey: string;
+    orderIndex: number;
+    title: string | null;
+    instructions: string | null;
+    stimulus: Json | null;
+    /** Pipe-separated bank; normalized by the canonical create path. */
+    bank: string;
+    bankReuse: boolean;
+    answerMode: "select" | "text" | null;
+    anyOrder: boolean;
+    metadata: Record<string, Json>;
+  };
+}
+
 /** The question fields a row maps to — links stay as import-ids until execute. */
 export interface MappedQuestion {
   importId: string | null;
   rowNumber: number;
   passageImportId: string | null;
   sectionImportId: string | null;
+  /** Cell-level problems (e.g. unparseable visual JSON) surfaced as plan warnings. */
+  warnings?: string[];
   input: {
     skill: "listening" | "reading" | "writing" | "speaking";
     questionType: string;
     prompt: string;
     options: string;
+    groupKey: string;
     groupInstructions: string;
     wordLimit: number | null;
     visual: Json | null;
@@ -63,14 +94,19 @@ export interface ImportRowResult {
   tab: string;
   rowNumber: number;
   importId: string | null;
-  entity: "passage" | "listening_section" | "question";
+  entity: "passage" | "listening_section" | "question_group" | "question";
   outcome: ImportRowOutcome;
   message?: string;
 }
 
 export interface ImportReport {
   testId: string;
-  created: { passages: number; listeningSections: number; questions: number };
+  created: {
+    passages: number;
+    listeningSections: number;
+    questionGroups: number;
+    questions: number;
+  };
   skipped: number;
   errors: number;
   warnings: string[];

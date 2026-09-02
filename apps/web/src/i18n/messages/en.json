@@ -4074,7 +4074,15 @@
           "pauseBody": "Freeze the clock in Reading, Writing, and Speaking. Listening cannot be paused.",
           "timerTitle": "Timer",
           "timerBody": "Each section runs on its own server clock."
-        }
+        },
+        "timerWarning": "{minutes} minutes remaining",
+        "timerWarningOne": "1 minute remaining",
+        "timerWarningBody": "Check your answers and keep going.",
+        "dismiss": "Dismiss",
+        "previousLocked": "Previous parts are locked in exam mode",
+        "splitDivider": "Resize passage and questions",
+        "audioPending": "Audio for this part is still being prepared. Please try again shortly.",
+        "audioUnavailable": "Audio for this part is unavailable."
       },
       "writing": {
         "intro": "Write your response below, then submit it for AI band scoring.",
@@ -4093,7 +4101,17 @@
         "failed": "Scoring failed. Please try again.",
         "limitReached": "You've reached your monthly AI scoring limit.",
         "taskBand": "Task band",
-        "modelAnswer": "Band 9 model answer"
+        "modelAnswer": "Band 9 model answer",
+        "task": "Task {number}",
+        "minWords": "{count} of {min} words",
+        "minWordsMet": "Minimum length reached",
+        "letterTo": "Dear {recipient},",
+        "letterChecklist": "Cover these points",
+        "registerLabel": "Register",
+        "registerFormal": "Formal",
+        "registerSemiFormal": "Semi-formal",
+        "registerInformal": "Informal",
+        "task1Visual": "Task 1 figure"
       },
       "speaking": {
         "intro": "Record your spoken answer, then submit it for AI band scoring.",
@@ -4118,7 +4136,18 @@
         "noSpeech": "No audio captured — try recording again.",
         "speakingBand": "Speaking band",
         "transcript": "Transcript",
-        "pronunciationDetail": "Phoneme-level pronunciation detail captured."
+        "pronunciationDetail": "Phoneme-level pronunciation detail captured.",
+        "cueCard": {
+          "prep": "Preparation time",
+          "speakNow": "Speak now",
+          "skipPrep": "Skip preparation",
+          "startPrep": "Start preparation",
+          "youShouldSay": "You should say:",
+          "timeUp": "Time is up — recording stopped",
+          "remaining": "{seconds}s left",
+          "prepBody": "You have one minute to make notes before you speak.",
+          "speakingBody": "Speak for up to two minutes."
+        }
       },
       "bands": {
         "taskResponse": "Task Response",
@@ -4127,6 +4156,27 @@
         "grammaticalRangeAccuracy": "Grammatical Range & Accuracy",
         "fluencyCoherence": "Fluency & Coherence",
         "pronunciation": "Pronunciation"
+      },
+      "groups": {
+        "questionsRange": "Questions {first}–{last}",
+        "questionsOne": "Question {number}",
+        "anyOrder": "Answers may be given IN ANY ORDER",
+        "chooseCount": "Choose {count} letters",
+        "dragHint": "Drag an option to a blank, or tap a blank and then an option",
+        "bankTitle": "Options",
+        "slotEmpty": "Blank {number}",
+        "slotFilled": "Blank {number}: {option}",
+        "clearSlot": "Clear",
+        "optionUsed": "{option} already used",
+        "placed": "{option} placed in blank {number}",
+        "removed": "Blank {number} cleared",
+        "pickForSlot": "Choose an option for blank {number}",
+        "zoomIn": "Zoom in",
+        "zoomOut": "Zoom out",
+        "zoomReset": "Reset zoom",
+        "reuseNote": "NB You may use any letter more than once",
+        "missingSlot": "Blank not linked to a question",
+        "textPlaceholder": "Answer"
       }
     },
     "assignments": {
@@ -4218,6 +4268,29 @@
         "in_progress": "In progress",
         "submitted": "Submitted",
         "completed": "Completed"
+      }
+    },
+    "results": {
+      "review": {
+        "title": "Review your answers",
+        "listening": "Listening",
+        "reading": "Reading",
+        "writing": "Writing",
+        "speaking": "Speaking",
+        "answerLocation": "Answer location",
+        "playPart": "Play Part {number}",
+        "yourRecording": "Your recording",
+        "jumpTo": "Show in passage",
+        "yourAnswer": "Your answer",
+        "correctAnswer": "Correct answer",
+        "noAnswer": "No answer",
+        "explanation": "Explanation",
+        "transcript": "Transcript",
+        "passage": "Passage",
+        "correct": "Correct",
+        "incorrect": "Incorrect",
+        "partLabel": "Part {number}",
+        "passageLabel": "Passage {number}"
       }
     }
   }

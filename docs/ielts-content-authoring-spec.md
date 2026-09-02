@@ -97,3 +97,62 @@ The workbook columns map 1:1 to the IELTS schema (masterplan §6) and are **impo
 - The **Rubrics** + **Scoring math** here are the canonical spec the WS-3.1/3.2 prompt bundles implement.
 
 This spec + workbook is also the basis for the future Duolingo/Brilliant-style **Learn-mode** bite-size activities (masterplan §5) — the same item bank, delivered as micro-lessons rather than only as timed mocks.
+
+---
+
+## 9. Question Groups tab + format-variety columns
+
+Official IELTS sets share one bank or one stimulus across several numbered questions (a heading list, a summary with blanks, a table/flow-chart with gaps, a diagram or map with labels). The engine stores that shared half in `ielts_question_groups`; each numbered question stays its own row and points at the group through `Group Key`. The importer creates groups **before** questions and checks every member against its group (skill match, unique slot, bank present for matching sets, a hotspot for each labelled slot, one shared accept set for `any_order` sets).
+
+### 9.1 `Question Groups` tab
+
+| Column | Meaning |
+|---|---|
+| `Group Key` | Unique per test; lowercase `a-z 0-9 _ -` (max 120). Members reference it verbatim. Rows whose key contains `EXAMPLE` are skipped. |
+| `Skill` | `reading` or `listening` (must match every member). |
+| `Passage ID` / `Script ID` | Import id of the passage / listening script the set belongs to (from the other tabs). |
+| `Order` | Display order of the set within its part. |
+| `Title`, `Instructions` | Set heading and the official instruction line ("Choose the correct heading…"). |
+| `Stimulus JSON` | One of the shapes in §9.3, or blank. |
+| `Bank (pipe-separated)` | Shared options, e.g. `i Heading one\|ii Heading two`. Leave blank for typed answers. |
+| `Bank Reuse (yes/no)` | Whether one bank option may answer several questions. |
+| `Answer Mode` | `select` (pick from the bank) or `text` (typed). Defaults to `select` when a bank exists. |
+| `Any Order (yes/no)` | "Choose TWO letters" style sets where members share one key; every member must accept the same answers. |
+
+### 9.2 New optional question columns (Reading / Listening / Writing / Speaking tabs)
+
+| Column | Types | Maps to |
+|---|---|---|
+| `Group Key` | matching, completion, labelling | `ielts_questions.group_key` — the set the row belongs to. |
+| `Slot` | any grouped question | `metadata.slot` — which `__BLANK_<slot>__` marker / hotspot the row answers (defaults to its 1-based position in the set). |
+| `Number Span` | `mcq_multi` | `metadata.numberSpan` — one row occupying N question numbers ("21–22"); the key must list N options and `Max Points` must equal N. |
+| `Allow Number` (yes/no) | completion, short answer | `metadata.allowNumber`. Derived automatically from instructions containing "AND/OR A NUMBER" when blank. |
+| `Visual JSON` | labelling, Writing Task 1 | `visual` — a typed image / table / chart visual, e.g. `{"type":"image","url":"https://…/map.png","alt":"Campus map"}`. Wins over the free-text `Visual/Data` cell. |
+| `Cue Card Topic`, `Cue Card Bullets` (pipe list), `Cue Card Closing` | `speaking_part2_cuecard` | `metadata.cueCard` (topic falls back to the prompt; prep 60 s / speak 120 s defaults). Required for Part 2. |
+| `Letter Recipient`, `Letter Register` (formal / semi-formal / informal), `Letter Bullets` (pipe list) | `writing_task1_general` | `metadata.letter`. Required for General Training Task 1. |
+
+`Word Limit` is derived from the instructions ("NO MORE THAN TWO WORDS…") when the column is blank. Images referenced from `Visual JSON` or an image stimulus are uploaded through the admin "Upload media" action into the public `ielts-question-media` bucket (PNG / JPEG / SVG / WebP, 5 MB).
+
+### 9.3 Stimulus JSON shapes
+
+Blanks are written as `__BLANK_<slot>__`; the slot must match a member's `Slot` (or its position). Slots must be unique within one stimulus.
+
+**Text** (summary / notes / form completion):
+```json
+{"kind":"text","heading":"Wolves in Yellowstone","body":"Wolves changed the __BLANK_1__ and, in turn, the __BLANK_2__."}
+```
+
+**Table** (gap cells are objects):
+```json
+{"kind":"table","headers":["Course","Day","Cost"],"rows":[["Pottery",{"gap":"3"},"£40"],["Yoga","Tuesday",{"gap":"4"}]]}
+```
+
+**Flow-chart**:
+```json
+{"kind":"flowchart","title":"Recycling process","direction":"down","steps":[{"text":"Collection by __BLANK_5__"},{"text":"Sorting"},{"text":"Melting at __BLANK_6__ °C"}]}
+```
+
+**Image** (diagram / map / plan; hotspot `x`/`y` are percentages of the image box):
+```json
+{"kind":"image","url":"https://…/storage/v1/object/public/ielts-question-media/tests/<testId>/map.png","alt":"Sports centre plan","hotspots":[{"slot":"11","x":22,"y":40,"label":"A"},{"slot":"12","x":68,"y":55,"label":"B"}]}
+```

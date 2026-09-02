@@ -18,6 +18,8 @@ export interface IeltsTestTree {
   passages: Tables<"passages">[];
   listeningSections: Tables<"listening_sections">[];
   questions: QuestionWithKey[];
+  /** Set-level question groups (shared banks / stimuli), by `order_index`. */
+  questionGroups: Tables<"ielts_question_groups">[];
   /** Per-section generated-audio status + playable URL (WS-1.3). */
   audioBySection?: Record<string, ListeningAudioSummary>;
 }
@@ -48,7 +50,7 @@ export async function getIeltsTestTree(
   if (error) throw new Error(`getIeltsTestTree failed: ${error.message}`);
   if (!test) return null;
 
-  const [passagesRes, sectionsRes, questionsRes] = await Promise.all([
+  const [passagesRes, sectionsRes, questionsRes, groupsRes] = await Promise.all([
     supabase.from("passages").select().eq("test_id", testId).order("order_index"),
     supabase
       .from("listening_sections")
@@ -56,8 +58,14 @@ export async function getIeltsTestTree(
       .eq("test_id", testId)
       .order("section_number"),
     supabase.from("ielts_questions").select().eq("test_id", testId).order("order_index"),
+    supabase
+      .from("ielts_question_groups")
+      .select()
+      .eq("test_id", testId)
+      .order("order_index"),
   ]);
-  const firstError = passagesRes.error ?? sectionsRes.error ?? questionsRes.error;
+  const firstError =
+    passagesRes.error ?? sectionsRes.error ?? questionsRes.error ?? groupsRes.error;
   if (firstError) throw new Error(`getIeltsTestTree failed: ${firstError.message}`);
 
   const questions = questionsRes.data ?? [];
@@ -70,6 +78,7 @@ export async function getIeltsTestTree(
     passages: passagesRes.data ?? [],
     listeningSections: sectionsRes.data ?? [],
     questions: questions.map((q) => ({ ...q, key: keysById.get(q.id) ?? null })),
+    questionGroups: groupsRes.data ?? [],
     audioBySection: await getListeningAudioSummaries(testId, supabase),
   };
 }

@@ -8,9 +8,14 @@
  *   - text gap      (sentence/summary/note-table/short-answer/diagram) —
  *                    variant-tolerant, "NO MORE THAN N WORDS" aware
  *
- * WS-1.2 ships richer per-type renderers/validators; its scorers can replace
- * these via the registry (lib/ielts) at merge. Until then this grades R/L
- * end-to-end so an attempt yields a band.
+ * DEPRECATED — the canonical marking path is `grade-objective.ts` →
+ * `build-key.ts` → `grade-question.ts` → `grade-blank.ts` → `text-normalize.ts`
+ * (alternatives, number words, articles, AND/OR A NUMBER, any-order sets live
+ * there, not here). This file is kept only for
+ * `scripts/ielts/verify-general-training-mocks.ts` (and the learn-mode
+ * `lib/api/ielts/learn-activities.ts` until it moves over); its `ObjectiveKey`
+ * and `IeltsQuestionType` types are still re-used by the new path. Do not add
+ * marking rules here.
  */
 import type { Enums } from "@/types/supabase";
 import {

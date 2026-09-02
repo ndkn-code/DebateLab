@@ -52,6 +52,11 @@ const input: AttemptResultsInput = {
         items: [],
         visual: null,
         selectCount: null,
+        slot: null,
+        numberSpan: null,
+        allowNumber: null,
+        cueCard: null,
+        letter: null,
       },
       response: { value: "true" },
       isCorrect: true,
@@ -84,6 +89,28 @@ const input: AttemptResultsInput = {
     },
   ],
   speakingParts: [], // Speaking not yet scored (WS-3.2 pending)
+  questionGroups: [
+    {
+      id: "g-1",
+      groupKey: "headings-1",
+      skill: "reading",
+      passageId: "p-1",
+      listeningSectionId: null,
+      orderIndex: 0,
+      title: "Questions 1-2",
+      instructions: "Choose the correct heading.",
+      stimulus: null,
+      bank: [
+        { id: "h1", label: "i", text: "Heading one" },
+        { id: "h2", label: "ii", text: "Heading two" },
+      ],
+      bankReuse: false,
+      answerMode: "select",
+      anyOrder: false,
+      questionIds: [],
+      slotByQuestionId: {},
+    },
+  ],
 };
 
 const vm = buildAttemptResultsViewModel(input);
@@ -122,6 +149,19 @@ assert.deepEqual(
 assert.equal(vm.objective.length, 1);
 assert.equal(vm.objective[0].skill, "listening");
 assert.equal(vm.objective[0].items[0].learnerAnswer, "T. True");
+assert.equal(vm.objective[0].items[0].numberLabel, "1");
+assert.equal(vm.objective[0].items[0].groupKey, null);
+assert.equal(vm.objective[0].items[0].verdict?.isCorrect, true);
+assert.equal(vm.objective[0].parts.length, 1);
+assert.equal(vm.objective[0].parts[0].items[0].questionId, "l1");
+
+// Question groups pass through to the view-model (and default to [] when absent).
+assert.equal(vm.groups.length, 1);
+assert.equal(vm.groups[0].groupKey, "headings-1");
+assert.deepEqual(
+  buildAttemptResultsViewModel({ ...input, questionGroups: undefined }).groups,
+  [],
+);
 
 // Writing projected; speaking null.
 assert.ok(vm.writing);

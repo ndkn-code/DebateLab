@@ -13,6 +13,12 @@ import { gradeBlank } from "./grade-blank";
 export interface GradeContext {
   /** The question's word limit (applies to text blanks only). */
   wordLimit: number | null;
+  /**
+   * "AND/OR A NUMBER": numeric tokens are free under the word limit
+   * (default false). Derived from `metadata.allowNumber` or the set's
+   * instructions by the DB layer.
+   */
+  allowNumber?: boolean;
 }
 
 export function gradeQuestion(
@@ -23,9 +29,15 @@ export function gradeQuestion(
   const blanks: Record<string, BlankVerdict> = {};
   let awardedPoints = 0;
   let maxPoints = 0;
+  const options = { allowNumber: ctx.allowNumber ?? false };
 
   for (const [blankId, blankKey] of Object.entries(key.blanks)) {
-    const verdict = gradeBlank(blankKey, answer.values[blankId], ctx.wordLimit);
+    const verdict = gradeBlank(
+      blankKey,
+      answer.values[blankId],
+      ctx.wordLimit,
+      options,
+    );
     blanks[blankId] = verdict;
     awardedPoints += verdict.awarded;
     maxPoints += verdict.max;

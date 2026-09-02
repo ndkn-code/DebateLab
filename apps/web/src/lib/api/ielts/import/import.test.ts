@@ -201,4 +201,97 @@ const multi = planWorkbookImport({
 assert.equal(multi.warnings.length, 1);
 assert.match(multi.warnings[0], /spans 2 sets/);
 
+// ---- format-variety: Question Groups tab + new question columns ------------
+const GQ_HEADERS = [
+  "Item ID", "Passage ID", "Q#", "Question Type (key)", "Group Key", "Slot", "Instructions",
+  "Question Stem", "Options (A|B|C|... pipe-separated)", "Correct Answer(s)", "Number Span",
+  "Allow Number", "Visual JSON",
+];
+const formats = planWorkbookImport({
+  sheets: [
+    mkSheet(
+      "Question Groups",
+      ["Group Key", "Skill", "Passage ID", "Order", "Title", "Instructions", "Stimulus JSON", "Bank (pipe-separated)", "Bank Reuse (yes/no)", "Answer Mode", "Any Order (yes/no)", "Set/Test"],
+      [
+        ["EXAMPLE-group", "reading", "RP-1", "0", "x", "x", "", "", "", "", "", ""],
+        ["Summary-1", "reading", "RP-010", "2", "Wolves summary", "Choose NO MORE THAN TWO WORDS.", '{"kind":"text","body":"Wolves changed the __BLANK_1__ and __BLANK_2__."}', "", "no", "text", "", "Set 9"],
+        ["headings-1", "reading", "RP-010", "1", "", "Choose the correct heading.", "not json", "i Heading one|ii Heading two|iii Heading three", "yes", "select", "no", "Set 9"],
+      ],
+    ),
+    mkSheet("Reading Questions", GQ_HEADERS, [
+      ["RQ-020", "RP-010", "5", "summary_completion", "summary-1", "1", "Choose NO MORE THAN TWO WORDS AND/OR A NUMBER.", "Blank 5", "", "rivers", "", "", ""],
+      ["RQ-021", "RP-010", "6", "mcq_multi", "", "", "Choose TWO letters.", "Which TWO", "A|B|C|D|E", "B|D", "2", "no", ""],
+      ["RQ-022", "RP-010", "7", "diagram_label", "", "", "", "Part 7", "", "valve", "", "", '{"type":"image","url":"https://x.test/d.png","alt":"Diagram"}'],
+      ["RQ-023", "RP-010", "8", "map_plan_label", "", "", "", "Part 8", "", "hall", "", "", "{bad"],
+    ]),
+    mkSheet(
+      "Speaking Prompts",
+      ["Item ID", "Part (1/2/3)", "Prompt / Cue Card", "Cue Card Topic", "Cue Card Bullets (Part 2)", "Cue Card Closing", "Set/Test"],
+      [
+        ["SP-020", "2", "Describe a teacher…", "Describe a teacher who influenced you", "who they were|what they taught|why they mattered", "and explain how they influenced you.", "Set 9"],
+        ["SP-021", "1", "Do you work or study?", "", "", "", "Set 9"],
+      ],
+    ),
+    mkSheet(
+      "Writing Prompts",
+      ["Item ID", "Task", "Prompt Text", "Letter Recipient", "Letter Register", "Letter Bullets", "Set/Test"],
+      [["WP-020", "Task 1 (General)", "Write a letter to your landlord.", "your landlord", "Semi-formal", "explain the problem|say what you want done", "Set 9"]],
+    ),
+  ],
+});
+
+// group tab parsed: example row skipped, key lowercased, JSON stimulus + yes/no + mode mapped
+assert.equal(formats.questionGroups.length, 2);
+const summary = formats.questionGroups[0];
+assert.equal(summary.importId, "summary-1");
+assert.equal(summary.input.groupKey, "summary-1");
+assert.equal(summary.input.skill, "reading");
+assert.equal(summary.passageImportId, "RP-010");
+assert.equal(summary.input.orderIndex, 2);
+assert.equal(summary.input.title, "Wolves summary");
+assert.deepEqual(summary.input.stimulus, { kind: "text", body: "Wolves changed the __BLANK_1__ and __BLANK_2__." });
+assert.equal(summary.input.bankReuse, false);
+assert.equal(summary.input.answerMode, "text");
+assert.equal(summary.input.anyOrder, false);
+assert.equal(summary.input.metadata.importId, "summary-1");
+assert.equal(summary.input.metadata.set, "Set 9");
+const headings = formats.questionGroups[1];
+assert.equal(headings.input.bank, "i Heading one|ii Heading two|iii Heading three");
+assert.equal(headings.input.bankReuse, true);
+assert.equal(headings.input.answerMode, "select");
+assert.equal(headings.input.stimulus, null);
+assert.equal(headings.warnings.length, 1, "unparseable stimulus JSON is a warning");
+assert.match(formats.warnings.find((w) => w.includes("Question Groups row 3")) ?? "", /Stimulus JSON/);
+
+// question with slot + groupKey maps
+const fq = new Map(formats.questions.map((q) => [q.importId, q]));
+assert.equal(fq.get("RQ-020")?.input.groupKey, "summary-1");
+assert.equal(fq.get("RQ-020")?.input.metadata.slot, "1");
+assert.equal(fq.get("RQ-020")?.input.wordLimit, 2);
+// number span + allow number → typed metadata
+assert.equal(fq.get("RQ-021")?.input.metadata.numberSpan, 2);
+assert.equal(fq.get("RQ-021")?.input.metadata.allowNumber, false);
+assert.equal(fq.get("RQ-021")?.input.groupKey, "");
+// visual JSON → typed visual; bad JSON → null + warning
+assert.deepEqual(fq.get("RQ-022")?.input.visual, { type: "image", url: "https://x.test/d.png", alt: "Diagram" });
+assert.equal(fq.get("RQ-023")?.input.visual, null);
+assert.match(formats.warnings.find((w) => w.includes("Question row 4")) ?? "", /Visual JSON/);
+
+// cue card bullets map (Part 2 only); topic/closing columns honoured
+const cue = fq.get("SP-020")?.input.metadata.cueCard as Record<string, unknown>;
+assert.deepEqual(cue, {
+  topic: "Describe a teacher who influenced you",
+  bullets: ["who they were", "what they taught", "why they mattered"],
+  closing: "and explain how they influenced you.",
+});
+assert.equal(fq.get("SP-021")?.input.metadata.cueCard, undefined);
+
+// letter brief maps with register normalized
+assert.equal(fq.get("WP-020")?.input.questionType, "writing_task1_general");
+assert.deepEqual(fq.get("WP-020")?.input.metadata.letter, {
+  recipient: "your landlord",
+  register: "semi_formal",
+  bullets: ["explain the problem", "say what you want done"],
+});
+
 console.log("IELTS import tests passed");

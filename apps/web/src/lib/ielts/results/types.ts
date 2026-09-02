@@ -11,7 +11,11 @@
  * Answer keys never reach the client raw: the repository resolves them, on the
  * server, into the formatted `correctAnswer` strings on each review item.
  */
-import type { IeltsQuestionView } from "@/lib/ielts/question-types/types";
+import type {
+  IeltsQuestionView,
+  IeltsVerdict,
+} from "@/lib/ielts/question-types/types";
+import type { IeltsQuestionGroupView } from "@/lib/ielts/question-types/groups";
 import type { BandConversionRow } from "@/lib/scoring/ielts/band-conversion";
 import type { WritingResponseStatus } from "@/lib/ielts/writing-scorer/status";
 import type { EffectiveScoreSource } from "@/lib/api/ielts/effective-score-contract";
@@ -41,6 +45,8 @@ export interface ResultsObjectiveQuestion {
   source?: ObjectiveSourceInput | null;
   /** Optional author-key metadata used to locate the answer span, never rendered raw. */
   sourceHints?: unknown[];
+  /** `ielts_questions.group_key` — joins the question to its {@link IeltsQuestionGroupView}. */
+  groupKey?: string | null;
 }
 
 export interface ResultsWritingTask {
@@ -83,6 +89,8 @@ export interface ResultsSpeakingPart {
   feedbackLanguage: string;
   modelAnswer: string | null;
   phonemeReport: unknown;
+  /** Short-lived signed URL of the learner's recording (server-created), or null. */
+  audioUrl?: string | null;
   /** Versioned grader provenance for a future evidence/confidence presentation. */
   gradingMetadata?: unknown;
   /** Published teacher note; drafts are never included in learner reads. */
@@ -118,6 +126,11 @@ export interface AttemptResultsInput {
   bandConversions: BandConversionRow[];
   writingTasks: ResultsWritingTask[];
   speakingParts: ResultsSpeakingPart[];
+  /**
+   * Question groups of the sitting (frozen snapshot first, live fallback),
+   * ordered by `orderIndex`. Absent/empty for legacy attempts.
+   */
+  questionGroups?: IeltsQuestionGroupView[];
 }
 
 // ── Display view-model ───────────────────────────────────────────────────────
@@ -161,6 +174,10 @@ export interface ObjectiveSourceInput {
   kind: ObjectiveSkillKey;
   title: string | null;
   text: string;
+  /** Stable id of the passage / listening section this question belongs to. */
+  partId?: string | null;
+  /** Listening only: public URL of the section's generated audio, when ready. */
+  audioUrl?: string | null;
 }
 
 export interface ResultsTextSegment {
@@ -176,21 +193,53 @@ export interface ObjectiveSourceContext {
   answerLocation: string | null;
 }
 
+/** Character offsets of the located answer inside the part's full `sourceText`. */
+export interface ObjectiveSourceRange {
+  start: number;
+  end: number;
+}
+
 export interface ObjectiveReviewItem {
   questionId: string;
+  /** First question number this row occupies (per skill, sequential). */
   number: number;
+  /** Display number: "7", or "21–22" when the row spans several numbers. */
+  numberLabel: string;
   questionType: string;
   prompt: string;
   groupInstructions: string | null;
+  /** `group_key` of the question's set, joining it to `AttemptResultsViewModel.groups`. */
+  groupKey: string | null;
+  /**
+   * Learner answer for display. Bank ids are mapped to the group bank's labels
+   * ("A", "iii") when the question's group has a bank; otherwise to option text.
+   */
   learnerAnswer: string;
   correctAnswer: string;
   answered: boolean;
   isCorrect: boolean;
   awardedPoints: number;
   maxPoints: number;
+  /** Per-blank verdict recomputed from the key (null while the key is withheld). */
+  verdict: IeltsVerdict | null;
   explanationEn: string | null;
   explanationVi: string | null;
   sourceContext: ObjectiveSourceContext | null;
+  /** Offsets of the located answer in the owning part's `sourceText`, if found. */
+  sourceRange: ObjectiveSourceRange | null;
+  /** Seconds into the part's audio where the answer is heard (not yet available). */
+  audioTimestamp: number | null;
+}
+
+/** One passage (Reading) or section (Listening) of the sitting, with its items. */
+export interface ObjectiveReviewPart {
+  partId: string;
+  title: string;
+  /** Full passage body / transcript, or null when the source is unavailable. */
+  sourceText: string | null;
+  /** Listening: public URL of the section audio; null otherwise. */
+  audioUrl: string | null;
+  items: ObjectiveReviewItem[];
 }
 
 export interface ObjectiveReviewSection {
@@ -198,7 +247,10 @@ export interface ObjectiveReviewSection {
   label: string;
   correctCount: number;
   totalCount: number;
+  /** Flat, skill-ordered items (kept for existing consumers). */
   items: ObjectiveReviewItem[];
+  /** The same items split by passage / listening section, in sitting order. */
+  parts: ObjectiveReviewPart[];
 }
 
 export interface CriterionScore {
@@ -271,6 +323,8 @@ export interface SpeakingPartResult {
   summary: string | null;
   modelAnswer: string | null;
   pronunciationHeatmap: SpeakingPronunciationHeatmap | null;
+  /** Signed (1h) URL of the learner's recording, or null when unavailable. */
+  audioUrl: string | null;
   gradingMetadata?: unknown;
   /** Published teacher rationale, kept separate from the AI summary. */
   teacherFeedback?: string | null;
@@ -324,6 +378,8 @@ export interface AttemptResultsViewModel {
   skills: SkillBandRow[];
   breakdowns: SkillBandBreakdown[];
   objective: ObjectiveReviewSection[];
+  /** Question groups (shared banks / stimuli) referenced by `groupKey` on items. */
+  groups: IeltsQuestionGroupView[];
   writing: WritingResult | null;
   speaking: SpeakingResult | null;
 }

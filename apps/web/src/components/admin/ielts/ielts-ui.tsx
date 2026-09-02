@@ -75,6 +75,7 @@ export const QUESTION_TYPE_LABELS: Record<IeltsQuestionType, string> = {
   matching_headings: "Matching headings",
   matching_information: "Matching information",
   matching_features: "Matching features",
+  matching_sentence_endings: "Matching sentence endings",
   sentence_completion: "Sentence completion",
   summary_completion: "Summary completion",
   note_table_form_flowchart_completion: "Note / table / form / flowchart",

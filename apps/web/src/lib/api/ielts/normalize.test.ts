@@ -4,11 +4,13 @@
 import assert from "node:assert/strict";
 import {
   dedupeStrings,
+  instructionsAllowNumber,
   normalizeAnswerKey,
   normalizeTfngToken,
   normalizeWhitespace,
   normalizeYnngToken,
   parseLeadingInt,
+  parseWordLimit,
   splitPipeList,
 } from "./normalize";
 
@@ -54,5 +56,18 @@ for (const [raw, want] of [
 // normalizeAnswerKey strips surrounding punctuation + lowercases
 assert.equal(normalizeAnswerKey("  Trophic Cascade. "), "trophic cascade");
 assert.equal(normalizeAnswerKey("(2003)"), "2003");
+
+// parseWordLimit reads official-style instructions (digits or number words)
+assert.equal(parseWordLimit("Write NO MORE THAN TWO WORDS AND/OR A NUMBER."), 2);
+assert.equal(parseWordLimit("Choose no more than 3 words for each answer."), 3);
+assert.equal(parseWordLimit("Write ONE WORD ONLY."), null);
+assert.equal(parseWordLimit(null), null);
+
+// instructionsAllowNumber detects the AND/OR A NUMBER clause
+assert.equal(instructionsAllowNumber("NO MORE THAN TWO WORDS AND/OR A NUMBER"), true);
+assert.equal(instructionsAllowNumber("ONE WORD AND A NUMBER"), true);
+assert.equal(instructionsAllowNumber("no more than two words or a number"), true);
+assert.equal(instructionsAllowNumber("NO MORE THAN THREE WORDS"), false);
+assert.equal(instructionsAllowNumber(null), false);
 
 console.log("IELTS normalize tests passed");

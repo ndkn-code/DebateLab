@@ -163,4 +163,147 @@ assert.throws(() =>
   assert.equal(args.p_correct_answer, "YES");
 }
 
+// ---- format-variety rules ---------------------------------------------------
+const base = (over: Record<string, unknown>) => ({ testId: TID, ...over });
+const ok = (input: Record<string, unknown>) => parseInput(CreateIeltsQuestionSchema, base(input));
+const rejects = (input: Record<string, unknown>, pattern: RegExp, label: string) =>
+  assert.throws(() => parseInput(CreateIeltsQuestionSchema, base(input)), pattern, label);
+
+// strict metadata: malformed known field rejected; adaptive tags still checked
+rejects(
+  { skill: "reading", questionType: "mcq_single", prompt: "P", options: "A|B", correctAnswer: "A", metadata: { slot: 7 } },
+  /metadata/,
+  "metadata.slot must be a string",
+);
+rejects(
+  { skill: "reading", questionType: "mcq_single", prompt: "P", options: "A|B", correctAnswer: "A", metadata: { subskill_tags: ["Bad Tag!"] } },
+  /metadata/,
+  "adaptive tags still validated",
+);
+
+// mcq_multi: selectCount within options + key length matches
+{
+  const q = ok({
+    skill: "listening", questionType: "mcq_multi", prompt: "Choose TWO",
+    options: "A|B|C|D|E", correctAnswer: "B|D", metadata: { selectCount: 2 },
+  });
+  assert.equal(q.metadata.selectCount, 2);
+}
+rejects(
+  { skill: "listening", questionType: "mcq_multi", prompt: "P", options: "A|B|C", correctAnswer: "A|B", metadata: { selectCount: 4 } },
+  /selectCount/,
+  "selectCount > options",
+);
+rejects(
+  { skill: "listening", questionType: "mcq_multi", prompt: "P", options: "A|B|C|D", correctAnswer: "A", metadata: { selectCount: 2 } },
+  /exactly 2/,
+  "key length must equal selectCount",
+);
+// numberSpan: key length and maxPoints must both equal the span
+{
+  const q = ok({
+    skill: "listening", questionType: "mcq_multi", prompt: "Questions 21-22",
+    options: "A|B|C|D|E", correctAnswer: "A|C", maxPoints: 2, metadata: { numberSpan: 2 },
+  });
+  assert.equal(q.maxPoints, 2);
+}
+rejects(
+  { skill: "listening", questionType: "mcq_multi", prompt: "P", options: "A|B|C|D|E", correctAnswer: "A|C", maxPoints: 1, metadata: { numberSpan: 2 } },
+  /maxPoints/,
+  "maxPoints must equal numberSpan",
+);
+
+// matching_*: options OR items OR groupKey
+ok({ skill: "reading", questionType: "matching_sentence_endings", prompt: "The study found", correctAnswer: "B", groupKey: "set-a" });
+ok({ skill: "reading", questionType: "matching_headings", prompt: "Paragraph A", correctAnswer: "ii", options: "i|ii|iii" });
+rejects(
+  { skill: "reading", questionType: "matching_sentence_endings", prompt: "The study found", correctAnswer: "B" },
+  /groupKey/,
+  "matching without a bank source",
+);
+
+// completion: >=2 markers require a record key covering every marker
+{
+  const q = ok({
+    skill: "reading", questionType: "summary_completion",
+    prompt: "Wolves changed the __BLANK_1__ and the __BLANK_2__.",
+    correctAnswer: { "1": "rivers", "2": "forests" },
+  });
+  assert.deepEqual(q.correctAnswer, { "1": "rivers", "2": "forests" });
+}
+ok({ skill: "reading", questionType: "sentence_completion", prompt: "One __BLANK_1__ here.", correctAnswer: "answer" });
+rejects(
+  { skill: "reading", questionType: "summary_completion", prompt: "A __BLANK_1__ and __BLANK_2__.", correctAnswer: "rivers" },
+  /several __BLANK_/,
+  "bare string with 2 markers",
+);
+rejects(
+  { skill: "reading", questionType: "summary_completion", prompt: "A __BLANK_1__ and __BLANK_2__.", correctAnswer: { "1": "rivers" } },
+  /missing blank/,
+  "record must cover every marker",
+);
+
+// labeling: image visual OR groupKey
+ok({
+  skill: "listening", questionType: "map_plan_label", prompt: "The cafe", options: "A|B|C", correctAnswer: "C",
+  visual: { type: "image", url: "https://x.test/map.png", alt: "Map" },
+});
+ok({ skill: "listening", questionType: "diagram_label", prompt: "Part 1", correctAnswer: "valve", groupKey: "diagram-1" });
+rejects(
+  { skill: "listening", questionType: "map_plan_label", prompt: "The cafe", options: "A|B|C", correctAnswer: "C" },
+  /image visual/,
+  "labeling without an image",
+);
+
+// speaking part 2 requires a cue card (defaults applied); part 1 does not
+{
+  const q = ok({
+    skill: "speaking", questionType: "speaking_part2_cuecard", prompt: "Describe a place",
+    metadata: { cueCard: { topic: "Describe a place you like", bullets: ["where it is"] } },
+  });
+  const cue = q.metadata.cueCard as Record<string, unknown>;
+  assert.equal(cue.prepSeconds, 60);
+  assert.equal(cue.speakSeconds, 120);
+}
+ok({ skill: "speaking", questionType: "speaking_part1", prompt: "Do you work or study?" });
+rejects(
+  { skill: "speaking", questionType: "speaking_part2_cuecard", prompt: "Describe a place" },
+  /cueCard/,
+  "cue card required",
+);
+
+// writing task 1 general requires a letter brief; academic does not
+ok({
+  skill: "writing", questionType: "writing_task1_general", prompt: "Write a letter",
+  metadata: { letter: { recipient: "your landlord", register: "formal", bullets: ["explain the problem"] } },
+});
+ok({ skill: "writing", questionType: "writing_task1_academic", prompt: "The chart shows" });
+rejects(
+  { skill: "writing", questionType: "writing_task1_general", prompt: "Write a letter" },
+  /letter/,
+  "letter required",
+);
+
+// auto-derive wordLimit + allowNumber from instructions; explicit values win
+{
+  const q = ok({
+    skill: "listening", questionType: "short_answer", prompt: "Name of the hotel?", correctAnswer: "Grand",
+    groupInstructions: "Write NO MORE THAN TWO WORDS AND/OR A NUMBER for each answer.",
+  });
+  assert.equal(q.wordLimit, 2);
+  assert.equal(q.metadata.allowNumber, true);
+  const explicit = ok({
+    skill: "listening", questionType: "short_answer", prompt: "Name?", correctAnswer: "Grand",
+    groupInstructions: "Write NO MORE THAN TWO WORDS AND/OR A NUMBER.", wordLimit: 3, metadata: { allowNumber: false },
+  });
+  assert.equal(explicit.wordLimit, 3);
+  assert.equal(explicit.metadata.allowNumber, false);
+  const plain = ok({
+    skill: "listening", questionType: "short_answer", prompt: "Name?", correctAnswer: "Grand",
+    groupInstructions: "Write ONE WORD ONLY.",
+  });
+  assert.equal(plain.wordLimit, null);
+  assert.equal(plain.metadata.allowNumber, undefined);
+}
+
 console.log("IELTS question-schema tests passed");

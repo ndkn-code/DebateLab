@@ -55,4 +55,25 @@ import type { IeltsAnswerKey } from "@/lib/ielts/question-types/types";
   assert.equal(verdict.isCorrect, false);
 }
 
+// ── allowNumber flows from the context to every text blank ───────────────────
+{
+  const key: IeltsAnswerKey = {
+    blanks: {
+      "1": { mode: "text", accept: ["3 weeks"] },
+      "2": { mode: "text", accept: ["1990"] },
+    },
+  };
+  const answer = { values: { "1": "3 weeks", "2": "1990" } };
+  const strict = gradeQuestion({ wordLimit: 1 }, key, answer);
+  assert.equal(strict.blanks["1"].correct, false); // 2 words > 1
+  assert.equal(strict.blanks["2"].correct, true);
+  assert.equal(strict.awardedPoints, 1);
+  const lenient = gradeQuestion({ wordLimit: 1, allowNumber: true }, key, answer);
+  assert.equal(lenient.blanks["1"].correct, true);
+  assert.equal(lenient.awardedPoints, 2);
+  assert.equal(lenient.isCorrect, true);
+  // explicit false behaves like the default
+  assert.equal(gradeQuestion({ wordLimit: 1, allowNumber: false }, key, answer).awardedPoints, 1);
+}
+
 console.log("scoring/ielts/grade-question tests passed");

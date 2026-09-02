@@ -10,6 +10,7 @@ import { meterFeature } from "@/lib/payments/meter";
 import { METERED_FEATURES } from "@/lib/payments/metering";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/types/supabase";
+import { parseQuestionMetadata } from "@/lib/ielts/question-types/metadata";
 import {
   findIeltsBandExamples,
   getIeltsRubric,
@@ -337,7 +338,9 @@ export async function runIeltsSpeakingScoringJob(
       partNumber,
       questionType: question.question_type,
       questionPrompt: question.prompt,
-      cueCardBullets: extractCueCardBullets(question.metadata),
+      cueCardBullets:
+        extractCueCardBullets(question.metadata) ??
+        parseQuestionMetadata(question.metadata).cueCard?.bullets,
       transcript: transcription.transcript,
       wordCount: transcription.wordCount,
       durationSeconds: durationSeconds > 0 ? durationSeconds : null,

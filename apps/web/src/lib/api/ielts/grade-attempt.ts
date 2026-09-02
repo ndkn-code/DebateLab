@@ -11,14 +11,19 @@ import type { Json, Tables } from "@/types/supabase";
 import {
   gradeObjectiveAttempt,
   type AttemptGrade,
+  type GradableGroup,
   type GradableQuestion,
 } from "@/lib/scoring/ielts/grade-objective";
+import { parseAllowNumber } from "@/lib/scoring/ielts/text-normalize";
 import type {
   BandConversionRow,
   IeltsModule,
 } from "@/lib/scoring/ielts/band-conversion";
 import type { ObjectiveKey } from "@/lib/scoring/ielts/objective-scoring";
-import { parseQuestionView } from "@/lib/ielts/question-types";
+import {
+  parseQuestionMetadata,
+  parseQuestionView,
+} from "@/lib/ielts/question-types";
 import { recomputeAttemptOverallBand } from "./overall-band-repository";
 import { completeSimulationAttemptIfReady } from "./band-scores-repository";
 import { recordIeltsObjectiveAttemptEvidence } from "./assess-evidence";
@@ -37,6 +42,91 @@ function resolveConversionKey(
     if (typeof value === "string" && value.length > 0) return value;
   }
   return "default";
+}
+
+/** Group marking flags + instructions, keyed by `group_key`. */
+interface GradingGroup extends GradableGroup {
+  instructions: string | null;
+}
+
+/**
+ * The set-level marking inputs: any-order flag and the instructions that may
+ * grant "AND/OR A NUMBER". Frozen attempts read their snapshot
+ * (`ielts_attempt_question_group_blueprints`); attempts created before groups
+ * were snapshotted fall back to the live `ielts_question_groups` of the test.
+ */
+async function loadGradingGroups(params: {
+  admin: AdminClient;
+  attemptId: string;
+  testId: string;
+}): Promise<Map<string, GradingGroup>> {
+  const frozen = await params.admin
+    .from("ielts_attempt_question_group_blueprints")
+    .select("group_key, any_order, instructions")
+    .eq("attempt_id", params.attemptId);
+  if (frozen.error) throw new Error(`grade(groups): ${frozen.error.message}`);
+  let rows = frozen.data ?? [];
+  if (rows.length === 0) {
+    const live = await params.admin
+      .from("ielts_question_groups")
+      .select("group_key, any_order, instructions")
+      .eq("test_id", params.testId);
+    if (live.error) throw new Error(`grade(live groups): ${live.error.message}`);
+    rows = live.data ?? [];
+  }
+  return new Map(
+    rows.map((row) => [
+      row.group_key,
+      { anyOrder: Boolean(row.any_order), instructions: row.instructions },
+    ]),
+  );
+}
+
+/**
+ * "ONE WORD AND/OR A NUMBER": an explicit `metadata.allowNumber` wins;
+ * otherwise the allowance is read from the row's own instructions or its
+ * group's instructions.
+ */
+function resolveAllowNumber(params: {
+  metadata: unknown;
+  groupInstructions: string | null;
+  group: GradingGroup | undefined;
+}): boolean {
+  const explicit = parseQuestionMetadata(params.metadata).allowNumber;
+  if (typeof explicit === "boolean") return explicit;
+  return (
+    parseAllowNumber(params.groupInstructions) ||
+    parseAllowNumber(params.group?.instructions)
+  );
+}
+
+type GradableQuestionRow = Parameters<typeof parseQuestionView>[0] & {
+  group_key: string | null;
+};
+
+function toGradableQuestion(
+  q: GradableQuestionRow,
+  groups: ReadonlyMap<string, GradingGroup>,
+): GradableQuestion {
+  const view = parseQuestionView(q);
+  const groupKey = q.group_key ?? null;
+  return {
+    id: q.id,
+    skill: q.skill,
+    questionType: q.question_type,
+    maxPoints: q.max_points,
+    wordLimit: q.word_limit,
+    family: view.family,
+    hasOptionBank: view.options.length > 0,
+    selectCount: view.selectCount,
+    groupKey,
+    allowNumber: resolveAllowNumber({
+      metadata: q.metadata,
+      groupInstructions: q.group_instructions,
+      group: groupKey ? groups.get(groupKey) : undefined,
+    }),
+    numberSpan: view.numberSpan,
+  };
 }
 
 interface GradingInputs {
@@ -89,10 +179,10 @@ async function loadObjectiveKeys(params: {
   );
 }
 
-async function loadAndGrade(
+async function loadGradableAttempt(
   admin: AdminClient,
   attemptId: string,
-): Promise<GradingInputs> {
+): Promise<{ attempt: GradingInputs["attempt"]; conversionKey: string }> {
   const { data: attempt, error } = await admin
     .from("ielts_attempts")
     .select("id, user_id, test_id, module, status, blueprint_frozen_at")
@@ -109,9 +199,16 @@ async function loadAndGrade(
     .select("metadata")
     .eq("id", attempt.test_id)
     .maybeSingle();
-  const conversionKey = resolveConversionKey(test?.metadata);
+  return { attempt, conversionKey: resolveConversionKey(test?.metadata) };
+}
 
-  const [snapshotRes, objectiveSectionRes, responseRes, bandRes] =
+async function loadAndGrade(
+  admin: AdminClient,
+  attemptId: string,
+): Promise<GradingInputs> {
+  const { attempt, conversionKey } = await loadGradableAttempt(admin, attemptId);
+
+  const [snapshotRes, objectiveSectionRes, responseRes, bandRes, groups] =
     await Promise.all([
       admin
         .from("ielts_attempt_question_blueprints")
@@ -135,6 +232,7 @@ async function loadAndGrade(
         .select("conversion_key, skill, module, band, raw_min, raw_max")
         .in("conversion_key", [...new Set(["default", conversionKey])])
         .in("skill", OBJECTIVE_SKILLS),
+      loadGradingGroups({ admin, attemptId, testId: attempt.test_id }),
     ]);
   if (snapshotRes.error)
     throw new Error(`grade(blueprint): ${snapshotRes.error.message}`);
@@ -162,25 +260,16 @@ async function loadAndGrade(
         await admin
           .from("ielts_questions")
           .select(
-            "id, skill, question_type, prompt, group_instructions, max_points, word_limit, options, visual, metadata",
+            "id, skill, question_type, prompt, group_instructions, max_points, word_limit, options, visual, metadata, group_key",
           )
           .eq("test_id", attempt.test_id)
           .in("skill", OBJECTIVE_SKILLS)
+          .order("order_index")
       ).data ?? []);
 
-  const questions: GradableQuestion[] = questionRows.map((q) => {
-    const view = parseQuestionView(q);
-    return {
-      id: q.id,
-      skill: q.skill,
-      questionType: q.question_type,
-      maxPoints: q.max_points,
-      wordLimit: q.word_limit,
-      family: view.family,
-      hasOptionBank: view.options.length > 0,
-      selectCount: view.selectCount,
-    };
-  });
+  const questions: GradableQuestion[] = questionRows.map((q) =>
+    toGradableQuestion(q, groups),
+  );
 
   const responseRows = responseRes.data ?? [];
   const questionIds = questions.map((q) => q.id);
@@ -200,6 +289,7 @@ async function loadAndGrade(
     responses,
     module: attempt.module as IeltsModule,
     bandRows: (bandRes.data ?? []) as BandConversionRow[],
+    groups,
   });
 
   return {

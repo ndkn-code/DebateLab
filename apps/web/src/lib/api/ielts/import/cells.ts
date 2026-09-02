@@ -3,6 +3,7 @@
  * lookup + loose coercions (task/part → question type, speaker strings, visuals)
  * so small spreadsheet formatting differences don't break import. Pure.
  */
+import type { Json } from "@/types/supabase";
 import { normalizeWhitespace, parseLeadingInt } from "../normalize";
 import type { IeltsQuestionType } from "../question-schema";
 import type { IeltsVisual } from "../visual";
@@ -73,6 +74,25 @@ export function parseSpeakers(value: string): Array<{ name: string; accent: Acce
       return { name, accent };
     })
     .filter((speaker) => speaker.name.length > 0);
+}
+
+/** "yes" / "true" / "1" / "y" → true; "no" / "false" / "0" / "n" → false; else null. */
+export function parseYesNo(value: string): boolean | null {
+  const v = value.trim().toLowerCase();
+  if (["yes", "y", "true", "1", "x"].includes(v)) return true;
+  if (["no", "n", "false", "0"].includes(v)) return false;
+  return null;
+}
+
+/** Parse a JSON cell; `{ error }` (not a throw) when the text is not valid JSON. */
+export function parseJsonCell(value: string): { value: Json | null; error: string | null } {
+  const v = value.trim();
+  if (!v) return { value: null, error: null };
+  try {
+    return { value: JSON.parse(v) as Json, error: null };
+  } catch (error) {
+    return { value: null, error: error instanceof Error ? error.message : "invalid JSON" };
+  }
 }
 
 /** A free-text Task-1 "Visual/Data" cell becomes a `described` visual. */

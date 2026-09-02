@@ -4074,7 +4074,15 @@
           "pauseBody": "Dừng đồng hồ ở phần Đọc, Viết và Nói. Phần Nghe không thể tạm dừng.",
           "timerTitle": "Đồng hồ",
           "timerBody": "Mỗi phần thi chạy theo đồng hồ máy chủ riêng."
-        }
+        },
+        "timerWarning": "Còn {minutes} phút",
+        "timerWarningOne": "Còn 1 phút",
+        "timerWarningBody": "Kiểm tra câu trả lời và tiếp tục.",
+        "dismiss": "Đóng",
+        "previousLocked": "Các phần trước đã khoá ở chế độ thi",
+        "splitDivider": "Thay đổi kích thước bài đọc và câu hỏi",
+        "audioPending": "Âm thanh của phần này đang được chuẩn bị. Vui lòng thử lại sau.",
+        "audioUnavailable": "Không có âm thanh cho phần này."
       },
       "writing": {
         "intro": "Viết bài làm của bạn bên dưới, sau đó gửi để AI chấm điểm band.",
@@ -4093,7 +4101,17 @@
         "failed": "Chấm điểm thất bại. Vui lòng thử lại.",
         "limitReached": "Bạn đã đạt giới hạn chấm điểm AI trong tháng này.",
         "taskBand": "Band bài viết",
-        "modelAnswer": "Bài mẫu band 9"
+        "modelAnswer": "Bài mẫu band 9",
+        "task": "Bài {number}",
+        "minWords": "{count}/{min} từ",
+        "minWordsMet": "Đã đạt độ dài tối thiểu",
+        "letterTo": "Kính gửi {recipient},",
+        "letterChecklist": "Cần đề cập",
+        "registerLabel": "Văn phong",
+        "registerFormal": "Trang trọng",
+        "registerSemiFormal": "Bán trang trọng",
+        "registerInformal": "Thân mật",
+        "task1Visual": "Hình minh hoạ Bài 1"
       },
       "speaking": {
         "intro": "Ghi âm câu trả lời nói của bạn, sau đó gửi để AI chấm điểm band.",
@@ -4118,7 +4136,18 @@
         "noSpeech": "Không ghi được âm thanh — hãy thử ghi âm lại.",
         "speakingBand": "Band nói",
         "transcript": "Bản ghi lời nói",
-        "pronunciationDetail": "Đã ghi nhận chi tiết phát âm ở cấp độ âm vị."
+        "pronunciationDetail": "Đã ghi nhận chi tiết phát âm ở cấp độ âm vị.",
+        "cueCard": {
+          "prep": "Thời gian chuẩn bị",
+          "speakNow": "Hãy nói",
+          "skipPrep": "Bỏ qua chuẩn bị",
+          "startPrep": "Bắt đầu chuẩn bị",
+          "youShouldSay": "Bạn nên nói về:",
+          "timeUp": "Hết giờ — đã dừng ghi âm",
+          "remaining": "Còn {seconds} giây",
+          "prepBody": "Bạn có một phút để ghi chú trước khi nói.",
+          "speakingBody": "Nói tối đa hai phút."
+        }
       },
       "bands": {
         "taskResponse": "Giải quyết yêu cầu đề bài",
@@ -4127,6 +4156,27 @@
         "grammaticalRangeAccuracy": "Độ đa dạng & chính xác ngữ pháp",
         "fluencyCoherence": "Độ trôi chảy & mạch lạc",
         "pronunciation": "Phát âm"
+      },
+      "groups": {
+        "questionsRange": "Câu {first}–{last}",
+        "questionsOne": "Câu {number}",
+        "anyOrder": "Có thể trả lời THEO BẤT KỲ THỨ TỰ NÀO",
+        "chooseCount": "Chọn {count} chữ cái",
+        "dragHint": "Kéo lựa chọn vào chỗ trống, hoặc chạm chỗ trống rồi chạm lựa chọn",
+        "bankTitle": "Lựa chọn",
+        "slotEmpty": "Chỗ trống {number}",
+        "slotFilled": "Chỗ trống {number}: {option}",
+        "clearSlot": "Xoá",
+        "optionUsed": "{option} đã dùng",
+        "placed": "Đã đặt {option} vào chỗ trống {number}",
+        "removed": "Đã xoá chỗ trống {number}",
+        "pickForSlot": "Chọn đáp án cho chỗ trống {number}",
+        "zoomIn": "Phóng to",
+        "zoomOut": "Thu nhỏ",
+        "zoomReset": "Đặt lại",
+        "reuseNote": "Lưu ý: Có thể dùng một chữ cái nhiều lần",
+        "missingSlot": "Chỗ trống chưa gắn với câu hỏi",
+        "textPlaceholder": "Đáp án"
       }
     },
     "assignments": {
@@ -4218,6 +4268,29 @@
         "in_progress": "Đang làm",
         "submitted": "Đã nộp",
         "completed": "Hoàn thành"
+      }
+    },
+    "results": {
+      "review": {
+        "title": "Xem lại câu trả lời",
+        "listening": "Nghe",
+        "reading": "Đọc",
+        "writing": "Viết",
+        "speaking": "Nói",
+        "answerLocation": "Vị trí đáp án",
+        "playPart": "Phát Phần {number}",
+        "yourRecording": "Bản ghi âm của bạn",
+        "jumpTo": "Xem trong bài",
+        "yourAnswer": "Câu trả lời của bạn",
+        "correctAnswer": "Đáp án đúng",
+        "noAnswer": "Chưa trả lời",
+        "explanation": "Giải thích",
+        "transcript": "Bản ghi",
+        "passage": "Bài đọc",
+        "correct": "Đúng",
+        "incorrect": "Sai",
+        "partLabel": "Phần {number}",
+        "passageLabel": "Bài đọc {number}"
       }
     }
   }

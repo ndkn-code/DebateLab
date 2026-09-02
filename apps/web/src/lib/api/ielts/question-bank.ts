@@ -4,6 +4,10 @@ import { createTypedServerClient } from "@/lib/supabase/server";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import type { Tables } from "@/types/supabase";
 import { BANK_PAGE_SIZE, metadataRecord, metadataTags, toBankQuestionCard, type BankFilters, type BankQuestionCard } from "@/lib/ielts/question-bank/model";
+import {
+  parseQuestionGroupView,
+  type IeltsQuestionGroupView,
+} from "@/lib/ielts/question-types/groups";
 import type { IeltsDbClient } from "./client";
 
 export interface BankFacets {
@@ -17,6 +21,22 @@ export interface BankFacets {
 export interface BankQuestionDetail {
   question: Tables<"ielts_questions"> & { ielts_tests: { title: string } | null };
   key: Tables<"ielts_question_keys"> | null;
+  /** The question's set (shared bank / stimulus) with all members, or null when ungrouped. */
+  group: IeltsQuestionGroupView | null;
+}
+
+/** Load the group a question belongs to (by test + group_key) with its members in order. */
+async function loadBankQuestionGroup(
+  supabase: IeltsDbClient,
+  question: Pick<Tables<"ielts_questions">, "test_id" | "group_key">,
+): Promise<IeltsQuestionGroupView | null> {
+  if (!question.group_key) return null;
+  const [{ data: group, error }, { data: members, error: membersError }] = await Promise.all([
+    supabase.from("ielts_question_groups").select().eq("test_id", question.test_id).eq("group_key", question.group_key).maybeSingle(),
+    supabase.from("ielts_questions").select("id, metadata, order_index").eq("test_id", question.test_id).eq("group_key", question.group_key).order("order_index"),
+  ]);
+  if (error || membersError) throw new Error(`getBankQuestion(group) failed: ${(error ?? membersError)?.message}`);
+  return group ? parseQuestionGroupView(group, members ?? []) : null;
 }
 
 async function verifyAdmin(client?: IeltsDbClient): Promise<IeltsDbClient> {
@@ -57,7 +77,8 @@ export async function getBankQuestion(id: string, client?: IeltsDbClient): Promi
     supabase.from("ielts_question_keys").select().eq("question_id", id).maybeSingle(),
   ]);
   if (error || keyError) throw new Error(`getBankQuestion failed: ${(error ?? keyError)?.message}`);
-  return question ? { question, key } : null;
+  if (!question) return null;
+  return { question, key, group: await loadBankQuestionGroup(supabase, question) };
 }
 
 export async function getBankFacets(client?: IeltsDbClient): Promise<BankFacets> {
