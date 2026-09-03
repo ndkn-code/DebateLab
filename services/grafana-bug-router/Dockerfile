@@ -8,6 +8,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 COPY requirements.txt .
 RUN python -m pip install --no-cache-dir -r requirements.txt
-COPY app ./app
+RUN groupadd --system --gid 10001 app \
+    && useradd --system --uid 10001 --gid app --no-create-home app \
+    && chown -R app:app /app
+COPY --chown=app:app app ./app
+
+USER app
 
 CMD ["sh", "-c", "uvicorn ${APP_MODULE} --host 0.0.0.0 --port ${PORT}"]
