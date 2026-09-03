@@ -206,7 +206,12 @@ export async function recordIeltsLearnActivityEvidence(params: {
   );
 
   if (rows.length === 0) return;
-  const { error } = await admin.from("ielts_adaptive_evidence").insert(rows);
+  const { error } = await admin
+    .from("ielts_adaptive_evidence")
+    .upsert(rows, {
+      onConflict: "user_id,source_table,source_id,evidence_type,subskill_key",
+      ignoreDuplicates: true,
+    });
   if (error) {
     throw new Error(`recordIeltsLearnActivityEvidence: ${error.message}`);
   }

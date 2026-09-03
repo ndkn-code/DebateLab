@@ -6,6 +6,7 @@ import { canAccessCourse } from "@/lib/utils/courseAccess";
 import { areStudentCoursesEnabled } from "@/lib/features";
 import { getActiveSubject } from "@/lib/subject/server";
 import { isEnrolledStudent } from "@/lib/ielts/enrollment";
+import { startActivity } from "@/app/actions/activities";
 
 export default async function ActivityPlayerPage({
   params,
@@ -78,6 +79,7 @@ export default async function ActivityPlayerPage({
     .from("activities")
     .select("*")
     .eq("id", activityId)
+    .eq("is_archived", false)
     .single();
 
   const courseOverviewHref = previewMode
@@ -91,11 +93,15 @@ export default async function ActivityPlayerPage({
   // Fetch module info
   const { data: moduleData } = await supabase
     .from("course_modules")
-    .select("id, title, course_id, access_level")
+    .select("id, title, course_id, access_level, is_archived")
     .eq("id", activity.module_id)
     .single();
 
-  if (!moduleData) redirect(courseOverviewHref);
+  if (
+    !moduleData ||
+    moduleData.is_archived ||
+    moduleData.course_id !== courseId
+  ) redirect(courseOverviewHref);
 
   if (!previewMode && !isAdmin) {
     const entitlement = await getUserEntitlement(supabase, user.id);
@@ -135,6 +141,7 @@ export default async function ActivityPlayerPage({
     title: moduleData.title,
     activities: [],
   };
+  const attempt = previewMode ? null : await startActivity(activityId);
 
   // Fetch user's completed activity IDs for this course
   let completedActivityIds: string[] = [];
@@ -161,6 +168,7 @@ export default async function ActivityPlayerPage({
   return (
     <ActivityPlayerWrapper
       activity={activity}
+      attemptId={attempt?.id ?? null}
       courseId={courseId}
       courseTitle={course.title ?? "Course"}
       currentModule={currentModule}

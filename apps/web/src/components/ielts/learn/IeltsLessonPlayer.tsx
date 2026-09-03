@@ -18,6 +18,7 @@ import { LessonCompletionScreen } from "./LessonCompletionScreen";
 
 export interface IeltsLessonPlayerProps {
   activityId: string;
+  attemptId: string;
   courseId: string;
   activityTitle: string;
   activityType: string;
@@ -83,6 +84,7 @@ export function IeltsLessonPlayer(props: IeltsLessonPlayerProps) {
       const saved = await completeActivity(
         props.activityId,
         props.courseId,
+        props.attemptId,
         score ?? 0,
         maxScore ?? 0,
         responses ?? {},

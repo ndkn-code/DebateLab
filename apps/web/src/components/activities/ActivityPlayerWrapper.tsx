@@ -31,6 +31,7 @@ interface ModuleSummary {
 
 interface Props {
   activity: Activity;
+  attemptId: string | null;
   courseId: string;
   courseTitle: string;
   currentModule: ModuleSummary;
@@ -51,6 +52,7 @@ function calculateXP(activityType: ActivityType, score: number, maxScore: number
 
 export function ActivityPlayerWrapper({
   activity,
+  attemptId,
   courseId,
   courseTitle,
   currentModule,
@@ -123,9 +125,11 @@ export function ActivityPlayerWrapper({
       // Save to server
       if (!previewMode) {
         try {
+          if (!attemptId) throw new Error("Activity attempt is missing");
           const result = await completeActivity(
             activity.id,
             courseId,
+            attemptId,
             finalScore,
             finalMaxScore,
             responses ?? {},
@@ -164,7 +168,7 @@ export function ActivityPlayerWrapper({
         setState("completed");
       }
     },
-    [activity, courseId, addSessionXP, markActivityCompleted, completedIds, siblings, allModules, nextActivity, previewMode]
+    [activity, courseId, attemptId, addSessionXP, markActivityCompleted, completedIds, siblings, allModules, nextActivity, previewMode]
   );
 
   const handleContinue = () => {

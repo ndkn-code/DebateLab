@@ -48,24 +48,34 @@ async function assertActivityAccess(
 
   const { data: activity } = await supabase
     .from("activities")
-    .select("module_id")
+    .select("module_id, is_archived")
     .eq("id", activityId)
     .single();
 
   if (!activity) throw new Error("Activity not found");
+  if (activity.is_archived) throw new Error("Activity is no longer available");
 
   const { data: moduleData } = await supabase
     .from("course_modules")
-    .select("course_id, access_level")
+    .select("course_id, access_level, is_archived")
     .eq("id", activity.module_id)
     .single();
 
   if (!moduleData) throw new Error("Module not found");
+  if (moduleData.is_archived) throw new Error("Module is no longer available");
   if (expectedCourseId && moduleData.course_id !== expectedCourseId) {
     throw new Error("Activity does not belong to this course");
   }
 
+  const { data: course } = await supabase
+    .from("courses")
+    .select("is_published, is_archived")
+    .eq("id", moduleData.course_id)
+    .single();
+  if (!course || course.is_archived) throw new Error("Course is no longer available");
+
   if (profile?.role === "admin") return moduleData.course_id as string;
+  if (!course.is_published) throw new Error("Course is not published");
 
   const [courseAccess, entitlement] = await Promise.all([
     canAccessCourse(supabase, userId, moduleData.course_id as string),
@@ -128,7 +138,21 @@ export async function startActivity(activityId: string) {
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) {
+    // The partial unique index serializes concurrent starts. A losing request
+    // resumes the row created by the winner instead of creating another attempt.
+    if (error.code === "23505") {
+      const { data: racedAttempt, error: racedError } = await supabase
+        .from("activity_attempts")
+        .select("*")
+        .eq("user_id", user.id)
+        .eq("activity_id", activityId)
+        .is("completed_at", null)
+        .single();
+      if (!racedError && racedAttempt) return racedAttempt;
+    }
+    throw new Error(error.message);
+  }
   await recordAnalyticsEvent(supabase, user.id, {
     eventName: "activity_started",
     featureArea: "activities",
@@ -140,6 +164,7 @@ export async function startActivity(activityId: string) {
 export async function completeActivity(
   activityId: string,
   courseId: string,
+  attemptId: string,
   _clientScore: number,
   _clientMaxScore: number,
   responses: Record<string, unknown>,
@@ -192,52 +217,39 @@ export async function completeActivity(
     ? xpBreakdown
     : { total: 0, components: {}, eligible: false, reason: "unscorable_ielts_activity" };
 
-  // Find in-progress attempt
-  const { data: attempts } = await supabase
+  const { data: completedAttempt, error: completionError } = await supabase
     .from("activity_attempts")
-    .select("id")
+    .update({
+      completed_at: new Date().toISOString(),
+      score,
+      max_score: maxScore,
+      is_passed: maxScore > 0 ? score >= maxScore * 0.6 : false,
+      responses: safeResponses,
+      time_spent_seconds: safeTimeSpentSeconds,
+    })
+    .eq("id", attemptId)
     .eq("user_id", user.id)
     .eq("activity_id", activityId)
     .is("completed_at", null)
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  const attemptId = attempts?.[0]?.id;
-
-  let completedAttemptId = attemptId ?? null;
-  if (attemptId) {
-    const { error } = await supabase
+    .select("id")
+    .maybeSingle();
+  if (completionError) throw new Error(completionError.message);
+  let completedAttemptId = completedAttempt?.id ?? null;
+  if (!completedAttemptId) {
+    // Replays are idempotent and may finish any post-completion evidence work
+    // interrupted after the authoritative transition. A missing attempt still
+    // fails closed, so callers cannot complete without first starting.
+    const { data: existingCompletedAttempt } = await supabase
       .from("activity_attempts")
-      .update({
-        completed_at: new Date().toISOString(),
-        score,
-        max_score: maxScore,
-        is_passed: maxScore > 0 ? score >= maxScore * 0.6 : false,
-        responses: safeResponses,
-        time_spent_seconds: safeTimeSpentSeconds,
-      })
-      .eq("id", attemptId);
-    if (error) throw new Error(error.message);
-  } else {
-    // Create a completed attempt directly
-    const { data: completedAttempt, error } = await supabase
-      .from("activity_attempts")
-      .insert({
-        user_id: user.id,
-        activity_id: activityId,
-        completed_at: new Date().toISOString(),
-        score,
-        max_score: maxScore,
-        is_passed: maxScore > 0 ? score >= maxScore * 0.6 : false,
-        attempt_number: 1,
-        responses: safeResponses,
-        time_spent_seconds: safeTimeSpentSeconds,
-      })
       .select("id")
-      .single();
-    if (error) throw new Error(error.message);
-    completedAttemptId = completedAttempt.id;
+      .eq("id", attemptId)
+      .eq("user_id", user.id)
+      .eq("activity_id", activityId)
+      .not("completed_at", "is", null)
+      .maybeSingle();
+    completedAttemptId = existingCompletedAttempt?.id ?? null;
   }
+  if (!completedAttemptId) throw new Error("Activity attempt is missing");
 
   if (ieltsScoring && completedAttemptId && ieltsScoring.sourceScores.length > 0) {
     await recordIeltsLearnActivityEvidence({

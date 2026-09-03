@@ -30,6 +30,22 @@ import {
   loadMockStructure,
   type AttemptState,
 } from "@/lib/api/ielts/mock-repository";
+import { createTypedAdminClient } from "@/lib/supabase/admin";
+
+async function loadLiveAssignedAttempt(userId: string, assignmentId: string) {
+  const admin = createTypedAdminClient();
+  const { data, error } = await admin
+    .from("ielts_attempts")
+    .select("id, status")
+    .eq("user_id", userId)
+    .eq("assignment_id", assignmentId)
+    .not("status", "in", "(expired,abandoned)")
+    .order("started_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(`loadLiveAssignedAttempt: ${error.message}`);
+  return data;
+}
 
 /** Teacher: assign a published mock to a class in their club. */
 export async function assignIeltsMockToClass(raw: unknown): Promise<{ assignmentId: string }> {
@@ -83,6 +99,14 @@ export async function archiveIeltsAssignment(raw: unknown): Promise<void> {
 export async function startAssignedMockAttempt(raw: unknown): Promise<AttemptState> {
   const input = parseInput(StartAssignedAttemptSchema, raw);
   const resolved = await resolveAssignmentForStart(input.assignmentId);
+  const existing = await loadLiveAssignedAttempt(resolved.userId, input.assignmentId);
+  if (existing) {
+    if (existing.status === "in_progress") {
+      const state = await loadAttemptState(existing.id);
+      if (state) return state;
+    }
+    throw new Error("This assigned mock has already been submitted");
+  }
 
   const structure = await loadMockStructure(resolved.testId);
   if (!structure) throw new Error("Test not available");
@@ -103,16 +127,27 @@ export async function startAssignedMockAttempt(raw: unknown): Promise<AttemptSta
   });
   if (blueprint.length === 0) throw new Error("Test has no sittable content");
 
-  const { attempt } = await createAttemptWithSections({
-    userId: resolved.userId,
-    test: { id: structure.test.id, module: structure.test.module },
-    blueprint,
-    org: {
-      clubId: resolved.clubId,
-      classId: resolved.classId,
-      assignmentId: input.assignmentId,
-    },
-  });
+  let attempt: Awaited<ReturnType<typeof createAttemptWithSections>>["attempt"];
+  try {
+    ({ attempt } = await createAttemptWithSections({
+      userId: resolved.userId,
+      test: { id: structure.test.id, module: structure.test.module },
+      blueprint,
+      org: {
+        clubId: resolved.clubId,
+        classId: resolved.classId,
+        assignmentId: input.assignmentId,
+      },
+    }));
+  } catch (error) {
+    // The partial unique index is the authoritative concurrent-start guard.
+    const raced = await loadLiveAssignedAttempt(resolved.userId, input.assignmentId);
+    if (raced?.status === "in_progress") {
+      const state = await loadAttemptState(raced.id);
+      if (state) return state;
+    }
+    throw error;
+  }
 
   const state = await loadAttemptState(attempt.id);
   if (!state) throw new Error("Attempt not found");
