@@ -35,6 +35,7 @@ import type {
   DebateDuelSpeech,
   PracticeLanguage,
 } from "@/types";
+import type { DebateDuelLobbyPreview } from "@/types/debate-duel";
 
 type DuelRow = {
   id: string;
@@ -177,7 +178,7 @@ function mapSpeech(row: DuelSpeechRow): DebateDuelSpeech {
   };
 }
 
-async function fetchRoomRows(shareCode: string) {
+async function fetchRoomRows(shareCode: string, userId: string) {
   const supabase = await createClient();
   const normalizedCode = normalizeShareCode(shareCode);
 
@@ -196,6 +197,18 @@ async function fetchRoomRows(shareCode: string) {
   if (!duel) {
     return null;
   }
+
+  // Do not load speeches, audio paths, or judgments until the viewer is a
+  // participant or the duel creator. Share codes are lobby identifiers, not
+  // authorization credentials.
+  const { data: viewerParticipant, error: viewerError } = await supabase
+    .from("debate_duel_participants")
+    .select("id")
+    .eq("duel_id", duel.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (viewerError) throw new Error(viewerError.message);
+  if (duel.creator_id !== userId && !viewerParticipant) return null;
 
   const { data: participants, error: participantError } = await supabase
     .from("debate_duel_participants")
@@ -307,6 +320,7 @@ function toRoomView(params: {
       new Date(duel.expires_at).getTime() <= Date.now());
 
   return {
+    view: "room" as const,
     id: duel.id,
     shareCode: duel.share_code,
     topicKey: duel.practice_topic_key ?? null,
@@ -406,7 +420,7 @@ export async function getDebateDuelRoom(
   shareCode: string,
   userId: string,
 ): Promise<DebateDuelRoomView | null> {
-  const rows = await fetchRoomRows(shareCode);
+  const rows = await fetchRoomRows(shareCode, userId);
   if (!rows) return null;
 
   if (
@@ -433,6 +447,39 @@ export async function getDebateDuelRoom(
     judgment: rows.judgment,
     userId,
   });
+}
+
+/** Safe share-code lookup used before a viewer joins a duel. */
+export async function getDebateDuelLobbyPreview(
+  shareCode: string,
+  userId: string,
+): Promise<DebateDuelLobbyPreview | null> {
+  const supabase = await createClient();
+  const { data: duel, error } = await supabase
+    .from("debate_duels")
+    .select("id, share_code, creator_id, topic_title, topic_category, status, expires_at, duel_kind")
+    .eq("share_code", normalizeShareCode(shareCode))
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!duel) return null;
+
+  const { data: participant } = await supabase
+    .from("debate_duel_participants")
+    .select("id")
+    .eq("duel_id", duel.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  const expired = duel.status === "expired" || new Date(duel.expires_at).getTime() <= Date.now();
+  if (!expired && duel.status !== "lobby") return null;
+  return {
+    view: "preview" as const,
+    shareCode: duel.share_code,
+    topicTitle: duel.topic_title,
+    topicCategory: duel.topic_category,
+    status: expired ? "expired" : "lobby",
+    canJoin: !expired && duel.status === "lobby" && duel.creator_id !== userId && !participant,
+    expiresAt: duel.expires_at,
+  };
 }
 
 export async function createDebateDuelRoom(

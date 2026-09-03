@@ -1005,7 +1005,9 @@ export async function getCourseReaderBySlug(
   const selectedIndex =
     paramIndex >= 0
       ? paramIndex
-      : fallbackIndex;
+      : fallbackIndex >= 0 && moduleAccessById.get(flatLessons[fallbackIndex]?.module.id)
+        ? fallbackIndex
+        : -1;
   const activeIndex =
     firstIncompleteIndex >= 0
       ? firstIncompleteIndex
@@ -1014,10 +1016,18 @@ export async function getCourseReaderBySlug(
   const modulesWithProgress: CourseModuleSummary[] = modulesWithPublishedLessons.map(
     (module) => ({
       ...module,
-      lessons: module.lessons.map((lesson) => ({
-        ...lesson,
-        progress: progressByLessonId.get(lesson.id) ?? null,
-      })),
+      lessons: module.lessons.map((lesson) => {
+        const accessible = Boolean(moduleAccessById.get(module.id));
+        // Keep the lesson catalogue useful for locked modules while ensuring
+        // content and media never cross the learner boundary.
+        const safeLesson = accessible
+          ? lesson
+          : { ...lesson, content: {}, video_url: null };
+        return {
+          ...safeLesson,
+          progress: progressByLessonId.get(lesson.id) ?? null,
+        };
+      }),
       activities: [],
     })
   );
@@ -1060,7 +1070,7 @@ export async function getCourseReaderBySlug(
 
   let selectedLesson: LessonWithContext | null = null;
 
-  if (selectedEntry) {
+  if (selectedEntry && moduleAccessById.get(selectedEntry.module.id)) {
     let quizQuestions: QuizQuestion[] = [];
 
     if (selectedEntry.lesson.type === "quiz") {

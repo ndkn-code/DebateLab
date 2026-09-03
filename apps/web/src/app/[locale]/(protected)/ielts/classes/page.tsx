@@ -49,7 +49,10 @@ function toLearnerProjection(
   row: LearnerMaterialRow,
   lessonTitle: string | null,
 ): LearnerMaterialProjection {
-  const parsedDocument = materialDocumentV1Schema.safeParse(row.nativeDocument);
+  const parsedDocument =
+    row.accessState === "available"
+      ? materialDocumentV1Schema.safeParse(row.nativeDocument)
+      : { success: false as const };
   const primaryPreview =
     row.previews.find((item) => item.renditionKind === row.renditionKind) ??
     row.previews[0] ??

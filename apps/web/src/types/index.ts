@@ -67,6 +67,8 @@ export type {
   DebateDuelClashTag,
   DebateDuelClashLink,
   DebateDuelJudgment,
+  DebateDuelLobbyPreview,
+  DebateDuelRoomResponse,
   DebateDuelRoomView,
 } from "./debate-duel";
 export type { MarkdownRendererProps, CoursePathItem, CoursePathSection } from "./content";

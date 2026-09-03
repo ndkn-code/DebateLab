@@ -72,7 +72,7 @@ export function DuelResultPage({ shareCode }: DuelResultPageProps) {
     );
   }
 
-  if (error || !room) {
+  if (error || !room || room.view !== "room") {
     return (
       <div className="min-h-full bg-background px-4 py-10">
         <div className="mx-auto max-w-3xl rounded-control border border-outline-variant/15 bg-surface p-6 text-center shadow-none">

@@ -45,9 +45,8 @@ async function loadIeltsViewer(): Promise<IeltsViewer> {
  */
 export async function isIeltsAccessible(): Promise<boolean> {
   if (IELTS_ENABLED) return true;
-  // Local dev admin bypass renders the shell as an admin without a real
-  // session; honour it here so `/ielts/**` is previewable in dev (no-op in
-  // production, where the bypass is always disabled).
+  // Pre-launch access is session-only: the viewer must be a persisted
+  // platform administrator in every environment.
   return (await loadIeltsViewer()).isAdmin;
 }
 

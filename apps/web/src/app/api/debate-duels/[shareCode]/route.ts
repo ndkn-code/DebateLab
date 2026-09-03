@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDebateDuelRoom } from "@/lib/api/debate-duels";
+import {
+  getDebateDuelLobbyPreview,
+  getDebateDuelRoom,
+} from "@/lib/api/debate-duels";
 import { canAccessDuels } from "@/lib/auth/admin";
 import { requireRequestAuth } from "@/lib/api/request-auth";
 
@@ -25,14 +28,19 @@ export async function GET(
     const { shareCode } = await context.params;
     const room = await getDebateDuelRoom(shareCode, user.id);
 
-    if (!room) {
+    if (room) {
+      return NextResponse.json(room);
+    }
+
+    const preview = await getDebateDuelLobbyPreview(shareCode, user.id);
+    if (!preview) {
       return NextResponse.json(
         { error: "Duel room not found." },
         { status: 404 },
       );
     }
 
-    return NextResponse.json(room);
+    return NextResponse.json(preview);
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Failed to load duel room.";

@@ -4,27 +4,27 @@ import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { createClient } from "@/lib/supabase/client";
 import { DUEL_POLL_INTERVAL_MS } from "@/lib/debate-duels/shared";
-import type { DebateDuelRoomView } from "@/types";
+import type { DebateDuelRoomResponse } from "@/types/debate-duel";
 
-function isDebateDuelRoomView(
-  payload: DebateDuelRoomView | { error?: string }
-): payload is DebateDuelRoomView {
+function isDebateDuelResponse(
+  payload: DebateDuelRoomResponse | { error?: string },
+): payload is DebateDuelRoomResponse {
   return (
     typeof payload === "object" &&
     payload !== null &&
-    "id" in payload &&
     "shareCode" in payload &&
-    "participants" in payload
+    "view" in payload &&
+    (payload.view === "room" || payload.view === "preview")
   );
 }
 
-async function fetchRoom(url: string): Promise<DebateDuelRoomView> {
+async function fetchRoom(url: string): Promise<DebateDuelRoomResponse> {
   const response = await fetch(url, { credentials: "include" });
   const payload = (await response.json()) as
-    | DebateDuelRoomView
+    | DebateDuelRoomResponse
     | { error?: string };
 
-  if (!response.ok || !isDebateDuelRoomView(payload)) {
+  if (!response.ok || !isDebateDuelResponse(payload)) {
     throw new Error(
       "error" in payload ? payload.error || "Failed to load duel room." : "Failed to load duel room."
     );
@@ -46,7 +46,7 @@ export function useDebateDuelRoom(
     revalidateOnReconnect: true,
   });
   const { data, mutate } = swr;
-  const viewerId = data?.viewer.id ?? null;
+  const viewerId = data?.view === "room" ? data.viewer.id : null;
 
   const [onlineUserIds, setOnlineUserIds] = useState<string[]>([]);
 
@@ -98,7 +98,10 @@ export function useDebateDuelRoom(
   // the idempotent /judge endpoint. Safe to call repeatedly — the endpoint
   // no-ops once a judgment exists and is rate-limited server-side.
   const isStuckJudging =
-    mode === "room" && data?.status === "judging" && !data?.judgment;
+    mode === "room" &&
+    data?.view === "room" &&
+    data.status === "judging" &&
+    !data.judgment;
   useEffect(() => {
     if (!isStuckJudging || !shareCode) return;
 
@@ -124,18 +127,19 @@ export function useDebateDuelRoom(
   // AI-backfill turn: when it's the AI opponent's turn (opposition phase) and it
   // hasn't spoken yet, ask the server to generate + submit its speech. Mirrors
   // the auto-judge backstop; idempotent + rate-limited server-side.
+  const room = data?.view === "room" ? data : null;
   const aiRound =
-    data?.aiOpponent && data?.status === "in_progress"
-      ? data.currentPhase === "opposition-opening"
+    room?.aiOpponent && room.status === "in_progress"
+      ? room.currentPhase === "opposition-opening"
         ? 2
-        : data.currentPhase === "opposition-rebuttal"
+        : room.currentPhase === "opposition-rebuttal"
           ? 4
           : null
       : null;
   const isAiTurn =
     mode === "room" &&
     aiRound !== null &&
-    !data?.speeches.some((speech) => speech.roundNumber === aiRound);
+    !room?.speeches.some((speech) => speech.roundNumber === aiRound);
   useEffect(() => {
     if (!isAiTurn || !shareCode) return;
 

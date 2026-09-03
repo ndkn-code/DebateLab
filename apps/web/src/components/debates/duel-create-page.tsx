@@ -124,6 +124,7 @@ export function DuelCreatePage({
     isLoading: roomLoading,
     mutate,
   } = useDebateDuelRoom(activeRoomCode);
+  const fullActiveRoom = activeRoom?.view === "room" ? activeRoom : null;
 
   const selectedTopic = useMemo(
     () =>
@@ -216,19 +217,19 @@ export function DuelCreatePage({
   };
 
   const editFromRoom = () => {
-    if (activeRoom) {
+    if (fullActiveRoom) {
       const matchingTopic = localizedTopics.find(
         (topic) =>
-          getTopicStableKey(topic) === activeRoom.topicKey ||
-          topic.title === activeRoom.topicTitle,
+          getTopicStableKey(topic) === fullActiveRoom.topicKey ||
+          topic.title === fullActiveRoom.topicTitle,
       );
       if (matchingTopic) setTopicId(matchingTopic.id);
-      setPrepTimeSeconds(activeRoom.config.prepTimeSeconds);
-      setOpeningTimeSeconds(activeRoom.config.openingTimeSeconds);
-      setRebuttalTimeSeconds(activeRoom.config.rebuttalTimeSeconds);
-      setSideAssignmentMode(activeRoom.sideAssignmentMode);
+      setPrepTimeSeconds(fullActiveRoom.config.prepTimeSeconds);
+      setOpeningTimeSeconds(fullActiveRoom.config.openingTimeSeconds);
+      setRebuttalTimeSeconds(fullActiveRoom.config.rebuttalTimeSeconds);
+      setSideAssignmentMode(fullActiveRoom.sideAssignmentMode);
       setCreatorSidePreference(
-        activeRoom.creatorSidePreference ?? "proposition",
+        fullActiveRoom.creatorSidePreference ?? "proposition",
       );
     }
     setActiveRoomCode(null);
@@ -246,7 +247,7 @@ export function DuelCreatePage({
       );
     }
 
-    if (roomError || !activeRoom) {
+    if (roomError || !fullActiveRoom) {
       return (
         <div className="min-h-full bg-background px-4 py-10">
           <div className="mx-auto max-w-xl rounded-control border border-outline-variant/20 bg-surface p-6 text-center">
@@ -275,9 +276,9 @@ export function DuelCreatePage({
 
     return (
       <DuelLobbySetupView
-        room={activeRoom}
+        room={fullActiveRoom}
         mutate={mutate}
-        onEditSetup={activeRoom.viewer.isCreator ? editFromRoom : undefined}
+        onEditSetup={fullActiveRoom.viewer.isCreator ? editFromRoom : undefined}
       />
     );
   }

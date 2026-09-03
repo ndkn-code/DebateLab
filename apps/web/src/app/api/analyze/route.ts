@@ -551,7 +551,7 @@ export async function POST(req: NextRequest) {
     try {
       if (!shouldPersistAnalysis) {
         throw new Error(
-          "Skipping durable analysis records for dev auth bypass",
+          "Authenticated analysis requires a durable identity source.",
         );
       }
       durableAnalysis = await createPracticeAnalysisRecords(

@@ -11,6 +11,8 @@ import { IELTS_REVIEW_RATINGS } from "@/lib/ielts/review";
 import { PostgresUuidSchema } from "@/lib/ielts/review/schema";
 import { requireIeltsUserId } from "@/lib/ielts/access";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
+import { isEnrolledStudent } from "@/lib/ielts/enrollment";
+import { createTypedServerClient } from "@/lib/supabase/server";
 
 const GradeIeltsReviewItemActionSchema = z.object({
   reviewItemId: PostgresUuidSchema,
@@ -26,6 +28,9 @@ const GradeIeltsReviewItemActionSchema = z.object({
 export async function gradeIeltsReviewItemAction(raw: unknown) {
   const input = parseInput(GradeIeltsReviewItemActionSchema, raw);
   const userId = await requireIeltsUserId();
+  if (!(await isEnrolledStudent(userId, await createTypedServerClient()))) {
+    throw new Error("IELTS enrollment required");
+  }
   const item = await getIeltsReviewItem(input.reviewItemId);
   if (!item || item.user_id !== userId) {
     throw new Error("Review item not found");

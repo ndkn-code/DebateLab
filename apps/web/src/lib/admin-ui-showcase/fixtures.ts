@@ -536,6 +536,7 @@ export const showcaseFullRoundSession: DebateSession = {
 };
 
 export const showcaseDuelRoom: DebateDuelRoomView = {
+  view: "room",
   id: "showcase-duel-room",
   shareCode: "SHOWQA",
   topicKey: "showcase-duel-topic",

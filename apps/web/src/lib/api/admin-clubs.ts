@@ -471,6 +471,33 @@ export async function getAdminClubDetail(
   clubId: string,
 ): Promise<AdminClubDetailData | null> {
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  // Keep the authorization check inside the repository so every caller gets
+  // the same boundary before any organization rows are read.
+  const [{ data: profile }, { data: membership }] = await Promise.all([
+    supabase.from("profiles").select("role").eq("id", user.id).maybeSingle(),
+    supabase
+      .from("club_memberships")
+      .select("role")
+      .eq("club_id", clubId)
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .maybeSingle(),
+  ]);
+  const isPlatformAdmin = profile?.role === "admin";
+  const isOrganizationStaff = [
+    "owner",
+    "admin",
+    "head_teacher",
+    "teacher",
+    "coach",
+  ].includes(String(membership?.role));
+  if (!isPlatformAdmin && !isOrganizationStaff) return null;
+
   const { data: clubRow, error: clubError } = await supabase
     .from("admin_club_list_rows")
     .select("*")

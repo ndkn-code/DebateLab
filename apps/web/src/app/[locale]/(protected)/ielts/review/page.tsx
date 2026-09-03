@@ -4,6 +4,7 @@ import { createTypedServerClient } from "@/lib/supabase/server";
 import { getIeltsReviewPageData } from "@/lib/api/ielts/review-page-repository";
 import { IeltsReviewSession } from "@/components/ielts/review/IeltsReviewSession";
 import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
+import { isEnrolledStudent } from "@/lib/ielts/enrollment";
 
 export const metadata = {
   title: "IELTS review",
@@ -19,6 +20,9 @@ async function IeltsReviewPayload() {
 
   if (!user) {
     redirect("/auth/login");
+  }
+  if (!(await isEnrolledStudent(user.id, supabase))) {
+    redirect("/ielts");
   }
 
   const data = await getIeltsReviewPageData(user.id, supabase);

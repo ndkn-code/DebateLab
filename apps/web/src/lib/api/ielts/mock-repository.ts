@@ -23,10 +23,10 @@ export interface MockStructure {
   test: Tables<"ielts_tests">;
   passages: Array<Pick<Tables<"passages">, "id" | "title" | "body" | "order_index">>;
   listeningSections: Array<
-    Pick<
-      Tables<"listening_sections">,
-      "id" | "title" | "script" | "section_number" | "order_index" | "audio_asset_id"
-    >
+    Omit<
+      Pick<Tables<"listening_sections">, "id" | "title" | "script" | "section_number" | "order_index" | "audio_asset_id">,
+      "script"
+    > & { script: string | null }
   >;
   audioAssets: Array<
     Pick<Tables<"audio_assets">, "id" | "status" | "version" | "storage_path">
@@ -161,7 +161,11 @@ export async function loadMockStructure(
   return {
     test,
     passages: passages.data ?? [],
-    listeningSections: listeningSections.data ?? [],
+    // Listening scripts are grading material, never learner material.
+    listeningSections: (listeningSections.data ?? []).map((section) => ({
+      ...section,
+      script: null,
+    })),
     audioAssets: audioAssets.data ?? [],
     questions: questionViews,
     questionGroups: buildQuestionGroups(
@@ -227,13 +231,7 @@ export function buildMockStructureFromFrozenBlueprint(
     string,
     Pick<Tables<"passages">, "id" | "title" | "body" | "order_index">
   >();
-  const listeningSections = new Map<
-    string,
-    Pick<
-      Tables<"listening_sections">,
-      "id" | "title" | "script" | "section_number" | "order_index" | "audio_asset_id"
-    >
-  >();
+  const listeningSections = new Map<string, MockStructure["listeningSections"][number]>();
   const audioAssets = new Map<
     string,
     Pick<Tables<"audio_assets">, "id" | "status" | "version" | "storage_path">
@@ -253,7 +251,7 @@ export function buildMockStructureFromFrozenBlueprint(
         listeningSections.set(row.listening_section_id, {
           id: row.listening_section_id,
           title: row.source_title,
-          script: row.source_body,
+          script: null,
           section_number: row.question_order,
           order_index: row.question_order,
           audio_asset_id: row.source_audio_asset_id,

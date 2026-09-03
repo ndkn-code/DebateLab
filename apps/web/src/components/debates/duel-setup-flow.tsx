@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { DUEL_ENTRY_COST } from "@/lib/debate-duels/shared";
 import type {
   DebateDuelParticipant,
+  DebateDuelRoomResponse,
   DebateDuelRoomView,
   DebateDuelSide,
   DebateDuelTopicDifficulty,
@@ -353,7 +354,7 @@ export function DuelLobbySetupView({
   onEditSetup,
 }: {
   room: DebateDuelRoomView;
-  mutate: KeyedMutator<DebateDuelRoomView>;
+  mutate: KeyedMutator<DebateDuelRoomResponse>;
   onEditSetup?: () => void;
 }) {
   const router = useRouter();

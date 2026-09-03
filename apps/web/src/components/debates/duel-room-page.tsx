@@ -73,13 +73,15 @@ function duelActionError(language: "en" | "vi", supportCode: string) {
 export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
   const router = useRouter();
   const {
-    data: room,
+    data: roomResponse,
     error,
     mutate,
     isLoading,
     onlineUserIds,
     isAiTurn,
   } = useDebateDuelRoom(shareCode);
+  const room = roomResponse?.view === "room" ? roomResponse : null;
+  const lobbyPreview = roomResponse?.view === "preview" ? roomResponse : null;
   const practiceLanguage = room?.practiceLanguage ?? "en";
   const speech = useDeepgramTranscription(practiceLanguage);
   useDuelIntegrityMonitor(room ?? null);
@@ -483,6 +485,39 @@ export function DuelRoomPage({ shareCode }: DuelRoomPageProps) {
   }
 
   if (error || !room) {
+    if (lobbyPreview) {
+      return (
+        <div className="min-h-full bg-background px-4 py-10">
+          <div className="mx-auto max-w-2xl rounded-control border border-outline-variant/15 bg-surface p-6 shadow-none sm:p-8">
+            <div className="type-eyebrow text-primary">1v1 Debate</div>
+            <h1 className="mt-3 type-heading-xl text-on-surface">
+              {lobbyPreview.topicTitle}
+            </h1>
+            <p className="mt-3 text-sm leading-7 text-on-surface-variant">
+              {lobbyPreview.topicCategory}
+            </p>
+            <div className="mt-6 rounded-control border border-outline-variant/15 bg-surface-container-low p-4 text-sm text-on-surface-variant">
+              This room is ready for one more debater. Join to choose your side
+              and prepare before the duel begins.
+            </div>
+            {actionError && (
+              <p className="mt-4 text-sm text-error" role="alert">
+                {actionError}
+              </p>
+            )}
+            <Button
+              className="mt-6 h-10 rounded-control bg-primary text-on-primary hover:bg-primary/90"
+              disabled={!lobbyPreview.canJoin || isMutatingRoom}
+              onClick={() =>
+                performRoomAction(`/api/debate-duels/${shareCode}/join`)
+              }
+            >
+              {isMutatingRoom ? "Joining…" : "Join duel"}
+            </Button>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-full bg-background px-4 py-10">
         <div className="mx-auto max-w-2xl rounded-control border border-outline-variant/20 bg-surface p-6 text-center shadow-none">

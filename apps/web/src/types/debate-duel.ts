@@ -163,6 +163,7 @@ export interface DebateDuelJudgment {
 }
 
 export interface DebateDuelRoomView {
+  view: "room";
   id: string;
   shareCode: string;
   topicKey: string | null;
@@ -209,3 +210,18 @@ export interface DebateDuelRoomView {
   canReady: boolean;
   canStart: boolean;
 }
+
+/** Deliberately metadata-only response returned to a share-code visitor before joining. */
+export interface DebateDuelLobbyPreview {
+  view: "preview";
+  shareCode: string;
+  topicTitle: string;
+  topicCategory: string;
+  status: Extract<DebateDuelStatus, "lobby" | "expired">;
+  expiresAt: string;
+  canJoin: boolean;
+}
+
+export type DebateDuelRoomResponse =
+  | DebateDuelRoomView
+  | DebateDuelLobbyPreview;
