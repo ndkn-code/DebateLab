@@ -74,6 +74,7 @@ import {
 } from "@/lib/practice-durations";
 import { coerceVoiceForLanguage } from "@/lib/tts-voices";
 import { createClient } from "@/lib/supabase/client";
+import { resetPracticeClientStateForAuthChange } from "@/lib/practice-client-state";
 import { cn } from "@/lib/utils";
 import type { Profile } from "@/types/database";
 import type {
@@ -1008,6 +1009,7 @@ export function SettingsContent({
   async function handleSignOut() {
     const supabase = createClient();
     await supabase.auth.signOut();
+    resetPracticeClientStateForAuthChange();
     router.push("/");
   }
 

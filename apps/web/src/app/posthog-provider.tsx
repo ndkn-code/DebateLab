@@ -14,6 +14,46 @@ function hasLoadedPostHog() {
   return Boolean((posthog as typeof posthog & { __loaded?: boolean }).__loaded);
 }
 
+export function sanitizeGuardianConsentUrl(value: string): string;
+export function sanitizeGuardianConsentUrl(value: unknown): unknown;
+export function sanitizeGuardianConsentUrl(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const marker = value.match(/\/((?:en|vi)\/)?guardian-consent\/[^/?#]+/i);
+  if (!marker) return value;
+  return value.replace(marker[0], `/${marker[1] ?? ""}guardian-consent/:token`).split("?")[0].split("#")[0];
+}
+
+export function sanitizePostHogEvent(event: Record<string, unknown>) {
+  const properties = event.properties;
+  if (!properties || typeof properties !== "object") return event;
+  const entries = Object.entries(properties as Record<string, unknown>);
+  const consentEvent = entries.some(
+    ([, value]) =>
+      typeof value === "string" && /\/guardian-consent\/(?:[^/?#]+|:token)/i.test(value),
+  );
+  const sanitized = Object.fromEntries(entries.flatMap(([key, value]) => {
+    const normalizedKey = key.toLowerCase();
+    if (
+      consentEvent &&
+      (normalizedKey.includes("referrer") ||
+        normalizedKey.includes("query") ||
+        normalizedKey.includes("search") ||
+        normalizedKey.includes("hash") ||
+        normalizedKey.includes("token"))
+    ) {
+      return [];
+    }
+    return [[
+      key,
+      typeof value === "string" &&
+      (normalizedKey.includes("url") || normalizedKey.includes("referrer"))
+        ? sanitizeGuardianConsentUrl(value)
+        : value,
+    ]];
+  }));
+  return { ...event, properties: sanitized };
+}
+
 export function PostHogProvider({
   children,
   enabled,
@@ -33,6 +73,10 @@ export function PostHogProvider({
           api_host: "/ingest",
           ui_host: "https://us.i.posthog.com",
           capture_pageview: false,
+          before_send: (event) =>
+            sanitizePostHogEvent(
+              event as unknown as Record<string, unknown>,
+            ) as unknown as typeof event,
           capture_pageleave: true,
           autocapture: true,
           session_recording: {
@@ -45,6 +89,9 @@ export function PostHogProvider({
       }
 
       posthog.set_config({ persistence: "localStorage+cookie" });
+      if (window.location.pathname.includes("/guardian-consent/")) {
+        posthog.set_config({ autocapture: false, disable_session_recording: true });
+      }
     }
   }, [enabled]);
 
@@ -57,9 +104,14 @@ function PageviewTracker({ enabled }: { enabled: boolean }) {
 
   useEffect(() => {
     if (enabled && pathname && hasLoadedPostHog()) {
-      let url = window.origin + pathname;
+      const isConsentRoute = pathname.includes("/guardian-consent/");
+      posthog.set_config({
+        autocapture: !isConsentRoute,
+        disable_session_recording: isConsentRoute,
+      });
+      let url = window.origin + sanitizeGuardianConsentUrl(pathname);
       if (searchParams?.toString()) url += "?" + searchParams.toString();
-      posthog.capture("$pageview", { $current_url: url });
+      posthog.capture("$pageview", { $current_url: sanitizeGuardianConsentUrl(url) });
     }
   }, [enabled, pathname, searchParams]);
 

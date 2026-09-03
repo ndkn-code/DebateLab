@@ -21,6 +21,7 @@ import type {
 
 const STORAGE_KEY = "debatelab_practice_draft_id";
 const LOCAL_DRAFT_KEY = "debatelab_practice_local_draft";
+const LOCAL_OWNER_KEY = "debatelab_practice_local_draft_owner";
 const PENDING_HANDOFF_KEY = "debatelab_practice_pending_session";
 const PENDING_HANDOFF_TTL_MS = 10 * 60 * 1000;
 
@@ -44,6 +45,7 @@ export interface PracticeSessionDraftPayload {
 
 interface PendingPracticeSessionHandoff {
   createdAt: number;
+  ownerUserId: string | null;
   payload: PracticeSessionDraftPayload;
 }
 
@@ -164,16 +166,25 @@ export function getLocalPracticeSessionDraft() {
   }
 }
 
+export function getLocalPracticeSessionDraftOwner() {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(LOCAL_OWNER_KEY);
+}
+
 export function setLocalPracticeSessionDraft(
-  payload: PracticeSessionDraftPayload
+  payload: PracticeSessionDraftPayload,
+  ownerUserId: string | null = null,
 ) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(LOCAL_DRAFT_KEY, JSON.stringify(payload));
+  if (ownerUserId) window.localStorage.setItem(LOCAL_OWNER_KEY, ownerUserId);
+  else window.localStorage.removeItem(LOCAL_OWNER_KEY);
 }
 
 export function clearLocalPracticeSessionDraft() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(LOCAL_DRAFT_KEY);
+  window.localStorage.removeItem(LOCAL_OWNER_KEY);
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -223,6 +234,7 @@ function readPendingPracticeSessionHandoff() {
 
     return {
       createdAt,
+      ownerUserId: typeof parsed.ownerUserId === "string" ? parsed.ownerUserId : null,
       payload: parsed.payload,
     };
   } catch {
@@ -232,19 +244,25 @@ function readPendingPracticeSessionHandoff() {
 }
 
 export function setPendingPracticeSessionHandoff(
-  payload: PracticeSessionDraftPayload
+  payload: PracticeSessionDraftPayload,
+  ownerUserId: string | null = null,
 ) {
   if (typeof window === "undefined") return;
 
   const handoff: PendingPracticeSessionHandoff = {
     createdAt: Date.now(),
+    ownerUserId,
     payload,
   };
   window.localStorage.setItem(PENDING_HANDOFF_KEY, JSON.stringify(handoff));
 }
 
-export function consumePendingPracticeSessionHandoff() {
+export function consumePendingPracticeSessionHandoff(userId: string | null = null) {
   const handoff = readPendingPracticeSessionHandoff();
+  if (handoff && handoff.ownerUserId !== userId) {
+    clearPendingPracticeSessionHandoff();
+    return null;
+  }
   if (typeof window !== "undefined" && handoff) {
     window.localStorage.removeItem(PENDING_HANDOFF_KEY);
   }

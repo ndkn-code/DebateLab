@@ -45,6 +45,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import posthog from "posthog-js";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { resetPracticeClientStateForAuthChange } from "@/lib/practice-client-state";
 import {
   DUEL_ENABLED,
   IELTS_ENABLED,
@@ -728,6 +729,7 @@ export function Sidebar({
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
+    resetPracticeClientStateForAuthChange();
     posthog.reset();
     router.push("/");
     router.refresh();

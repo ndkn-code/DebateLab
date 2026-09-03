@@ -6,6 +6,7 @@ import {
   aggregateCampaignResults,
   emailAudienceSegmentSchema,
   resolveCampaignAudience,
+  isCampaignEligible,
   type CampaignAudienceProfile,
   type CampaignResults,
   type EmailAudienceSegment,
@@ -33,6 +34,7 @@ import type { Database, Json, Tables } from "@/types/supabase";
 
 const CAMPAIGN_BATCH_SIZE = 250;
 const PAGE_SIZE = 1000;
+const normalizeCampaignEmail = (value: string) => value.trim().toLowerCase();
 
 const campaignInputSchema = z.object({
   id: z.string().uuid().optional(),
@@ -194,6 +196,7 @@ async function resolveAudienceWithClient(
   actorId: string | null,
   campaignLocale?: EmailLocale | null,
   suppressionCategory?: EmailCategory,
+  templateKey?: EmailTemplateKey,
 ) {
   let suppressionQuery = admin
     .from("email_suppressions")
@@ -238,6 +241,7 @@ async function resolveAudienceWithClient(
     ),
     suppressedEmails: (suppressionsResult.data ?? []).map((row) => row.email),
     locale: campaignLocale,
+    templateKey,
   });
 }
 
@@ -356,6 +360,7 @@ export async function approveCampaign(id: string, confirmationName?: string) {
     actorId,
     campaign.locale,
     EMAIL_TEMPLATE_META[campaign.templateKey].category,
+    campaign.templateKey,
   );
   if (recipients.length === 0)
     throw new Error(
@@ -456,7 +461,7 @@ function buildCandidate(
   const template = buildTemplateVariables(campaign.templateKey, {
     userName:
       recipient.displayName || recipient.email.split("@")[0] || "debater",
-    locale: campaign.locale,
+    locale: recipient.locale,
   });
   const variables = applyEmailTemplateCopyOverrides(
     { ...template, ...campaign.variables },
@@ -477,7 +482,7 @@ function buildCandidate(
     toEmail: recipient.email,
     templateKey: campaign.templateKey,
     category,
-    locale: campaign.locale,
+    locale: recipient.locale,
     sendKey: `campaign:${campaign.id}:${recipient.userId}:v1`,
     subject: campaign.subject || template.subject,
     variables,
@@ -508,9 +513,35 @@ async function sendCampaignBatch(admin: AdminClient, campaign: EmailCampaign) {
     .limit(CAMPAIGN_BATCH_SIZE * 2);
   if (recipientError)
     throw new Error(`email-campaigns(recipients): ${recipientError.message}`);
-  const pending = ((recipientData ?? []) as CampaignRecipientRow[])
+  let pending = ((recipientData ?? []) as CampaignRecipientRow[])
     .filter((recipient) => recipient.attempts < recipient.max_attempts)
     .slice(0, CAMPAIGN_BATCH_SIZE);
+
+  // Re-check current consent and contact details immediately before dispatch;
+  // approval snapshots are audit records, not authorization to send.
+  if (pending.length > 0) {
+    const ids = pending.map((recipient) => recipient.user_id);
+    const [{ data: profiles, error: profilesError }, { data: suppressions, error: suppressionsError }] = await Promise.all([
+      db.from("profiles").select("id, email, display_name, preferences").in("id", ids),
+      db.from("email_suppressions").select("email").eq("active", true).or(`category.is.null,category.eq.${EMAIL_TEMPLATE_META[campaign.templateKey].category}`),
+    ]);
+    if (profilesError) throw new Error(`email-campaigns(current-profiles): ${profilesError.message}`);
+    if (suppressionsError) throw new Error(`email-campaigns(current-suppressions): ${suppressionsError.message}`);
+    const profileById = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
+    const suppressed = new Set((suppressions ?? []).map((row) => normalizeCampaignEmail(row.email)));
+    const eligible: CampaignRecipientRow[] = [];
+    await Promise.all(pending.map(async (recipient) => {
+      const profile = profileById.get(recipient.user_id);
+      const preferences = profile?.preferences && typeof profile.preferences === "object" && !Array.isArray(profile.preferences) ? profile.preferences as Record<string, unknown> : null;
+      const email = profile?.email?.trim().toLowerCase();
+      if (!profile || !email || suppressed.has(email) || !isCampaignEligible(campaign.templateKey, preferences)) {
+        await db.from("email_campaign_recipients").update({ status: "suppressed", last_error: "consent_revoked_or_contact_unavailable", suppressed_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", recipient.id);
+        return;
+      }
+      eligible.push({ ...recipient, email, display_name: profile.display_name, locale: preferences?.preferred_locale === "vi" ? "vi" : "en" });
+    }));
+    pending = eligible;
+  }
 
   if (campaign.status !== "sending") {
     const { error } = await db

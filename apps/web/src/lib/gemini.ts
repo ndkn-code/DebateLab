@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { z } from "zod";
 import type {
   DebateArgumentBreakdown,
   DebateClashLink,
@@ -24,7 +25,10 @@ import {
 } from "@/lib/ai/provider-selection";
 import type { AiQualityTelemetry } from "@/lib/ai/quality-model";
 import type { PracticeTranscriptionArtifact } from "@thinkfy/shared/practice";
-import { buildAnalysisPrompt, buildDuelJudgmentPrompt } from "./prompts";
+import {
+  buildAnalysisPrompt,
+  buildDuelJudgmentMessages,
+} from "./prompts";
 import { recordAiProviderRequest } from "./ai/provider-requests";
 import {
   buildFuzzyEvidenceHintBlock,
@@ -662,6 +666,90 @@ function summarizeGeminiStages(stages: GeminiStageResult[]) {
       stages.map((stage) => [stage.stage, Boolean(stage.cacheHit)])
     ),
   };
+}
+
+const duelWinnerSchema = z.enum(["proposition", "opposition"]);
+const duelCriterionSchema = z.object({
+  winnerSide: z.enum(["proposition", "opposition", "tie"]),
+  reason: z.string().min(1),
+});
+const duelFeedbackSchema = z.object({
+  strengths: z.array(z.string()),
+  improvements: z.array(z.string()),
+  summary: z.string().min(1),
+});
+const duelJudgmentEnvelopeSchema = z.object({
+  winnerSide: duelWinnerSchema,
+  winnerParticipantId: z.string().nullable().optional(),
+  confidence: z.number().min(0).max(1),
+  decisionSummary: z.string().min(1),
+  comparativeBallot: z.object({
+    caseQuality: duelCriterionSchema,
+    logic: duelCriterionSchema,
+    rebuttal: duelCriterionSchema,
+    weighing: duelCriterionSchema,
+    evidence: duelCriterionSchema,
+    delivery: duelCriterionSchema,
+  }),
+  participantFeedback: z.object({
+    proposition: duelFeedbackSchema,
+    opposition: duelFeedbackSchema,
+  }),
+  roundBreakdown: z.array(z.object({
+    roundNumber: z.number().int().positive(),
+    label: z.string().min(1),
+    winnerSide: z.enum(["proposition", "opposition", "tie"]),
+    reason: z.string().min(1),
+  })),
+  clashLinks: z.array(z.object({
+    id: z.string().min(1),
+    sourceSpeechId: z.string().min(1),
+    responseSpeechId: z.string().nullable(),
+    sourceQuote: z.string().min(1),
+    responseQuote: z.string().nullable(),
+    outcome: z.enum(["answered", "dropped", "misanswered", "turned", "weighed"]),
+    judgeRead: z.string().min(1),
+    suggestion: z.string().min(1),
+    tag: z.enum(["clash", "rebuttal", "weighing", "logic", "evidence"]),
+  })).optional(),
+  summary: z.string().min(1),
+  qualityWarnings: z.array(z.string()),
+  model: z.string().optional(),
+  judgedAt: z.string().optional(),
+});
+
+function validateDuelJudgmentEvidence(
+  value: unknown,
+  params: { participants: { proposition: { participantId: string | null }; opposition: { participantId: string | null } }; speeches: Array<{ id: string; roundNumber: number; transcript: string }> },
+): DebateDuelJudgment {
+  const parsed = duelJudgmentEnvelopeSchema.parse(value) as DebateDuelJudgment;
+  const validParticipants = new Set(
+    [params.participants.proposition.participantId, params.participants.opposition.participantId].filter(Boolean),
+  );
+  const expectedWinner = params.participants[parsed.winnerSide].participantId;
+  if (parsed.winnerParticipantId !== undefined && parsed.winnerParticipantId !== null && !validParticipants.has(parsed.winnerParticipantId)) {
+    throw new Error("Duel judgment referenced an unknown winner participant");
+  }
+  if (parsed.winnerParticipantId && parsed.winnerParticipantId !== expectedWinner) {
+    throw new Error("Duel judgment winner does not match the winning side");
+  }
+  const speeches = new Map(params.speeches.map((speech) => [speech.id, speech.transcript]));
+  const validRounds = new Set(params.speeches.map((speech) => speech.roundNumber));
+  const seenRounds = new Set<number>();
+  for (const round of parsed.roundBreakdown) {
+    if (!validRounds.has(round.roundNumber) || seenRounds.has(round.roundNumber)) {
+      throw new Error("Duel judgment referenced an invalid or duplicate round");
+    }
+    seenRounds.add(round.roundNumber);
+  }
+  for (const link of parsed.clashLinks ?? []) {
+    const source = speeches.get(link.sourceSpeechId);
+    const response = link.responseSpeechId ? speeches.get(link.responseSpeechId) : undefined;
+    if (!source || (link.responseSpeechId && !response)) throw new Error("Duel judgment referenced an unknown speech");
+    if (typeof link.sourceQuote !== "string" || !source.includes(link.sourceQuote)) throw new Error("Duel judgment contained an inexact source quote");
+    if (link.responseQuote !== null && (typeof link.responseQuote !== "string" || !response?.includes(link.responseQuote))) throw new Error("Duel judgment contained an inexact response quote");
+  }
+  return parsed;
 }
 
 function readCachedGeminiStage(params: {
@@ -2654,13 +2742,14 @@ async function judgeDebateDuelWithGemini(params: {
   const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
   const model = getGeminiClient().getGenerativeModel({
     model: modelName,
+    systemInstruction: buildDuelJudgmentMessages(params).system,
     generationConfig: {
       responseMimeType: "application/json",
       temperature: 0.2,
     },
   });
 
-  const prompt = buildDuelJudgmentPrompt(params);
+  const prompt = buildDuelJudgmentMessages(params).user;
   const startTime = Date.now();
   let result;
   const providerRequestIds: string[] = [];
@@ -2747,6 +2836,8 @@ async function judgeDebateDuelWithGemini(params: {
     throw new Error("Invalid duel judgment structure from Gemini");
   }
 
+  parsed = validateDuelJudgmentEvidence(parsed, params);
+
   parsed.winnerParticipantId =
     parsed.winnerParticipantId ??
     (parsed.winnerSide === "proposition"
@@ -2781,16 +2872,15 @@ async function judgeDebateDuelWithDeepSeek(params: {
   }>;
 }, userId?: string, onTelemetry?: AiTelemetryCallback): Promise<DebateDuelJudgment> {
   const createDeepSeekChatCompletion = await loadDeepSeekChatCompletion();
-  const prompt = buildDuelJudgmentPrompt(params);
+  const messages = buildDuelJudgmentMessages(params);
   const startTime = Date.now();
   const result = await createDeepSeekChatCompletion({
     messages: [
       {
         role: "system",
-        content:
-          "You are Thinkfy's rigorous debate judge. Return only valid JSON matching the requested schema.",
+        content: messages.system,
       },
-      { role: "user", content: prompt },
+      { role: "user", content: messages.user },
     ],
     thinking: { type: "enabled", reasoningEffort: "high" },
     responseFormat: "json_object",
@@ -2856,6 +2946,8 @@ async function judgeDebateDuelWithDeepSeek(params: {
   if (!parsed.winnerSide || !parsed.comparativeBallot || !parsed.participantFeedback) {
     throw new Error("Invalid duel judgment structure from DeepSeek");
   }
+
+  parsed = validateDuelJudgmentEvidence(parsed, params);
 
   parsed.winnerParticipantId =
     parsed.winnerParticipantId ??

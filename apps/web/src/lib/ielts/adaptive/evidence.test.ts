@@ -43,6 +43,7 @@ assert.throws(() =>
     skill: "reading",
     questionType: "matching_headings",
     prompt: "Choose the correct heading.",
+    options: ["A", "B"],
     correctAnswer: "A",
     metadata: {
       subskill_tags: ["reading:matching_headings"],
@@ -58,6 +59,7 @@ assert.throws(() =>
     skill: "reading",
     questionType: "matching_headings",
     prompt: "Choose the correct heading.",
+    options: ["A", "B"],
     correctAnswer: "A",
     metadata: { difficulty_band_hint: 6.25 },
   }),

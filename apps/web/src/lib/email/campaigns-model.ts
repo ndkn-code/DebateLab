@@ -1,5 +1,6 @@
 import { z } from "zod";
-import type { EmailLocale } from "@/lib/email/types";
+import type { EmailLocale, EmailTemplateKey } from "@/lib/email/types";
+import { isEmailTemplateConsentEligible } from "@/lib/email/eligibility";
 
 export const emailAudienceSegmentSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("admin_test") }),
@@ -72,10 +73,18 @@ function hasCampaignConsent(preferences: Record<string, unknown> | null) {
   );
 }
 
+export function isCampaignEligible(
+  templateKey: EmailTemplateKey,
+  preferences: Record<string, unknown> | null,
+) {
+  return isEmailTemplateConsentEligible(templateKey, preferences);
+}
+
 export function resolveCampaignAudience(input: {
   profiles: CampaignAudienceProfile[];
   suppressedEmails?: Iterable<string>;
   locale?: EmailLocale | null;
+  templateKey?: EmailTemplateKey;
 }) {
   const suppressed = new Set(
     Array.from(input.suppressedEmails ?? [], (email) => normalizeEmail(email)),
@@ -84,7 +93,7 @@ export function resolveCampaignAudience(input: {
   const recipients: CampaignRecipient[] = [];
 
   for (const profile of input.profiles) {
-    if (!profile.email || !hasCampaignConsent(profile.preferences)) continue;
+    if (!profile.email || (input.templateKey ? !isCampaignEligible(input.templateKey, profile.preferences) : !hasCampaignConsent(profile.preferences))) continue;
     const email = normalizeEmail(profile.email);
     if (!email || suppressed.has(email) || seen.has(email)) continue;
     seen.add(email);

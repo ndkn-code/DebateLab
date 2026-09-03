@@ -61,6 +61,15 @@ try {
   assert.deepEqual(consumePendingPracticeSessionHandoff(), payload);
   assert.equal(consumePendingPracticeSessionHandoff(), null);
 
+  setPendingPracticeSessionHandoff(payload, "user-a");
+  assert.equal(consumePendingPracticeSessionHandoff("user-b"), null);
+
+  setPendingPracticeSessionHandoff(payload, "user-a");
+  assert.deepEqual(consumePendingPracticeSessionHandoff("user-a"), payload);
+
+  setPendingPracticeSessionHandoff(payload);
+  assert.equal(consumePendingPracticeSessionHandoff("user-a"), null);
+
   Date.now = () => 2000;
   setPendingPracticeSessionHandoff(payload);
   Date.now = () => 2000 + 11 * 60 * 1000;

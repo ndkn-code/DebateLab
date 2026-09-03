@@ -3,6 +3,7 @@
 import { clearPracticeDebugId } from "@/lib/practice-debug-id";
 import {
   clearLocalPracticeSessionDraft,
+  clearPendingPracticeSessionHandoff,
   clearStoredPracticeDraftId,
 } from "@/lib/practice-session-drafts";
 import { useSessionStore } from "@/store/session-store";
@@ -20,5 +21,6 @@ export function resetPracticeClientStateForAuthChange() {
   useSessionStore.getState().resetSession();
   clearStoredPracticeDraftId();
   clearLocalPracticeSessionDraft();
+  clearPendingPracticeSessionHandoff();
   clearPracticeDebugId();
 }

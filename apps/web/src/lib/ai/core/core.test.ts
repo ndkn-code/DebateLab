@@ -112,8 +112,22 @@ async function run() {
             message: {
               content: JSON.stringify({
                 winnerSide: "proposition",
-                comparativeBallot: "proposition wins the decisive clash",
-                participantFeedback: {},
+                winnerParticipantId: "prop-1",
+                confidence: 0.8,
+                decisionSummary: "Proposition wins the decisive clash.",
+                comparativeBallot: Object.fromEntries(
+                  ["caseQuality", "logic", "rebuttal", "weighing", "evidence", "delivery"].map(
+                    (key) => [key, { winnerSide: "proposition", reason: "Stronger comparative case." }],
+                  ),
+                ),
+                participantFeedback: {
+                  proposition: { strengths: ["Clear"], improvements: ["Weigh earlier"], summary: "Strong case." },
+                  opposition: { strengths: ["Responsive"], improvements: ["Develop impacts"], summary: "Competitive response." },
+                },
+                roundBreakdown: [],
+                clashLinks: [],
+                summary: "Proposition wins overall.",
+                qualityWarnings: [],
                 model: "model-authored-spoof",
                 judgedAt: "2000-01-01T00:00:00.000Z",
               }),

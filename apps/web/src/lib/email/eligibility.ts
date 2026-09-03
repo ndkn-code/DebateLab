@@ -53,17 +53,17 @@ function getBooleanPreference(
   return typeof value === "boolean" ? value : fallback;
 }
 
-function isGloballyOptedIn(preferences: Record<string, unknown> | null) {
+export function isGloballyOptedIn(preferences: Record<string, unknown> | null) {
   // Optional lifecycle email requires an affirmative stored choice. Missing
   // legacy values are migrated to off instead of silently acting as consent.
   return getBooleanPreference(preferences, "email_notifications", false);
 }
 
-function isReminderOnlyEmailScope(preferences: Record<string, unknown> | null) {
+export function isReminderOnlyEmailScope(preferences: Record<string, unknown> | null) {
   return preferences?.email_opt_in_scope === "reminders_only";
 }
 
-function isTemplatePreferenceEnabled(
+export function isTemplatePreferenceEnabled(
   templateKey: EmailTemplateKey,
   preferences: Record<string, unknown> | null,
 ) {
@@ -74,6 +74,20 @@ function isTemplatePreferenceEnabled(
   if (preference === "streak")
     return getBooleanPreference(preferences, "streak_reminders", true);
   return getBooleanPreference(preferences, "achievement_updates", true);
+}
+
+export function isEmailTemplateConsentEligible(
+  templateKey: EmailTemplateKey,
+  preferences: Record<string, unknown> | null,
+) {
+  if (!isGloballyOptedIn(preferences)) return false;
+  if (
+    isReminderOnlyEmailScope(preferences) &&
+    !REMINDER_ONLY_TEMPLATES.has(templateKey)
+  ) {
+    return false;
+  }
+  return isTemplatePreferenceEnabled(templateKey, preferences);
 }
 
 function hoursSince(value: string | null, now: Date) {

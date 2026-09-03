@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  clearLocalPracticeSessionDraft,
   clearStoredPracticeDraftId,
   consumePendingPracticeSessionHandoff,
   getLocalPracticeSessionDraft,
+  getLocalPracticeSessionDraftOwner,
   createPracticeSessionDraft,
   getStoredPracticeDraftId,
   loadPracticeSessionDraft,
@@ -105,33 +107,6 @@ export function usePracticeSessionDraft() {
     async function initializeDraft() {
       let restoredPendingHandoff = false;
 
-      if (!useSessionStore.getState().selectedTopic) {
-        const pendingHandoff = consumePendingPracticeSessionHandoff();
-        if (pendingHandoff) {
-          restoreSessionDraft({
-            ...pendingHandoff,
-            draftId: "",
-          });
-          setLocalPracticeSessionDraft(pendingHandoff);
-          lastSavedRef.current = JSON.stringify(pendingHandoff);
-          trackAnalyticsEvent({
-            eventName: "practice_session_handoff_restored",
-            featureArea: "practice",
-            route: window.location.pathname,
-            metadata: {
-              practice_track: pendingHandoff.practiceTrack,
-              practice_language: pendingHandoff.practiceLanguage,
-              mode: pendingHandoff.mode,
-              phase: pendingHandoff.currentPhase,
-            },
-          });
-          restoredPendingHandoff = true;
-          if (!cancelled) {
-            setIsRestoringDraft(false);
-          }
-        }
-      }
-
       const supabase = createClient();
       const authResult = await Promise.race([
         supabase.auth.getUser().then((result) => ({
@@ -158,16 +133,25 @@ export function usePracticeSessionDraft() {
 
       const user = authResult.result.data.user;
 
+      if (!useSessionStore.getState().selectedTopic) {
+        const pendingHandoff = consumePendingPracticeSessionHandoff(user?.id ?? null);
+        if (pendingHandoff) {
+          restoreSessionDraft({ ...pendingHandoff, draftId: "" });
+          setLocalPracticeSessionDraft(pendingHandoff, user?.id ?? null);
+          lastSavedRef.current = JSON.stringify(pendingHandoff);
+          trackAnalyticsEvent({
+            eventName: "practice_session_handoff_restored",
+            featureArea: "practice",
+            route: window.location.pathname,
+            metadata: { practice_track: pendingHandoff.practiceTrack, practice_language: pendingHandoff.practiceLanguage, mode: pendingHandoff.mode, phase: pendingHandoff.currentPhase },
+          });
+          restoredPendingHandoff = true;
+        }
+      }
+
       if (!user) {
         clearStoredPracticeDraftId();
-        const localDraft = getLocalPracticeSessionDraft();
-        if (!useSessionStore.getState().selectedTopic && localDraft) {
-          restoreSessionDraft({
-            ...localDraft,
-            draftId: "",
-          });
-          lastSavedRef.current = JSON.stringify(localDraft);
-        }
+        clearLocalPracticeSessionDraft();
         setIsRestoringDraft(false);
         return;
       }
@@ -190,12 +174,15 @@ export function usePracticeSessionDraft() {
       }
 
       const localDraft = getLocalPracticeSessionDraft();
-      if (!useSessionStore.getState().selectedTopic && localDraft) {
+      const localOwner = getLocalPracticeSessionDraftOwner();
+      if (!useSessionStore.getState().selectedTopic && localDraft && localOwner === user.id) {
         restoreSessionDraft({
           ...localDraft,
           draftId: "",
         });
         lastSavedRef.current = JSON.stringify(localDraft);
+      } else if (localDraft && localOwner !== user.id) {
+        clearLocalPracticeSessionDraft();
       }
 
       if (!cancelled) {
@@ -269,7 +256,7 @@ export function usePracticeSessionDraft() {
     }
 
     saveTimerRef.current = setTimeout(() => {
-      setLocalPracticeSessionDraft(payload);
+      setLocalPracticeSessionDraft(payload, null);
       lastSavedRef.current = nextSnapshot;
     }, 650);
 
