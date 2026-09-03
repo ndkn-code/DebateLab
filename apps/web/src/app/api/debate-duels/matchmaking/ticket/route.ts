@@ -45,7 +45,7 @@ type MatchmakingBody = {
 };
 
 function normalizeDifficulty(
-  difficulty: MatchmakingBody["topicDifficulty"]
+  difficulty: MatchmakingBody["topicDifficulty"],
 ): DebateDuelTopicDifficulty {
   if (difficulty === "intermediate" || difficulty === "advanced") {
     return difficulty;
@@ -61,15 +61,19 @@ async function pickTopic(
   supabase: RequestAuthSuccess["supabase"],
   language: PracticeLanguage,
   categoryKey: CategoryKey,
-  difficulty: DebateDuelTopicDifficulty
+  difficulty: DebateDuelTopicDifficulty,
 ) {
-  const activeTopics = await getActivePracticeTopicsWithClient(supabase, language);
+  const activeTopics = await getActivePracticeTopicsWithClient(
+    supabase,
+    language,
+  );
   const exact = activeTopics.filter(
     (topic) =>
-      getTopicCategoryKey(topic) === categoryKey && topic.difficulty === difficulty
+      getTopicCategoryKey(topic) === categoryKey &&
+      topic.difficulty === difficulty,
   );
   const categoryFallback = activeTopics.filter(
-    (topic) => getTopicCategoryKey(topic) === categoryKey
+    (topic) => getTopicCategoryKey(topic) === categoryKey,
   );
   const candidates =
     exact.length > 0
@@ -85,7 +89,7 @@ async function getAdminUser(request: NextRequest): Promise<{
   auth: RequestAuthSuccess | null;
   error: NextResponse | null;
 }> {
-  const auth = await requireRequestAuth(request, { allowDevBypass: false });
+  const auth = await requireRequestAuth(request);
 
   if (!auth.ok) {
     return { auth: null, error: auth.errorResponse };
@@ -96,7 +100,7 @@ async function getAdminUser(request: NextRequest): Promise<{
       auth: null,
       error: NextResponse.json(
         { error: "1v1 Debate matchmaking is coming soon." },
-        { status: 403 }
+        { status: 403 },
       ),
     };
   }
@@ -108,7 +112,9 @@ export async function GET(req: NextRequest) {
   try {
     const { auth, error } = await getAdminUser(req);
     if (!auth) {
-      return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return (
+        error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      );
     }
 
     const ticket = await getCurrentDebateDuelMatchmakingTicket(auth.user.id);
@@ -124,7 +130,9 @@ export async function POST(req: NextRequest) {
   try {
     const { auth, error } = await getAdminUser(req);
     if (!auth) {
-      return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return (
+        error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      );
     }
 
     const rateLimit = await consumeRateLimit(auth.supabase, {
@@ -138,7 +146,7 @@ export async function POST(req: NextRequest) {
         {
           status: 429,
           headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-        }
+        },
       );
     }
 
@@ -147,19 +155,19 @@ export async function POST(req: NextRequest) {
       topicCategoryKey: normalizeCategoryKey(
         getString(rawBody, "topicCategoryKey", {
           maxLength: 80,
-        }) ?? undefined
+        }) ?? undefined,
       ),
       topicDifficulty: getEnum(
         rawBody,
         "topicDifficulty",
         ["beginner", "intermediate", "advanced"] as const,
-        { defaultValue: "beginner" }
+        { defaultValue: "beginner" },
       ),
       practiceLanguage: getEnum(
         rawBody,
         "practiceLanguage",
         ["en", "vi"] as const,
-        { defaultValue: "en" }
+        { defaultValue: "en" },
       ) as PracticeLanguage,
       prepTimeSeconds: getNumber(rawBody, "prepTimeSeconds"),
       openingTimeSeconds: getNumber(rawBody, "openingTimeSeconds"),
@@ -172,19 +180,20 @@ export async function POST(req: NextRequest) {
       auth.supabase,
       practiceLanguage,
       topicCategoryKey,
-      topicDifficulty
+      topicDifficulty,
     );
     if (!topic) {
       return NextResponse.json(
         { error: "No active motions are available for matchmaking." },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
     const selectedCategoryKey = getTopicCategoryKey(topic);
     const ticket = await enterDebateDuelMatchmaking(auth.user.id, {
       topicCategory:
-        topic.category || getCategoryLabel(selectedCategoryKey, practiceLanguage),
+        topic.category ||
+        getCategoryLabel(selectedCategoryKey, practiceLanguage),
       topicCategoryKey: selectedCategoryKey,
       topicDifficulty: topic.difficulty,
       topicKey: getTopicStableKey(topic),
@@ -193,22 +202,25 @@ export async function POST(req: NextRequest) {
       practiceLanguage,
       prepTimeSeconds: clampDurationSeconds(
         body.prepTimeSeconds,
-        DUEL_PREP_DURATION
+        DUEL_PREP_DURATION,
       ),
       openingTimeSeconds: clampDurationSeconds(
         body.openingTimeSeconds,
-        DUEL_OPENING_DURATION
+        DUEL_OPENING_DURATION,
       ),
       rebuttalTimeSeconds: clampDurationSeconds(
         body.rebuttalTimeSeconds,
-        DUEL_REBUTTAL_DURATION
+        DUEL_REBUTTAL_DURATION,
       ),
     });
 
     return NextResponse.json({ ticket });
   } catch (error) {
     if (error instanceof RequestValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
     }
     const message =
       error instanceof Error ? error.message : "Failed to enter matchmaking.";
@@ -221,7 +233,9 @@ export async function DELETE(req: NextRequest) {
   try {
     const { auth, error } = await getAdminUser(req);
     if (!auth) {
-      return error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return (
+        error ?? NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+      );
     }
 
     const rateLimit = await consumeRateLimit(auth.supabase, {
@@ -235,14 +249,17 @@ export async function DELETE(req: NextRequest) {
         {
           status: 429,
           headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-        }
+        },
       );
     }
 
     const { searchParams } = new URL(req.url);
     const ticketId = searchParams.get("id");
     if (ticketId && !isUuid(ticketId)) {
-      return NextResponse.json({ error: "Ticket id is invalid." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Ticket id is invalid." },
+        { status: 400 },
+      );
     }
     const currentTicket = ticketId
       ? null
@@ -253,7 +270,10 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ ticket: null });
     }
 
-    const ticket = await cancelDebateDuelMatchmaking(resolvedTicketId, auth.user.id);
+    const ticket = await cancelDebateDuelMatchmaking(
+      resolvedTicketId,
+      auth.user.id,
+    );
     return NextResponse.json({ ticket });
   } catch (error) {
     const message =

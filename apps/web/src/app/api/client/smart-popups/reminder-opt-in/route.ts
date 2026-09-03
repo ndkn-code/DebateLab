@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const auth = await requireRequestAuth(request, { allowDevBypass: false });
+  const auth = await requireRequestAuth(request);
 
   if (!auth.ok) {
     return auth.errorResponse;
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
       {
         status: 429,
         headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-      }
+      },
     );
   }
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
             ? error.message
             : "Unable to update reminder preferences.",
       },
-      { status: error instanceof RequestValidationError ? error.status : 500 }
+      { status: error instanceof RequestValidationError ? error.status : 500 },
     );
   }
 }

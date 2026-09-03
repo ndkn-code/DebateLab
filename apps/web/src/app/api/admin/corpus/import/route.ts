@@ -34,20 +34,25 @@ export async function POST(req: NextRequest) {
       supabase: admin,
       content,
       fileName,
-      importedBy: auth.authSource === "dev-bypass" ? null : user.id,
+      importedBy: user.id,
     });
 
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     if (error instanceof RequestValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
     }
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : "Unable to import corpus bundle",
+          error instanceof Error
+            ? error.message
+            : "Unable to import corpus bundle",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -12,7 +12,7 @@ function coachErrorResponse(error: unknown) {
   if (error instanceof MobileCoachApiError) {
     return NextResponse.json(
       { error: error.message, code: error.code },
-      { status: error.status }
+      { status: error.status },
     );
   }
 
@@ -22,12 +22,12 @@ function coachErrorResponse(error: unknown) {
 
   return NextResponse.json(
     { error: "Unable to load coach.", code: "coach_unavailable" },
-    { status: 500 }
+    { status: 500 },
   );
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireRequestAuth(request, { allowDevBypass: false });
+  const auth = await requireRequestAuth(request);
   if (!auth.ok) return auth.errorResponse;
 
   try {
@@ -35,7 +35,8 @@ export async function GET(request: NextRequest) {
       contextId: request.nextUrl.searchParams.get("contextId"),
       contextType: request.nextUrl.searchParams.get("context"),
       message: request.nextUrl.searchParams.get("message"),
-      practiceLanguageInput: request.nextUrl.searchParams.get("practiceLanguage"),
+      practiceLanguageInput:
+        request.nextUrl.searchParams.get("practiceLanguage"),
       supabase: auth.supabase,
       userId: auth.user.id,
     });

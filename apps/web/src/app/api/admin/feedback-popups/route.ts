@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
-import {
-  RequestValidationError,
-} from "@/lib/api/request-validation";
+import { RequestValidationError } from "@/lib/api/request-validation";
 import { isAdminUser } from "@/lib/auth/admin";
-import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   createEmptyFeedbackPopupAdminData,
   getFeedbackPopupAdminData,
 } from "@/lib/smart-popups/admin";
-import { getAdminClientConfigStatus, tryCreateAdminClient } from "@/lib/supabase/admin";
+import {
+  getAdminClientConfigStatus,
+  tryCreateAdminClient,
+} from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -20,30 +20,20 @@ async function requireAdmin() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devBypass = isDevAdminBypassEnabled();
-
-  if (!user && devBypass) {
-    return {
-      supabase,
-      actorId: "00000000-0000-4000-8000-000000000001",
-      devBypass: true,
-    };
-  }
-
   if (!user) {
     throw new RequestValidationError("Unauthorized", 401);
   }
 
-  if (!(await isAdminUser(supabase, user.id)) && !devBypass) {
+  if (!(await isAdminUser(supabase, user.id))) {
     throw new RequestValidationError("Forbidden", 403);
   }
 
-  return { supabase, actorId: user.id, devBypass: false };
+  return { supabase, actorId: user.id };
 }
 
 async function rateLimitAdmin(
   supabase: Awaited<ReturnType<typeof createClient>>,
-  options: { skip?: boolean } = {}
+  options: { skip?: boolean } = {},
 ) {
   if (options.skip) return null;
 
@@ -59,7 +49,7 @@ async function rateLimitAdmin(
       {
         status: 429,
         headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-      }
+      },
     );
   }
 
@@ -79,8 +69,8 @@ function getServiceRoleConfigStatus() {
 
 export async function GET() {
   try {
-    const { supabase, devBypass } = await requireAdmin();
-    const limited = await rateLimitAdmin(supabase, { skip: devBypass });
+    const { supabase } = await requireAdmin();
+    const limited = await rateLimitAdmin(supabase);
     if (limited) return limited;
 
     const admin = tryCreateAdminClient();
@@ -95,15 +85,19 @@ export async function GET() {
       return jsonError(error, "Unable to load feedback popups.");
     }
     const message =
-      error instanceof Error ? error.message : "Unable to load feedback popups.";
-    console.error("[feedback-popups-admin-api] Unable to load data", { message });
+      error instanceof Error
+        ? error.message
+        : "Unable to load feedback popups.";
+    console.error("[feedback-popups-admin-api] Unable to load data", {
+      message,
+    });
     return NextResponse.json(
       createEmptyFeedbackPopupAdminData({
         status: "error",
         message,
         dataSource: tryCreateAdminClient() ? "service_role" : "session",
         serviceRoleConfigured: getServiceRoleConfigStatus(),
-      })
+      }),
     );
   }
 }
@@ -114,6 +108,6 @@ export async function POST() {
       error:
         "Feedback popup campaigns are developer-defined in code and migrations. Admin is read-only in this release.",
     },
-    { status: 405 }
+    { status: 405 },
   );
 }

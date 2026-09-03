@@ -2,7 +2,6 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import {
   aggregateCampaignResults,
   emailAudienceSegmentSchema,
@@ -117,9 +116,6 @@ function mapCampaign(row: CampaignRow): EmailCampaign {
 }
 
 async function verifyAdmin() {
-  if (isDevAdminBypassEnabled()) {
-    return { actorId: null, admin: createTypedAdminClient() };
-  }
   const session = await createTypedServerClient();
   const {
     data: { user },

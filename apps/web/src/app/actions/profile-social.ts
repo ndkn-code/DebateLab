@@ -2,8 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import {
   PROFILE_DISCOVERY_ENABLED,
   PROFILE_FRIEND_CODES_ENABLED,
@@ -25,8 +23,13 @@ import {
 import { normalizeFeaturedAchievementIds } from "@/lib/profile-social/tab-model";
 import { createClient } from "@/lib/supabase/server";
 
-type RpcResult = { data: unknown; error: { message?: string; code?: string } | null };
-type RpcClient = { rpc: (fn: string, args?: Record<string, unknown>) => Promise<RpcResult> };
+type RpcResult = {
+  data: unknown;
+  error: { message?: string; code?: string } | null;
+};
+type RpcClient = {
+  rpc: (fn: string, args?: Record<string, unknown>) => Promise<RpcResult>;
+};
 
 function rpcClient(supabase: unknown): RpcClient {
   return supabase as RpcClient;
@@ -37,48 +40,44 @@ async function getActionUser() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devUser = user ? null : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devUser) {
+  if (!user) {
     throw new Error("Unauthorized");
   }
 
   return {
     supabase,
-    userId: user?.id ?? devUser?.id ?? DEV_ADMIN_PROFILE.id,
-    isDevBypass: !user && Boolean(devUser),
+    userId: user.id,
   };
 }
 
-function assertConnectionsEnabled(isDevBypass: boolean) {
-  if ((!PROFILE_SOCIAL_ENABLED || !PROFILE_CONNECTIONS_ENABLED) && !isDevBypass) {
+function assertConnectionsEnabled() {
+  if (!PROFILE_SOCIAL_ENABLED || !PROFILE_CONNECTIONS_ENABLED) {
     throw new Error("Profile connections are not enabled yet.");
   }
 }
 
-function assertSocialEnabled(isDevBypass: boolean) {
-  if (!PROFILE_SOCIAL_ENABLED && !isDevBypass) {
+function assertSocialEnabled() {
+  if (!PROFILE_SOCIAL_ENABLED) {
     throw new Error("Profile social features are not enabled yet.");
   }
 }
 
-function assertDiscoveryEnabled(isDevBypass: boolean) {
+function assertDiscoveryEnabled() {
   if (
-    (!PROFILE_SOCIAL_ENABLED ||
-      !PROFILE_PUBLIC_READS_ENABLED ||
-      !PROFILE_DISCOVERY_ENABLED) &&
-    !isDevBypass
+    !PROFILE_SOCIAL_ENABLED ||
+    !PROFILE_PUBLIC_READS_ENABLED ||
+    !PROFILE_DISCOVERY_ENABLED
   ) {
     throw new Error("Profile discovery is not enabled yet.");
   }
 }
 
-function assertFriendCodesEnabled(isDevBypass: boolean) {
+function assertFriendCodesEnabled() {
   if (
-    (!PROFILE_SOCIAL_ENABLED ||
-      !PROFILE_PUBLIC_READS_ENABLED ||
-      !PROFILE_FRIEND_CODES_ENABLED) &&
-    !isDevBypass
+    !PROFILE_SOCIAL_ENABLED ||
+    !PROFILE_PUBLIC_READS_ENABLED ||
+    !PROFILE_FRIEND_CODES_ENABLED
   ) {
     throw new Error("Profile friend codes are not enabled yet.");
   }
@@ -110,7 +109,7 @@ async function recordProfileActionEvent(input: {
         route: input.route ?? "/profile",
         metadata: input.metadata ?? {},
       },
-      "server"
+      "server",
     );
   } catch {
     // Analytics should not block profile safety actions.
@@ -121,17 +120,13 @@ async function runProfileRpc(
   rpcName: string,
   args: Record<string, unknown>,
   devResult: Record<string, unknown>,
-  options: { requireConnections?: boolean } = { requireConnections: true }
+  options: { requireConnections?: boolean } = { requireConnections: true },
 ): Promise<{ data: unknown; userId: string }> {
-  const { supabase, userId, isDevBypass } = await getActionUser();
+  const { supabase, userId } = await getActionUser();
   if (options.requireConnections ?? true) {
-    assertConnectionsEnabled(isDevBypass);
+    assertConnectionsEnabled();
   } else {
-    assertSocialEnabled(isDevBypass);
-  }
-
-  if (isDevBypass) {
-    return { data: devResult, userId };
+    assertSocialEnabled();
   }
 
   const { data, error } = await rpcClient(supabase).rpc(rpcName, args);
@@ -143,11 +138,13 @@ async function runProfileRpc(
   return { data, userId };
 }
 
-export async function requestProfileConnection(input: { targetUserId: string }) {
+export async function requestProfileConnection(input: {
+  targetUserId: string;
+}) {
   const result = await runProfileRpc(
     "request_profile_connection",
     { p_target_user_id: input.targetUserId },
-    { status: "pending_sent", connectionId: "dev-connection" }
+    { status: "pending_sent", connectionId: "dev-connection" },
   );
   await recordProfileActionEvent({
     userId: result.userId,
@@ -170,7 +167,7 @@ export async function respondToProfileConnection(input: {
     {
       status: input.response.startsWith("accept") ? "accepted" : "declined",
       connectionId: "dev-connection",
-    }
+    },
   );
   await recordProfileActionEvent({
     userId: result.userId,
@@ -186,7 +183,7 @@ export async function cancelProfileConnection(input: { targetUserId: string }) {
   const result = await runProfileRpc(
     "cancel_profile_connection",
     { p_target_user_id: input.targetUserId },
-    { status: "cancelled", connectionId: "dev-connection" }
+    { status: "cancelled", connectionId: "dev-connection" },
   );
   await recordProfileActionEvent({
     userId: result.userId,
@@ -200,7 +197,7 @@ export async function removeProfileConnection(input: { targetUserId: string }) {
   const result = await runProfileRpc(
     "remove_profile_connection",
     { p_target_user_id: input.targetUserId },
-    { status: "removed", connectionId: "dev-connection" }
+    { status: "removed", connectionId: "dev-connection" },
   );
   await recordProfileActionEvent({
     userId: result.userId,
@@ -215,7 +212,7 @@ export async function blockProfile(input: { targetUserId: string }) {
     "block_profile",
     { p_target_user_id: input.targetUserId },
     { status: "blocked" },
-    { requireConnections: false }
+    { requireConnections: false },
   );
   await recordProfileActionEvent({
     userId: result.userId,
@@ -230,7 +227,7 @@ export async function unblockProfile(input: { targetUserId: string }) {
     "unblock_profile",
     { p_target_user_id: input.targetUserId },
     { status: "unblocked" },
-    { requireConnections: false }
+    { requireConnections: false },
   );
   await recordProfileActionEvent({
     userId: result.userId,
@@ -253,7 +250,7 @@ export async function reportProfile(input: {
       p_details: input.details ?? null,
     },
     { status: "submitted", reportId: "dev-report" },
-    { requireConnections: false }
+    { requireConnections: false },
   );
   await recordProfileActionEvent({
     userId: result.userId,
@@ -276,9 +273,10 @@ export async function setProfileFeaturedAchievements(input: {
     },
     {
       status: "ok",
-      featuredCount: normalizeFeaturedAchievementIds(input.achievementIds).length,
+      featuredCount: normalizeFeaturedAchievementIds(input.achievementIds)
+        .length,
     },
-    { requireConnections: false }
+    { requireConnections: false },
   );
   return result.data;
 }
@@ -287,43 +285,16 @@ export async function searchProfileDiscovery(input: {
   query: string;
   leaderboardLanguage?: "en" | "vi";
 }): Promise<ProfileDiscoveryResult> {
-  const { supabase, userId, isDevBypass } = await getActionUser();
-  assertDiscoveryEnabled(isDevBypass);
+  const { supabase, userId } = await getActionUser();
+  assertDiscoveryEnabled();
 
-  if (isDevBypass) {
-    const isMatch = input.query.trim().length > 0;
-    return coerceProfileDiscoveryResult({
-      status: isMatch ? "found" : "empty",
-      queryKind: input.query.toUpperCase().includes("DBT") ? "friend_code" : "handle",
-      result: isMatch
-        ? {
-            state: "visible",
-            connection: { status: "none", viewerCanRequest: true },
-            profile: {
-              userId: "dev-friend",
-              handle: "maya.tran",
-              displayName: "Maya Tran",
-              avatarUrl: null,
-              selectedTitle: "Evidence Builder",
-              profileStatus: "Drilling rebuttals",
-              organization: {
-                type: "club",
-                id: "dev-club",
-                name: "Riverside Debate",
-                role: "student",
-              },
-              friendCounts: { friends: 8 },
-              isPrivate: false,
-            },
-          }
-        : null,
-    });
-  }
-
-  const { data, error } = await rpcClient(supabase).rpc("search_profile_discovery", {
-    p_query: input.query,
-    p_leaderboard_language: input.leaderboardLanguage ?? "en",
-  });
+  const { data, error } = await rpcClient(supabase).rpc(
+    "search_profile_discovery",
+    {
+      p_query: input.query,
+      p_leaderboard_language: input.leaderboardLanguage ?? "en",
+    },
+  );
 
   if (error) {
     throw new Error(error.message ?? "Unable to search profiles.");
@@ -342,37 +313,11 @@ export async function searchProfileDiscovery(input: {
 }
 
 export async function getProfileConnectionCenter(): Promise<ProfileConnectionCenterData> {
-  const { supabase, isDevBypass } = await getActionUser();
-  assertDiscoveryEnabled(isDevBypass);
-
-  if (isDevBypass) {
-    return coerceProfileConnectionCenterData({
-      status: "ok",
-      friendCode: { code: "DBT-7K2M-Q8R4", discoveryEnabled: true },
-      incoming: [
-        {
-          state: "visible",
-          connection: { status: "pending_received", viewerCanRequest: false },
-          profile: {
-            userId: "dev-incoming",
-            handle: "noah.chen",
-            displayName: "Noah Chen",
-            avatarUrl: null,
-            selectedTitle: "Case Builder",
-            profileStatus: null,
-            organization: null,
-            friendCounts: { friends: 4 },
-            isPrivate: false,
-          },
-        },
-      ],
-      outgoing: [],
-      friends: [],
-    });
-  }
+  const { supabase } = await getActionUser();
+  assertDiscoveryEnabled();
 
   const { data, error } = await rpcClient(supabase).rpc(
-    "get_profile_connection_center"
+    "get_profile_connection_center",
   );
   if (error) {
     throw new Error(error.message ?? "Unable to load friends.");
@@ -382,19 +327,12 @@ export async function getProfileConnectionCenter(): Promise<ProfileConnectionCen
 }
 
 export async function getProfileDiscoverySuggestions(): Promise<ProfileDiscoverySuggestionsData> {
-  const { supabase, isDevBypass } = await getActionUser();
-  assertDiscoveryEnabled(isDevBypass);
-
-  if (isDevBypass) {
-    return coerceProfileDiscoverySuggestionsData({
-      status: "ok",
-      suggestions: [],
-    });
-  }
+  const { supabase } = await getActionUser();
+  assertDiscoveryEnabled();
 
   const { data, error } = await rpcClient(supabase).rpc(
     "get_profile_discovery_suggestions",
-    { p_limit: 10 }
+    { p_limit: 10 },
   );
   if (error) {
     throw new Error(error.message ?? "Unable to load friend suggestions.");
@@ -407,14 +345,12 @@ export async function rotateProfileFriendCode(): Promise<{
   status: string;
   code?: string | null;
 }> {
-  const { supabase, userId, isDevBypass } = await getActionUser();
-  assertFriendCodesEnabled(isDevBypass);
+  const { supabase, userId } = await getActionUser();
+  assertFriendCodesEnabled();
 
-  if (isDevBypass) {
-    return { status: "rotated", code: "DBT-2V7Q-M9XA" };
-  }
-
-  const { data, error } = await rpcClient(supabase).rpc("rotate_profile_friend_code");
+  const { data, error } = await rpcClient(supabase).rpc(
+    "rotate_profile_friend_code",
+  );
   if (error) {
     throw new Error(error.message ?? "Unable to rotate friend code.");
   }

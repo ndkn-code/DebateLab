@@ -2,8 +2,6 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { isAdminUser } from "@/lib/auth/admin";
-import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 
 export class EmailAdminAuthError extends Error {
@@ -16,18 +14,9 @@ export class EmailAdminAuthError extends Error {
 }
 
 export interface EmailAdminRequestContext {
-  supabase: SupabaseClient | null;
-  actorId: string | null;
+  supabase: SupabaseClient;
+  actorId: string;
   canWrite: boolean;
-  devBypass: boolean;
-}
-
-function tryCreateServiceClient() {
-  try {
-    return createAdminClient();
-  } catch {
-    return null;
-  }
 }
 
 export async function requireEmailAdminContext(): Promise<EmailAdminRequestContext> {
@@ -41,28 +30,22 @@ export async function requireEmailAdminContext(): Promise<EmailAdminRequestConte
       supabase,
       actorId: user.id,
       canWrite: true,
-      devBypass: false,
     };
   }
 
-  if (isDevAdminBypassEnabled()) {
-    const serviceClient = tryCreateServiceClient();
-    return {
-      supabase: serviceClient,
-      actorId: DEV_ADMIN_PROFILE.id,
-      canWrite: Boolean(serviceClient),
-      devBypass: true,
-    };
-  }
-
-  throw new EmailAdminAuthError(user ? "Forbidden" : "Unauthorized", user ? 403 : 401);
+  throw new EmailAdminAuthError(
+    user ? "Forbidden" : "Unauthorized",
+    user ? 403 : 401,
+  );
 }
 
-export function assertCanWriteEmailTemplates(context: EmailAdminRequestContext) {
-  if (!context.canWrite || !context.supabase) {
+export function assertCanWriteEmailTemplates(
+  context: EmailAdminRequestContext,
+) {
+  if (!context.canWrite) {
     throw new EmailAdminAuthError(
       "Template saving requires an admin session or Supabase service role configuration.",
-      503
+      503,
     );
   }
 }

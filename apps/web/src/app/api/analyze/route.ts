@@ -292,7 +292,8 @@ export async function POST(req: NextRequest) {
     }
 
     const { supabase, user: authUser } = auth;
-    const shouldPersistAnalysis = auth.authSource !== "dev-bypass";
+    const shouldPersistAnalysis =
+      auth.authSource === "bearer" || auth.authSource === "cookie";
     if (shouldConsumeUserRateLimit(auth)) {
       const rateLimit = await consumeRateLimit(supabase, {
         scope: "analyze",

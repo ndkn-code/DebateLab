@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createDebateDuelRoom, getDebateDuelRoom } from "@/lib/api/debate-duels";
+import {
+  createDebateDuelRoom,
+  getDebateDuelRoom,
+} from "@/lib/api/debate-duels";
 import { canAccessDuels } from "@/lib/auth/admin";
 import { requireRequestAuth } from "@/lib/api/request-auth";
 import { consumeRateLimit } from "@/lib/rate-limit";
@@ -19,7 +22,7 @@ import {
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = await requireRequestAuth(req, { allowDevBypass: false });
+    const auth = await requireRequestAuth(req);
 
     if (!auth.ok) {
       return auth.errorResponse;
@@ -29,7 +32,7 @@ export async function POST(req: NextRequest) {
     if (!(await canAccessDuels(supabase, user.id))) {
       return NextResponse.json(
         { error: "1v1 Debate is coming soon." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -44,7 +47,7 @@ export async function POST(req: NextRequest) {
         {
           status: 429,
           headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-        }
+        },
       );
     }
 
@@ -73,26 +76,26 @@ export async function POST(req: NextRequest) {
         body,
         "topicDifficulty",
         ["beginner", "intermediate", "advanced"] as const,
-        { defaultValue: "beginner" }
+        { defaultValue: "beginner" },
       ) ?? "beginner";
     const practiceLanguage = getEnum(
       body,
       "practiceLanguage",
       ["en", "vi"] as const,
-      { defaultValue: "en" }
+      { defaultValue: "en" },
     );
     const sideAssignmentMode = getEnum(
       body,
       "sideAssignmentMode",
       ["random", "choose"] as const,
-      { defaultValue: "random" }
+      { defaultValue: "random" },
     )!;
     const creatorSidePreference =
       getEnum(
         body,
         "creatorSidePreference",
         ["proposition", "opposition"] as const,
-        { defaultValue: "proposition" }
+        { defaultValue: "proposition" },
       ) ?? "proposition";
 
     const shareCode = await createDebateDuelRoom(user.id, {
@@ -105,15 +108,15 @@ export async function POST(req: NextRequest) {
       topicDescription: topicDescription || undefined,
       prepTimeSeconds: clampDurationSeconds(
         getNumber(body, "prepTimeSeconds"),
-        DUEL_PREP_DURATION
+        DUEL_PREP_DURATION,
       ),
       openingTimeSeconds: clampDurationSeconds(
         getNumber(body, "openingTimeSeconds"),
-        DUEL_OPENING_DURATION
+        DUEL_OPENING_DURATION,
       ),
       rebuttalTimeSeconds: clampDurationSeconds(
         getNumber(body, "rebuttalTimeSeconds"),
-        DUEL_REBUTTAL_DURATION
+        DUEL_REBUTTAL_DURATION,
       ),
       sideAssignmentMode,
       creatorSidePreference:
@@ -125,7 +128,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ shareCode, room });
   } catch (error) {
     if (error instanceof RequestValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
     }
     const message =
       error instanceof Error ? error.message : "Failed to create duel.";

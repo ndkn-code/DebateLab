@@ -4,8 +4,6 @@ import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import {
   normalizeClubRecipients,
   normalizeSocialUrl,
@@ -55,7 +53,9 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
 // Keep organization mutations on the existing admin/club action boundary.
 // The implementation module is server-only and is not a standalone action
 // or deployment entrypoint.
-export async function createOrganizationDraft(input: CreateOrganizationDraftInput) {
+export async function createOrganizationDraft(
+  input: CreateOrganizationDraftInput,
+) {
   return createOrganizationDraftWorkflow(input);
 }
 
@@ -63,23 +63,33 @@ export async function updateOrganization(input: UpdateOrganizationInput) {
   return updateOrganizationWorkflow(input);
 }
 
-export async function inviteOrganizationMember(input: InviteOrganizationMemberInput) {
+export async function inviteOrganizationMember(
+  input: InviteOrganizationMemberInput,
+) {
   return inviteOrganizationMemberWorkflow(input);
 }
 
-export async function createOrganizationFirstClass(input: CreateOrganizationClassInput) {
+export async function createOrganizationFirstClass(
+  input: CreateOrganizationClassInput,
+) {
   return createOrganizationFirstClassWorkflow(input);
 }
 
-export async function assignOrganizationTeacher(input: AssignOrganizationTeacherInput) {
+export async function assignOrganizationTeacher(
+  input: AssignOrganizationTeacherInput,
+) {
   return assignOrganizationTeacherWorkflow(input);
 }
 
-export async function assignOrganizationCourse(input: AssignOrganizationResourceInput) {
+export async function assignOrganizationCourse(
+  input: AssignOrganizationResourceInput,
+) {
   return assignOrganizationCourseWorkflow(input);
 }
 
-export async function assignOrganizationMaterial(input: AssignOrganizationResourceInput) {
+export async function assignOrganizationMaterial(
+  input: AssignOrganizationResourceInput,
+) {
   return assignOrganizationMaterialWorkflow(input);
 }
 
@@ -93,9 +103,6 @@ async function verifyAdmin(supabase: Supabase) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    if (isDevAdminBypassEnabled() || (await getDevAuthBypassUserFromServerContext())) {
-      return DEV_ADMIN_PROFILE.id;
-    }
     throw new Error("Unauthorized");
   }
 
@@ -106,7 +113,6 @@ async function verifyAdmin(supabase: Supabase) {
     .single();
 
   if (profile?.role !== "admin") {
-    if (isDevAdminBypassEnabled()) return user.id;
     throw new Error("Forbidden");
   }
 
@@ -118,20 +124,12 @@ function cleanString(value: FormDataEntryValue | string | null | undefined) {
   return text.length > 0 ? text : null;
 }
 
-async function isDevClubBypassId(id: string) {
-  if (!id.startsWith("00000000-0000-4c00-8000-")) return false;
-  return isDevAdminBypassEnabled() || Boolean(await getDevAuthBypassUserFromServerContext());
-}
-
 async function verifyClubManager(supabase: Supabase, clubId: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    if (isDevAdminBypassEnabled() || (await getDevAuthBypassUserFromServerContext())) {
-      return DEV_ADMIN_PROFILE.id;
-    }
     throw new Error("Unauthorized");
   }
 
@@ -153,8 +151,8 @@ async function verifyClubManager(supabase: Supabase, clubId: string) {
     .maybeSingle();
 
   const role = normalizeOrganizationRole(membership?.role);
-  if (role === "owner" || role === "admin" || role === "head_teacher") return user.id;
-  if (isDevAdminBypassEnabled()) return user.id;
+  if (role === "owner" || role === "admin" || role === "head_teacher")
+    return user.id;
   throw new Error("Forbidden");
 }
 
@@ -163,13 +161,14 @@ async function verifyClubOwner(supabase: Supabase, clubId: string) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) {
-    if (isDevAdminBypassEnabled() || (await getDevAuthBypassUserFromServerContext())) {
-      return DEV_ADMIN_PROFILE.id;
-    }
     throw new Error("Unauthorized");
   }
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).maybeSingle();
-  if (profile?.role === "admin" || isDevAdminBypassEnabled()) return user.id;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+  if (profile?.role === "admin") return user.id;
   const { data: membership, error } = await supabase
     .from("club_memberships")
     .select("role")
@@ -183,17 +182,25 @@ async function verifyClubOwner(supabase: Supabase, clubId: string) {
   throw new Error("Forbidden");
 }
 
-async function verifyClubClassAccess(supabase: Supabase, clubId: string, classId: string) {
+async function verifyClubClassAccess(
+  supabase: Supabase,
+  clubId: string,
+  classId: string,
+) {
   const { data: classRow, error } = await supabase
     .from("classes")
     .select("id, club_id")
     .eq("id", classId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!classRow || classRow.club_id !== clubId) throw new Error("Class must belong to this organization.");
+  if (!classRow || classRow.club_id !== clubId)
+    throw new Error("Class must belong to this organization.");
   // Class manager authorization is class-scoped for teachers and organization-wide
   // for owners/admins/platform admins.
-  return requireClassManager(supabase as Parameters<typeof requireClassManager>[0], classId);
+  return requireClassManager(
+    supabase as Parameters<typeof requireClassManager>[0],
+    classId,
+  );
 }
 
 async function verifyClubEventAccess(
@@ -210,7 +217,8 @@ async function verifyClubEventAccess(
       .eq("id", input.eventId)
       .maybeSingle();
     if (error) throw new Error(error.message);
-    if (!event || event.club_id !== input.clubId) throw new Error("Event not found");
+    if (!event || event.club_id !== input.clubId)
+      throw new Error("Event not found");
     if (input.classId && event.class_id !== input.classId) {
       throw new Error("Event cannot be moved between classes.");
     }
@@ -220,7 +228,10 @@ async function verifyClubEventAccess(
   if (existingClassId) {
     return verifyClubClassAccess(supabase, input.clubId, existingClassId);
   }
-  return { userId: await verifyClubManager(supabase, input.clubId), role: "admin" as const };
+  return {
+    userId: await verifyClubManager(supabase, input.clubId),
+    role: "admin" as const,
+  };
 }
 
 function parseRecipients(formData: FormData) {
@@ -242,7 +253,9 @@ function invitationTokenHash(token: string) {
 }
 
 function joinCodeHash(code: string) {
-  return createHash("sha256").update(normalizeOrganizationJoinCode(code)).digest("hex");
+  return createHash("sha256")
+    .update(normalizeOrganizationJoinCode(code))
+    .digest("hex");
 }
 
 function createInvitationToken() {
@@ -298,7 +311,10 @@ function safeLogoExtension(file: File) {
 function normalizeAssignmentExtensions(values: string[] | null | undefined) {
   const normalized = (values ?? [])
     .map((value) => value.trim().toLowerCase().replace(/^\./, ""))
-    .filter((value, index, source) => value.length > 0 && source.indexOf(value) === index);
+    .filter(
+      (value, index, source) =>
+        value.length > 0 && source.indexOf(value) === index,
+    );
 
   return normalized.length > 0 ? normalized : null;
 }
@@ -308,8 +324,10 @@ async function uploadClubLogo(input: {
   file: FormDataEntryValue | null;
 }) {
   const file = input.file;
-  if (!(file instanceof File) || file.size === 0) return { logoUrl: null, logoStoragePath: null };
-  if (file.size > 2 * 1024 * 1024) throw new Error("Logo must be 2MB or smaller.");
+  if (!(file instanceof File) || file.size === 0)
+    return { logoUrl: null, logoStoragePath: null };
+  if (file.size > 2 * 1024 * 1024)
+    throw new Error("Logo must be 2MB or smaller.");
 
   const extension = safeLogoExtension(file);
   if (!extension) throw new Error("Logo must be PNG, JPG, WebP, or SVG.");
@@ -317,12 +335,10 @@ async function uploadClubLogo(input: {
   const admin = createAdminClient();
   const path = `${input.clubId}/${randomUUID()}.${extension}`;
   const body = new Blob([await file.arrayBuffer()], { type: file.type });
-  const { error } = await admin.storage
-    .from("club-logos")
-    .upload(path, body, {
-      contentType: file.type,
-      upsert: false,
-    });
+  const { error } = await admin.storage.from("club-logos").upload(path, body, {
+    contentType: file.type,
+    upsert: false,
+  });
 
   if (error) throw new Error(error.message);
 
@@ -334,7 +350,16 @@ async function uploadClubLogo(input: {
 }
 
 async function findProfilesByEmail(emails: string[]) {
-  if (!emails.length) return new Map<string, { id: string; email: string | null; display_name: string | null; role: string | null }>();
+  if (!emails.length)
+    return new Map<
+      string,
+      {
+        id: string;
+        email: string | null;
+        display_name: string | null;
+        role: string | null;
+      }
+    >();
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("profiles")
@@ -345,7 +370,15 @@ async function findProfilesByEmail(emails: string[]) {
   return new Map(
     (data ?? [])
       .filter((profile) => profile.email)
-      .map((profile) => [String(profile.email).toLowerCase(), profile as { id: string; email: string | null; display_name: string | null; role: string | null }])
+      .map((profile) => [
+        String(profile.email).toLowerCase(),
+        profile as {
+          id: string;
+          email: string | null;
+          display_name: string | null;
+          role: string | null;
+        },
+      ]),
   );
 }
 
@@ -353,14 +386,20 @@ async function generateUniqueClubCode() {
   const admin = createAdminClient();
   for (let attempt = 0; attempt < 8; attempt += 1) {
     const code = `CLUB-${randomBytes(3).toString("hex").toUpperCase()}`;
-    const { data, error } = await admin.from("clubs").select("id").eq("code", code).limit(1);
+    const { data, error } = await admin
+      .from("clubs")
+      .select("id")
+      .eq("code", code)
+      .limit(1);
     if (error) throw new Error(error.message);
     if (!data?.length) return code;
   }
   throw new Error("Could not generate a unique club code.");
 }
 
-export async function createClub(formData: FormData): Promise<CreateClubResult> {
+export async function createClub(
+  formData: FormData,
+): Promise<CreateClubResult> {
   const supabase = await createClient();
   const adminId = await verifyAdmin(supabase);
   const name = cleanString(formData.get("name"));
@@ -376,16 +415,6 @@ export async function createClub(formData: FormData): Promise<CreateClubResult> 
 
   if (!validation.ok) throw new Error(validation.reason);
 
-  if (isDevAdminBypassEnabled()) {
-    return {
-      clubId: "00000000-0000-4c00-8000-000000000002",
-      recipients: recipients.map((recipient) => ({
-        ...recipient,
-        status: isSkipInvitationMode(formData) ? "missing_account" : "invited",
-      })),
-    };
-  }
-
   const logoFile = formData.get("logo");
   if (!(logoFile instanceof File) || logoFile.size === 0) {
     throw new Error("Club logo is required.");
@@ -393,12 +422,15 @@ export async function createClub(formData: FormData): Promise<CreateClubResult> 
 
   const admin = createAdminClient();
   const skipInvitation = isSkipInvitationMode(formData);
-  const profilesByEmail = await findProfilesByEmail(validation.recipients.map((recipient) => recipient.email));
+  const profilesByEmail = await findProfilesByEmail(
+    validation.recipients.map((recipient) => recipient.email),
+  );
   const firstExistingOwner = validation.recipients
     .filter((recipient) => recipient.role === "owner")
     .map((recipient) => profilesByEmail.get(recipient.email)?.id)
     .find(Boolean);
-  const code = cleanString(formData.get("code")) ?? await generateUniqueClubCode();
+  const code =
+    cleanString(formData.get("code")) ?? (await generateUniqueClubCode());
   const { data, error } = await admin
     .from("clubs")
     .insert({
@@ -414,7 +446,10 @@ export async function createClub(formData: FormData): Promise<CreateClubResult> 
       country: "VN",
       timezone: "Asia/Ho_Chi_Minh",
       owner_user_id: firstExistingOwner ?? adminId,
-      facebook_url: normalizeSocialUrl(formData.get("facebookUrl"), { required: true, hostIncludes: "facebook.com" }),
+      facebook_url: normalizeSocialUrl(formData.get("facebookUrl"), {
+        required: true,
+        hostIncludes: "facebook.com",
+      }),
       instagram_url: normalizeSocialUrl(formData.get("instagramUrl")),
       threads_url: normalizeSocialUrl(formData.get("threadsUrl")),
     })
@@ -431,7 +466,7 @@ export async function createClub(formData: FormData): Promise<CreateClubResult> 
       status: "active",
       invited_by: adminId,
     },
-    { onConflict: "club_id,user_id,role" }
+    { onConflict: "club_id,user_id,role" },
   );
 
   const logo = await uploadClubLogo({
@@ -475,7 +510,15 @@ export async function createClub(formData: FormData): Promise<CreateClubResult> 
 async function addExistingProfilesToClub(input: {
   clubId: string;
   recipients: ClubRecipientInput[];
-  profilesByEmail: Map<string, { id: string; email: string | null; display_name: string | null; role: string | null }>;
+  profilesByEmail: Map<
+    string,
+    {
+      id: string;
+      email: string | null;
+      display_name: string | null;
+      role: string | null;
+    }
+  >;
   invitedBy: string;
 }): Promise<ClubRecipientResult[]> {
   const admin = createAdminClient();
@@ -528,7 +571,7 @@ async function addExistingProfilesToClub(input: {
         invited_by: input.invitedBy,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: "club_id,user_id,role" }
+      { onConflict: "club_id,user_id,role" },
     );
 
     if (error) {
@@ -577,7 +620,15 @@ async function createAndSendInvitations(input: {
   clubName: string;
   city: string;
   recipients: ClubRecipientInput[];
-  profilesByEmail: Map<string, { id: string; email: string | null; display_name: string | null; role: string | null }>;
+  profilesByEmail: Map<
+    string,
+    {
+      id: string;
+      email: string | null;
+      display_name: string | null;
+      role: string | null;
+    }
+  >;
   invitedBy: string;
 }): Promise<ClubRecipientResult[]> {
   const admin = createAdminClient();
@@ -586,7 +637,9 @@ async function createAndSendInvitations(input: {
     .select("display_name, email")
     .eq("id", input.invitedBy)
     .maybeSingle();
-  const inviterName = String(inviter?.display_name ?? inviter?.email ?? "Thinkfy");
+  const inviterName = String(
+    inviter?.display_name ?? inviter?.email ?? "Thinkfy",
+  );
   const results: ClubRecipientResult[] = [];
 
   for (const recipient of input.recipients) {
@@ -598,7 +651,10 @@ async function createAndSendInvitations(input: {
       .select("id")
       .eq("club_id", input.clubId)
       .ilike("email", recipient.email)
-      .in("role", recipient.role === "teacher" ? ["teacher", "coach"] : [recipient.role])
+      .in(
+        "role",
+        recipient.role === "teacher" ? ["teacher", "coach"] : [recipient.role],
+      )
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .limit(1);
@@ -684,7 +740,11 @@ async function createAndSendInvitations(input: {
     results.push({
       email: recipient.email,
       role: recipient.role,
-      status: sendResult.failed ? "failed" : sendResult.skipped ? "email_skipped" : "invited",
+      status: sendResult.failed
+        ? "failed"
+        : sendResult.skipped
+          ? "email_skipped"
+          : "invited",
       invitationId: invitation.id as string,
       userId: invitedProfile?.id ?? null,
       message: sendResult.reason,
@@ -694,21 +754,23 @@ async function createAndSendInvitations(input: {
   return results;
 }
 
-export async function searchProfilesForClub(query: string, clubId: string) {
+export async function searchProfilesForClub(
+  query: string,
+  clubId: string,
+): Promise<
+  Array<{
+    id: string;
+    displayName: string;
+    email: string;
+    role: ClubRole;
+    blockedReason: string | null;
+  }>
+> {
   const supabase = await createClient();
   await verifyClubManager(supabase, clubId);
   const term = query.trim();
   if (term.length < 2) return [];
 
-  if (await isDevClubBypassId(clubId)) {
-    return [
-      { id: "00000000-0000-4000-8000-000000000301", displayName: "Maya Kim", email: "maya.kim@riverside.edu", role: "student", blockedReason: null },
-      { id: "00000000-0000-4000-8000-000000000302", displayName: "Aisha Nguyen", email: "aisha.nguyen@riverside.edu", role: "student", blockedReason: null },
-    ].filter((profile) =>
-      profile.displayName.toLowerCase().includes(term.toLowerCase()) ||
-      profile.email.toLowerCase().includes(term.toLowerCase())
-    );
-  }
   // Do not query profiles globally from this legacy action. A service-role
   // search leaks account PII across organizations; the organization workflow
   // must provide a dedicated org-scoped search/RPC before this is re-enabled.
@@ -725,20 +787,19 @@ export async function addClubMember(input: {
   // Ownership and administrator grants are privileged operations. A regular
   // organization admin may add teachers/students but cannot create another
   // owner/admin or transfer control.
-  const actorId = role === "owner" || role === "admin"
-    ? await verifyClubOwner(supabase, input.clubId)
-    : await verifyClubManager(supabase, input.clubId);
-
-  if (await isDevClubBypassId(input.clubId)) {
-    return { status: "added" as const };
-  }
+  const actorId =
+    role === "owner" || role === "admin"
+      ? await verifyClubOwner(supabase, input.clubId)
+      : await verifyClubManager(supabase, input.clubId);
 
   if (role === "student") {
     await assertStudentCanJoinClub(input.userId, input.clubId);
   }
 
   if (role === "owner") {
-    throw new Error("Ownership changes must use the audited ownership-transfer workflow.");
+    throw new Error(
+      "Ownership changes must use the audited ownership-transfer workflow.",
+    );
   }
   const { data: existingMembership, error: membershipError } = await supabase
     .from("club_memberships")
@@ -750,7 +811,10 @@ export async function addClubMember(input: {
     .maybeSingle();
   if (membershipError) throw new Error(membershipError.message);
   const rpc = supabase as unknown as {
-    rpc: (name: string, args: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+    rpc: (
+      name: string,
+      args: Record<string, unknown>,
+    ) => Promise<{ error: { message: string } | null }>;
   };
   const { error } = await rpc.rpc("manage_organization_member_transaction", {
     p_organization_id: input.clubId,
@@ -776,13 +840,6 @@ export async function createClubJoinCode(clubId: string) {
 
   const supabase = await createClient();
   const actorId = await verifyClubManager(supabase, clubId);
-
-  if (await isDevClubBypassId(clubId)) {
-    return {
-      code: "TFY3-DEMO-2026",
-      expiresAt: new Date(Date.now() + 14 * 86_400_000).toISOString(),
-    };
-  }
 
   const admin = createAdminClient();
   for (let attempt = 0; attempt < 8; attempt += 1) {
@@ -824,10 +881,6 @@ export async function revokeClubJoinCode(clubId: string, codeId: string) {
   const supabase = await createClient();
   await verifyClubManager(supabase, clubId);
 
-  if (await isDevClubBypassId(clubId)) {
-    return;
-  }
-
   const admin = createAdminClient();
   const { error } = await admin
     .from("club_join_codes")
@@ -850,10 +903,6 @@ export async function createClubAssignment(input: ClubAssignmentInput) {
   const managerId = classId
     ? (await verifyClubClassAccess(supabase, input.clubId, classId)).userId
     : await verifyClubManager(supabase, input.clubId);
-
-  if (await isDevClubBypassId(input.clubId)) {
-    return "00000000-0000-4c20-8000-000000000999";
-  }
 
   if (classId) {
     const { data: cohort, error: cohortError } = await supabase
@@ -881,7 +930,9 @@ export async function createClubAssignment(input: ClubAssignmentInput) {
       topic_category: input.topicCategory?.trim() || null,
       due_at: input.dueAt ?? null,
       required_attempts: input.requiredAttempts ?? 1,
-      rubric_key: input.rubricKey ?? (input.assignedTrack === "speaking" ? "speaking_v1" : "debate_v1"),
+      rubric_key:
+        input.rubricKey ??
+        (input.assignedTrack === "speaking" ? "speaking_v1" : "debate_v1"),
       rubric_version: input.rubricVersion ?? 1,
       status: input.status ?? "active",
       created_by: managerId,
@@ -890,7 +941,9 @@ export async function createClubAssignment(input: ClubAssignmentInput) {
       submission_files_enabled: filesEnabled,
       submission_max_files: input.submissionMaxFiles ?? (filesEnabled ? 3 : 0),
       submission_max_file_mb: input.submissionMaxFileMb ?? 10,
-      submission_allowed_ext: normalizeAssignmentExtensions(input.submissionAllowedExt),
+      submission_allowed_ext: normalizeAssignmentExtensions(
+        input.submissionAllowedExt,
+      ),
       submission_instructions: input.submissionInstructions?.trim() || null,
     })
     .select("id")
@@ -906,15 +959,13 @@ export async function saveClubEvent(input: SaveClubEventInput) {
   const supabase = await createClient();
   const validation = validateClubEventInput(input);
   if (!validation.ok) throw new Error(validation.reason);
-  const actorId = (await verifyClubEventAccess(supabase, {
-    clubId: input.clubId,
-    eventId: input.id,
-    classId: cleanString(input.classId),
-  })).userId;
-
-  if (await isDevClubBypassId(input.clubId)) {
-    return input.id ?? "dev-club-event";
-  }
+  const actorId = (
+    await verifyClubEventAccess(supabase, {
+      clubId: input.clubId,
+      eventId: input.id,
+      classId: cleanString(input.classId),
+    })
+  ).userId;
 
   const admin = supabase;
   const classId = cleanString(input.classId);
@@ -975,8 +1026,6 @@ export async function deleteClubEvent(clubId: string, eventId: string) {
   const supabase = await createClient();
   await verifyClubEventAccess(supabase, { clubId, eventId });
 
-  if (await isDevClubBypassId(clubId)) return;
-
   const admin = supabase;
   const { error } = await admin
     .from("club_events")
@@ -989,7 +1038,9 @@ export async function deleteClubEvent(clubId: string, eventId: string) {
   revalidatePath(`/dashboard/admin/clubs/${clubId}`);
 }
 
-export async function claimClubInvitation(token: string): Promise<
+export async function claimClubInvitation(
+  token: string,
+): Promise<
   | { status: "auth_required" | "not_found" | "expired" | "revoked" }
   | { status: "email_mismatch"; expectedEmail?: undefined }
   | { status: "already_in_org"; clubId: string }
@@ -1002,27 +1053,40 @@ export async function claimClubInvitation(token: string): Promise<
 
   if (!user) return { status: "auth_required" as const };
   const tokenHash = invitationTokenHash(token);
-  const { data, error } = await supabase.rpc("consume_organization_invitation", {
-    p_token_hash: tokenHash,
-  });
+  const { data, error } = await supabase.rpc(
+    "consume_organization_invitation",
+    {
+      p_token_hash: tokenHash,
+    },
+  );
   if (error) throw new Error(error.message);
 
-  const result = data && typeof data === "object"
-    ? (data as { status?: unknown; clubId?: unknown; organizationId?: unknown })
-    : null;
+  const result =
+    data && typeof data === "object"
+      ? (data as {
+          status?: unknown;
+          clubId?: unknown;
+          organizationId?: unknown;
+        })
+      : null;
   const status = result?.status;
   if (status === "invalid" || typeof status !== "string") {
     return { status: "not_found" as const };
   }
-  if (status === "expired" || status === "revoked" || status === "email_mismatch") {
+  if (
+    status === "expired" ||
+    status === "revoked" ||
+    status === "email_mismatch"
+  ) {
     return { status } as const;
   }
   if (!result) return { status: "not_found" as const };
-  const clubId = typeof result.clubId === "string"
-    ? result.clubId
-    : typeof result.organizationId === "string"
-      ? result.organizationId
-      : null;
+  const clubId =
+    typeof result.clubId === "string"
+      ? result.clubId
+      : typeof result.organizationId === "string"
+        ? result.organizationId
+        : null;
   if (!clubId) return { status: "not_found" as const };
   if (status === "already_in_org") return { status, clubId } as const;
   if (status !== "accepted") return { status: "not_found" as const };
@@ -1042,11 +1106,8 @@ export async function saveCoachReview(input: {
 }) {
   const supabase = await createClient();
   const adminId = await verifyAdmin(supabase);
-  if (!input.clubId || !input.performanceAttemptId) throw new Error("Club and attempt are required");
-
-  if (await isDevClubBypassId(input.clubId)) {
-    return "dev-review";
-  }
+  if (!input.clubId || !input.performanceAttemptId)
+    throw new Error("Club and attempt are required");
 
   const { data, error } = await supabase
     .from("coach_reviews")

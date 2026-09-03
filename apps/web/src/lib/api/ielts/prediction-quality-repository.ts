@@ -21,10 +21,12 @@ import {
   type IeltsModule,
   type IeltsSkill,
 } from "@/lib/ielts/adaptive/contracts";
-import type { BacktestScenario, MockOutcome } from "@/lib/scoring/ielts-prediction";
+import type {
+  BacktestScenario,
+  MockOutcome,
+} from "@/lib/scoring/ielts-prediction";
 import { tryCreateTypedAdminClient } from "@/lib/supabase/admin";
 import { createTypedServerClient } from "@/lib/supabase/server";
-import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import type { Database, Tables } from "@/types/supabase";
 import {
   EVIDENCE_COLUMNS,
@@ -34,10 +36,8 @@ import {
 } from "./band-prediction-repository";
 
 /** Test kinds that count as a "mock" — excludes single-subskill `drill`s. */
-export const MOCK_TEST_KINDS: readonly Database["public"]["Enums"]["ielts_test_kind"][] = [
-  "full_mock",
-  "skill_set",
-];
+export const MOCK_TEST_KINDS: readonly Database["public"]["Enums"]["ielts_test_kind"][] =
+  ["full_mock", "skill_set"];
 
 export const MIN_MOCKS_FOR_BACKTEST = 2;
 
@@ -77,7 +77,8 @@ const EMPTY_LABELS: ReadonlyMap<string, SubskillRow> = new Map();
 
 function chunk<T>(items: readonly T[], size: number): T[][] {
   const batches: T[][] = [];
-  for (let i = 0; i < items.length; i += size) batches.push(items.slice(i, i + size));
+  for (let i = 0; i < items.length; i += size)
+    batches.push(items.slice(i, i + size));
   return batches;
 }
 
@@ -112,7 +113,6 @@ function toMockOutcome(attempt: AttemptRow, band: BandRow): MockOutcome {
 
 /** Confirm the caller is an admin before escalating to the service-role read. */
 async function assertCallerIsAdmin(): Promise<void> {
-  if (isDevAdminBypassEnabled()) return;
   const cookie = await createTypedServerClient();
   const {
     data: { user },
@@ -124,24 +124,32 @@ async function assertCallerIsAdmin(): Promise<void> {
     .eq("id", user.id)
     .single();
   if (error) throw new Error(`prediction-quality(profile): ${error.message}`);
-  if (profile?.role !== "admin") throw new Error("prediction-quality: admin only");
+  if (profile?.role !== "admin")
+    throw new Error("prediction-quality: admin only");
 }
 
-async function fetchAttempts(db: AdminClient, attemptIds: string[]): Promise<AttemptRow[]> {
+async function fetchAttempts(
+  db: AdminClient,
+  attemptIds: string[],
+): Promise<AttemptRow[]> {
   const rows: AttemptRow[] = [];
   for (const batch of chunk(attemptIds, ID_BATCH)) {
     const { data, error } = await db
       .from("ielts_attempts")
       .select("id, module, test_id, submitted_at, completed_at, created_at")
       .in("id", batch);
-    if (error) throw new Error(`prediction-quality(attempts): ${error.message}`);
+    if (error)
+      throw new Error(`prediction-quality(attempts): ${error.message}`);
     rows.push(...((data ?? []) as AttemptRow[]));
   }
   return rows;
 }
 
 /** test_id → kind, keeping only mock-kind tests. */
-async function fetchMockTestIds(db: AdminClient, testIds: string[]): Promise<Set<string>> {
+async function fetchMockTestIds(
+  db: AdminClient,
+  testIds: string[],
+): Promise<Set<string>> {
   const mockIds = new Set<string>();
   for (const batch of chunk(testIds, ID_BATCH)) {
     const { data, error } = await db
@@ -167,7 +175,8 @@ async function fetchEvidenceByUser(
       .in("user_id", batch)
       .order("created_at", { ascending: true })
       .limit(EVIDENCE_ROW_LIMIT);
-    if (error) throw new Error(`prediction-quality(evidence): ${error.message}`);
+    if (error)
+      throw new Error(`prediction-quality(evidence): ${error.message}`);
     for (const row of (data ?? []) as (EvidenceRow & { user_id: string })[]) {
       const list = byUser.get(row.user_id) ?? [];
       list.push(row);
@@ -195,19 +204,21 @@ export async function loadPredictionQualityScenarios(): Promise<PredictionQualit
     )
     .order("created_at", { ascending: true })
     .limit(MOCK_ROW_LIMIT);
-  if (bandError) throw new Error(`prediction-quality(bands): ${bandError.message}`);
+  if (bandError)
+    throw new Error(`prediction-quality(bands): ${bandError.message}`);
   const bandRows = (bandData ?? []) as BandRow[];
   if (bandRows.length === 0) {
     return { scenarios: [], scenariosConsidered: 0, unavailable: false };
   }
 
   // 2. Resolve each attempt's module + timing, and keep only mock-kind tests.
-  const attempts = await fetchAttempts(db, [...new Set(bandRows.map((row) => row.attempt_id))]);
+  const attempts = await fetchAttempts(db, [
+    ...new Set(bandRows.map((row) => row.attempt_id)),
+  ]);
   const attemptById = new Map(attempts.map((attempt) => [attempt.id, attempt]));
-  const mockTestIds = await fetchMockTestIds(
-    db,
-    [...new Set(attempts.map((attempt) => attempt.test_id))],
-  );
+  const mockTestIds = await fetchMockTestIds(db, [
+    ...new Set(attempts.map((attempt) => attempt.test_id)),
+  ]);
 
   // 3. Group mock outcomes by (learner, module).
   const groups = new Map<
@@ -218,7 +229,11 @@ export async function loadPredictionQualityScenarios(): Promise<PredictionQualit
     const attempt = attemptById.get(band.attempt_id);
     if (!attempt || !mockTestIds.has(attempt.test_id)) continue;
     const key = scenarioKey(band.user_id, attempt.module);
-    const group = groups.get(key) ?? { userId: band.user_id, module: attempt.module, mocks: [] };
+    const group = groups.get(key) ?? {
+      userId: band.user_id,
+      module: attempt.module,
+      mocks: [],
+    };
     group.mocks.push(toMockOutcome(attempt, band));
     groups.set(key, group);
   }

@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { canAccessDuels } from "@/lib/auth/admin";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { DuelHubPage } from "@/components/debates/duel-hub-page";
 
 export const metadata = {
@@ -15,11 +14,8 @@ export default async function DebateHubRoute() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) {
+  if (!user) {
     redirect("/auth/login");
   }
 

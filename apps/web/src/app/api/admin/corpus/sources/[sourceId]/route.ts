@@ -15,7 +15,7 @@ export const dynamic = "force-dynamic";
 
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ sourceId: string }> }
+  context: { params: Promise<{ sourceId: string }> },
 ) {
   try {
     const auth = await requireRequestAuth(req);
@@ -30,13 +30,15 @@ export async function PATCH(
     const body = await readJsonObject(req, { maxBytes: 64 * 1024 });
     const reviewStatus = getEnum(body, "reviewStatus", CORPUS_REVIEW_STATUSES);
     const adminNotes = getString(body, "adminNotes", { maxLength: 4000 });
-    const qualityFlags = getJsonRecord(body, "qualityFlags", { maxBytes: 16 * 1024 });
+    const qualityFlags = getJsonRecord(body, "qualityFlags", {
+      maxBytes: 16 * 1024,
+    });
     const patch: Record<string, unknown> = {
       updated_at: new Date().toISOString(),
     };
     if (reviewStatus) {
       patch.review_status = reviewStatus;
-      patch.reviewed_by = auth.authSource === "dev-bypass" ? null : user.id;
+      patch.reviewed_by = user.id;
       patch.reviewed_at = new Date().toISOString();
     }
     if (adminNotes !== undefined) patch.admin_notes = adminNotes || null;
@@ -50,13 +52,22 @@ export async function PATCH(
       .select("*")
       .single();
     if (error) {
-      return NextResponse.json({ error: "Unable to update source" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Unable to update source" },
+        { status: 500 },
+      );
     }
     return NextResponse.json({ ok: true, source: data });
   } catch (error) {
     if (error instanceof RequestValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
     }
-    return NextResponse.json({ error: "Unable to update source" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Unable to update source" },
+      { status: 500 },
+    );
   }
 }

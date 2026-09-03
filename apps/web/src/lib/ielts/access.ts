@@ -1,7 +1,6 @@
 import "server-only";
 
 import { IELTS_ENABLED } from "@/lib/features";
-import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { createTypedServerClient } from "@/lib/supabase/server";
 
 interface IeltsViewer {
@@ -49,7 +48,6 @@ export async function isIeltsAccessible(): Promise<boolean> {
   // Local dev admin bypass renders the shell as an admin without a real
   // session; honour it here so `/ielts/**` is previewable in dev (no-op in
   // production, where the bypass is always disabled).
-  if (isDevAdminBypassEnabled()) return true;
   return (await loadIeltsViewer()).isAdmin;
 }
 

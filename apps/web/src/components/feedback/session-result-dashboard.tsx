@@ -40,6 +40,7 @@ import { ChartCard } from "@/components/data-viz";
 import { SuccessCheck } from "@/components/motion";
 import { AnnotatedTranscript } from "@/components/feedback/annotated-transcript";
 import { DebateTimeline } from "@/components/feedback/debate-timeline";
+import { RichNotes } from "@/components/feedback/rich-notes";
 import {
   buildSessionResultViewModel,
   getFullRoundWinnerResult,
@@ -117,9 +118,7 @@ function toDisplayLocale(locale: string) {
 
 function toBandKey(band: string | null | undefined) {
   const key = String(band ?? "").toLowerCase();
-  return key in BAND_STYLES
-    ? (key as keyof typeof BAND_STYLES)
-    : "competent";
+  return key in BAND_STYLES ? (key as keyof typeof BAND_STYLES) : "competent";
 }
 
 function clampChartScore(value: unknown) {
@@ -710,10 +709,9 @@ export function SessionResultDashboard({
                 </span>
               </div>
 
-              <div
-                className="mt-4 max-h-[280px] min-h-[120px] overflow-y-auto rounded-control border border-outline-variant bg-surface-container p-4 text-sm leading-7 text-on-surface-variant [overflow-wrap:anywhere] [&_a]:font-semibold [&_a]:text-primary [&_li]:ml-5 [&_ol]:list-decimal [&_strong]:text-on-surface [&_ul]:list-disc"
-                dangerouslySetInnerHTML={{ __html: viewModel.prepNotes.html }}
-              />
+              <div className="mt-4 max-h-[280px] min-h-[120px] overflow-y-auto rounded-control border border-outline-variant bg-surface-container p-4 text-sm leading-7 text-on-surface-variant [overflow-wrap:anywhere] [&_a]:font-semibold [&_a]:text-primary [&_li]:ml-5 [&_ol]:list-decimal [&_strong]:text-on-surface [&_ul]:list-disc">
+                <RichNotes nodes={viewModel.prepNotes.nodes} />
+              </div>
 
               {viewModel.feedback.noteTakingFeedback && (
                 <div className="mt-4 grid gap-3 lg:grid-cols-3">

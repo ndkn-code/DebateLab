@@ -8,8 +8,6 @@ import {
   coerceAppTheme,
   type AppTheme,
 } from "@/lib/theme";
-import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 
 async function setThemeCookie(theme: AppTheme) {
   const cookieStore = await cookies();
@@ -30,18 +28,8 @@ export async function saveThemePreference(themeInput: AppTheme) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
   if (!user) {
-    if (devAuthBypassUser) {
-      DEV_ADMIN_PROFILE.preferences = {
-        ...(DEV_ADMIN_PROFILE.preferences ?? {}),
-        theme,
-      };
-    }
-
     return { theme };
   }
 

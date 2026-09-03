@@ -1,10 +1,13 @@
-import { createClient as createSupabaseClient, type SupabaseClient, type User } from "@supabase/supabase-js";
+import {
+  createClient as createSupabaseClient,
+  type SupabaseClient,
+  type User,
+} from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getDevAuthBypassUserFromRequest } from "@/lib/dev-auth-bypass";
 import { createClient as createCookieClient } from "@/lib/supabase/server";
 
-export type RequestAuthSource = "bearer" | "cookie" | "dev-bypass";
+export type RequestAuthSource = "bearer" | "cookie";
 
 export type RequestAuthUser = Pick<User, "id"> & {
   email?: string | null;
@@ -69,9 +72,7 @@ export function unauthorizedTextResponse(message = "Unauthorized") {
 
 export async function requireRequestAuth(
   request: NextRequest,
-  options: { allowDevBypass?: boolean } = {}
 ): Promise<RequestAuthResult> {
-  const { allowDevBypass = true } = options;
   const bearer = readBearerToken(request);
 
   if (bearer.present) {
@@ -119,16 +120,6 @@ export async function requireRequestAuth(
     };
   }
 
-  const devUser = allowDevBypass ? getDevAuthBypassUserFromRequest(request) : null;
-  if (devUser) {
-    return {
-      ok: true,
-      supabase,
-      user: devUser,
-      authSource: "dev-bypass",
-    };
-  }
-
   return {
     ok: false,
     errorResponse: unauthorizedJson(),
@@ -137,5 +128,5 @@ export async function requireRequestAuth(
 }
 
 export function shouldConsumeUserRateLimit(auth: RequestAuthSuccess) {
-  return auth.authSource !== "dev-bypass";
+  return auth.authSource === "bearer" || auth.authSource === "cookie";
 }

@@ -20,7 +20,7 @@ export const maxDuration = 60;
  */
 export async function POST(req: NextRequest) {
   try {
-    const auth = await requireRequestAuth(req, { allowDevBypass: false });
+    const auth = await requireRequestAuth(req);
 
     if (!auth.ok) {
       return auth.errorResponse;
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     if (!(await canAccessDuels(supabase, user.id))) {
       return NextResponse.json(
         { error: "1v1 Debate is coming soon." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
         {
           status: 429,
           headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-        }
+        },
       );
     }
 
@@ -55,36 +55,62 @@ export async function POST(req: NextRequest) {
         required: true,
         maxLength: 120,
       })!,
-      topicCategoryKey: getString(body, "topicCategoryKey", { maxLength: 120 }) ?? null,
+      topicCategoryKey:
+        getString(body, "topicCategoryKey", { maxLength: 120 }) ?? null,
       topicKey: getString(body, "topicKey", { maxLength: 200 }) ?? null,
-      topicTitle: getString(body, "topicTitle", { required: true, maxLength: 300 })!,
-      topicDescription: getString(body, "topicDescription", { maxLength: 2000 }) ?? null,
+      topicTitle: getString(body, "topicTitle", {
+        required: true,
+        maxLength: 300,
+      })!,
+      topicDescription:
+        getString(body, "topicDescription", { maxLength: 2000 }) ?? null,
       topicDifficulty: getEnum(
         body,
         "topicDifficulty",
         ["beginner", "intermediate", "advanced"] as const,
-        { defaultValue: "beginner" }
+        { defaultValue: "beginner" },
       )!,
-      practiceLanguage: getEnum(body, "practiceLanguage", ["en", "vi"] as const, {
-        defaultValue: "en",
-      })!,
+      practiceLanguage: getEnum(
+        body,
+        "practiceLanguage",
+        ["en", "vi"] as const,
+        {
+          defaultValue: "en",
+        },
+      )!,
       prepTimeSeconds: Math.floor(
-        getNumber(body, "prepTimeSeconds", { min: 30, max: 600, defaultValue: 120 }) ?? 120
+        getNumber(body, "prepTimeSeconds", {
+          min: 30,
+          max: 600,
+          defaultValue: 120,
+        }) ?? 120,
       ),
       openingTimeSeconds: Math.floor(
-        getNumber(body, "openingTimeSeconds", { min: 30, max: 600, defaultValue: 180 }) ?? 180
+        getNumber(body, "openingTimeSeconds", {
+          min: 30,
+          max: 600,
+          defaultValue: 180,
+        }) ?? 180,
       ),
       rebuttalTimeSeconds: Math.floor(
-        getNumber(body, "rebuttalTimeSeconds", { min: 30, max: 600, defaultValue: 120 }) ?? 120
+        getNumber(body, "rebuttalTimeSeconds", {
+          min: 30,
+          max: 600,
+          defaultValue: 120,
+        }) ?? 120,
       ),
     });
 
     return NextResponse.json(room);
   } catch (error) {
     if (error instanceof RequestValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
     }
-    const raw = error instanceof Error ? error.message : "Failed to start AI duel.";
+    const raw =
+      error instanceof Error ? error.message : "Failed to start AI duel.";
     let message = raw;
     let status = 500;
     if (raw.includes("INSUFFICIENT_CREDITS")) {
@@ -93,7 +119,10 @@ export async function POST(req: NextRequest) {
     } else if (raw.includes("FORBIDDEN")) {
       message = "You are not allowed to start this duel.";
       status = 403;
-    } else if (raw.includes("ADMIN_CLIENT_UNAVAILABLE") || raw.includes("AI_OPPONENT_MISSING")) {
+    } else if (
+      raw.includes("ADMIN_CLIENT_UNAVAILABLE") ||
+      raw.includes("AI_OPPONENT_MISSING")
+    ) {
       message = "AI opponent is unavailable right now.";
       status = 503;
     }

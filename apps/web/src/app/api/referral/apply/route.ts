@@ -11,7 +11,7 @@ import { consumeRateLimit } from "@/lib/rate-limit";
 const REFERRAL_CODE_PATTERN = /^[A-HJ-NP-Z2-9]{6}$/;
 
 export async function POST(request: NextRequest) {
-  const auth = await requireRequestAuth(request, { allowDevBypass: false });
+  const auth = await requireRequestAuth(request);
 
   if (!auth.ok) {
     return auth.errorResponse;
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
       {
         status: 429,
         headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-      }
+      },
     );
   }
 
@@ -45,20 +45,25 @@ export async function POST(request: NextRequest) {
     code = rawCode.toUpperCase();
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Invalid referral code" },
-      { status: error instanceof RequestValidationError ? error.status : 400 }
+      {
+        error: error instanceof Error ? error.message : "Invalid referral code",
+      },
+      { status: error instanceof RequestValidationError ? error.status : 400 },
     );
   }
 
   if (!REFERRAL_CODE_PATTERN.test(code)) {
-    return NextResponse.json({ error: "Invalid referral code" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid referral code" },
+      { status: 400 },
+    );
   }
 
   const referrer = await getReferrerByCode(code);
   if (!referrer) {
     return NextResponse.json(
       { error: "Referral code not found" },
-      { status: 404 }
+      { status: 404 },
     );
   }
 
@@ -68,5 +73,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }
 
-  return NextResponse.json({ success: true, referrerName: referrer.display_name });
+  return NextResponse.json({
+    success: true,
+    referrerName: referrer.display_name,
+  });
 }

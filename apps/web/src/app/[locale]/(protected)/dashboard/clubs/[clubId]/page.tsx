@@ -6,13 +6,11 @@ export const metadata = { title: "Club Workspace" };
 
 export default async function ClubWorkspacePage({
   params,
-  searchParams,
 }: {
   params: Promise<{ clubId: string }>;
-  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
-  const [{ clubId }, resolvedSearchParams] = await Promise.all([params, searchParams]);
-  const data = await getAdminClubDetail(clubId, resolvedSearchParams);
+  const { clubId } = await params;
+  const data = await getAdminClubDetail(clubId);
   if (!data) notFound();
 
   return <ClubDetailDashboard data={data} />;

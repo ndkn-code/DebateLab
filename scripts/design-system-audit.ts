@@ -12,7 +12,6 @@ const approvedPathFragments = [
   "apps/web/src/app/email/unsubscribe/route.ts",
   "apps/web/src/lib/email/templates.tsx",
   "apps/web/src/lib/settings.ts",
-  "apps/web/src/lib/dev-admin-bypass.ts",
   "apps/web/src/lib/analytics/skill-metadata.ts",
   "apps/web/src/components/courses/course-artwork.tsx",
   // Vendored bklit ChartKit (Visx). Themed via the --chart-* CSS-var bridge in

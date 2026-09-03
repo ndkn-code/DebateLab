@@ -36,7 +36,8 @@ function toHistoryRow(row: DebateSessionHistoryRow): MobilePracticeHistoryRow {
     topicTitle: row.topic_title,
     topicCategory: row.topic_category,
     topicDifficulty: row.topic_difficulty ?? "intermediate",
-    practiceTrack: row.practice_track ?? row.feedback?.practiceTrack ?? "debate",
+    practiceTrack:
+      row.practice_track ?? row.feedback?.practiceTrack ?? "debate",
     practiceLanguage:
       row.practice_language ?? row.feedback?.practiceLanguage ?? "en",
     side: row.side,
@@ -59,18 +60,11 @@ export async function GET(req: NextRequest) {
   const limit = clampLimit(req.nextUrl.searchParams.get("limit"));
   const cursor = req.nextUrl.searchParams.get("cursor");
   const adminClient = tryCreateAdminClient();
-  if (!adminClient && auth.authSource === "dev-bypass") {
-    return NextResponse.json({
-      items: [],
-      nextCursor: null,
-    } satisfies MobilePracticeHistoryResponse);
-  }
-
   const readClient = adminClient ?? auth.supabase;
   let query = readClient
     .from("debate_sessions")
     .select(
-      "id, topic_title, topic_category, topic_difficulty, side, practice_track, practice_language, mode, duration_seconds, total_score, overall_band, feedback, created_at"
+      "id, topic_title, topic_category, topic_difficulty, side, practice_track, practice_language, mode, duration_seconds, total_score, overall_band, feedback, created_at",
     )
     .eq("user_id", auth.user.id)
     .order("created_at", { ascending: false })
@@ -84,13 +78,14 @@ export async function GET(req: NextRequest) {
   if (error) {
     return NextResponse.json(
       { error: "Unable to load practice history.", code: "history_failed" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
   const rows = (data ?? []) as DebateSessionHistoryRow[];
   const pageRows = rows.slice(0, limit);
-  const nextCursor = rows.length > limit ? pageRows.at(-1)?.created_at ?? null : null;
+  const nextCursor =
+    rows.length > limit ? (pageRows.at(-1)?.created_at ?? null) : null;
 
   return NextResponse.json({
     items: pageRows.map(toHistoryRow),

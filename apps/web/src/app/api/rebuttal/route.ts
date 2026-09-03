@@ -22,7 +22,6 @@ import {
 import { formatMotionBriefForPrompt } from "@/lib/motion-brief";
 import type { DeepSeekMessage } from "@/lib/ai/deepseek";
 import { recordAiQualityRun } from "@/lib/ai/quality";
-import { recordAiProviderRequest } from "@/lib/ai/provider-requests";
 import {
   createDebateCorpusRetrievalMetadata,
   linkDebateCorpusRetrievalLogToAiRun,
@@ -109,19 +108,13 @@ function parsePreviousRounds(value: unknown) {
         ? round.speaker.trim().slice(0, 80)
         : "speaker";
     const text =
-      typeof round.text === "string"
-        ? round.text.trim().slice(0, 8000)
-        : "";
+      typeof round.text === "string" ? round.text.trim().slice(0, 8000) : "";
 
     return { label, speaker, text };
   });
 }
 
-function readLimitedString(
-  source: JsonRecord,
-  key: string,
-  maxLength: number
-) {
+function readLimitedString(source: JsonRecord, key: string, maxLength: number) {
   const value = source[key];
   if (value == null || value === "") return "";
   if (typeof value !== "string") {
@@ -141,20 +134,12 @@ function parseMotionBrief(value: unknown): MotionBrief | undefined {
     maxItemLength: 220,
   }).filter(Boolean);
   const scope = readLimitedString(value, "scope", 1200);
-  const propositionBurden = readLimitedString(
-    value,
-    "propositionBurden",
-    1200
-  );
-  const oppositionBurden = readLimitedString(
-    value,
-    "oppositionBurden",
-    1200
-  );
+  const propositionBurden = readLimitedString(value, "propositionBurden", 1200);
+  const oppositionBurden = readLimitedString(value, "oppositionBurden", 1200);
   const modelClarification = readLimitedString(
     value,
     "modelClarification",
-    1200
+    1200,
   );
 
   if (
@@ -195,22 +180,34 @@ function parseDebateMemory(value: unknown): DebateMemory | undefined {
     aiSide,
     studentSide,
     policyModel: readLimitedString(value, "policyModel", 1200),
-    priorAiClaims: getStringArray(value.priorAiClaims, "debateMemory.priorAiClaims", {
-      maxItems: 12,
-      maxItemLength: 500,
-    }).filter(Boolean),
+    priorAiClaims: getStringArray(
+      value.priorAiClaims,
+      "debateMemory.priorAiClaims",
+      {
+        maxItems: 12,
+        maxItemLength: 500,
+      },
+    ).filter(Boolean),
     concessions: getStringArray(value.concessions, "debateMemory.concessions", {
       maxItems: 8,
       maxItemLength: 500,
     }).filter(Boolean),
-    activeClashes: getStringArray(value.activeClashes, "debateMemory.activeClashes", {
-      maxItems: 12,
-      maxItemLength: 500,
-    }).filter(Boolean),
-    droppedClaims: getStringArray(value.droppedClaims, "debateMemory.droppedClaims", {
-      maxItems: 10,
-      maxItemLength: 500,
-    }).filter(Boolean),
+    activeClashes: getStringArray(
+      value.activeClashes,
+      "debateMemory.activeClashes",
+      {
+        maxItems: 12,
+        maxItemLength: 500,
+      },
+    ).filter(Boolean),
+    droppedClaims: getStringArray(
+      value.droppedClaims,
+      "debateMemory.droppedClaims",
+      {
+        maxItems: 10,
+        maxItemLength: 500,
+      },
+    ).filter(Boolean),
   };
 }
 
@@ -234,21 +231,23 @@ function parseRebuttalRequest(body: JsonRecord): RebuttalRequest {
       minLength: 1,
       maxLength: 80,
     })!,
-    difficulty: getEnum(body, "difficulty", ["easy", "medium", "hard"] as const, {
-      defaultValue: "medium",
-    }) as AiDifficulty,
+    difficulty: getEnum(
+      body,
+      "difficulty",
+      ["easy", "medium", "hard"] as const,
+      {
+        defaultValue: "medium",
+      },
+    ) as AiDifficulty,
     practiceTrack: getEnum(
       body,
       "practiceTrack",
       ["speaking", "debate"] as const,
-      { defaultValue: "debate" }
+      { defaultValue: "debate" },
     ) as PracticeTrack,
-    practiceLanguage: getEnum(
-      body,
-      "practiceLanguage",
-      ["en", "vi"] as const,
-      { defaultValue: "en" }
-    ) as PracticeLanguage,
+    practiceLanguage: getEnum(body, "practiceLanguage", ["en", "vi"] as const, {
+      defaultValue: "en",
+    }) as PracticeLanguage,
     previousRounds: parsePreviousRounds(body.previousRounds),
     speechTimeSeconds: getNumber(body, "speechTimeSeconds", {
       min: 60,
@@ -302,7 +301,9 @@ function shouldRetryTruongTeenLength(params: {
   if (params.difficulty !== "hard") return false;
   if (params.wordTarget.label !== "7-minute") return false;
 
-  return countWords(params.rebuttal) < Math.max(720, params.wordTarget.min - 80);
+  return (
+    countWords(params.rebuttal) < Math.max(720, params.wordTarget.min - 80)
+  );
 }
 
 function buildTruongTeenLengthRetryInstruction(wordTarget: {
@@ -339,7 +340,9 @@ async function findCachedRebuttalResponse(params: {
 
   if (error || !data) return null;
   const metadata =
-    data.metadata && typeof data.metadata === "object" && !Array.isArray(data.metadata)
+    data.metadata &&
+    typeof data.metadata === "object" &&
+    !Array.isArray(data.metadata)
       ? (data.metadata as Record<string, unknown>)
       : {};
   const cachedResponse = metadata.rebuttalResponse;
@@ -347,7 +350,7 @@ async function findCachedRebuttalResponse(params: {
     typeof data.output_text === "string" ? data.output_text : "",
     cachedResponse && typeof cachedResponse === "object"
       ? (cachedResponse as Record<string, unknown>).highlights
-      : []
+      : [],
   );
   if (!normalized.rebuttal) return null;
 
@@ -364,12 +367,29 @@ async function generateGeminiRebuttal(
   prompt: string,
   maxOutputTokens: number,
   timeoutMs: number,
-  fallbackUsed = false
+  fallbackUsed = false,
 ): Promise<RebuttalGeneration> {
   const result = await generateStructured({
-    task: "rebuttal", prompt, schema: RebuttalModelSchema,
-    context: { task: "rebuttal", sourceRoute: "/api/rebuttal", outputType: "rebuttal", deadlineAt: Date.now() + timeoutMs, metadata: { maxOutputTokens, timeoutMs, fallbackUsed } },
-    policy: { candidates: [{ provider: "gemini", model: process.env.GEMINI_MODEL || "gemini-2.5-flash" }], maxOutputTokens, temperature: 0.7 },
+    task: "rebuttal",
+    prompt,
+    schema: RebuttalModelSchema,
+    context: {
+      task: "rebuttal",
+      sourceRoute: "/api/rebuttal",
+      outputType: "rebuttal",
+      deadlineAt: Date.now() + timeoutMs,
+      metadata: { maxOutputTokens, timeoutMs, fallbackUsed },
+    },
+    policy: {
+      candidates: [
+        {
+          provider: "gemini",
+          model: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+        },
+      ],
+      maxOutputTokens,
+      temperature: 0.7,
+    },
   });
 
   return {
@@ -387,12 +407,31 @@ async function generateDeepSeekRebuttal(
   messages: DeepSeekMessage[],
   maxOutputTokens: number,
   timeoutMs: number,
-  userId: string
+  userId: string,
 ): Promise<RebuttalGeneration> {
   const result = await generateStructured({
-    task: "rebuttal", prompt: "", messages, schema: RebuttalModelSchema,
-    context: { task: "rebuttal", sourceRoute: "/api/rebuttal", outputType: "rebuttal", userId, deadlineAt: Date.now() + timeoutMs, metadata: { maxOutputTokens, timeoutMs } },
-    policy: { candidates: [{ provider: "deepseek", model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash" }], maxOutputTokens, temperature: 0.7 },
+    task: "rebuttal",
+    prompt: "",
+    messages,
+    schema: RebuttalModelSchema,
+    context: {
+      task: "rebuttal",
+      sourceRoute: "/api/rebuttal",
+      outputType: "rebuttal",
+      userId,
+      deadlineAt: Date.now() + timeoutMs,
+      metadata: { maxOutputTokens, timeoutMs },
+    },
+    policy: {
+      candidates: [
+        {
+          provider: "deepseek",
+          model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
+        },
+      ],
+      maxOutputTokens,
+      temperature: 0.7,
+    },
   });
 
   return {
@@ -408,21 +447,33 @@ async function generateDeepSeekRebuttal(
 
 function buildDeterministicRebuttalHighlights(
   rebuttal: string,
-  practiceLanguage: PracticeLanguage
-): NonNullable<ReturnType<typeof normalizeStructuredRebuttalResponse>["highlights"]> {
+  practiceLanguage: PracticeLanguage,
+): NonNullable<
+  ReturnType<typeof normalizeStructuredRebuttalResponse>["highlights"]
+> {
   const sentences = Array.from(
-    rebuttal.matchAll(/[^.!?。！？\n]+[.!?。！？]?/g)
+    rebuttal.matchAll(/[^.!?。！？\n]+[.!?。！？]?/g),
   )
     .map((match) => match[0].replace(/\s+/g, " ").trim())
     .filter((sentence) => sentence.length >= 42 && sentence.length <= 260);
   const typeForSentence = (sentence: string, index: number) => {
-    if (/(bằng chứng|ví dụ|số liệu|nghiên cứu|evidence|example|\d|%)/i.test(sentence)) {
+    if (
+      /(bằng chứng|ví dụ|số liệu|nghiên cứu|evidence|example|\d|%)/i.test(
+        sentence,
+      )
+    ) {
       return "evidence" as const;
     }
-    if (/(tác động|hệ quả|dẫn đến|ảnh hưởng|impact|harm|benefit)/i.test(sentence)) {
+    if (
+      /(tác động|hệ quả|dẫn đến|ảnh hưởng|impact|harm|benefit)/i.test(sentence)
+    ) {
       return "impact" as const;
     }
-    if (/(giả định|tiền đề|assumption|ngộ nhận|không thể mặc định)/i.test(sentence)) {
+    if (
+      /(giả định|tiền đề|assumption|ngộ nhận|không thể mặc định)/i.test(
+        sentence,
+      )
+    ) {
       return "assumption" as const;
     }
     return index % 3 === 1 ? ("impact" as const) : ("claim" as const);
@@ -432,7 +483,10 @@ function buildDeterministicRebuttalHighlights(
     .map((sentence, index) => {
       const quote =
         sentence.length > 150
-          ? sentence.slice(0, 150).replace(/\s+\S*$/, "").trim()
+          ? sentence
+              .slice(0, 150)
+              .replace(/\s+\S*$/, "")
+              .trim()
           : sentence;
       const type = typeForSentence(sentence, index);
       const notes =
@@ -453,7 +507,7 @@ function buildDeterministicRebuttalHighlights(
         sentence,
         score:
           (/(cơ chế|clash|so sánh|tác động|bằng chứng|vì sao|weigh|impact)/i.test(
-            sentence
+            sentence,
           )
             ? 3
             : 0) + (sentence.length >= 70 ? 1 : 0),
@@ -474,12 +528,31 @@ async function generateDeepSeekStreamingRebuttal(
   maxOutputTokens: number,
   timeoutMs: number,
   userId: string,
-  onDelta: (delta: string) => void | Promise<void>
+  onDelta: (delta: string) => void | Promise<void>,
 ): Promise<RebuttalGeneration & { firstTokenLatencyMs?: number | null }> {
   const result = await generateStructured({
-    task: "rebuttal", prompt: "", messages, schema: RebuttalModelSchema,
-    context: { task: "rebuttal", sourceRoute: "/api/rebuttal/stream", outputType: "rebuttal", userId, deadlineAt: Date.now() + timeoutMs, metadata: { maxOutputTokens, timeoutMs, streamMode: "sse" } },
-    policy: { candidates: [{ provider: "deepseek", model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash" }], maxOutputTokens, temperature: 0.7 },
+    task: "rebuttal",
+    prompt: "",
+    messages,
+    schema: RebuttalModelSchema,
+    context: {
+      task: "rebuttal",
+      sourceRoute: "/api/rebuttal/stream",
+      outputType: "rebuttal",
+      userId,
+      deadlineAt: Date.now() + timeoutMs,
+      metadata: { maxOutputTokens, timeoutMs, streamMode: "sse" },
+    },
+    policy: {
+      candidates: [
+        {
+          provider: "deepseek",
+          model: process.env.DEEPSEEK_MODEL || "deepseek-v4-flash",
+        },
+      ],
+      maxOutputTokens,
+      temperature: 0.7,
+    },
   });
   await onDelta(result.text);
 
@@ -520,7 +593,7 @@ export async function POST(req: NextRequest) {
           {
             status: 429,
             headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-          }
+          },
         );
       }
     }
@@ -534,7 +607,7 @@ export async function POST(req: NextRequest) {
     if (!hasConfiguredProvider) {
       return NextResponse.json(
         { error: "API key not configured." },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -561,12 +634,13 @@ export async function POST(req: NextRequest) {
     if (!topic || !userTranscript || !roundLabel) {
       return NextResponse.json(
         { error: "Missing required fields." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const memoryAiSide =
-      debateMemory?.aiSide ?? (side === "proposition" ? "opposition" : "proposition");
+      debateMemory?.aiSide ??
+      (side === "proposition" ? "opposition" : "proposition");
     const aiSide =
       memoryAiSide === "proposition"
         ? "Proposition (FOR)"
@@ -586,7 +660,6 @@ export async function POST(req: NextRequest) {
     const debateFormat = modeFromRoundLabel(roundLabel);
     const requestStartedAt = Date.now();
     recordGenerationError = async (error: unknown) => {
-      if (auth.authSource === "dev-bypass") return;
       const message = error instanceof Error ? error.message : String(error);
       await recordAiQualityRun(tryCreateAdminClient() ?? supabase, {
         userId: authUser.id,
@@ -628,7 +701,7 @@ export async function POST(req: NextRequest) {
       : "";
     const debateMemoryContext = formatDebateMemoryForPrompt(
       debateMemory,
-      motionBrief
+      motionBrief,
     );
     const responseLanguageInstruction =
       practiceLanguage === "vi"
@@ -665,14 +738,14 @@ export async function POST(req: NextRequest) {
         side,
         query: userTranscript,
         roundsText: previousRounds?.map((round) => round.text),
-        userId: auth.authSource === "dev-bypass" ? null : authUser.id,
+        userId: authUser.id,
         sourceRoute: "/api/rebuttal",
         supabase: adminClient ?? undefined,
       }),
       useTruongTeenPrompt
         ? getTruongTeenOpponentCasePlan({
             supabase: adminClient,
-            userId: auth.authSource === "dev-bypass" ? null : authUser.id,
+            userId: authUser.id,
             topic,
             aiSide: memoryAiSide,
             studentSide: side,
@@ -689,12 +762,15 @@ export async function POST(req: NextRequest) {
     corpusRagMetadata = createDebateCorpusRetrievalMetadata(corpusRetrieval);
     opponentCasePlanMetadata =
       createTruongTeenOpponentCasePlanMetadata(opponentCasePlan);
-    const casePlanPromptContext =
-      formatTruongTeenOpponentCasePlanPromptBlock(opponentCasePlan, debateFormat);
+    const casePlanPromptContext = formatTruongTeenOpponentCasePlanPromptBlock(
+      opponentCasePlan,
+      debateFormat,
+    );
 
     let contextSection = "";
     if (previousRounds && previousRounds.length > 0) {
-      contextSection = "\n## Previous Rounds\n" +
+      contextSection =
+        "\n## Previous Rounds\n" +
         previousRounds
           .map((r) => `### ${r.label} (${r.speaker})\n${r.text}`)
           .join("\n\n");
@@ -823,8 +899,9 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
       evidenceHintContext,
       responseMode: "text",
     });
-    const deepSeekStreamPromptPrefixHash =
-      getDeepSeekRebuttalPromptPrefixHash(deepSeekStreamMessages);
+    const deepSeekStreamPromptPrefixHash = getDeepSeekRebuttalPromptPrefixHash(
+      deepSeekStreamMessages,
+    );
     const rebuttalRequestHash = hashRebuttalRequest({
       topic,
       side,
@@ -850,19 +927,16 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
         ? TRUONG_TEEN_PROMPT_VERSION
         : null,
     });
-    const cachedRebuttal =
-      auth.authSource === "dev-bypass"
-        ? null
-        : await findCachedRebuttalResponse({
-            supabase: adminClient,
-            userId: authUser.id,
-            requestHash: rebuttalRequestHash,
-          });
+    const cachedRebuttal = await findCachedRebuttalResponse({
+      supabase: adminClient,
+      userId: authUser.id,
+      requestHash: rebuttalRequestHash,
+    });
     if (cachedRebuttal) {
       await linkDebateCorpusRetrievalLogToAiRun(
         corpusRetrieval.logId,
         cachedRebuttal.aiRunId,
-        adminClient ?? undefined
+        adminClient ?? undefined,
       );
       if (wantsStream) {
         const encoder = new TextEncoder();
@@ -871,8 +945,8 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
             const send = (event: string, data: unknown) => {
               controller.enqueue(
                 encoder.encode(
-                  `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
-                )
+                  `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
+                ),
               );
             };
             send("meta", {
@@ -922,8 +996,8 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
           const send = (event: string, data: unknown) => {
             controller.enqueue(
               encoder.encode(
-                `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`
-              )
+                `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`,
+              ),
             );
           };
           try {
@@ -941,14 +1015,14 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
               (delta) => {
                 streamedText += delta;
                 send("delta", { text: delta });
-              }
+              },
             );
             let structuredResponse = normalizeStructuredRebuttalResponse(
               generation.text,
               buildDeterministicRebuttalHighlights(
                 generation.text,
-                practiceLanguage
-              )
+                practiceLanguage,
+              ),
             );
             let truongTeenLengthRetryUsed = false;
             if (
@@ -959,16 +1033,20 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
                 rebuttal: structuredResponse.rebuttal,
               })
             ) {
-              const retryInstruction = buildTruongTeenLengthRetryInstruction(wordTarget);
+              const retryInstruction =
+                buildTruongTeenLengthRetryInstruction(wordTarget);
               const retryGeneration = await generateDeepSeekRebuttal(
                 [
                   ...deepSeekMessages,
-                  { role: "assistant", content: JSON.stringify(structuredResponse) },
+                  {
+                    role: "assistant",
+                    content: JSON.stringify(structuredResponse),
+                  },
                   { role: "user", content: retryInstruction },
                 ],
                 maxOutputTokens,
                 timeoutMs,
-                authUser.id
+                authUser.id,
               );
               generation = {
                 ...retryGeneration,
@@ -979,18 +1057,18 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
                 firstTokenLatencyMs: generation.firstTokenLatencyMs,
               };
               structuredResponse = normalizeStructuredRebuttalResponse(
-                generation.text
+                generation.text,
               );
               truongTeenLengthRetryUsed = true;
             }
             const opponentOffenseGuardrail = useTruongTeenPrompt
-                ? ensureTruongTeenStandaloneOffense({
-                    text: structuredResponse.rebuttal,
-                    mode: debateFormat,
-                    casePlan: opponentCasePlan,
-                    sourceText: opponentQualitySourceText,
-                  })
-                : null;
+              ? ensureTruongTeenStandaloneOffense({
+                  text: structuredResponse.rebuttal,
+                  mode: debateFormat,
+                  casePlan: opponentCasePlan,
+                  sourceText: opponentQualitySourceText,
+                })
+              : null;
             if (opponentOffenseGuardrail) {
               if (opponentOffenseGuardrail.insertedParagraph) {
                 send("delta", {
@@ -1007,78 +1085,79 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
                 analyzeTruongTeenOpponentOutput(
                   structuredResponse.rebuttal,
                   debateFormat,
-                  { sourceText: opponentQualitySourceText }
+                  { sourceText: opponentQualitySourceText },
                 ))
               : null;
 
-            const aiQualityRunId =
-              auth.authSource === "dev-bypass"
-                ? null
-                : await recordAiQualityRun(tryCreateAdminClient() ?? supabase, {
-                    userId: authUser.id,
-                    outputType: "rebuttal",
-                    sourceRoute: "/api/rebuttal/stream",
-                    provider: getProviderLabel(generation.provider),
-                    requestedProvider,
-                    model:
-                      generation.modelName ||
-                      getProviderModelName(generation.provider),
-                    practiceTrack: track,
-                    practiceLanguage,
-                    difficulty,
-                    debateFormat,
-                    side,
-                    aiSide: memoryAiSide,
-                    topicTitle: topic,
-                    latencyMs: generation.latency,
-                    usage: {
-                      inputTokens: generation.usage?.inputTokens,
-                      outputTokens: generation.usage?.outputTokens,
-                      cacheHitTokens: generation.usage?.cacheHitTokens,
-                      cacheMissTokens: generation.usage?.cacheMissTokens,
-                      reasoningTokens: generation.usage?.reasoningTokens,
-                    },
-                    providerRequestIds: [
-                      ...(opponentCasePlan?.providerRequestIds ?? []),
-                      ...(generation.providerRequestIds ?? []),
-                    ],
-                    fallbackUsed: generation.fallbackUsed,
-                    outputText: structuredResponse.rebuttal,
-                    inputPreview: userTranscript,
-                    metadata: {
-                      roundLabel,
-                      currentRoundNumber,
-                      speechTimeSeconds,
-                      highlightCount: structuredResponse.highlights.length,
-                      wordTarget,
-                      truongTeenLengthRetryUsed,
-                      deepSeekPromptPrefixHash: deepSeekStreamPromptPrefixHash,
-                      rebuttalRequestHash,
-                      rebuttalResponse: structuredResponse,
-                      rebuttalStreamMode: "sse",
-                      firstTokenLatencyMs: generation.firstTokenLatencyMs ?? null,
-                      streamedCharacterCount: streamedText.length,
-                      opponentQualityMetrics,
-                      opponentStandaloneOffenseGuardrailInserted:
-                        opponentOffenseGuardrail?.inserted ?? false,
-                      ...opponentCasePlanMetadata,
-                      ...corpusRagMetadata,
-                      truongTeenPromptVersion: useTruongTeenPrompt
-                        ? TRUONG_TEEN_PROMPT_VERSION
-                        : undefined,
-                    },
-                  });
+            const aiQualityRunId = await recordAiQualityRun(
+              tryCreateAdminClient() ?? supabase,
+              {
+                userId: authUser.id,
+                outputType: "rebuttal",
+                sourceRoute: "/api/rebuttal/stream",
+                provider: getProviderLabel(generation.provider),
+                requestedProvider,
+                model:
+                  generation.modelName ||
+                  getProviderModelName(generation.provider),
+                practiceTrack: track,
+                practiceLanguage,
+                difficulty,
+                debateFormat,
+                side,
+                aiSide: memoryAiSide,
+                topicTitle: topic,
+                latencyMs: generation.latency,
+                usage: {
+                  inputTokens: generation.usage?.inputTokens,
+                  outputTokens: generation.usage?.outputTokens,
+                  cacheHitTokens: generation.usage?.cacheHitTokens,
+                  cacheMissTokens: generation.usage?.cacheMissTokens,
+                  reasoningTokens: generation.usage?.reasoningTokens,
+                },
+                providerRequestIds: [
+                  ...(opponentCasePlan?.providerRequestIds ?? []),
+                  ...(generation.providerRequestIds ?? []),
+                ],
+                fallbackUsed: generation.fallbackUsed,
+                outputText: structuredResponse.rebuttal,
+                inputPreview: userTranscript,
+                metadata: {
+                  roundLabel,
+                  currentRoundNumber,
+                  speechTimeSeconds,
+                  highlightCount: structuredResponse.highlights.length,
+                  wordTarget,
+                  truongTeenLengthRetryUsed,
+                  deepSeekPromptPrefixHash: deepSeekStreamPromptPrefixHash,
+                  rebuttalRequestHash,
+                  rebuttalResponse: structuredResponse,
+                  rebuttalStreamMode: "sse",
+                  firstTokenLatencyMs: generation.firstTokenLatencyMs ?? null,
+                  streamedCharacterCount: streamedText.length,
+                  opponentQualityMetrics,
+                  opponentStandaloneOffenseGuardrailInserted:
+                    opponentOffenseGuardrail?.inserted ?? false,
+                  ...opponentCasePlanMetadata,
+                  ...corpusRagMetadata,
+                  truongTeenPromptVersion: useTruongTeenPrompt
+                    ? TRUONG_TEEN_PROMPT_VERSION
+                    : undefined,
+                },
+              },
+            );
             await linkDebateCorpusRetrievalLogToAiRun(
               corpusRetrieval.logId,
               aiQualityRunId,
-              adminClient ?? undefined
+              adminClient ?? undefined,
             );
             send("final", {
               ...structuredResponse,
               _aiRunId: aiQualityRunId,
               _provider: getProviderLabel(generation.provider),
               _model:
-                generation.modelName || getProviderModelName(generation.provider),
+                generation.modelName ||
+                getProviderModelName(generation.provider),
               _latencyMs: generation.latency,
               _firstTokenLatencyMs: generation.firstTokenLatencyMs ?? null,
               _opponentQuality: opponentQualityMetrics,
@@ -1112,27 +1191,33 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
           deepSeekMessages,
           maxOutputTokens,
           timeoutMs,
-          authUser.id
+          authUser.id,
         );
       } catch (error) {
         if (process.env.NODE_ENV === "development") {
           console.warn(
             "DeepSeek rebuttal failed; falling back to Gemini:",
-            error instanceof Error ? error.message : error
+            error instanceof Error ? error.message : error,
           );
         }
         generation = await generateGeminiRebuttal(
           prompt,
           maxOutputTokens,
           timeoutMs,
-          true
+          true,
         );
       }
     } else {
-      generation = await generateGeminiRebuttal(prompt, maxOutputTokens, timeoutMs);
+      generation = await generateGeminiRebuttal(
+        prompt,
+        maxOutputTokens,
+        timeoutMs,
+      );
     }
 
-    let structuredResponse = normalizeStructuredRebuttalResponse(generation.text);
+    let structuredResponse = normalizeStructuredRebuttalResponse(
+      generation.text,
+    );
     let truongTeenLengthRetryUsed = false;
     if (
       shouldRetryTruongTeenLength({
@@ -1142,7 +1227,8 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
         rebuttal: structuredResponse.rebuttal,
       })
     ) {
-      const retryInstruction = buildTruongTeenLengthRetryInstruction(wordTarget);
+      const retryInstruction =
+        buildTruongTeenLengthRetryInstruction(wordTarget);
       try {
         const retryGeneration =
           generation.provider === "deepseek" && process.env.DEEPSEEK_API_KEY
@@ -1154,13 +1240,13 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
                 ],
                 maxOutputTokens,
                 timeoutMs,
-                authUser.id
+                authUser.id,
               )
             : await generateGeminiRebuttal(
                 `${prompt}\n\n${retryInstruction}`,
                 maxOutputTokens,
                 timeoutMs,
-                generation.fallbackUsed
+                generation.fallbackUsed,
               );
         generation = {
           ...retryGeneration,
@@ -1170,13 +1256,15 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
             ...(retryGeneration.providerRequestIds ?? []),
           ],
         };
-        structuredResponse = normalizeStructuredRebuttalResponse(generation.text);
+        structuredResponse = normalizeStructuredRebuttalResponse(
+          generation.text,
+        );
         truongTeenLengthRetryUsed = true;
       } catch (error) {
         if (process.env.NODE_ENV === "development") {
           console.warn(
             "Trường Teen length retry failed; keeping first rebuttal:",
-            error instanceof Error ? error.message : error
+            error instanceof Error ? error.message : error,
           );
         }
       }
@@ -1197,70 +1285,75 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
     }
     const opponentQualityMetrics = useTruongTeenPrompt
       ? (opponentOffenseGuardrail?.metrics ??
-        analyzeTruongTeenOpponentOutput(structuredResponse.rebuttal, debateFormat, {
-          sourceText: opponentQualitySourceText,
-        }))
+        analyzeTruongTeenOpponentOutput(
+          structuredResponse.rebuttal,
+          debateFormat,
+          {
+            sourceText: opponentQualitySourceText,
+          },
+        ))
       : null;
-    const aiQualityRunId =
-      auth.authSource === "dev-bypass"
-        ? null
-        : await recordAiQualityRun(tryCreateAdminClient() ?? supabase, {
-            userId: authUser.id,
-            outputType: "rebuttal",
-            sourceRoute: "/api/rebuttal",
-            provider: getProviderLabel(generation.provider),
-            requestedProvider,
-            model: generation.modelName || getProviderModelName(generation.provider),
-            practiceTrack: track,
-            practiceLanguage,
-            difficulty,
-            debateFormat,
-            side,
-            aiSide: memoryAiSide,
-            topicTitle: topic,
-            latencyMs: generation.latency,
-            usage: {
-              inputTokens: generation.usage?.inputTokens,
-              outputTokens: generation.usage?.outputTokens,
-              cacheHitTokens: generation.usage?.cacheHitTokens,
-              cacheMissTokens: generation.usage?.cacheMissTokens,
-              reasoningTokens: generation.usage?.reasoningTokens,
-            },
-            providerRequestIds: [
-              ...(opponentCasePlan?.providerRequestIds ?? []),
-              ...(generation.providerRequestIds ?? []),
-            ],
-            fallbackUsed: generation.fallbackUsed,
-            outputText: structuredResponse.rebuttal,
-            inputPreview: userTranscript,
-            metadata: {
-              roundLabel,
-              currentRoundNumber,
-              speechTimeSeconds,
-              highlightCount: structuredResponse.highlights.length,
-              wordTarget,
-              truongTeenLengthRetryUsed,
-              deepSeekPromptPrefixHash:
-                generation.provider === "deepseek"
-                  ? deepSeekPromptPrefixHash
-                  : undefined,
-              rebuttalRequestHash,
-              rebuttalResponse: structuredResponse,
-              rebuttalStreamMode: "json",
-              opponentQualityMetrics,
-              opponentStandaloneOffenseGuardrailInserted:
-                opponentOffenseGuardrail?.inserted ?? false,
-              ...opponentCasePlanMetadata,
-              ...corpusRagMetadata,
-              truongTeenPromptVersion: useTruongTeenPrompt
-                ? TRUONG_TEEN_PROMPT_VERSION
-                : undefined,
-            },
-          });
+    const aiQualityRunId = await recordAiQualityRun(
+      tryCreateAdminClient() ?? supabase,
+      {
+        userId: authUser.id,
+        outputType: "rebuttal",
+        sourceRoute: "/api/rebuttal",
+        provider: getProviderLabel(generation.provider),
+        requestedProvider,
+        model:
+          generation.modelName || getProviderModelName(generation.provider),
+        practiceTrack: track,
+        practiceLanguage,
+        difficulty,
+        debateFormat,
+        side,
+        aiSide: memoryAiSide,
+        topicTitle: topic,
+        latencyMs: generation.latency,
+        usage: {
+          inputTokens: generation.usage?.inputTokens,
+          outputTokens: generation.usage?.outputTokens,
+          cacheHitTokens: generation.usage?.cacheHitTokens,
+          cacheMissTokens: generation.usage?.cacheMissTokens,
+          reasoningTokens: generation.usage?.reasoningTokens,
+        },
+        providerRequestIds: [
+          ...(opponentCasePlan?.providerRequestIds ?? []),
+          ...(generation.providerRequestIds ?? []),
+        ],
+        fallbackUsed: generation.fallbackUsed,
+        outputText: structuredResponse.rebuttal,
+        inputPreview: userTranscript,
+        metadata: {
+          roundLabel,
+          currentRoundNumber,
+          speechTimeSeconds,
+          highlightCount: structuredResponse.highlights.length,
+          wordTarget,
+          truongTeenLengthRetryUsed,
+          deepSeekPromptPrefixHash:
+            generation.provider === "deepseek"
+              ? deepSeekPromptPrefixHash
+              : undefined,
+          rebuttalRequestHash,
+          rebuttalResponse: structuredResponse,
+          rebuttalStreamMode: "json",
+          opponentQualityMetrics,
+          opponentStandaloneOffenseGuardrailInserted:
+            opponentOffenseGuardrail?.inserted ?? false,
+          ...opponentCasePlanMetadata,
+          ...corpusRagMetadata,
+          truongTeenPromptVersion: useTruongTeenPrompt
+            ? TRUONG_TEEN_PROMPT_VERSION
+            : undefined,
+        },
+      },
+    );
     await linkDebateCorpusRetrievalLogToAiRun(
       corpusRetrieval.logId,
       aiQualityRunId,
-      adminClient ?? undefined
+      adminClient ?? undefined,
     );
 
     getPostHogServer().capture({
@@ -1268,7 +1361,8 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
       event: "$ai_generation",
       properties: {
         $ai_provider: getProviderLabel(generation.provider),
-        $ai_model: generation.modelName || getProviderModelName(generation.provider),
+        $ai_model:
+          generation.modelName || getProviderModelName(generation.provider),
         $ai_input_tokens: generation.usage?.inputTokens,
         $ai_output_tokens: generation.usage?.outputTokens,
         $ai_cache_hit_tokens: generation.usage?.cacheHitTokens,
@@ -1295,8 +1389,7 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
           opponentCasePlanMetadata.opponentCasePlanCacheHit,
         opponent_independent_claims:
           opponentQualityMetrics?.standaloneClaimCount,
-        opponent_only_rebuttal_risk:
-          opponentQualityMetrics?.onlyRebuttalRisk,
+        opponent_only_rebuttal_risk: opponentQualityMetrics?.onlyRebuttalRisk,
         truong_teen_prompt_version: useTruongTeenPrompt
           ? TRUONG_TEEN_PROMPT_VERSION
           : undefined,
@@ -1316,26 +1409,27 @@ Highlight 3-5 exact quotes that a student should notice. Use only quote strings 
       return NextResponse.json({ error: err.message }, { status: err.status });
     }
     await recordGenerationError?.(err).catch(() => {});
-    if (process.env.NODE_ENV === 'development') console.error("Rebuttal API error:", err);
+    if (process.env.NODE_ENV === "development")
+      console.error("Rebuttal API error:", err);
 
     if (err instanceof Error) {
       if (err.message === "TIMEOUT") {
         return NextResponse.json(
           { error: "AI response timed out. Please try again." },
-          { status: 504 }
+          { status: 504 },
         );
       }
       if (err.message.includes("429") || err.message.includes("rate")) {
         return NextResponse.json(
           { error: "Rate limit reached. Please wait and try again." },
-          { status: 429 }
+          { status: 429 },
         );
       }
     }
 
     return NextResponse.json(
       { error: "Failed to generate AI rebuttal." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

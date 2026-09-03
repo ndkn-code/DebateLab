@@ -2,7 +2,6 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { tryCreateAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -21,7 +20,7 @@ type SessionLoadResult =
 async function queryOwnedSession(
   supabase: SupabaseClient,
   sessionId: string,
-  userId: string
+  userId: string,
 ) {
   const initialResult = await supabase
     .from("debate_sessions")
@@ -66,14 +65,13 @@ async function queryOwnedSession(
 }
 
 export async function loadOwnedSessionResult(
-  sessionId: string
+  sessionId: string,
 ): Promise<SessionLoadResult> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devUser = user ? null : await getDevAuthBypassUserFromServerContext();
-  const userId = user?.id ?? devUser?.id ?? null;
+  const userId = user?.id ?? null;
 
   if (!userId) {
     return { status: "not-found" };

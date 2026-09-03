@@ -19,14 +19,14 @@ function coachErrorResponse(error: unknown) {
   if (error instanceof MobileCoachApiError) {
     return NextResponse.json(
       { error: error.message, code: error.code },
-      { status: error.status }
+      { status: error.status },
     );
   }
 
   if (error instanceof RequestValidationError) {
     return NextResponse.json(
       { error: error.message, code: "invalid_request" },
-      { status: error.status }
+      { status: error.status },
     );
   }
 
@@ -36,12 +36,12 @@ function coachErrorResponse(error: unknown) {
 
   return NextResponse.json(
     { error: "Unable to send coach message.", code: "coach_send_failed" },
-    { status: 500 }
+    { status: 500 },
   );
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireRequestAuth(request, { allowDevBypass: false });
+  const auth = await requireRequestAuth(request);
   if (!auth.ok) return auth.errorResponse;
 
   const rateLimit = await consumeRateLimit(auth.supabase, {
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       {
         status: 429,
         headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-      }
+      },
     );
   }
 

@@ -1,27 +1,27 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from "next/server";
 import {
   requireRequestAuth,
   shouldConsumeUserRateLimit,
-} from '@/lib/api/request-auth';
+} from "@/lib/api/request-auth";
 import {
   readJsonObject,
   getEnum,
   getString,
   RequestValidationError,
-} from '@/lib/api/request-validation';
-import { consumeRateLimit } from '@/lib/rate-limit';
+} from "@/lib/api/request-validation";
+import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   DEFAULT_VOICE,
   getVoiceById,
   resolveTtsVoiceForRequest,
-} from '@/lib/tts-voices';
+} from "@/lib/tts-voices";
 import {
   recordTtsProviderAttempts,
   synthesizeTtsWithFallback,
   TtsSynthesisFailedError,
   type TtsProviderAttempt,
-} from '@/lib/tts-service';
-import type { PracticeLanguage } from '@/types';
+} from "@/lib/tts-service";
+import type { PracticeLanguage } from "@/types";
 
 function logTtsFailedAttempts(
   attempts: TtsProviderAttempt[],
@@ -31,7 +31,7 @@ function logTtsFailedAttempts(
     selectedVoiceId?: string | null;
     fallbackUsed: boolean;
     textLength: number;
-  }
+  },
 ) {
   for (const [attemptIndex, attempt] of attempts.entries()) {
     if (attempt.status !== "error") continue;
@@ -52,7 +52,7 @@ function logTtsFailedAttempts(
         text_length: context.textLength,
         attempt_index: attemptIndex,
         skipped: attempt.skipped === true,
-      })
+      }),
     );
   }
 }
@@ -70,8 +70,7 @@ export async function POST(req: NextRequest) {
     if (!auth.ok) return auth.errorResponse;
 
     const { supabase, user: authUser } = auth;
-    const telemetryUserId =
-      auth.authSource === "dev-bypass" ? null : authUser.id;
+    const telemetryUserId = authUser.id;
     if (shouldConsumeUserRateLimit(auth)) {
       const rateLimit = await consumeRateLimit(supabase, {
         scope: "tts",
@@ -84,7 +83,7 @@ export async function POST(req: NextRequest) {
           {
             status: 429,
             headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-          }
+          },
         );
       }
     }
@@ -106,9 +105,12 @@ export async function POST(req: NextRequest) {
       ["en", "vi"] as const,
       {
         defaultValue: requestedVoiceRecord?.language ?? "en",
-      }
+      },
     ) as PracticeLanguage;
-    const voiceModel = resolveTtsVoiceForRequest(requestedVoice, requestedLanguage);
+    const voiceModel = resolveTtsVoiceForRequest(
+      requestedVoice,
+      requestedLanguage,
+    );
     const voice = getVoiceById(voiceModel) ?? getVoiceById(DEFAULT_VOICE)!;
     failureContext = {
       language: requestedLanguage,
@@ -145,14 +147,14 @@ export async function POST(req: NextRequest) {
     });
 
     if (telemetryUserId) {
-      void supabase.from('api_usage').insert({
+      void supabase.from("api_usage").insert({
         user_id: telemetryUserId,
         service,
         model: result.voice.id,
         input_tokens: text.length,
-        input_unit: 'characters',
+        input_unit: "characters",
         output_tokens: audioBuffer.byteLength,
-        output_unit: 'bytes',
+        output_unit: "bytes",
         duration_ms: durationMs,
         metadata: {
           provider: result.voice.provider,
@@ -168,13 +170,13 @@ export async function POST(req: NextRequest) {
 
     return new NextResponse(audioBuffer, {
       headers: {
-        'Content-Type': 'audio/mpeg',
-        'Content-Length': audioBuffer.byteLength.toString(),
-        'X-TTS-Duration-Ms': durationMs.toString(),
-        'X-TTS-Synthesis-Ms': durationMs.toString(),
-        'X-TTS-Provider': result.voice.provider,
-        'X-TTS-Voice': result.voice.id,
-        'X-TTS-Fallback-Used': String(result.fallbackUsed),
+        "Content-Type": "audio/mpeg",
+        "Content-Length": audioBuffer.byteLength.toString(),
+        "X-TTS-Duration-Ms": durationMs.toString(),
+        "X-TTS-Synthesis-Ms": durationMs.toString(),
+        "X-TTS-Provider": result.voice.provider,
+        "X-TTS-Voice": result.voice.id,
+        "X-TTS-Fallback-Used": String(result.fallbackUsed),
       },
     });
   } catch (err) {
@@ -208,10 +210,14 @@ export async function POST(req: NextRequest) {
           error:
             "AI voice could not be generated right now. Please try audio again.",
         },
-        { status: 503 }
+        { status: 503 },
       );
     }
-    if (process.env.NODE_ENV === 'development') console.error('TTS route error:', err);
-    return NextResponse.json({ error: 'Something went wrong. Please try again.' }, { status: 500 });
+    if (process.env.NODE_ENV === "development")
+      console.error("TTS route error:", err);
+    return NextResponse.json(
+      { error: "Something went wrong. Please try again." },
+      { status: 500 },
+    );
   }
 }

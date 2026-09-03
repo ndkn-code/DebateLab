@@ -8,9 +8,11 @@ import {
   SKILL_UI_META,
 } from "@/lib/analytics/skill-metadata";
 import {
+  parseRichNotes,
   richNotesToPlainText,
   toRichNotesHtml,
 } from "@/lib/practice-notes";
+import type { RichNoteNode } from "@/lib/practice-notes";
 import type {
   DebateSession,
   DebateScore,
@@ -49,7 +51,7 @@ export interface SessionResultViewModel {
   modelAnswer: string | null;
   modelAnswerKind: "stronger-rebuild" | "model-answer" | "summary";
   prepNotes: {
-    html: string;
+    nodes: RichNoteNode[];
     plainText: string;
     wordCount: number;
   } | null;
@@ -78,7 +80,7 @@ export function getFullRoundWinnerResult(
   session: DebateSession,
   practiceTrack: PracticeTrack = session.feedback?.practiceTrack ??
     session.practiceTrack ??
-    "debate"
+    "debate",
 ): FullRoundWinnerResult | null {
   const verdict = session.feedback?.debateVerdict;
   if (practiceTrack !== "debate" || session.mode !== "full" || !verdict) {
@@ -109,7 +111,8 @@ function pickModelAnswer(feedback: DebateScore) {
     };
   }
 
-  const betterVersion = feedback.argumentBreakdowns?.find(Boolean)?.betterVersion;
+  const betterVersion =
+    feedback.argumentBreakdowns?.find(Boolean)?.betterVersion;
   if (betterVersion) {
     return {
       value: betterVersion,
@@ -146,7 +149,9 @@ function buildMetricList(feedback: DebateScore, practiceTrack: PracticeTrack) {
 
   return orderedKeys
     .map((key) => {
-      const snapshotMetric = snapshot.metrics.find((metric) => metric.key === key);
+      const snapshotMetric = snapshot.metrics.find(
+        (metric) => metric.key === key,
+      );
       if (!snapshotMetric) {
         return null;
       }
@@ -176,7 +181,7 @@ function buildPrepNotesViewModel(prepNotes?: string | null) {
   if (!plainText) return null;
 
   return {
-    html: toRichNotesHtml(prepNotes ?? ""),
+    nodes: parseRichNotes(toRichNotesHtml(prepNotes ?? "")),
     plainText,
     wordCount: countWords(plainText),
   };
@@ -184,7 +189,7 @@ function buildPrepNotesViewModel(prepNotes?: string | null) {
 
 function buildFallbackImprovementPlan(
   feedback: DebateScore,
-  practiceTrack: PracticeTrack
+  practiceTrack: PracticeTrack,
 ): PracticeActionStep[] {
   const existing = feedback.improvementPlan ?? [];
   if (existing.length > 0) return existing.slice(0, 3);
@@ -226,7 +231,7 @@ function buildFallbackImprovementPlan(
 function buildShadowExamples(
   feedback: DebateScore,
   modelAnswer: string | null,
-  practiceTrack: PracticeTrack
+  practiceTrack: PracticeTrack,
 ) {
   const existing = feedback.shadowExamples ?? [];
   if (existing.length > 0) return existing.slice(0, 3);
@@ -254,16 +259,19 @@ function buildShadowExamples(
 }
 
 export function buildSessionResultViewModel(
-  session: DebateSession
+  session: DebateSession,
 ): SessionResultViewModel | null {
   if (!session.feedback) {
     return null;
   }
 
   const feedback = session.feedback;
-  const practiceTrack = feedback.practiceTrack ?? session.practiceTrack ?? "debate";
+  const practiceTrack =
+    feedback.practiceTrack ?? session.practiceTrack ?? "debate";
   const metrics = buildMetricList(feedback, practiceTrack);
-  const sortedMetrics = [...metrics].sort((left, right) => left.score - right.score);
+  const sortedMetrics = [...metrics].sort(
+    (left, right) => left.score - right.score,
+  );
   const strengths = toStringArray(feedback.strengths);
   const improvements =
     feedback.missingLayers && feedback.missingLayers.length > 0
@@ -300,7 +308,7 @@ export function buildSessionResultViewModel(
     shadowExamples: buildShadowExamples(
       feedback,
       modelAnswer.value,
-      practiceTrack
+      practiceTrack,
     ),
     transcript: session.transcript,
     rounds: session.rounds ?? [],

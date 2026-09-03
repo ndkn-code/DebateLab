@@ -13,9 +13,7 @@ import {
 } from "@/lib/api/ielts/learner-repository";
 import { loadAttemptResults } from "@/lib/api/ielts/results-repository";
 import { loadActiveIeltsStudyPlan } from "@/lib/api/ielts/study-plan-repository";
-import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { createTypedServerClient } from "@/lib/supabase/server";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import {
   DEFAULT_IELTS_TARGET_BAND,
   IELTS_SKILLS,
@@ -231,11 +229,10 @@ async function loadProfileView(): Promise<IeltsProfileView> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devUser = user ? null : await getDevAuthBypassUserFromServerContext();
-  const userId = user?.id ?? devUser?.id;
-  if (!userId) redirect("/auth/login?next=/ielts/profile");
+  if (!user) redirect("/auth/login?next=/ielts/profile");
+  const userId = user.id;
 
-  const client = devUser ? createTypedAdminClient() : supabase;
+  const client = supabase;
   const [home, plan] = await Promise.all([
     getIeltsHomeData(userId, client),
     loadActiveIeltsStudyPlan(userId, client),
@@ -243,24 +240,22 @@ async function loadProfileView(): Promise<IeltsProfileView> {
   const completeAttempts = home.recentAttempts.filter(
     (attempt) => attempt.status !== "in_progress",
   );
-  const detailResults = user
-    ? await Promise.all(
-        completeAttempts.map(async (attempt) => {
-          try {
-            return await loadAttemptResults(attempt.attemptId);
-          } catch (error) {
-            // Performance remains usable when optional result-detail fields have
-            // not reached an environment yet. The repository still reports the
-            // contract error to server logs; no database detail reaches the UI.
-            console.warn("IELTS profile result details unavailable", {
-              attemptId: attempt.attemptId,
-              error,
-            });
-            return null;
-          }
-        }),
-      )
-    : [];
+  const detailResults = await Promise.all(
+    completeAttempts.map(async (attempt) => {
+      try {
+        return await loadAttemptResults(attempt.attemptId);
+      } catch (error) {
+        // Performance remains usable when optional result-detail fields have
+        // not reached an environment yet. The repository still reports the
+        // contract error to server logs; no database detail reaches the UI.
+        console.warn("IELTS profile result details unavailable", {
+          attemptId: attempt.attemptId,
+          error,
+        });
+        return null;
+      }
+    }),
+  );
   const details = detailResults.filter(
     (detail): detail is AttemptResultsInput => detail !== null,
   );

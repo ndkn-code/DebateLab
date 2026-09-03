@@ -1,6 +1,5 @@
 import "server-only";
 
-import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import {
@@ -14,9 +13,11 @@ const MAINTENANCE_COLUMNS =
   "mode, banner_message_en, banner_message_vi, full_message_en, full_message_vi, expected_done_at, updated_at";
 
 async function verifyAdmin(): Promise<string | null> {
-  if (isDevAdminBypassEnabled()) return null;
   const supabase = await createTypedServerClient();
-  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
   if (userError || !user) throw new Error("maintenance: unauthorized");
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
@@ -37,12 +38,16 @@ export async function getMaintenanceState(): Promise<MaintenanceState> {
     .eq("id", MAINTENANCE_ID)
     .single();
   if (error || !data) {
-    throw new Error(`maintenance(read): ${error?.message ?? "missing singleton"}`);
+    throw new Error(
+      `maintenance(read): ${error?.message ?? "missing singleton"}`,
+    );
   }
   return mapMaintenanceRow(data);
 }
 
-export async function updateMaintenanceState(input: unknown): Promise<MaintenanceState> {
+export async function updateMaintenanceState(
+  input: unknown,
+): Promise<MaintenanceState> {
   const parsed = maintenanceUpdateSchema.parse(input);
   const updatedBy = await verifyAdmin();
   const admin = createTypedAdminClient();
@@ -62,7 +67,9 @@ export async function updateMaintenanceState(input: unknown): Promise<Maintenanc
     .select(MAINTENANCE_COLUMNS)
     .single();
   if (error || !data) {
-    throw new Error(`maintenance(update): ${error?.message ?? "missing singleton"}`);
+    throw new Error(
+      `maintenance(update): ${error?.message ?? "missing singleton"}`,
+    );
   }
   return mapMaintenanceRow(data);
 }

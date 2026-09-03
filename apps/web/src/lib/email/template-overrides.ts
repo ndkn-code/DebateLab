@@ -32,7 +32,8 @@ export const EMAIL_TEMPLATE_COPY_FIELD_CONFIG = [
   { key: "stat3_label", label: "Stat 3 label", maxLength: 32, required: false },
 ] as const;
 
-export type EmailTemplateCopyField = (typeof EMAIL_TEMPLATE_COPY_FIELD_CONFIG)[number]["key"];
+export type EmailTemplateCopyField =
+  (typeof EMAIL_TEMPLATE_COPY_FIELD_CONFIG)[number]["key"];
 export type EmailTemplateCopy = Partial<Record<EmailTemplateCopyField, string>>;
 
 export interface EmailTemplateOverrideRow {
@@ -90,11 +91,11 @@ export interface EmailTemplateOverrideMeta {
 }
 
 export type EmailTemplateOverrideMap = Partial<
-  Record<EmailLocale, Partial<Record<EmailTemplateKey, EmailTemplateOverrideRow>>>
+  Record<
+    EmailLocale,
+    Partial<Record<EmailTemplateKey, EmailTemplateOverrideRow>>
+  >
 >;
-
-const devOverrideStore = new Map<string, EmailTemplateOverrideRow>();
-const devAuditStore: EmailTemplateAuditRow[] = [];
 
 export const EMAIL_PREVIEW_SCENARIOS = [
   { key: "default", label: "User mới - Default" },
@@ -109,7 +110,10 @@ export const EMAIL_PREVIEW_SCENARIOS = [
   { key: "club_invitation", label: "Club invitation" },
 ] as const;
 
-const FIELD_TO_VARIABLE: Record<EmailTemplateCopyField, keyof EmailTemplateVariables | "subject"> = {
+const FIELD_TO_VARIABLE: Record<
+  EmailTemplateCopyField,
+  keyof EmailTemplateVariables | "subject"
+> = {
   subject: "subject",
   preheader: "preheader",
   headline: "headline",
@@ -122,7 +126,10 @@ const FIELD_TO_VARIABLE: Record<EmailTemplateCopyField, keyof EmailTemplateVaria
 };
 
 function isTemplateKey(value: unknown): value is EmailTemplateKey {
-  return typeof value === "string" && EMAIL_TEMPLATE_KEYS.includes(value as EmailTemplateKey);
+  return (
+    typeof value === "string" &&
+    EMAIL_TEMPLATE_KEYS.includes(value as EmailTemplateKey)
+  );
 }
 
 export function resolveEmailTemplateKey(value: unknown): EmailTemplateKey {
@@ -135,12 +142,15 @@ export function resolveEmailLocale(value: unknown): EmailLocale {
 }
 
 function sanitizeCopyValue(value: string) {
-  return value.replace(/\r\n/g, "\n").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").trim();
+  return value
+    .replace(/\r\n/g, "\n")
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "")
+    .trim();
 }
 
 export function normalizeEmailTemplateCopy(
   input: unknown,
-  options: { requireRequiredFields?: boolean } = {}
+  options: { requireRequiredFields?: boolean } = {},
 ): EmailTemplateCopy {
   const requireRequiredFields = options.requireRequiredFields ?? true;
   const source =
@@ -159,7 +169,9 @@ export function normalizeEmailTemplateCopy(
       continue;
     }
     if (value.length > field.maxLength) {
-      errors.push(`${field.label} must be ${field.maxLength} characters or fewer.`);
+      errors.push(
+        `${field.label} must be ${field.maxLength} characters or fewer.`,
+      );
       continue;
     }
     normalized[field.key] = value;
@@ -173,7 +185,7 @@ export function normalizeEmailTemplateCopy(
 }
 
 export function extractEmailTemplateCopy(
-  variables: EmailTemplateVariables & { subject: string }
+  variables: EmailTemplateVariables & { subject: string },
 ): Required<EmailTemplateCopy> {
   return {
     subject: variables.subject,
@@ -188,10 +200,9 @@ export function extractEmailTemplateCopy(
   };
 }
 
-export function applyEmailTemplateCopyOverrides<T extends EmailTemplateVariables & { subject: string }>(
-  variables: T,
-  fields?: EmailTemplateCopy | null
-): T {
+export function applyEmailTemplateCopyOverrides<
+  T extends EmailTemplateVariables & { subject: string },
+>(variables: T, fields?: EmailTemplateCopy | null): T {
   if (!fields) return variables;
   const output = { ...variables } as T;
 
@@ -208,13 +219,15 @@ export function applyEmailTemplateCopyOverrides<T extends EmailTemplateVariables
 export function getOverrideForTemplate(
   overrides: EmailTemplateOverrideMap | undefined,
   locale: EmailLocale,
-  templateKey: EmailTemplateKey
+  templateKey: EmailTemplateKey,
 ) {
   return overrides?.[locale]?.[templateKey] ?? null;
 }
 
 function makeDots(today: string, activeOffsets: number[]) {
-  const activeDates = new Set(activeOffsets.map((offset) => addDaysToDateKey(today, offset)));
+  const activeDates = new Set(
+    activeOffsets.map((offset) => addDaysToDateKey(today, offset)),
+  );
   const labels = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"];
 
   return Array.from({ length: 7 }, (_, index): EmailStreakDot => {
@@ -232,7 +245,7 @@ function makeDots(today: string, activeOffsets: number[]) {
 export function buildEmailPreviewContext(
   templateKey: EmailTemplateKey,
   locale: EmailLocale,
-  scenarioKey = "default"
+  scenarioKey = "default",
 ): TemplateContext {
   const base: TemplateContext = {
     locale,
@@ -246,9 +259,13 @@ export function buildEmailPreviewContext(
     level: 7,
     totalSessions: 28,
     latestCourseTitle:
-      locale === "en" ? "Team debate rebuttal basics" : "Phản biện như đội tuyển debate",
+      locale === "en"
+        ? "Team debate rebuttal basics"
+        : "Phản biện như đội tuyển debate",
     latestAchievementLabel:
-      locale === "en" ? "7-day streak is almost in reach." : "Streak 7 ngày sắp vào tầm ngắm.",
+      locale === "en"
+        ? "7-day streak is almost in reach."
+        : "Streak 7 ngày sắp vào tầm ngắm.",
     ctaUrl: "https://thinkfy.net/join/club/demo-token",
     clubName: locale === "en" ? "Hanoi Debate Club" : "Hanoi Debate Club",
     clubRole: locale === "en" ? "club admin" : "quản trị viên CLB",
@@ -257,27 +274,54 @@ export function buildEmailPreviewContext(
   };
 
   if (scenarioKey === "onboarding") {
-    return { ...base, sessionsLast7Days: 0, minutesLast7Days: 0, xpLast7Days: 0 };
+    return {
+      ...base,
+      sessionsLast7Days: 0,
+      minutesLast7Days: 0,
+      xpLast7Days: 0,
+    };
   }
 
   if (scenarioKey === "active_streak") {
-    return { ...base, streakCurrent: 6, streakDots: makeDots("2026-05-16", [-5, -4, -3, -2, -1, 0]) };
+    return {
+      ...base,
+      streakCurrent: 6,
+      streakDots: makeDots("2026-05-16", [-5, -4, -3, -2, -1, 0]),
+    };
   }
 
   if (scenarioKey === "streak_at_risk") {
-    return { ...base, streakCurrent: 6, streakDots: makeDots("2026-05-16", [-6, -5, -4, -3, -2, -1]) };
+    return {
+      ...base,
+      streakCurrent: 6,
+      streakDots: makeDots("2026-05-16", [-6, -5, -4, -3, -2, -1]),
+    };
   }
 
   if (scenarioKey === "zero_streak") {
-    return { ...base, streakCurrent: 0, streakDots: makeDots("2026-05-16", []) };
+    return {
+      ...base,
+      streakCurrent: 0,
+      streakDots: makeDots("2026-05-16", []),
+    };
   }
 
   if (scenarioKey === "streak_mismatch") {
-    return { ...base, streakCurrent: 3, streakDots: makeDots("2026-05-16", [-3, -2, -1]) };
+    return {
+      ...base,
+      streakCurrent: 3,
+      streakDots: makeDots("2026-05-16", [-3, -2, -1]),
+    };
   }
 
   if (scenarioKey === "weekly_progress") {
-    return { ...base, sessionsLast7Days: 7, minutesLast7Days: 148, xpLast7Days: 1540, bestScoreLast7Days: 93 };
+    return {
+      ...base,
+      sessionsLast7Days: 7,
+      minutesLast7Days: 148,
+      xpLast7Days: 1540,
+      bestScoreLast7Days: 93,
+    };
   }
 
   if (scenarioKey === "achievement") {
@@ -285,14 +329,18 @@ export function buildEmailPreviewContext(
       ...base,
       level: 8,
       totalSessions: 42,
-      latestAchievementLabel: locale === "en" ? "Level 8 reached" : "Đạt level 8",
+      latestAchievementLabel:
+        locale === "en" ? "Level 8 reached" : "Đạt level 8",
     };
   }
 
   if (scenarioKey === "course_nudge") {
     return {
       ...base,
-      latestCourseTitle: locale === "en" ? "Cross-examination fundamentals" : "Nền tảng cross-examination",
+      latestCourseTitle:
+        locale === "en"
+          ? "Cross-examination fundamentals"
+          : "Nền tảng cross-examination",
     };
   }
 
@@ -306,7 +354,12 @@ export function buildEmailPreviewContext(
   }
 
   if (templateKey === "welcome" || templateKey === "onboarding_nudge") {
-    return { ...base, sessionsLast7Days: 0, minutesLast7Days: 0, xpLast7Days: 0 };
+    return {
+      ...base,
+      sessionsLast7Days: 0,
+      minutesLast7Days: 0,
+      xpLast7Days: 0,
+    };
   }
 
   return base;
@@ -319,7 +372,11 @@ export function buildDefaultTemplateVariables(input: {
 }) {
   return buildTemplateVariables(
     input.templateKey,
-    buildEmailPreviewContext(input.templateKey, input.locale, input.scenarioKey)
+    buildEmailPreviewContext(
+      input.templateKey,
+      input.locale,
+      input.scenarioKey,
+    ),
   );
 }
 
@@ -333,9 +390,9 @@ export async function renderTemplatePreview(input: {
   const variables = applyEmailTemplateCopyOverrides(
     applyEmailTemplateCopyOverrides(
       buildDefaultTemplateVariables(input),
-      input.activeOverride
+      input.activeOverride,
     ),
-    input.draftFields
+    input.draftFields,
   );
   const rendered = await renderThinkfyEmail({
     subject: variables.subject,
@@ -350,15 +407,20 @@ export async function renderTemplatePreview(input: {
 
 function isOverrideRow(row: unknown): row is EmailTemplateOverrideRow {
   const item = row as Partial<EmailTemplateOverrideRow>;
-  return isTemplateKey(item.template_key) && (item.locale === "vi" || item.locale === "en");
+  return (
+    isTemplateKey(item.template_key) &&
+    (item.locale === "vi" || item.locale === "en")
+  );
 }
 
 export async function loadActiveEmailTemplateOverrides(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
 ): Promise<EmailTemplateOverrideMap> {
   const { data, error } = await supabase
     .from("email_template_overrides")
-    .select("id, template_key, locale, fields, version, is_active, updated_by, created_at, updated_at")
+    .select(
+      "id, template_key, locale, fields, version, is_active, updated_by, created_at, updated_at",
+    )
     .eq("is_active", true);
 
   if (error) {
@@ -369,7 +431,9 @@ export async function loadActiveEmailTemplateOverrides(
   const map: EmailTemplateOverrideMap = { vi: {}, en: {} };
   for (const row of data ?? []) {
     if (!isOverrideRow(row)) continue;
-    const fields = normalizeEmailTemplateCopy(row.fields, { requireRequiredFields: false });
+    const fields = normalizeEmailTemplateCopy(row.fields, {
+      requireRequiredFields: false,
+    });
     map[row.locale] = map[row.locale] ?? {};
     map[row.locale]![row.template_key] = { ...row, fields };
   }
@@ -378,11 +442,13 @@ export async function loadActiveEmailTemplateOverrides(
 }
 
 async function loadTemplateAudits(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
 ): Promise<EmailTemplateAuditRow[]> {
   const { data, error } = await supabase
     .from("email_template_override_events")
-    .select("id, template_key, locale, action, fields, previous_fields, version, actor_id, created_at")
+    .select(
+      "id, template_key, locale, action, fields, previous_fields, version, actor_id, created_at",
+    )
     .order("created_at", { ascending: false })
     .limit(80);
 
@@ -394,22 +460,32 @@ async function loadTemplateAudits(
   return (data ?? [])
     .filter((row): row is EmailTemplateAuditRow => {
       const item = row as Partial<EmailTemplateAuditRow>;
-      return isTemplateKey(item.template_key) && (item.locale === "vi" || item.locale === "en");
+      return (
+        isTemplateKey(item.template_key) &&
+        (item.locale === "vi" || item.locale === "en")
+      );
     })
     .map((row) => ({
       ...row,
-      fields: normalizeEmailTemplateCopy(row.fields, { requireRequiredFields: false }),
+      fields: normalizeEmailTemplateCopy(row.fields, {
+        requireRequiredFields: false,
+      }),
       previous_fields: row.previous_fields
-        ? normalizeEmailTemplateCopy(row.previous_fields, { requireRequiredFields: false })
+        ? normalizeEmailTemplateCopy(row.previous_fields, {
+            requireRequiredFields: false,
+          })
         : null,
     }));
 }
 
 export async function buildEmailTemplateAdminPayload(
-  supabase?: SupabaseClient | null
+  supabase?: SupabaseClient | null,
 ): Promise<EmailTemplateAdminPayload> {
   const [overrides, audits] = supabase
-    ? await Promise.all([loadActiveEmailTemplateOverrides(supabase), loadTemplateAudits(supabase)])
+    ? await Promise.all([
+        loadActiveEmailTemplateOverrides(supabase),
+        loadTemplateAudits(supabase),
+      ])
     : [{}, [] as EmailTemplateAuditRow[]];
 
   return buildEmailTemplateAdminPayloadFromState(overrides, audits);
@@ -417,7 +493,7 @@ export async function buildEmailTemplateAdminPayload(
 
 export function buildEmailTemplateAdminPayloadFromState(
   overrides: EmailTemplateOverrideMap,
-  audits: EmailTemplateAuditRow[]
+  audits: EmailTemplateAuditRow[],
 ): EmailTemplateAdminPayload {
   return {
     fields: EMAIL_TEMPLATE_COPY_FIELD_CONFIG,
@@ -426,12 +502,16 @@ export function buildEmailTemplateAdminPayloadFromState(
       const locales = (["vi", "en"] as EmailLocale[]).reduce(
         (accumulator, locale) => {
           const defaultCopy = extractEmailTemplateCopy(
-            buildDefaultTemplateVariables({ templateKey, locale })
+            buildDefaultTemplateVariables({ templateKey, locale }),
           );
-          const override = getOverrideForTemplate(overrides, locale, templateKey);
+          const override = getOverrideForTemplate(
+            overrides,
+            locale,
+            templateKey,
+          );
           const effectiveCopy = normalizeEmailTemplateCopy(
             { ...defaultCopy, ...(override?.fields ?? {}) },
-            { requireRequiredFields: true }
+            { requireRequiredFields: true },
           ) as Required<EmailTemplateCopy>;
           accumulator[locale] = {
             defaultCopy,
@@ -441,11 +521,16 @@ export function buildEmailTemplateAdminPayloadFromState(
             version: override?.version ?? null,
             updatedAt: override?.updated_at ?? null,
             updatedBy: override?.updated_by ?? null,
-            audit: audits.filter((event) => event.template_key === templateKey && event.locale === locale).slice(0, 6),
+            audit: audits
+              .filter(
+                (event) =>
+                  event.template_key === templateKey && event.locale === locale,
+              )
+              .slice(0, 6),
           };
           return accumulator;
         },
-        {} as Record<EmailLocale, EmailTemplateLocaleAdminState>
+        {} as Record<EmailLocale, EmailTemplateLocaleAdminState>,
       );
 
       return {
@@ -456,91 +541,6 @@ export function buildEmailTemplateAdminPayloadFromState(
       };
     }),
   };
-}
-
-export function loadDevEmailTemplateOverrides(): EmailTemplateOverrideMap {
-  const map: EmailTemplateOverrideMap = { vi: {}, en: {} };
-  for (const override of devOverrideStore.values()) {
-    if (!override.is_active) continue;
-    map[override.locale] = map[override.locale] ?? {};
-    map[override.locale]![override.template_key] = override;
-  }
-  return map;
-}
-
-export function buildDevEmailTemplateAdminPayload() {
-  return buildEmailTemplateAdminPayloadFromState(loadDevEmailTemplateOverrides(), devAuditStore);
-}
-
-function devStoreKey(templateKey: EmailTemplateKey, locale: EmailLocale) {
-  return `${templateKey}:${locale}`;
-}
-
-export function saveDevEmailTemplateOverride(input: {
-  templateKey: EmailTemplateKey;
-  locale: EmailLocale;
-  fields: EmailTemplateCopy;
-  actorId: string | null;
-}) {
-  const key = devStoreKey(input.templateKey, input.locale);
-  const existing = devOverrideStore.get(key) ?? null;
-  const upsert = buildTemplateOverrideUpsert({
-    templateKey: input.templateKey,
-    locale: input.locale,
-    fields: input.fields,
-    existing,
-    actorId: input.actorId,
-  });
-  const now = new Date().toISOString();
-  const row: EmailTemplateOverrideRow = {
-    id: existing?.id ?? `dev-${key}`,
-    template_key: input.templateKey,
-    locale: input.locale,
-    fields: upsert.fields,
-    version: upsert.version,
-    is_active: true,
-    updated_by: input.actorId,
-    created_at: existing?.created_at ?? now,
-    updated_at: now,
-  };
-  devOverrideStore.set(key, row);
-  devAuditStore.unshift({
-    id: `dev-event-${Date.now()}`,
-    template_key: input.templateKey,
-    locale: input.locale,
-    action: "save",
-    fields: row.fields,
-    previous_fields: existing?.fields ?? null,
-    version: row.version,
-    actor_id: input.actorId,
-    created_at: now,
-  });
-  return row;
-}
-
-export function resetDevEmailTemplateOverride(input: {
-  templateKey: EmailTemplateKey;
-  locale: EmailLocale;
-  actorId: string | null;
-}) {
-  const key = devStoreKey(input.templateKey, input.locale);
-  const existing = devOverrideStore.get(key) ?? null;
-  if (!existing) return null;
-  const now = new Date().toISOString();
-  const nextVersion = existing.version + 1;
-  devOverrideStore.delete(key);
-  devAuditStore.unshift({
-    id: `dev-event-${Date.now()}`,
-    template_key: input.templateKey,
-    locale: input.locale,
-    action: "reset",
-    fields: {},
-    previous_fields: existing.fields,
-    version: nextVersion,
-    actor_id: input.actorId,
-    created_at: now,
-  });
-  return { id: existing.id, version: nextVersion };
 }
 
 export function buildTemplateOverrideUpsert(input: {
@@ -554,7 +554,9 @@ export function buildTemplateOverrideUpsert(input: {
   return {
     template_key: input.templateKey,
     locale: input.locale,
-    fields: normalizeEmailTemplateCopy(input.fields, { requireRequiredFields: true }) as Required<EmailTemplateCopy>,
+    fields: normalizeEmailTemplateCopy(input.fields, {
+      requireRequiredFields: true,
+    }) as Required<EmailTemplateCopy>,
     version: (input.existing?.version ?? 0) + 1,
     is_active: true,
     updated_by: input.actorId,
@@ -580,9 +582,11 @@ export async function saveEmailTemplateOverride(input: {
     throw new Error(existingError.message);
   }
 
-  const existing = (existingRows?.[0] ?? null) as
-    | { id: string; fields: EmailTemplateCopy; version: number }
-    | null;
+  const existing = (existingRows?.[0] ?? null) as {
+    id: string;
+    fields: EmailTemplateCopy;
+    version: number;
+  } | null;
   const upsert = buildTemplateOverrideUpsert({
     templateKey: input.templateKey,
     locale: input.locale,
@@ -594,7 +598,9 @@ export async function saveEmailTemplateOverride(input: {
   const { data, error } = await input.supabase
     .from("email_template_overrides")
     .upsert(upsert, { onConflict: "template_key,locale" })
-    .select("id, template_key, locale, fields, version, is_active, updated_by, created_at, updated_at")
+    .select(
+      "id, template_key, locale, fields, version, is_active, updated_by, created_at, updated_at",
+    )
     .single();
 
   if (error) throw new Error(error.message);
@@ -631,9 +637,11 @@ export async function resetEmailTemplateOverride(input: {
     .limit(1);
 
   if (existingError) throw new Error(existingError.message);
-  const existing = (existingRows?.[0] ?? null) as
-    | { id: string; fields: EmailTemplateCopy; version: number }
-    | null;
+  const existing = (existingRows?.[0] ?? null) as {
+    id: string;
+    fields: EmailTemplateCopy;
+    version: number;
+  } | null;
 
   if (!existing) return null;
 
@@ -705,7 +713,10 @@ export async function sendAdminTemplateTestEmail(input: {
 
   const resend = new Resend(process.env.RESEND_API_KEY);
   const sendInput = buildAdminTemplateTestSendInput(input);
-  const response = await resend.emails.send(sendInput.payload, sendInput.options);
+  const response = await resend.emails.send(
+    sendInput.payload,
+    sendInput.options,
+  );
   if (response.error) throw new Error(response.error.message);
   return response.data;
 }

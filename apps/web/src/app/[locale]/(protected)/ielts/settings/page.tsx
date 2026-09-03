@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { IeltsSettingsView } from "@/components/ielts/settings/IeltsSettingsView";
-import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { loadActiveIeltsStudyPlan } from "@/lib/api/ielts/study-plan-repository";
 import { goalFromStudyPlanRow } from "@/lib/ielts/onboarding/model";
 import {
@@ -10,7 +8,6 @@ import {
   type SettingsLocale,
   type SettingsProfilePrivacy,
 } from "@/lib/settings";
-import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/supabase";
 
@@ -29,14 +26,7 @@ const PRIVACY_COLUMNS =
 
 type TypedClient = SupabaseClient<Database>;
 
-function loadSettingsProfile(
-  client: TypedClient,
-  userId: string,
-  isDevBypass: boolean,
-) {
-  if (isDevBypass) {
-    return Promise.resolve({ data: DEV_ADMIN_PROFILE, error: null });
-  }
+function loadSettingsProfile(client: TypedClient, userId: string) {
   return client
     .from("profiles")
     .select("display_name, avatar_url, handle, profile_status, preferences")
@@ -44,12 +34,7 @@ function loadSettingsProfile(
     .maybeSingle();
 }
 
-function loadSettingsPrivacy(
-  client: TypedClient,
-  userId: string,
-  isDevBypass: boolean,
-) {
-  if (isDevBypass) return Promise.resolve({ data: null, error: null });
+function loadSettingsPrivacy(client: TypedClient, userId: string) {
   return client
     .from("profile_privacy_settings")
     .select(PRIVACY_COLUMNS)
@@ -57,8 +42,6 @@ function loadSettingsPrivacy(
     .maybeSingle();
 }
 
-// Authenticated and dev-preview reads deliberately stay in one route boundary.
-// eslint-disable-next-line complexity
 export default async function IeltsSettingsPage({ params }: SettingsPageProps) {
   const { locale: localeParam } = await params;
   const locale: SettingsLocale = localeParam === "vi" ? "vi" : "en";
@@ -66,20 +49,16 @@ export default async function IeltsSettingsPage({ params }: SettingsPageProps) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) redirect("/auth/login");
+  if (!user) redirect("/auth/login");
 
-  const userId = user?.id ?? devAuthBypassUser?.id;
-  if (!userId) redirect("/auth/login");
+  const userId = user.id;
 
-  const client = devAuthBypassUser ? createTypedAdminClient() : supabase;
+  const client = supabase;
   const [activePlan, profileResult, privacyResult] = await Promise.all([
     loadActiveIeltsStudyPlan(userId, client),
-    loadSettingsProfile(client, userId, Boolean(devAuthBypassUser)),
-    loadSettingsPrivacy(client, userId, Boolean(devAuthBypassUser)),
+    loadSettingsProfile(client, userId),
+    loadSettingsPrivacy(client, userId),
   ]);
 
   const profile = profileResult.data;

@@ -5,10 +5,10 @@ import { requireRequestAuth } from "@/lib/api/request-auth";
 
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ shareCode: string }> }
+  context: { params: Promise<{ shareCode: string }> },
 ) {
   try {
-    const auth = await requireRequestAuth(req, { allowDevBypass: false });
+    const auth = await requireRequestAuth(req);
 
     if (!auth.ok) {
       return auth.errorResponse;
@@ -18,7 +18,7 @@ export async function GET(
     if (!(await canAccessDuels(supabase, user.id))) {
       return NextResponse.json(
         { error: "1v1 Debate is coming soon." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -26,7 +26,10 @@ export async function GET(
     const room = await getDebateDuelRoom(shareCode, user.id);
 
     if (!room) {
-      return NextResponse.json({ error: "Duel room not found." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Duel room not found." },
+        { status: 404 },
+      );
     }
 
     return NextResponse.json(room);

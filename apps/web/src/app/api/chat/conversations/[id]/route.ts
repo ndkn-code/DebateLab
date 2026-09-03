@@ -48,7 +48,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const auth = await requireRequestAuth(req, { allowDevBypass: false });
+    const auth = await requireRequestAuth(req);
 
     if (!auth.ok) {
       return auth.errorResponse;
@@ -97,7 +97,7 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const auth = await requireRequestAuth(req, { allowDevBypass: false });
+  const auth = await requireRequestAuth(req);
   if (!auth.ok) return auth.errorResponse;
 
   try {

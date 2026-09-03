@@ -1,13 +1,11 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createTypedServerClient } from "@/lib/supabase/server";
-import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
 import { IeltsStudyPlanView } from "@/components/ielts/study-plan/IeltsStudyPlanView";
 import { getIeltsStudyPlanPageData } from "@/lib/api/ielts/study-plan-page-repository";
 import { buildIeltsStudyPlanPageView } from "@/lib/ielts/study-plan/page-view";
 import { ieltsPaths } from "@/lib/ielts/routes";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 
 export const metadata = {
   title: "IELTS study plan",
@@ -20,19 +18,13 @@ async function IeltsStudyPlanPayload({ locale }: { locale: string }) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) {
+  if (!user) {
     redirect("/auth/login");
   }
 
-  const userId = user?.id ?? devAuthBypassUser?.id;
-  if (!userId) redirect("/auth/login");
-
-  const client = devAuthBypassUser ? createTypedAdminClient() : supabase;
-  const data = await getIeltsStudyPlanPageData(userId, client);
+  const client = supabase;
+  const data = await getIeltsStudyPlanPageData(user.id, client);
   const view = buildIeltsStudyPlanPageView({
     plan: data.plan,
     goal: data.goal,

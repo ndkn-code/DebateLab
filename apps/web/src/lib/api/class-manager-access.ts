@@ -1,12 +1,15 @@
 import "server-only";
 
 import { createTypedServerClient } from "@/lib/supabase/server";
-import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
-import { resolveClassManagerRole, type ClassManagerRole } from "./class-manager-model";
+import {
+  resolveClassManagerRole,
+  type ClassManagerRole,
+} from "./class-manager-model";
 
-export type ClassManagerClient = Awaited<ReturnType<typeof createTypedServerClient>>;
+export type ClassManagerClient = Awaited<
+  ReturnType<typeof createTypedServerClient>
+>;
 
 export type ClassManagerContext = {
   userId: string;
@@ -15,34 +18,38 @@ export type ClassManagerContext = {
   role: ClassManagerRole;
 };
 
-async function devBypassUserId() {
-  if (isDevAdminBypassEnabled() || (await getDevAuthBypassUserFromServerContext())) {
-    return DEV_ADMIN_PROFILE.id;
-  }
-  return null;
-}
-
 async function currentUserId(supabase: ClassManagerClient) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (user) return user.id;
-  const bypass = await devBypassUserId();
-  if (bypass) return bypass;
   throw new Error("Unauthorized");
 }
 
 /** Require platform-admin access. Kept here so class actions share one auth surface. */
 export async function requirePlatformAdmin(supabase: ClassManagerClient) {
   const userId = await currentUserId(supabase);
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
-  if (profile?.role === "admin" || isDevAdminBypassEnabled()) return userId;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profile?.role === "admin") return userId;
   throw new Error("Forbidden");
 }
 
 /** Organization academic-admin access used before a class membership exists. */
-export async function requireClubOwner(supabase: ClassManagerClient, clubId: string) {
+export async function requireClubOwner(
+  supabase: ClassManagerClient,
+  clubId: string,
+) {
   const userId = await currentUserId(supabase);
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
-  if (profile?.role === "admin" || isDevAdminBypassEnabled()) return userId;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profile?.role === "admin") return userId;
 
   const { data: membership, error } = await supabase
     .from("club_memberships")
@@ -67,7 +74,11 @@ export async function requireClassManager(
   classId: string,
 ): Promise<ClassManagerContext> {
   const userId = await currentUserId(supabase);
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
   const { data: classRow, error: classError } = await supabase
     .from("classes")
     .select("id, club_id")
@@ -76,7 +87,7 @@ export async function requireClassManager(
   if (classError) throw new Error(classError.message);
   if (!classRow) throw new Error("Class not found");
 
-  if (profile?.role === "admin" || isDevAdminBypassEnabled()) {
+  if (profile?.role === "admin") {
     return { userId, classId, clubId: classRow.club_id, role: "admin" };
   }
   if (!classRow.club_id) throw new Error("Forbidden");
@@ -91,7 +102,10 @@ export async function requireClassManager(
   if (membershipError) throw new Error(membershipError.message);
   const membership = memberships
     ?.map((row) => ({ ...row, role: normalizeOrganizationRole(row.role) }))
-    .filter((row): row is { role: "owner" | "admin" | "head_teacher" | "teacher" } => row.role !== null)
+    .filter(
+      (row): row is { role: "owner" | "admin" | "head_teacher" | "teacher" } =>
+        row.role !== null,
+    )
     .sort((left, right) => {
       const rank = { owner: 0, admin: 1, head_teacher: 2, teacher: 3 } as const;
       return rank[left.role] - rank[right.role];
@@ -145,10 +159,16 @@ export async function requireClassOwner(
 }
 
 /** Gate the aggregate admin classes/schedules loaders without exposing them to learners. */
-export async function requireClassManagerDashboard(supabase: ClassManagerClient) {
+export async function requireClassManagerDashboard(
+  supabase: ClassManagerClient,
+) {
   const userId = await currentUserId(supabase);
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", userId).maybeSingle();
-  if (profile?.role === "admin" || isDevAdminBypassEnabled()) return userId;
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profile?.role === "admin") return userId;
 
   const { data: memberships, error } = await supabase
     .from("club_memberships")
@@ -157,10 +177,13 @@ export async function requireClassManagerDashboard(supabase: ClassManagerClient)
     .eq("status", "active")
     .in("role", ["owner", "admin", "head_teacher", "teacher", "coach"]);
   if (error) throw new Error(error.message);
-  if ((memberships ?? []).some((membership) => {
-    const role = normalizeOrganizationRole(membership.role);
-    return role === "owner" || role === "admin" || role === "head_teacher";
-  })) return userId;
+  if (
+    (memberships ?? []).some((membership) => {
+      const role = normalizeOrganizationRole(membership.role);
+      return role === "owner" || role === "admin" || role === "head_teacher";
+    })
+  )
+    return userId;
 
   const clubIds = (memberships ?? []).map((membership) => membership.club_id);
   const isTeacherProfile = profile?.role === "teacher";

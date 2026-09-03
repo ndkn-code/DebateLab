@@ -3,8 +3,6 @@
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import {
   ANALYTICS_COOKIE_MAX_AGE,
   ANALYTICS_COOKIE_NAME,
@@ -118,24 +116,12 @@ export async function claimOrganizationJoinCode(input: string) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) {
+  if (!user) {
     return {
       status: "auth_required" as ClubJoinCodeClaimStatus,
       message: getJoinCodeClaimMessage("auth_required"),
       clubId: null as string | null,
-    };
-  }
-
-  if (!user && devAuthBypassUser) {
-    revalidateSettingsRoutes();
-    return {
-      status: "accepted" as ClubJoinCodeClaimStatus,
-      message: getJoinCodeClaimMessage("accepted"),
-      clubId: "00000000-0000-4c00-8000-000000000002",
     };
   }
 
@@ -497,55 +483,9 @@ export async function saveSettings(input: SettingsDraft) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) {
+  if (!user) {
     throw new Error("Not authenticated");
-  }
-
-  if (!user && devAuthBypassUser) {
-    const preferences = draftToPreferences(
-      draft,
-      DEV_ADMIN_PROFILE.preferences as Record<string, unknown>,
-    );
-
-    const cookieStore = await cookies();
-    cookieStore.set(
-      ANALYTICS_COOKIE_NAME,
-      getAnalyticsCookieValue(draft.analyticsCookiesEnabled),
-      {
-        httpOnly: false,
-        maxAge: ANALYTICS_COOKIE_MAX_AGE,
-        path: "/",
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-      },
-    );
-
-    revalidateSettingsRoutes();
-
-    return {
-      saved: buildSavedSettingsDraft({
-        displayName: draft.displayName,
-        handle: draft.handle,
-        profileStatus: draft.profileStatus,
-        avatarUrl: draft.avatarUrl,
-        profilePrivacy: {
-          profile_visibility: draft.profileVisibility,
-          analytics_visibility: draft.analyticsVisibility,
-          activities_visibility: draft.activitiesVisibility,
-          achievements_visibility: draft.achievementsVisibility,
-          organization_visibility: draft.organizationVisibility,
-          allow_connection_requests: draft.allowConnectionRequests,
-          searchable_by_handle: draft.searchableByHandle,
-          friend_code_discovery_enabled: draft.friendCodeDiscoveryEnabled,
-        },
-        preferences,
-        currentLocale: draft.preferredLocale,
-      }),
-    };
   }
 
   const { data: profile, error: profileError } = await supabase
@@ -654,17 +594,9 @@ export async function saveDebateModePreference(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) {
+  if (!user) {
     throw new Error("Not authenticated");
-  }
-
-  if (!user && devAuthBypassUser) {
-    revalidateSettingsRoutes();
-    return { preferredLocale: locale, practiceLanguage };
   }
 
   const { data: profile, error: profileError } = await supabase

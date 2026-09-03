@@ -2,8 +2,6 @@ import "server-only";
 
 import { revalidatePath } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import {
   DEFAULT_SUPPORT_REPORTS_PAGE_SIZE,
@@ -65,7 +63,7 @@ function getErrorMessage(error: unknown, fallback: string) {
 function emptyPageData(
   filters: SupportReportsFilters,
   pageSize: number,
-  loadError: string | null
+  loadError: string | null,
 ): SupportReportsPageData {
   const summary = buildSupportReportStatusSummaryFromCounts({});
   return {
@@ -89,13 +87,16 @@ function emptyPageData(
 }
 
 function escapePostgrestSearch(value: string) {
-  return value.replace(/[,%()]/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/[,%()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function applyTextFilters<T>(
   query: T,
   filters: SupportReportsFilters,
-  options: { includeStatus?: boolean } = {}
+  options: { includeStatus?: boolean } = {},
 ): T {
   let next = query as unknown as FilterQuery;
   const includeStatus = options.includeStatus ?? true;
@@ -119,7 +120,7 @@ function applyTextFilters<T>(
   const search = escapePostgrestSearch(filters.search);
   if (search) {
     next = next.or(
-      `title.ilike.%${search}%,description.ilike.%${search}%,user_email.ilike.%${search}%`
+      `title.ilike.%${search}%,description.ilike.%${search}%,user_email.ilike.%${search}%`,
     );
   }
 
@@ -136,16 +137,9 @@ async function verifyAdmin(supabase: SupportReportsClient) {
     throw new SupportReportsAuthError(error.message);
   }
 
-  const devBypassUser = user ? null : await getDevAuthBypassUserFromServerContext();
-  const devAdminBypass = isDevAdminBypassEnabled();
+  if (!user) throw new SupportReportsAuthError("Unauthorized");
 
-  if (!user && !devBypassUser) {
-    if (devAdminBypass) return DEV_ADMIN_PROFILE.id;
-    throw new SupportReportsAuthError("Unauthorized");
-  }
-
-  const userId = user?.id ?? devBypassUser?.id ?? DEV_ADMIN_PROFILE.id;
-  if (!user && devBypassUser) return userId;
+  const userId = user.id;
 
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
@@ -158,7 +152,6 @@ async function verifyAdmin(supabase: SupportReportsClient) {
   }
 
   if (profile?.role !== "admin") {
-    if (devAdminBypass) return userId;
     throw new SupportReportsAuthError("Forbidden");
   }
 
@@ -168,7 +161,7 @@ async function verifyAdmin(supabase: SupportReportsClient) {
 async function countReportsForStatus(
   supabase: SupportReportsClient,
   filters: SupportReportsFilters,
-  status: SupportReportStatus
+  status: SupportReportStatus,
 ) {
   let query = supabase
     .from("support_issue_reports")
@@ -183,19 +176,24 @@ async function countReportsForStatus(
 
 async function getStatusCounts(
   supabase: SupportReportsClient,
-  filters: SupportReportsFilters
+  filters: SupportReportsFilters,
 ) {
   const entries = await Promise.all(
-    SUPPORT_REPORT_STATUSES.map(async (status) => [
-      status,
-      await countReportsForStatus(supabase, filters, status),
-    ] as const)
+    SUPPORT_REPORT_STATUSES.map(
+      async (status) =>
+        [
+          status,
+          await countReportsForStatus(supabase, filters, status),
+        ] as const,
+    ),
   );
 
   return Object.fromEntries(entries) as Record<SupportReportStatus, number>;
 }
 
-async function getFacetReports(supabase: SupportReportsClient): Promise<SupportReport[]> {
+async function getFacetReports(
+  supabase: SupportReportsClient,
+): Promise<SupportReport[]> {
   const { data, error } = await supabase
     .from("support_issue_reports")
     .select(SUPPORT_REPORT_SELECT)
@@ -262,7 +260,9 @@ export async function listSupportReports({
     const summary = buildSupportReportStatusSummaryFromCounts(statusCounts);
 
     return {
-      reports: ((listResult.data ?? []) as RawSupportReportRow[]).map(mapSupportReportRow),
+      reports: ((listResult.data ?? []) as RawSupportReportRow[]).map(
+        mapSupportReportRow,
+      ),
       filters,
       facets: buildSupportReportFacets(facetReports),
       kpis: {
@@ -283,12 +283,14 @@ export async function listSupportReports({
     return emptyPageData(
       filters,
       pageSize,
-      getErrorMessage(error, "Unable to load support reports.")
+      getErrorMessage(error, "Unable to load support reports."),
     );
   }
 }
 
-export async function getSupportReport(id: string): Promise<SupportReport | null> {
+export async function getSupportReport(
+  id: string,
+): Promise<SupportReport | null> {
   const supabase = await createTypedServerClient();
   await verifyAdmin(supabase);
 

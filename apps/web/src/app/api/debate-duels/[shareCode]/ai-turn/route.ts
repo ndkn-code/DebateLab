@@ -14,10 +14,10 @@ export const maxDuration = 60;
  */
 export async function POST(
   req: NextRequest,
-  context: { params: Promise<{ shareCode: string }> }
+  context: { params: Promise<{ shareCode: string }> },
 ) {
   try {
-    const auth = await requireRequestAuth(req, { allowDevBypass: false });
+    const auth = await requireRequestAuth(req);
 
     if (!auth.ok) {
       return auth.errorResponse;
@@ -27,7 +27,7 @@ export async function POST(
     if (!(await canAccessDuels(supabase, user.id))) {
       return NextResponse.json(
         { error: "1v1 Debate is coming soon." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -42,7 +42,7 @@ export async function POST(
         {
           status: 429,
           headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-        }
+        },
       );
     }
 
@@ -51,7 +51,8 @@ export async function POST(
 
     return NextResponse.json(room);
   } catch (error) {
-    const raw = error instanceof Error ? error.message : "Failed to play the AI turn.";
+    const raw =
+      error instanceof Error ? error.message : "Failed to play the AI turn.";
     let message = raw;
     let status = 500;
     if (raw.includes("DUEL_PARTICIPANT_REQUIRED")) {

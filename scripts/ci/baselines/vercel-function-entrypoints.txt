@@ -63,7 +63,6 @@ apps/web/src/app/api/debate-duels/matchmaking/ai-backfill/route.ts
 apps/web/src/app/api/debate-duels/matchmaking/ticket/route.ts
 apps/web/src/app/api/debate-duels/route.ts
 apps/web/src/app/api/deepgram-token/route.ts
-apps/web/src/app/api/dev/auth-bypass/route.ts
 apps/web/src/app/api/dev/seed-library-courses/route.ts
 apps/web/src/app/api/email/unsubscribe/route.ts
 apps/web/src/app/api/history/export/route.ts

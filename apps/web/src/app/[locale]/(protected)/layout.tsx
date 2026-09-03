@@ -4,11 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { ProtectedShell } from "./protected-shell";
 import { getActiveSubject } from "@/lib/subject/server";
 import {
-  DEV_ADMIN_PROFILE,
-  isDevAdminBypassEnabled,
-} from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
-import {
   IELTS_ENABLED,
   LEADERBOARD_SEASON_REPLAY_ENABLED,
 } from "@/lib/features";
@@ -156,35 +151,7 @@ export default async function ProtectedLayout({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAdminBypass = isDevAdminBypassEnabled();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
-
   if (!user) {
-    if (devAdminBypass || devAuthBypassUser) {
-      // Dev bypass renders the admin profile, so the IELTS track is reachable.
-      const activeSubject = await getActiveSubject({ ieltsAccessible: true });
-      const isEnrolledIeltsStudent = await getIeltsEnrollmentForShell(
-        devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id,
-        activeSubject,
-      );
-      const teacherNavigation = await getTeacherNavigation(requestPath);
-      return (
-        <ProtectedShell
-          profile={DEV_ADMIN_PROFILE}
-          userEmail={devAuthBypassUser?.email ?? DEV_ADMIN_PROFILE.email}
-          userId={devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id}
-          activeSubject={activeSubject}
-          isEnrolledIeltsStudent={isEnrolledIeltsStudent}
-          seasonReplayEnabled={false}
-          teacherNavigation={teacherNavigation}
-        >
-          {children}
-        </ProtectedShell>
-      );
-    }
-
     const unlocalizedPath = requestPath.replace(/^\/(?:en|vi)(?=\/)/, "");
     redirect(`/auth/login?next=${encodeURIComponent(unlocalizedPath)}`);
   }
@@ -203,29 +170,6 @@ export default async function ProtectedLayout({
 
   // Redirect to onboarding if profile missing or not completed
   if (!profile || !profile.onboarding_completed) {
-    if (devAdminBypass) {
-      const activeSubject = await getActiveSubject({ ieltsAccessible: true });
-      const isEnrolledIeltsStudent = await getIeltsEnrollmentForShell(
-        user.id,
-        activeSubject,
-      );
-      const teacherNavigation = await getTeacherNavigation(requestPath);
-      return (
-        <ProtectedShell
-          profile={DEV_ADMIN_PROFILE}
-          userEmail={user.email ?? DEV_ADMIN_PROFILE.email}
-          userId={user.id}
-          activeSubject={activeSubject}
-          isEnrolledIeltsStudent={isEnrolledIeltsStudent}
-          seasonReplayEnabled={LEADERBOARD_SEASON_REPLAY_ENABLED}
-          seasonReplayOutcome={seasonReplayOutcome}
-          teacherNavigation={teacherNavigation}
-        >
-          {children}
-        </ProtectedShell>
-      );
-    }
-
     redirect("/onboarding");
   }
 

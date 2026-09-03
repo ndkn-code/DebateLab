@@ -2,8 +2,6 @@ import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 import { LeaderboardsPage } from "@/components/leaderboards/leaderboards-page";
 import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
-import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import {
   LEADERBOARD_ANALYTICS_ENABLED,
   LEADERBOARDS_ENABLED,
@@ -34,17 +32,13 @@ async function LeaderboardsPayload({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) {
+  if (!user) {
     redirect("/auth/login");
   }
 
-  const activeUserId = user?.id ?? devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id;
+  const activeUserId = user.id;
   const data = await getLeaderboardPageData(activeUserId, {
-    dataSource: devAuthBypassUser ? "mock" : undefined,
     leaderboardLanguage,
   });
 

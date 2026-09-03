@@ -1,7 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
-import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { ORGANIZATION_JOIN_CODES_ENABLED } from "@/lib/features";
 import {
   buildAtRiskStudents,
@@ -10,13 +8,7 @@ import {
   buildWeakestSkills,
   normalizeClubAssignmentStatus,
 } from "@/lib/api/admin-clubs-model";
-import {
-  getLeaderboardRolloutGuardrailStatus,
-} from "@/lib/leaderboards/social-trust";
-import {
-  getLeaderboardSafetyAudit,
-  makeEmptyLeaderboardSafetyAudit,
-} from "@/lib/leaderboards/social-trust-server";
+import { getLeaderboardSafetyAudit } from "@/lib/leaderboards/social-trust-server";
 import {
   DEFAULT_CLASS_TIMEZONE,
   expandScheduleOccurrences,
@@ -24,7 +16,10 @@ import {
   summarizeRecurrence,
 } from "@/lib/api/admin-class-schedules-model";
 import type { AdminClassListRow } from "@/lib/types/admin-classes";
-import { normalizeOrganizationRole, organizationTypeFromLegacyClubType } from "@/lib/organizations/compatibility";
+import {
+  normalizeOrganizationRole,
+  organizationTypeFromLegacyClubType,
+} from "@/lib/organizations/compatibility";
 import type {
   AdminClubAssignmentRow,
   AdminClubDetailData,
@@ -42,31 +37,27 @@ import type {
   ClubEventType,
   ClubInvitationStatus,
   ClubJoinCodeStatus,
-  ClubQaState,
   ClubStatus,
   ClubType,
 } from "@/lib/types/admin-clubs";
 
 type Supabase = Awaited<ReturnType<typeof createClient>> | SupabaseClient;
 
-const QA_STATES = new Set<ClubQaState>(["empty", "active", "high", "low", "mixed"]);
-
-function qaStateFromSearch(searchParams?: Record<string, string | string[] | undefined>) {
-  const raw = Array.isArray(searchParams?.qa) ? searchParams?.qa[0] : searchParams?.qa;
-  return QA_STATES.has(raw as ClubQaState) ? (raw as ClubQaState) : "active";
-}
-
 function numberOrNull(value: unknown) {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 function toClubListRow(row: Record<string, unknown>): AdminClubListRow {
-  const legacyClubType = row.club_type === "center" || row.club_type === "independent" || row.club_type === "online"
-    ? row.club_type
-    : "school";
-  const organizationType = row.organization_type === "school" || row.organization_type === "club"
-    ? row.organization_type
-    : organizationTypeFromLegacyClubType(row.club_type);
+  const legacyClubType =
+    row.club_type === "center" ||
+    row.club_type === "independent" ||
+    row.club_type === "online"
+      ? row.club_type
+      : "school";
+  const organizationType =
+    row.organization_type === "school" || row.organization_type === "club"
+      ? row.organization_type
+      : organizationTypeFromLegacyClubType(row.club_type);
   return {
     id: String(row.id),
     code: String(row.code ?? ""),
@@ -75,10 +66,13 @@ function toClubListRow(row: Record<string, unknown>): AdminClubListRow {
     clubType: legacyClubType as ClubType,
     city: (row.city as string | null | undefined) ?? null,
     country: String(row.country ?? "VN"),
-    status: (row.status === "draft" || row.status === "archived" ? row.status : "active") as ClubStatus,
+    status: (row.status === "draft" || row.status === "archived"
+      ? row.status
+      : "active") as ClubStatus,
     timezone: String(row.timezone ?? "Asia/Ho_Chi_Minh"),
     logoUrl: (row.logo_url as string | null | undefined) ?? null,
-    logoStoragePath: (row.logo_storage_path as string | null | undefined) ?? null,
+    logoStoragePath:
+      (row.logo_storage_path as string | null | undefined) ?? null,
     facebookUrl: (row.facebook_url as string | null | undefined) ?? null,
     instagramUrl: (row.instagram_url as string | null | undefined) ?? null,
     threadsUrl: (row.threads_url as string | null | undefined) ?? null,
@@ -102,12 +96,19 @@ function toClassListRow(row: Record<string, unknown>): AdminClassListRow {
     code: String(row.code ?? ""),
     title: String(row.title ?? "Untitled cohort"),
     description: (row.description as string | null | undefined) ?? null,
-    programType: row.program_type === "ielts" || row.program_type === "public_speaking" ? row.program_type : "debate",
+    programType:
+      row.program_type === "ielts" || row.program_type === "public_speaking"
+        ? row.program_type
+        : "debate",
     gradeLevel: (row.grade_level as string | null | undefined) ?? null,
-    status: row.status === "draft" || row.status === "archived" ? row.status : "active",
+    status:
+      row.status === "draft" || row.status === "archived"
+        ? row.status
+        : "active",
     startDate: (row.start_date as string | null | undefined) ?? null,
     endDate: (row.end_date as string | null | undefined) ?? null,
-    meetingSchedule: (row.meeting_schedule as string | null | undefined) ?? null,
+    meetingSchedule:
+      (row.meeting_schedule as string | null | undefined) ?? null,
     room: (row.room as string | null | undefined) ?? null,
     maxStudents: numberOrNull(row.max_students),
     studentCount: Number(row.student_count ?? 0),
@@ -128,10 +129,17 @@ function toAssignmentRow(row: Record<string, unknown>): AdminClubAssignmentRow {
     classTitle: (row.class_title as string | null | undefined) ?? null,
     title: String(row.title ?? "Untitled assignment"),
     description: (row.description as string | null | undefined) ?? null,
-    assignmentType: row.assignment_type === "case" || row.assignment_type === "speech" || row.assignment_type === "quiz" || row.assignment_type === "attendance"
-      ? row.assignment_type
-      : "practice",
-    assignedTrack: row.assigned_track === "speaking" || row.assigned_track === "mun" ? row.assigned_track : "debate",
+    assignmentType:
+      row.assignment_type === "case" ||
+      row.assignment_type === "speech" ||
+      row.assignment_type === "quiz" ||
+      row.assignment_type === "attendance"
+        ? row.assignment_type
+        : "practice",
+    assignedTrack:
+      row.assigned_track === "speaking" || row.assigned_track === "mun"
+        ? row.assigned_track
+        : "debate",
     topicTitle: (row.topic_title as string | null | undefined) ?? null,
     topicCategory: (row.topic_category as string | null | undefined) ?? null,
     dueAt: (row.due_at as string | null | undefined) ?? null,
@@ -157,27 +165,32 @@ function toAssignmentRow(row: Record<string, unknown>): AdminClubAssignmentRow {
 function isHomeworkMetadata(metadata: unknown) {
   return Boolean(
     metadata &&
-      typeof metadata === "object" &&
-      !Array.isArray(metadata) &&
-      (metadata as Record<string, unknown>).submission_mode === "homework"
+    typeof metadata === "object" &&
+    !Array.isArray(metadata) &&
+    (metadata as Record<string, unknown>).submission_mode === "homework",
   );
 }
 
 async function enrichAssignmentSubmissionConfig(
   supabase: Supabase,
-  assignments: AdminClubAssignmentRow[]
+  assignments: AdminClubAssignmentRow[],
 ): Promise<AdminClubAssignmentRow[]> {
   const ids = assignments.map((assignment) => assignment.id);
   if (ids.length === 0) return assignments;
 
   const { data, error } = await supabase
     .from("club_assignments")
-    .select("id, metadata, submission_text_enabled, submission_files_enabled, submission_max_files, submission_max_file_mb, submission_allowed_ext, submission_instructions")
+    .select(
+      "id, metadata, submission_text_enabled, submission_files_enabled, submission_max_files, submission_max_file_mb, submission_allowed_ext, submission_instructions",
+    )
     .in("id", ids);
   if (error) return assignments;
 
   const configById = new Map(
-    ((data ?? []) as Record<string, unknown>[]).map((row) => [String(row.id), row])
+    ((data ?? []) as Record<string, unknown>[]).map((row) => [
+      String(row.id),
+      row,
+    ]),
   );
 
   return assignments.map((assignment) => {
@@ -193,7 +206,8 @@ async function enrichAssignmentSubmissionConfig(
       submissionAllowedExt: Array.isArray(config.submission_allowed_ext)
         ? config.submission_allowed_ext.map(String)
         : null,
-      submissionInstructions: (config.submission_instructions as string | null | undefined) ?? null,
+      submissionInstructions:
+        (config.submission_instructions as string | null | undefined) ?? null,
     };
   });
 }
@@ -216,7 +230,8 @@ function toInvitationRow(row: Record<string, unknown>): AdminClubInvitation {
 }
 
 function normalizeJoinCodeStatus(value: unknown): ClubJoinCodeStatus {
-  if (value === "redeemed" || value === "revoked" || value === "expired") return value;
+  if (value === "redeemed" || value === "revoked" || value === "expired")
+    return value;
   return "pending";
 }
 
@@ -239,33 +254,38 @@ function enrichClubEvents(
   rows: Record<string, unknown>[],
   cohorts: AdminClassListRow[],
   rangeStart: string,
-  rangeEnd: string
+  rangeEnd: string,
 ): AdminClubEvent[] {
   const cohortById = new Map(cohorts.map((cohort) => [cohort.id, cohort]));
 
   return rows.map((row) => {
     const startDate = String(row.start_date ?? toIsoDate(new Date()));
-    const recurrenceInput = row.recurrence_rule && typeof row.recurrence_rule === "object"
-      ? (row.recurrence_rule as Parameters<typeof normalizeRecurrenceRule>[0])
-      : null;
+    const recurrenceInput =
+      row.recurrence_rule && typeof row.recurrence_rule === "object"
+        ? (row.recurrence_rule as Parameters<typeof normalizeRecurrenceRule>[0])
+        : null;
     const rule = normalizeRecurrenceRule(recurrenceInput, startDate);
     const startTime = normalizeTime(String(row.start_time ?? "16:00:00"));
     const endTime = normalizeTime(String(row.end_time ?? "17:00:00"));
-    const occurrences = expandScheduleOccurrences({
-      id: String(row.id),
-      startDate,
-      endDate: (row.end_date as string | null | undefined) ?? null,
-      startTime,
-      endTime,
-      recurrenceRule: rule,
-    }, rangeStart, rangeEnd);
+    const occurrences = expandScheduleOccurrences(
+      {
+        id: String(row.id),
+        startDate,
+        endDate: (row.end_date as string | null | undefined) ?? null,
+        startTime,
+        endTime,
+        recurrenceRule: rule,
+      },
+      rangeStart,
+      rangeEnd,
+    );
     const classId = (row.class_id as string | null | undefined) ?? null;
 
     return {
       id: String(row.id),
       clubId: String(row.club_id),
       classId,
-      classTitle: classId ? cohortById.get(classId)?.title ?? null : null,
+      classTitle: classId ? (cohortById.get(classId)?.title ?? null) : null,
       title: String(row.title ?? "Club event"),
       eventType: normalizeEventType(row.event_type),
       room: (row.room as string | null | undefined) ?? null,
@@ -276,14 +296,21 @@ function enrichClubEvents(
       endTime,
       timezone: String(row.timezone ?? DEFAULT_CLASS_TIMEZONE),
       recurrenceRule: rule,
-      recurrenceSummary: (row.recurrence_summary as string | null | undefined) ?? summarizeRecurrence(rule, startDate),
-      externalCalendarUrl: (row.external_calendar_url as string | null | undefined) ?? null,
-      externalProvider: (row.external_provider as string | null | undefined) ?? null,
+      recurrenceSummary:
+        (row.recurrence_summary as string | null | undefined) ??
+        summarizeRecurrence(rule, startDate),
+      externalCalendarUrl:
+        (row.external_calendar_url as string | null | undefined) ?? null,
+      externalProvider:
+        (row.external_provider as string | null | undefined) ?? null,
       status: normalizeEventStatus(row.status),
       createdAt: String(row.created_at ?? new Date().toISOString()),
       updatedAt: String(row.updated_at ?? new Date().toISOString()),
       occurrenceCount: occurrences.length,
-      nextOccurrenceDate: occurrences.find((item) => item.date >= toIsoDate(new Date()))?.date ?? occurrences[0]?.date ?? null,
+      nextOccurrenceDate:
+        occurrences.find((item) => item.date >= toIsoDate(new Date()))?.date ??
+        occurrences[0]?.date ??
+        null,
     };
   });
 }
@@ -291,19 +318,23 @@ function enrichClubEvents(
 function buildClubEventOccurrences(
   events: AdminClubEvent[],
   rangeStart: string,
-  rangeEnd: string
+  rangeEnd: string,
 ): AdminClubEventOccurrence[] {
   return events
     .filter((event) => event.status === "active")
     .flatMap((event) =>
-      expandScheduleOccurrences({
-        id: event.id,
-        startDate: event.startDate,
-        endDate: event.endDate,
-        startTime: event.startTime,
-        endTime: event.endTime,
-        recurrenceRule: event.recurrenceRule,
-      }, rangeStart, rangeEnd).map((occurrence) => ({
+      expandScheduleOccurrences(
+        {
+          id: event.id,
+          startDate: event.startDate,
+          endDate: event.endDate,
+          startTime: event.startTime,
+          endTime: event.endTime,
+          recurrenceRule: event.recurrenceRule,
+        },
+        rangeStart,
+        rangeEnd,
+      ).map((occurrence) => ({
         id: `${event.id}-${occurrence.date}`,
         eventId: event.id,
         clubId: event.clubId,
@@ -317,13 +348,18 @@ function buildClubEventOccurrences(
         startsAt: occurrence.startsAt,
         endsAt: occurrence.endsAt,
         recurrenceSummary: event.recurrenceSummary,
-      }))
+      })),
     )
-    .sort((left, right) => left.date.localeCompare(right.date) || left.startsAt.localeCompare(right.startsAt));
+    .sort(
+      (left, right) =>
+        left.date.localeCompare(right.date) ||
+        left.startsAt.localeCompare(right.startsAt),
+    );
 }
 
 function normalizeInvitationStatus(value: unknown): ClubInvitationStatus {
-  if (value === "accepted" || value === "revoked" || value === "expired") return value;
+  if (value === "accepted" || value === "revoked" || value === "expired")
+    return value;
   return "pending";
 }
 
@@ -354,28 +390,26 @@ function buildPageKpis(clubs: AdminClubListRow[]): AdminClubsKpis {
     totalClubs: clubs.length,
     activeClubs: clubs.filter((club) => club.status === "active").length,
     totalStudents: clubs.reduce((sum, club) => sum + club.studentCount, 0),
-    reviewQueueCount: clubs.reduce((sum, club) => sum + club.reviewQueueCount, 0),
+    reviewQueueCount: clubs.reduce(
+      (sum, club) => sum + club.reviewQueueCount,
+      0,
+    ),
     averageCompletionRate30d: completionRates.length
-      ? Math.round(completionRates.reduce((sum, value) => sum + value, 0) / completionRates.length)
+      ? Math.round(
+          completionRates.reduce((sum, value) => sum + value, 0) /
+            completionRates.length,
+        )
       : null,
   };
 }
 
-export async function getAdminClubsPageData({
-  searchParams,
-  includeArchived = false,
-}: {
-  searchParams?: Record<string, string | string[] | undefined>;
-  includeArchived?: boolean;
-} = {}): Promise<AdminClubsPageData> {
-  const devBypassEnabled =
-    isDevAdminBypassEnabled() ||
-    Boolean(await getDevAuthBypassUserFromServerContext());
-
-  if (devBypassEnabled) {
-    return getDevClubsPageData(qaStateFromSearch(searchParams));
-  }
-
+export async function getAdminClubsPageData(
+  options: {
+    searchParams?: Record<string, string | string[] | undefined>;
+    includeArchived?: boolean;
+  } = {},
+): Promise<AdminClubsPageData> {
+  const { includeArchived = false } = options;
   const supabase = await createClient();
   let listQuery = supabase
     .from("admin_club_list_rows")
@@ -414,8 +448,13 @@ export async function getAdminClubsPageData({
   }
   const staffCounts = new Map<string, number>();
   for (const membership of membershipResult.data ?? []) {
-    if (["owner", "admin", "teacher", "coach"].includes(String(membership.role))) {
-      staffCounts.set(membership.club_id, (staffCounts.get(membership.club_id) ?? 0) + 1);
+    if (
+      ["owner", "admin", "teacher", "coach"].includes(String(membership.role))
+    ) {
+      staffCounts.set(
+        membership.club_id,
+        (staffCounts.get(membership.club_id) ?? 0) + 1,
+      );
     }
   }
   for (const club of clubs) club.coachCount = staffCounts.get(club.id) ?? 0;
@@ -430,17 +469,7 @@ export async function getAdminClubsPageData({
 
 export async function getAdminClubDetail(
   clubId: string,
-  searchParams?: Record<string, string | string[] | undefined>
 ): Promise<AdminClubDetailData | null> {
-  const qaState = qaStateFromSearch(searchParams);
-  const devBypassEnabled =
-    isDevAdminBypassEnabled() ||
-    Boolean(await getDevAuthBypassUserFromServerContext());
-
-  if (devBypassEnabled && clubId.startsWith("00000000-0000-4c00-8000-")) {
-    return getDevClubDetail(clubId, qaState);
-  }
-
   const supabase = await createClient();
   const { data: clubRow, error: clubError } = await supabase
     .from("admin_club_list_rows")
@@ -449,11 +478,20 @@ export async function getAdminClubDetail(
     .single();
 
   if (clubError || !clubRow) {
-    if (devBypassEnabled) return getDevClubDetail(clubId, qaState);
     return null;
   }
 
-  const [membersRes, cohortsRes, assignmentsRes, attemptsRes, reviewsRes, invitationsRes, joinCodesRes, eventsRes, leaderboardSafety] = await Promise.all([
+  const [
+    membersRes,
+    cohortsRes,
+    assignmentsRes,
+    attemptsRes,
+    reviewsRes,
+    invitationsRes,
+    joinCodesRes,
+    eventsRes,
+    leaderboardSafety,
+  ] = await Promise.all([
     supabase
       .from("club_memberships")
       .select("id, user_id, role, status, joined_at")
@@ -483,14 +521,18 @@ export async function getAdminClubDetail(
       .limit(40),
     supabase
       .from("club_invitations")
-      .select("id, club_id, email, role, status, expires_at, invited_by, accepted_by, accepted_at, last_sent_at, created_at, updated_at")
+      .select(
+        "id, club_id, email, role, status, expires_at, invited_by, accepted_by, accepted_at, last_sent_at, created_at, updated_at",
+      )
       .eq("club_id", clubId)
       .order("created_at", { ascending: false })
       .limit(80),
     ORGANIZATION_JOIN_CODES_ENABLED
       ? supabase
           .from("club_join_codes")
-          .select("id, club_id, status, role, expires_at, issued_by, redeemed_by, redeemed_at, created_at, updated_at")
+          .select(
+            "id, club_id, status, role, expires_at, issued_by, redeemed_by, redeemed_at, created_at, updated_at",
+          )
           .eq("club_id", clubId)
           .order("created_at", { ascending: false })
           .limit(80)
@@ -519,35 +561,68 @@ export async function getAdminClubDetail(
     eventsRes.error?.message ??
     null;
 
-  const members = await enrichMembers(supabase, (membersRes.data ?? []) as Record<string, unknown>[]);
-  const cohorts = ((cohortsRes.data ?? []) as Record<string, unknown>[]).map(toClassListRow);
+  const members = await enrichMembers(
+    supabase,
+    (membersRes.data ?? []) as Record<string, unknown>[],
+  );
+  const cohorts = ((cohortsRes.data ?? []) as Record<string, unknown>[]).map(
+    toClassListRow,
+  );
   const assignments = await enrichAssignmentSubmissionConfig(
     supabase,
-    ((assignmentsRes.data ?? []) as Record<string, unknown>[]).map(toAssignmentRow)
+    ((assignmentsRes.data ?? []) as Record<string, unknown>[]).map(
+      toAssignmentRow,
+    ),
   );
-  const invitations = ((invitationsRes.data ?? []) as Record<string, unknown>[]).map(toInvitationRow);
-  const joinCodes = ((joinCodesRes.data ?? []) as Record<string, unknown>[]).map(toJoinCodeRow);
+  const invitations = (
+    (invitationsRes.data ?? []) as Record<string, unknown>[]
+  ).map(toInvitationRow);
+  const joinCodes = (
+    (joinCodesRes.data ?? []) as Record<string, unknown>[]
+  ).map(toJoinCodeRow);
   const scheduleRangeStart = toIsoDate(addDays(new Date(), -7));
   const scheduleRangeEnd = toIsoDate(addDays(new Date(), 90));
-  const events = enrichClubEvents((eventsRes.data ?? []) as Record<string, unknown>[], cohorts, scheduleRangeStart, scheduleRangeEnd);
-  const eventOccurrences = buildClubEventOccurrences(events, scheduleRangeStart, scheduleRangeEnd);
+  const events = enrichClubEvents(
+    (eventsRes.data ?? []) as Record<string, unknown>[],
+    cohorts,
+    scheduleRangeStart,
+    scheduleRangeEnd,
+  );
+  const eventOccurrences = buildClubEventOccurrences(
+    events,
+    scheduleRangeStart,
+    scheduleRangeEnd,
+  );
   const attempts = await enrichAttempts(
     supabase,
     (attemptsRes.data ?? []) as Record<string, unknown>[],
     cohorts,
     assignments,
-    members
+    members,
   );
-  const reviewQueue = buildReviewQueue((reviewsRes.data ?? []) as Record<string, unknown>[], attempts);
-  const attendanceByUser = new Map(members.map((member) => [member.userId, null]));
-  const completionByUser = buildCompletionByUser(members, assignments, attempts);
+  const reviewQueue = buildReviewQueue(
+    (reviewsRes.data ?? []) as Record<string, unknown>[],
+    attempts,
+  );
+  const attendanceByUser = new Map(
+    members.map((member) => [member.userId, null]),
+  );
+  const completionByUser = buildCompletionByUser(
+    members,
+    assignments,
+    attempts,
+  );
 
   return {
     club: toClubListRow(clubRow as Record<string, unknown>),
     kpis: buildClubDashboardKpis({
-      studentCount: members.filter((member) => member.role === "student" && member.status === "active").length,
+      studentCount: members.filter(
+        (member) => member.role === "student" && member.status === "active",
+      ).length,
       cohortCount: cohorts.length,
-      attendanceRate: numberOrNull((clubRow as Record<string, unknown>).attendance_rate_30d),
+      attendanceRate: numberOrNull(
+        (clubRow as Record<string, unknown>).attendance_rate_30d,
+      ),
       assignments,
       attempts,
       reviewQueue,
@@ -576,12 +651,20 @@ export async function getAdminClubDetail(
   };
 }
 
-async function enrichMembers(supabase: Supabase, rows: Record<string, unknown>[]): Promise<AdminClubMember[]> {
+async function enrichMembers(
+  supabase: Supabase,
+  rows: Record<string, unknown>[],
+): Promise<AdminClubMember[]> {
   const userIds = rows.map((row) => row.user_id as string).filter(Boolean);
   const profilesRes = userIds.length
-    ? await supabase.from("profiles").select("id, email, display_name").in("id", userIds)
+    ? await supabase
+        .from("profiles")
+        .select("id, email, display_name")
+        .in("id", userIds)
     : { data: [], error: null };
-  const profilesById = new Map((profilesRes.data ?? []).map((profile) => [profile.id as string, profile]));
+  const profilesById = new Map(
+    (profilesRes.data ?? []).map((profile) => [profile.id as string, profile]),
+  );
 
   return rows.map((row) => {
     const profile = profilesById.get(row.user_id as string);
@@ -602,16 +685,21 @@ async function enrichAttempts(
   rows: Record<string, unknown>[],
   cohorts: AdminClassListRow[],
   assignments: AdminClubAssignmentRow[],
-  members: AdminClubMember[]
+  members: AdminClubMember[],
 ): Promise<AdminClubPerformanceAttempt[]> {
   const memberById = new Map(members.map((member) => [member.userId, member]));
   const cohortById = new Map(cohorts.map((cohort) => [cohort.id, cohort]));
-  const assignmentById = new Map(assignments.map((assignment) => [assignment.id, assignment]));
+  const assignmentById = new Map(
+    assignments.map((assignment) => [assignment.id, assignment]),
+  );
   const missingUserIds = rows
     .map((row) => row.user_id as string)
     .filter((userId) => userId && !memberById.has(userId));
   const profilesRes = missingUserIds.length
-    ? await supabase.from("profiles").select("id, email, display_name").in("id", missingUserIds)
+    ? await supabase
+        .from("profiles")
+        .select("id, email, display_name")
+        .in("id", missingUserIds)
     : { data: [], error: null };
   for (const profile of profilesRes.data ?? []) {
     memberById.set(profile.id as string, {
@@ -626,31 +714,44 @@ async function enrichAttempts(
   }
 
   return rows.map((row) => {
-    const cohort = row.class_id ? cohortById.get(row.class_id as string) : undefined;
-    const assignment = row.assignment_id ? assignmentById.get(row.assignment_id as string) : undefined;
+    const cohort = row.class_id
+      ? cohortById.get(row.class_id as string)
+      : undefined;
+    const assignment = row.assignment_id
+      ? assignmentById.get(row.assignment_id as string)
+      : undefined;
     return {
       id: String(row.id),
       userId: String(row.user_id),
-      studentName: memberById.get(row.user_id as string)?.displayName ?? "Student",
+      studentName:
+        memberById.get(row.user_id as string)?.displayName ?? "Student",
       clubId: (row.club_id as string | null | undefined) ?? null,
       classId: (row.class_id as string | null | undefined) ?? null,
       classTitle: cohort?.title ?? null,
       assignmentId: (row.assignment_id as string | null | undefined) ?? null,
       assignmentTitle: assignment?.title ?? null,
-      practiceTrack: row.practice_track === "speaking" || row.practice_track === "mun" ? row.practice_track : "debate",
+      practiceTrack:
+        row.practice_track === "speaking" || row.practice_track === "mun"
+          ? row.practice_track
+          : "debate",
       format: (row.format as string | null | undefined) ?? null,
       topicTitle: (row.topic_title as string | null | undefined) ?? null,
       durationSeconds: numberOrNull(row.duration_seconds),
       wordCount: numberOrNull(row.word_count),
       overallScore: numberOrNull(row.overall_score),
       overallBand: (row.overall_band as string | null | undefined) ?? null,
-      skillScores: (row.skill_scores && typeof row.skill_scores === "object" ? row.skill_scores : {}) as Record<string, number>,
+      skillScores: (row.skill_scores && typeof row.skill_scores === "object"
+        ? row.skill_scores
+        : {}) as Record<string, number>,
       occurredAt: String(row.occurred_at ?? new Date().toISOString()),
     };
   });
 }
 
-function buildReviewQueue(rows: Record<string, unknown>[], attempts: AdminClubPerformanceAttempt[]): AdminClubReviewQueueItem[] {
+function buildReviewQueue(
+  rows: Record<string, unknown>[],
+  attempts: AdminClubPerformanceAttempt[],
+): AdminClubReviewQueueItem[] {
   const attemptById = new Map(attempts.map((attempt) => [attempt.id, attempt]));
   const existing = rows.map((row) => {
     const attempt = attemptById.get(row.performance_attempt_id as string);
@@ -659,10 +760,13 @@ function buildReviewQueue(rows: Record<string, unknown>[], attempts: AdminClubPe
       id: String(row.id),
       attemptId: String(row.performance_attempt_id),
       studentName: attempt?.studentName ?? "Student",
-      title: attempt?.assignmentTitle ?? attempt?.topicTitle ?? "Practice attempt",
+      title:
+        attempt?.assignmentTitle ?? attempt?.topicTitle ?? "Practice attempt",
       cohort: attempt?.classTitle ?? null,
       priority: score < 60 ? "high" : score < 72 ? "medium" : "low",
-      submittedAt: attempt?.occurredAt ?? String(row.created_at ?? new Date().toISOString()),
+      submittedAt:
+        attempt?.occurredAt ??
+        String(row.created_at ?? new Date().toISOString()),
       status: row.status === "resolved" ? "resolved" : "open",
     } satisfies AdminClubReviewQueueItem;
   });
@@ -670,16 +774,20 @@ function buildReviewQueue(rows: Record<string, unknown>[], attempts: AdminClubPe
   const lowScoreAttempts = attempts
     .filter((attempt) => (attempt.overallScore ?? 100) < 72)
     .slice(0, Math.max(0, 6 - existing.length))
-    .map((attempt) => ({
-      id: `${attempt.id}-auto-review`,
-      attemptId: attempt.id,
-      studentName: attempt.studentName,
-      title: attempt.assignmentTitle ?? attempt.topicTitle ?? "Practice attempt",
-      cohort: attempt.classTitle,
-      priority: (attempt.overallScore ?? 0) < 60 ? "high" : "medium",
-      submittedAt: attempt.occurredAt,
-      status: "open",
-    }) satisfies AdminClubReviewQueueItem);
+    .map(
+      (attempt) =>
+        ({
+          id: `${attempt.id}-auto-review`,
+          attemptId: attempt.id,
+          studentName: attempt.studentName,
+          title:
+            attempt.assignmentTitle ?? attempt.topicTitle ?? "Practice attempt",
+          cohort: attempt.classTitle,
+          priority: (attempt.overallScore ?? 0) < 60 ? "high" : "medium",
+          submittedAt: attempt.occurredAt,
+          status: "open",
+        }) satisfies AdminClubReviewQueueItem,
+    );
 
   return [...existing, ...lowScoreAttempts];
 }
@@ -687,13 +795,18 @@ function buildReviewQueue(rows: Record<string, unknown>[], attempts: AdminClubPe
 function buildCompletionByUser(
   members: AdminClubMember[],
   assignments: AdminClubAssignmentRow[],
-  attempts: AdminClubPerformanceAttempt[]
+  attempts: AdminClubPerformanceAttempt[],
 ) {
-  const activeAssignments = assignments.filter((assignment) => assignment.status === "active");
+  const activeAssignments = assignments.filter(
+    (assignment) => assignment.status === "active",
+  );
   const attemptsByUser = new Map<string, number>();
   for (const attempt of attempts) {
     if (!attempt.assignmentId) continue;
-    attemptsByUser.set(attempt.userId, (attemptsByUser.get(attempt.userId) ?? 0) + 1);
+    attemptsByUser.set(
+      attempt.userId,
+      (attemptsByUser.get(attempt.userId) ?? 0) + 1,
+    );
   }
 
   return new Map(
@@ -702,9 +815,13 @@ function buildCompletionByUser(
       .map((member) => [
         member.userId,
         activeAssignments.length
-          ? Math.round(((attemptsByUser.get(member.userId) ?? 0) / activeAssignments.length) * 100)
+          ? Math.round(
+              ((attemptsByUser.get(member.userId) ?? 0) /
+                activeAssignments.length) *
+                100,
+            )
           : null,
-      ])
+      ]),
   );
 }
 
@@ -720,462 +837,4 @@ function toIsoDate(date: Date) {
 
 function normalizeTime(value: string) {
   return value.length === 5 ? `${value}:00` : value;
-}
-
-const DEV_CLUB_IDS: Record<ClubQaState, string> = {
-  empty: "00000000-0000-4c00-8000-000000000001",
-  active: "00000000-0000-4c00-8000-000000000002",
-  high: "00000000-0000-4c00-8000-000000000003",
-  low: "00000000-0000-4c00-8000-000000000004",
-  mixed: "00000000-0000-4c00-8000-000000000005",
-};
-
-function devClub(state: ClubQaState): AdminClubListRow {
-  const config = {
-    empty: ["DL-EMPTY", "Empty Club QA", 0, 0, 0, null, null, null, 0],
-    active: ["HDC-2026", "Hanoi Debate Club", 3, 72, 4, 78, 86, 72.4, 28],
-    high: ["HDC-HIGH", "High Performing Cohort", 2, 48, 3, 96, 94, 84.6, 4],
-    low: ["HDC-LOW", "Low Completion Cohort", 2, 52, 3, 38, 71, 61.8, 19],
-    mixed: ["HDC-MIX", "Mixed Attendance Cohort", 4, 96, 5, 69, 78, 70.3, 16],
-  }[state];
-
-  return {
-    id: DEV_CLUB_IDS[state],
-    code: String(config[0]),
-    name: String(config[1]),
-    organizationType: "school",
-    clubType: "school",
-    city: "Hanoi",
-    country: "VN",
-    status: "active",
-    timezone: "Asia/Ho_Chi_Minh",
-    logoUrl: null,
-    logoStoragePath: null,
-    facebookUrl: "https://facebook.com/hanoidebateclub",
-    instagramUrl: "https://instagram.com/hanoidebateclub",
-    threadsUrl: null,
-    classCount: Number(config[2]),
-    studentCount: Number(config[3]),
-    coachCount: Number(config[4]),
-    assignmentCount: state === "empty" ? 0 : 12,
-    upcomingEventCount: state === "empty" ? 0 : 5,
-    completionRate30d: config[5] as number | null,
-    attendanceRate30d: config[6] as number | null,
-    averageScore30d: config[7] as number | null,
-    reviewQueueCount: Number(config[8]),
-    createdAt: "2026-05-01T00:00:00.000Z",
-    updatedAt: "2026-05-15T00:00:00.000Z",
-  };
-}
-
-function getDevClubsPageData(state: ClubQaState): AdminClubsPageData {
-  const clubs = state === "empty"
-    ? [devClub("empty")]
-    : [devClub(state), devClub("high"), devClub("low"), devClub("mixed")];
-
-  return {
-    clubs,
-    kpis: buildPageKpis(clubs),
-    qaEnabled: true,
-    qaState: state,
-    loadError: null,
-  };
-}
-
-function getDevClubDetail(clubId: string, state: ClubQaState): AdminClubDetailData {
-  const resolvedState = (Object.values(DEV_CLUB_IDS).includes(clubId) ?
-    (Object.entries(DEV_CLUB_IDS).find(([, id]) => id === clubId)?.[0] as ClubQaState) :
-    state) ?? state;
-  const club = devClub(resolvedState);
-  const cohorts = buildDevCohorts(resolvedState, club.id);
-  const members = buildDevMembers(resolvedState);
-  const assignments = buildDevAssignments(resolvedState, club.id, cohorts);
-  const attempts = buildDevAttempts(resolvedState, club.id, cohorts, assignments, members);
-  const reviewQueue = buildReviewQueue([], attempts);
-  const events = buildDevEvents(resolvedState, club.id, cohorts);
-  const eventOccurrences = buildClubEventOccurrences(events, "2026-05-01", "2026-08-31");
-  const completionByUser = buildCompletionByUser(members, assignments, attempts);
-  const attendanceByUser = new Map(
-    members
-      .filter((member) => member.role === "student")
-      .map((member, index) => [
-        member.userId,
-        resolvedState === "low"
-          ? 58 + (index % 4) * 5
-          : resolvedState === "mixed"
-            ? 62 + (index % 6) * 6
-            : resolvedState === "high"
-              ? 90 + (index % 4) * 2
-              : 82 + (index % 5) * 3,
-      ])
-  );
-
-  return {
-    club,
-    kpis: buildClubDashboardKpis({
-      studentCount: club.studentCount,
-      cohortCount: cohorts.length,
-      attendanceRate: club.attendanceRate30d,
-      assignments,
-      attempts,
-      reviewQueue,
-    }),
-    members,
-    cohorts,
-    assignments,
-    attempts,
-    reviewQueue,
-    atRiskStudents: buildAtRiskStudents({ attempts, studentAttendance: attendanceByUser, studentCompletion: completionByUser }),
-    weakestSkills: buildWeakestSkills(attempts),
-    trend: buildClubTrend(attempts, assignments, new Date("2026-05-15T00:00:00.000Z")),
-    invitations: buildDevInvitations(resolvedState, club.id),
-    joinCodes: buildDevJoinCodes(resolvedState, club.id),
-    events,
-    eventOccurrences,
-    leaderboardSafety: {
-      ...makeEmptyLeaderboardSafetyAudit(),
-      guardrails: getLeaderboardRolloutGuardrailStatus({
-        suppressionRate:
-          resolvedState === "low" ? 0.1 : resolvedState === "mixed" ? 0.05 : 0.01,
-        optOutRate: resolvedState === "low" ? 0.14 : 0.04,
-        orgJoinAbuseRate: resolvedState === "mixed" ? 0.06 : 0.01,
-        churnRate: resolvedState === "low" ? 0.12 : 0.05,
-      }),
-      flags: resolvedState === "empty"
-        ? []
-        : [
-            {
-              id: "00000000-0000-4c70-8000-000000000001",
-              xpEventId: "00000000-0000-4c71-8000-000000000001",
-              seasonId: "00000000-0000-4c72-8000-000000000001",
-              userId: members[0]?.userId ?? "00000000-0000-4000-8000-000000000301",
-              displayName: members[0]?.displayName ?? "Maya Kim",
-              flagType: "low_duration",
-              severity: "medium",
-              status: "suppressed_from_leaderboards",
-              reason: "Session duration was below the minimum effort threshold.",
-              source: "system",
-              createdAt: "2026-05-29T08:00:00.000Z",
-              resolvedAt: null,
-            },
-            {
-              id: "00000000-0000-4c70-8000-000000000002",
-              xpEventId: "00000000-0000-4c71-8000-000000000002",
-              seasonId: "00000000-0000-4c72-8000-000000000001",
-              userId: members[1]?.userId ?? "00000000-0000-4000-8000-000000000302",
-              displayName: members[1]?.displayName ?? "Aisha Nguyen",
-              flagType: "missing_quality_metadata",
-              severity: "low",
-              status: "flagged_pending_review",
-              reason: "Missing quality metadata for scored leaderboard XP.",
-              source: "system",
-              createdAt: "2026-05-28T11:00:00.000Z",
-              resolvedAt: null,
-            },
-          ],
-      audit: resolvedState === "empty"
-        ? []
-        : [
-            {
-              id: "00000000-0000-4c73-8000-000000000001",
-              eventType: "leaderboard_abuse_flag_created",
-              actorUserId: null,
-              targetUserId: members[0]?.userId ?? null,
-              clubId: club.id,
-              xpEventId: "00000000-0000-4c71-8000-000000000001",
-              flagId: "00000000-0000-4c70-8000-000000000001",
-              metadata: { flagType: "low_duration", status: "suppressed_from_leaderboards" },
-              createdAt: "2026-05-29T08:00:00.000Z",
-            },
-          ],
-    },
-    organizationJoinCodesEnabled: ORGANIZATION_JOIN_CODES_ENABLED,
-    qaEnabled: true,
-    qaState: resolvedState,
-    loadError: null,
-  };
-}
-
-function buildDevJoinCodes(state: ClubQaState, clubId: string): AdminClubJoinCode[] {
-  if (state === "empty") return [];
-  return [
-    {
-      id: "00000000-0000-4c16-8000-000000000001",
-      clubId,
-      status: "pending",
-      role: "student",
-      expiresAt: "2026-06-12T09:00:00.000Z",
-      issuedBy: "00000000-0000-4000-8000-000000000001",
-      redeemedBy: null,
-      redeemedAt: null,
-      createdAt: "2026-05-29T09:00:00.000Z",
-      updatedAt: "2026-05-29T09:00:00.000Z",
-    },
-    {
-      id: "00000000-0000-4c16-8000-000000000002",
-      clubId,
-      status: "redeemed",
-      role: "student",
-      expiresAt: "2026-06-10T09:00:00.000Z",
-      issuedBy: "00000000-0000-4000-8000-000000000001",
-      redeemedBy: "00000000-0000-4000-8000-000000000301",
-      redeemedAt: "2026-05-28T12:00:00.000Z",
-      createdAt: "2026-05-27T09:00:00.000Z",
-      updatedAt: "2026-05-28T12:00:00.000Z",
-    },
-  ];
-}
-
-function buildDevInvitations(state: ClubQaState, clubId: string): AdminClubInvitation[] {
-  if (state === "empty") return [];
-  return [
-    {
-      id: "00000000-0000-4c15-8000-000000000001",
-      clubId,
-      email: "new.coach@debatelab.vn",
-      role: "teacher",
-      status: "pending",
-      expiresAt: "2026-05-30T00:00:00.000Z",
-      invitedBy: "00000000-0000-4000-8000-000000000001",
-      acceptedBy: null,
-      acceptedAt: null,
-      lastSentAt: "2026-05-15T00:00:00.000Z",
-      createdAt: "2026-05-15T00:00:00.000Z",
-      updatedAt: "2026-05-15T00:00:00.000Z",
-    },
-  ];
-}
-
-function buildDevEvents(
-  state: ClubQaState,
-  clubId: string,
-  cohorts: AdminClassListRow[]
-): AdminClubEvent[] {
-  if (state === "empty") return [];
-  return [
-    {
-      id: "00000000-0000-4c60-8000-000000000001",
-      clubId,
-      classId: cohorts[0]?.id ?? null,
-      classTitle: cohorts[0]?.title ?? null,
-      title: "Weekly sparring round",
-      eventType: "meeting",
-      room: "Room 204",
-      location: "Ha Noi campus",
-      startDate: "2026-05-18",
-      endDate: "2026-07-31",
-      startTime: "17:00:00",
-      endTime: "18:30:00",
-      timezone: DEFAULT_CLASS_TIMEZONE,
-      recurrenceRule: normalizeRecurrenceRule({
-        frequency: "weekly",
-        interval: 1,
-        weekdays: ["MO"],
-        endMode: "on_date",
-        until: "2026-07-31",
-        count: null,
-      }, "2026-05-18"),
-      recurrenceSummary: "Weekly on Mon from May 18, 2026 until Jul 31, 2026",
-      externalCalendarUrl: null,
-      externalProvider: null,
-      status: "active",
-      createdAt: "2026-05-10T00:00:00.000Z",
-      updatedAt: "2026-05-15T00:00:00.000Z",
-      occurrenceCount: 11,
-      nextOccurrenceDate: "2026-05-18",
-    },
-    {
-      id: "00000000-0000-4c60-8000-000000000002",
-      clubId,
-      classId: null,
-      classTitle: null,
-      title: "Parent showcase",
-      eventType: "social",
-      room: "Auditorium",
-      location: "Ha Noi campus",
-      startDate: "2026-06-06",
-      endDate: null,
-      startTime: "09:00:00",
-      endTime: "11:00:00",
-      timezone: DEFAULT_CLASS_TIMEZONE,
-      recurrenceRule: normalizeRecurrenceRule({ frequency: "none" }, "2026-06-06"),
-      recurrenceSummary: "Does not repeat",
-      externalCalendarUrl: null,
-      externalProvider: null,
-      status: "active",
-      createdAt: "2026-05-12T00:00:00.000Z",
-      updatedAt: "2026-05-15T00:00:00.000Z",
-      occurrenceCount: 1,
-      nextOccurrenceDate: "2026-06-06",
-    },
-  ];
-}
-
-function buildDevCohorts(state: ClubQaState, clubId: string): AdminClassListRow[] {
-  if (state === "empty") return [];
-  const rows = [
-    ["00000000-0000-4500-8000-000000000201", "DEB-A", "Cohort A", "Advanced debate training.", "Advanced", 24, 88],
-    ["00000000-0000-4500-8000-000000000202", "DEB-B", "Cohort B", "Policy case construction.", "Intermediate", 24, 82],
-    ["00000000-0000-4500-8000-000000000203", "MUN-C", "Cohort C", "MUN diplomacy and speeches.", "Beginner", 24, state === "low" ? 63 : 79],
-  ] as const;
-
-  return rows.slice(0, state === "high" || state === "low" ? 2 : 3).map(([id, code, title, description, level, students, attendance]) => ({
-    id,
-    code,
-    title,
-    description,
-    programType: "debate",
-    gradeLevel: level,
-    status: "active",
-    startDate: "2026-05-01",
-    endDate: "2026-07-31",
-    meetingSchedule: "Tue & Thu 17:00 - 18:30",
-    room: "Room 204",
-    maxStudents: students,
-    studentCount: students,
-    assignedCourseCount: 3,
-    attendanceRate30d: attendance,
-    sessionCount30d: 8,
-    scheduleCount: 2,
-    createdAt: "2026-05-01T00:00:00.000Z",
-    updatedAt: "2026-05-15T00:00:00.000Z",
-  })).map((row) => ({ ...row, metadata: { clubId } }) as AdminClassListRow);
-}
-
-function buildDevMembers(state: ClubQaState): AdminClubMember[] {
-  if (state === "empty") return [
-    {
-      id: "00000000-0000-4c10-8000-000000000001",
-      userId: "00000000-0000-4000-8000-000000000001",
-      displayName: "Coach Tran",
-      email: "coach@debatelab.vn",
-      role: "owner",
-      status: "active",
-      joinedAt: "2026-05-01T00:00:00.000Z",
-    },
-  ];
-
-  const names = [
-    "Nguyen Minh Anh",
-    "Le Gia Bao",
-    "Tran Phuong Linh",
-    "Doan Nam Khanh",
-    "Vu Ha My",
-    "Nguyen Hoang Nam",
-    "Pham Khanh Linh",
-    "Le Minh Khang",
-  ];
-  const students = names.map((name, index) => ({
-    id: `00000000-0000-4c10-8000-${String(index + 10).padStart(12, "0")}`,
-    userId: `00000000-0000-4000-8000-${String(index + 210).padStart(12, "0")}`,
-    displayName: name,
-    email: `${name.toLowerCase().replace(/\s+/g, ".")}@student.vn`,
-    role: "student",
-    status: "active",
-    joinedAt: `2026-05-${String(1 + index).padStart(2, "0")}T00:00:00.000Z`,
-  }) satisfies AdminClubMember);
-
-  return [
-    {
-      id: "00000000-0000-4c10-8000-000000000001",
-      userId: "00000000-0000-4000-8000-000000000001",
-      displayName: "Coach Tran",
-      email: "coach@debatelab.vn",
-      role: "owner",
-      status: "active",
-      joinedAt: "2026-05-01T00:00:00.000Z",
-    },
-    {
-      id: "00000000-0000-4c10-8000-000000000002",
-      userId: "00000000-0000-4000-8000-000000000002",
-      displayName: "Coach Linh",
-      email: "linh@debatelab.vn",
-      role: "teacher",
-      status: "active",
-      joinedAt: "2026-05-01T00:00:00.000Z",
-    },
-    ...students,
-  ];
-}
-
-function buildDevAssignments(
-  state: ClubQaState,
-  clubId: string,
-  cohorts: AdminClassListRow[]
-): AdminClubAssignmentRow[] {
-  if (state === "empty") return [];
-  const completion = state === "high" ? [24, 23, 24, 22, 24] : state === "low" ? [8, 11, 15, 7, 13] : [18, 21, 24, 24, 24];
-  const titles = ["Policy Debate - Case", "Rebuttal Practice", "Opening Statement Drill", "Cross-Examination Drill", "Logical Fallacies Quiz"];
-  return titles.map((title, index) => ({
-    id: `00000000-0000-4c20-8000-${String(index + 1).padStart(12, "0")}`,
-    clubId,
-    classId: cohorts[index % Math.max(1, cohorts.length)]?.id ?? null,
-    classTitle: cohorts[index % Math.max(1, cohorts.length)]?.title ?? null,
-    title,
-    description: index === 0 ? "Draft a two-contention case and record a two-minute defense." : "Submit one scored practice attempt.",
-    assignmentType: index === 4 ? "quiz" : "practice",
-    assignedTrack: index === 2 ? "speaking" : "debate",
-    topicTitle: title,
-    topicCategory: "Debate",
-    dueAt: `2026-05-${String(18 + index).padStart(2, "0")}T10:00:00.000Z`,
-    requiredAttempts: 1,
-    rubricKey: index === 2 ? "speaking_v1" : "debate_v1",
-    rubricVersion: 1,
-    status: "active",
-    submissionCount: completion[index] ?? 0,
-    uniqueSubmitters: completion[index] ?? 0,
-    averageScore: state === "high" ? 82 + index : state === "low" ? 58 + index * 2 : 68 + index * 3,
-    isHomework: index === 0,
-    submissionTextEnabled: true,
-    submissionFilesEnabled: index === 0,
-    submissionMaxFiles: index === 0 ? 3 : 0,
-    submissionMaxFileMb: 10,
-    submissionAllowedExt: index === 0 ? ["pdf", "docx", "png", "jpg"] : null,
-    submissionInstructions: index === 0 ? "Upload your case brief and include a short reflection." : null,
-    createdAt: "2026-05-01T00:00:00.000Z",
-    updatedAt: "2026-05-15T00:00:00.000Z",
-  }));
-}
-
-function buildDevAttempts(
-  state: ClubQaState,
-  clubId: string,
-  cohorts: AdminClassListRow[],
-  assignments: AdminClubAssignmentRow[],
-  members: AdminClubMember[]
-): AdminClubPerformanceAttempt[] {
-  const students = members.filter((member) => member.role === "student");
-  const base = state === "high" ? 82 : state === "low" ? 58 : 68;
-  return assignments.flatMap((assignment, assignmentIndex) =>
-    students.slice(0, Math.min(students.length, assignment.uniqueSubmitters)).map((student, studentIndex) => {
-      const cohort = cohorts[(studentIndex + assignmentIndex) % Math.max(1, cohorts.length)];
-      const score = Math.max(45, Math.min(96, base + (studentIndex % 6) * 2 + assignmentIndex - (state === "mixed" && studentIndex % 3 === 0 ? 10 : 0)));
-      return {
-        id: `00000000-0000-4c30-8000-${String(assignmentIndex * 100 + studentIndex + 1).padStart(12, "0")}`,
-        userId: student.userId,
-        studentName: student.displayName,
-        clubId,
-        classId: cohort?.id ?? null,
-        classTitle: cohort?.title ?? null,
-        assignmentId: assignment.id,
-        assignmentTitle: assignment.title,
-        practiceTrack: assignment.assignedTrack,
-        format: assignment.assignedTrack === "speaking" ? "quick" : "full",
-        topicTitle: assignment.topicTitle,
-        durationSeconds: 420 + studentIndex * 18,
-        wordCount: 540 + studentIndex * 21,
-        overallScore: score,
-        overallBand: score >= 85 ? "Proficient" : score >= 70 ? "Competent" : score >= 60 ? "Developing" : "Novice",
-        skillScores: {
-          rebuttal: Math.max(45, score - 14),
-          crossExamination: Math.max(45, score - 10),
-          logic: Math.max(45, score - 6),
-          evidence: Math.max(45, score - 4),
-          clarity: Math.min(96, score + 3),
-          delivery: Math.min(96, score + 5),
-        },
-        occurredAt: `2026-05-${String(4 + assignmentIndex * 2).padStart(2, "0")}T0${studentIndex % 9}:00:00.000Z`,
-      } satisfies AdminClubPerformanceAttempt;
-    })
-  );
 }

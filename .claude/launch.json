@@ -11,8 +11,7 @@
       "name": "web-admin",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--workspace", "@thinkfy/web", "--", "--port", "3005"],
-      "port": 3005,
-      "env": { "DEV_ADMIN_BYPASS": "true" }
+      "port": 3005
     },
     {
       "name": "lottie",

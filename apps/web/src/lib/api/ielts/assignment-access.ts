@@ -5,32 +5,25 @@
  * `can_manage_class` / `can_view_class`), but the teacher-facing loaders also
  * gate explicitly so a club *student* can't open a manager view and read the
  * RLS-narrowed slice as if it were a dashboard. Mirrors `verifyClubManager` in
- * `app/actions/admin-clubs.ts`, including the dev bypasses, but on the typed
+ * `app/actions/admin-clubs.ts`, but on the typed
  * client.
  */
 import "server-only";
 import { createTypedServerClient } from "@/lib/supabase/server";
-import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
 
-export type IeltsServerClient = Awaited<ReturnType<typeof createTypedServerClient>>;
+export type IeltsServerClient = Awaited<
+  ReturnType<typeof createTypedServerClient>
+>;
 
-async function devBypassUserId(): Promise<string | null> {
-  if (isDevAdminBypassEnabled() || (await getDevAuthBypassUserFromServerContext())) {
-    return DEV_ADMIN_PROFILE.id;
-  }
-  return null;
-}
-
-/** The caller's user id, or the dev-bypass id; throws when unauthenticated. */
-export async function getSessionUserId(supabase: IeltsServerClient): Promise<string> {
+/** The caller's user id; throws when unauthenticated. */
+export async function getSessionUserId(
+  supabase: IeltsServerClient,
+): Promise<string> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) return user.id;
-  const bypass = await devBypassUserId();
-  if (bypass) return bypass;
   throw new Error("Not authenticated");
 }
 
@@ -48,8 +41,6 @@ export async function requireClubManager(
   } = await supabase.auth.getUser();
 
   if (!user) {
-    const bypass = await devBypassUserId();
-    if (bypass) return bypass;
     throw new Error("Unauthorized");
   }
 
@@ -77,7 +68,5 @@ export async function requireClubManager(
   ) {
     return user.id;
   }
-
-  if (isDevAdminBypassEnabled()) return user.id;
   throw new Error("Forbidden");
 }

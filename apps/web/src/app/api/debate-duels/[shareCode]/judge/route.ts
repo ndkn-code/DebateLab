@@ -21,7 +21,7 @@ export const maxDuration = 60;
  */
 export async function POST(
   req: NextRequest,
-  context: { params: Promise<{ shareCode: string }> }
+  context: { params: Promise<{ shareCode: string }> },
 ) {
   try {
     // Server-to-server watchdog handoff: a Bearer secret stands in for a user
@@ -35,7 +35,7 @@ export async function POST(
       return NextResponse.json(result);
     }
 
-    const auth = await requireRequestAuth(req, { allowDevBypass: false });
+    const auth = await requireRequestAuth(req);
 
     if (!auth.ok) {
       return auth.errorResponse;
@@ -45,7 +45,7 @@ export async function POST(
     if (!(await canAccessDuels(supabase, user.id))) {
       return NextResponse.json(
         { error: "1v1 Debate is coming soon." },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -60,7 +60,7 @@ export async function POST(
         {
           status: 429,
           headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-        }
+        },
       );
     }
 

@@ -1,19 +1,20 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { OrganizationAffiliationSummary } from "@/lib/leaderboards/types";
-import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
-import {
-  normalizeOrganizationRole,
-} from "@/lib/organizations/compatibility";
+import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
 import type { OrganizationRole } from "@/lib/organizations/contracts";
 
-type Supabase = SupabaseClient | {
-  from: SupabaseClient["from"];
-};
+type Supabase =
+  | SupabaseClient
+  | {
+      from: SupabaseClient["from"];
+    };
 
 export type StoredOrganizationRole = OrganizationRole | "coach";
 
 /** Canonical role at the application boundary; legacy coach is read as teacher. */
-export function canonicalOrganizationRole(value: unknown): OrganizationRole | null {
+export function canonicalOrganizationRole(
+  value: unknown,
+): OrganizationRole | null {
   return normalizeOrganizationRole(value);
 }
 
@@ -36,27 +37,10 @@ function subtitleForClub(row: {
   return row.city ? `${type} - ${row.city}` : type;
 }
 
-export function getDevOrganizationAffiliation(): OrganizationAffiliationSummary {
-  return {
-    organizationId: "00000000-0000-4c00-8000-000000000002",
-    organizationType: "club",
-    name: "DebateLab Academy",
-    subtitle: "School - Ho Chi Minh City",
-    logoUrl: null,
-    role: "student",
-    joinedAt: new Date("2026-05-01T09:00:00.000Z").toISOString(),
-    verificationMethod: "join_code",
-  };
-}
-
 export async function getUserOrganizationAffiliation(
   supabase: Supabase,
-  userId: string
+  userId: string,
 ): Promise<OrganizationAffiliationSummary | null> {
-  if (isDevAdminBypassEnabled() && userId.startsWith("00000000-0000-4000-8000-")) {
-    return getDevOrganizationAffiliation();
-  }
-
   const { data: membership, error: membershipError } = await supabase
     .from("club_memberships")
     .select("club_id, role, joined_at, metadata")

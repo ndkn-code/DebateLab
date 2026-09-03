@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { canAccessDuels } from "@/lib/auth/admin";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { getActivePracticeTopics } from "@/lib/practice-topics/catalog";
 import { coercePracticeLanguage } from "@/lib/practice-language";
 import { DuelMatchmakingPage } from "@/components/debates/duel-matchmaking-page";
@@ -21,11 +20,8 @@ export default async function DebateMatchmakingRoute({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) {
+  if (!user) {
     redirect("/auth/login");
   }
 
@@ -36,7 +32,7 @@ export default async function DebateMatchmakingRoute({
   const { locale } = await params;
   const initialTopics = await getActivePracticeTopics(
     coercePracticeLanguage(locale),
-    { allowAdminFallback: true }
+    { allowAdminFallback: true },
   );
 
   return <DuelMatchmakingPage initialTopics={initialTopics} />;

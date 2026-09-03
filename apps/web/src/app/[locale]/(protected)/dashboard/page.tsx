@@ -6,8 +6,6 @@ import { getDashboardData } from "@/lib/api/dashboard";
 import { SUBJECT_COOKIE_NAME, coerceSubject } from "@/lib/subject";
 import { DashboardContent } from "@/components/dashboard/dashboard-content";
 import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
-import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { getTimeGreetingKey } from "@/components/dashboard/plan-copy";
 import { TEACHER_WORKSPACE_V1 } from "@/lib/features";
 import { loadTeacherWorkspaceCapability } from "@/lib/api/class-lms/teacher-workspace-capability";
@@ -17,20 +15,18 @@ export const metadata = {
 };
 
 async function DashboardPayload() {
-  const [supabase, cookieStore] = await Promise.all([createClient(), cookies()]);
+  const [supabase, cookieStore] = await Promise.all([
+    createClient(),
+    cookies(),
+  ]);
 
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) {
-    redirect("/auth/login");
-  }
+  if (!user) redirect("/auth/login");
 
-  const activeUserId = user?.id ?? devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id;
+  const activeUserId = user.id;
   const timezone = cookieStore.get("thinkfy_timezone")?.value;
   const subject = coerceSubject(cookieStore.get(SUBJECT_COOKIE_NAME)?.value);
   const now = new Date();
@@ -42,7 +38,7 @@ async function DashboardPayload() {
   const greetingKey = getTimeGreetingKey(now, timezone);
 
   // Get preferences for welcome banner check
-  const profile = data.profile ?? (devAuthBypassUser ? DEV_ADMIN_PROFILE : null);
+  const profile = data.profile;
 
   // The organization membership is the source of truth for instructional
   // personas. Owners and organization admins retain an explicit mode switch;
@@ -62,7 +58,6 @@ async function DashboardPayload() {
     profile?.display_name ||
     user?.user_metadata?.display_name ||
     user?.email?.split("@")[0] ||
-    devAuthBypassUser?.email?.split("@")[0] ||
     "Debater";
 
   // Check if first dashboard visit after onboarding

@@ -9,17 +9,11 @@ import {
   type SettingsProfilePrivacy,
 } from "@/lib/settings";
 import { SettingsContent } from "@/components/settings/settings-content";
-import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import {
   LEADERBOARD_PRIVACY_CONTROLS_ENABLED,
   ORGANIZATION_JOIN_CODES_ENABLED,
 } from "@/lib/features";
-import {
-  getDevOrganizationAffiliation,
-  getUserOrganizationAffiliation,
-} from "@/lib/organizations/membership";
-import { getDefaultLeaderboardPrivacySettings } from "@/lib/leaderboards/social-trust";
+import { getUserOrganizationAffiliation } from "@/lib/organizations/membership";
 import { getLeaderboardPrivacySettings } from "@/lib/leaderboards/social-trust-server";
 
 export const metadata = {
@@ -37,28 +31,7 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
-
-  if (!user && !devAuthBypassUser) redirect("/auth/login");
-
-  if (!user && devAuthBypassUser) {
-    return (
-      <SettingsContent
-        profile={DEV_ADMIN_PROFILE as Profile}
-        userEmail={devAuthBypassUser.email ?? DEV_ADMIN_PROFILE.email ?? ""}
-        currentLocale={locale as SettingsLocale}
-        organizationAffiliation={getDevOrganizationAffiliation()}
-        organizationJoinCodesEnabled={ORGANIZATION_JOIN_CODES_ENABLED}
-        leaderboardPrivacyControlsEnabled={LEADERBOARD_PRIVACY_CONTROLS_ENABLED}
-        leaderboardPrivacySettings={getDefaultLeaderboardPrivacySettings({
-          userId: DEV_ADMIN_PROFILE.id,
-          isStudent: true,
-        })}
-      />
-    );
-  }
+  if (!user) redirect("/auth/login");
 
   const [
     { data: profile },

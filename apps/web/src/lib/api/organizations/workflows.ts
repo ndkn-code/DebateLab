@@ -3,7 +3,6 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { requirePlatformAdmin } from "@/lib/api/class-manager-access";
 import {
   loadOrganizationCapabilities,
@@ -45,9 +44,10 @@ function rpcClient(supabase: ServerSupabase) {
 }
 
 async function currentUserId(supabase: ServerSupabase) {
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (user) return user.id;
-  if (isDevAdminBypassEnabled()) return "00000000-0000-4000-8000-000000000001";
   throw new Error("Unauthorized");
 }
 
@@ -65,7 +65,7 @@ async function requireOrganizationManager(
     .eq("id", userId)
     .maybeSingle();
   if (profileError) throw new Error(profileError.message);
-  if (profile?.role === "admin" || isDevAdminBypassEnabled()) return userId;
+  if (profile?.role === "admin") return userId;
 
   const { data: memberships, error } = await supabase
     .from("club_memberships")
@@ -76,8 +76,12 @@ async function requireOrganizationManager(
     .in("role", ["owner", "admin", "teacher", "coach"]);
   if (error) throw new Error(error.message);
   const roles = (memberships ?? []).map((row) => String(row.role));
-  if (minimum === "owner" && !roles.includes("owner")) throw new Error("Forbidden");
-  if (minimum === "admin" && !roles.some((role) => role === "owner" || role === "admin")) {
+  if (minimum === "owner" && !roles.includes("owner"))
+    throw new Error("Forbidden");
+  if (
+    minimum === "admin" &&
+    !roles.some((role) => role === "owner" || role === "admin")
+  ) {
     throw new Error("Forbidden");
   }
   return userId;
@@ -109,17 +113,23 @@ export async function createOrganizationDraft(
   const validation = validateCreateOrganizationDraft(input);
   if (!validation.ok) throw new Error(validation.reason);
   const supabase = await createClient();
-  const actorId = await requirePlatformAdmin(supabase as Parameters<typeof requirePlatformAdmin>[0]);
-  const data = await callOrganizationRpc<unknown>(rpcClient(supabase), ORGANIZATION_RPC_NAMES.createDraft, {
-    p_name: validation.payload.name,
-    p_organization_type: validation.payload.organizationType,
-    p_country: validation.payload.country ?? DEFAULT_ORGANIZATION_COUNTRY,
-    p_city: validation.payload.city,
-    p_timezone: validation.payload.timezone ?? DEFAULT_ORGANIZATION_TIMEZONE,
-    p_code: validation.payload.code,
-    p_idempotency_key: validation.payload.idempotencyKey,
-    p_actor_id: actorId,
-  });
+  const actorId = await requirePlatformAdmin(
+    supabase as Parameters<typeof requirePlatformAdmin>[0],
+  );
+  const data = await callOrganizationRpc<unknown>(
+    rpcClient(supabase),
+    ORGANIZATION_RPC_NAMES.createDraft,
+    {
+      p_name: validation.payload.name,
+      p_organization_type: validation.payload.organizationType,
+      p_country: validation.payload.country ?? DEFAULT_ORGANIZATION_COUNTRY,
+      p_city: validation.payload.city,
+      p_timezone: validation.payload.timezone ?? DEFAULT_ORGANIZATION_TIMEZONE,
+      p_code: validation.payload.code,
+      p_idempotency_key: validation.payload.idempotencyKey,
+      p_actor_id: actorId,
+    },
+  );
   const result = normalizeOrganizationRpcResult(data);
   revalidateOrganization(result.organizationId);
   return result;
@@ -135,35 +145,52 @@ export async function updateOrganization(
   const capabilities = await loadOrganizationCapabilities(input.organizationId);
   if (!capabilities.canManageAcademicProfile) throw new Error("Forbidden");
   const headTeacherOnly = !capabilities.canManagePrivilegedRoles;
-  if (headTeacherOnly && (input.organizationType !== undefined || input.country !== undefined || input.city !== undefined || input.logoUrl !== undefined || input.facebookUrl !== undefined || input.instagramUrl !== undefined || input.threadsUrl !== undefined)) {
-    throw new Error("Head Teachers may update only the academic organization name and timezone.");
+  if (
+    headTeacherOnly &&
+    (input.organizationType !== undefined ||
+      input.country !== undefined ||
+      input.city !== undefined ||
+      input.logoUrl !== undefined ||
+      input.facebookUrl !== undefined ||
+      input.instagramUrl !== undefined ||
+      input.threadsUrl !== undefined)
+  ) {
+    throw new Error(
+      "Head Teachers may update only the academic organization name and timezone.",
+    );
   }
   const rpcName = headTeacherOnly
     ? "update_organization_academic_profile_transaction"
     : ORGANIZATION_RPC_NAMES.update;
-  const data = await callOrganizationRpc<unknown>(rpcClient(supabase), rpcName, headTeacherOnly ? {
-    p_organization_id: input.organizationId,
-    p_name: input.name?.trim() ?? null,
-    p_organization_type: null,
-    p_timezone: input.timezone ?? null,
-    p_expected_setup_version: input.setupVersion ?? null,
-    p_idempotency_key: input.idempotencyKey,
-    p_actor_id: actorId,
-  } : {
-    p_organization_id: input.organizationId,
-    p_name: input.name?.trim() ?? null,
-    p_organization_type: input.organizationType ?? null,
-    p_country: input.country ?? null,
-    p_city: input.city ?? null,
-    p_timezone: input.timezone ?? null,
-    p_logo_url: input.logoUrl ?? null,
-    p_facebook_url: input.facebookUrl ?? null,
-    p_instagram_url: input.instagramUrl ?? null,
-    p_threads_url: input.threadsUrl ?? null,
-    p_setup_version: input.setupVersion ?? null,
-    p_idempotency_key: input.idempotencyKey,
-    p_actor_id: actorId,
-  });
+  const data = await callOrganizationRpc<unknown>(
+    rpcClient(supabase),
+    rpcName,
+    headTeacherOnly
+      ? {
+          p_organization_id: input.organizationId,
+          p_name: input.name?.trim() ?? null,
+          p_organization_type: null,
+          p_timezone: input.timezone ?? null,
+          p_expected_setup_version: input.setupVersion ?? null,
+          p_idempotency_key: input.idempotencyKey,
+          p_actor_id: actorId,
+        }
+      : {
+          p_organization_id: input.organizationId,
+          p_name: input.name?.trim() ?? null,
+          p_organization_type: input.organizationType ?? null,
+          p_country: input.country ?? null,
+          p_city: input.city ?? null,
+          p_timezone: input.timezone ?? null,
+          p_logo_url: input.logoUrl ?? null,
+          p_facebook_url: input.facebookUrl ?? null,
+          p_instagram_url: input.instagramUrl ?? null,
+          p_threads_url: input.threadsUrl ?? null,
+          p_setup_version: input.setupVersion ?? null,
+          p_idempotency_key: input.idempotencyKey,
+          p_actor_id: actorId,
+        },
+  );
   const result = normalizeOrganizationRpcResult(data, input.organizationId);
   revalidateOrganization(input.organizationId);
   return result;
@@ -175,39 +202,59 @@ export async function inviteOrganizationMember(
   const validation = validateOrganizationInvite(input);
   if (!validation.ok) throw new Error(validation.reason);
   const supabase = await createClient();
-  const actorId = input.role === "owner" || input.role === "admin"
-    ? await requireOrganizationManager(supabase, input.organizationId, "owner")
-    : input.role === "head_teacher"
-      ? await requireOrganizationManager(supabase, input.organizationId, "admin")
-      : await requireAcademicOrganizationManager(supabase, input.organizationId, "canManagePeople");
-  const data = await callOrganizationRpc<unknown>(rpcClient(supabase), ORGANIZATION_RPC_NAMES.inviteMember, {
-    p_organization_id: input.organizationId,
-    p_email: validation.payload.email,
-    p_role: input.role,
-    p_idempotency_key: validation.payload.idempotencyKey,
-    p_actor_id: actorId,
-  });
+  const actorId =
+    input.role === "owner" || input.role === "admin"
+      ? await requireOrganizationManager(
+          supabase,
+          input.organizationId,
+          "owner",
+        )
+      : input.role === "head_teacher"
+        ? await requireOrganizationManager(
+            supabase,
+            input.organizationId,
+            "admin",
+          )
+        : await requireAcademicOrganizationManager(
+            supabase,
+            input.organizationId,
+            "canManagePeople",
+          );
+  const data = await callOrganizationRpc<unknown>(
+    rpcClient(supabase),
+    ORGANIZATION_RPC_NAMES.inviteMember,
+    {
+      p_organization_id: input.organizationId,
+      p_email: validation.payload.email,
+      p_role: input.role,
+      p_idempotency_key: validation.payload.idempotencyKey,
+      p_actor_id: actorId,
+    },
+  );
   const result = normalizeOrganizationInviteResult(data, {
     organizationId: input.organizationId,
     email: validation.payload.email,
     role: input.role,
   });
   const { deliveryToken, ...publicResult } = result;
-  if (!deliveryToken) throw new Error("Invitation operation returned no delivery token.");
+  if (!deliveryToken)
+    throw new Error("Invitation operation returned no delivery token.");
 
-  const [{ data: organization, error: organizationError }, { data: inviter, error: inviterError }] =
-    await Promise.all([
-      supabase
-        .from("clubs")
-        .select("name, city")
-        .eq("id", input.organizationId)
-        .single(),
-      supabase
-        .from("profiles")
-        .select("display_name, email")
-        .eq("id", actorId)
-        .single(),
-    ]);
+  const [
+    { data: organization, error: organizationError },
+    { data: inviter, error: inviterError },
+  ] = await Promise.all([
+    supabase
+      .from("clubs")
+      .select("name, city")
+      .eq("id", input.organizationId)
+      .single(),
+    supabase
+      .from("profiles")
+      .select("display_name, email")
+      .eq("id", actorId)
+      .single(),
+  ]);
   if (organizationError) throw new Error(organizationError.message);
   if (inviterError) throw new Error(inviterError.message);
 
@@ -224,7 +271,9 @@ export async function inviteOrganizationMember(
     sendKey: `organization_invitation:${result.invitationId}:${validation.payload.idempotencyKey}`,
   });
   if (delivery.failed) {
-    throw new Error(delivery.reason ?? "Invitation email could not be delivered.");
+    throw new Error(
+      delivery.reason ?? "Invitation email could not be delivered.",
+    );
   }
   revalidateOrganization(input.organizationId);
   return publicResult;
@@ -236,24 +285,31 @@ export async function createOrganizationFirstClass(
   const validation = validateOrganizationClass(input);
   if (!validation.ok) throw new Error(validation.reason);
   const supabase = await createClient();
-  const actorId = await requireAcademicOrganizationManager(supabase, input.organizationId);
-  const data = await callOrganizationRpc<unknown>(rpcClient(supabase), ORGANIZATION_RPC_NAMES.createClass, {
-    p_organization_id: input.organizationId,
-    p_club_id: input.organizationId,
-    p_code: input.code ?? null,
-    p_title: input.title.trim(),
-    p_description: input.description ?? null,
-    p_program_type: input.programType ?? "debate",
-    p_grade_level: input.gradeLevel ?? null,
-    p_status: input.status ?? "draft",
-    p_start_date: input.startDate ?? null,
-    p_end_date: input.endDate ?? null,
-    p_meeting_schedule: input.meetingSchedule ?? null,
-    p_room: input.room ?? null,
-    p_max_students: input.maxStudents ?? null,
-    p_idempotency_key: input.idempotencyKey,
-    p_actor_id: actorId,
-  });
+  const actorId = await requireAcademicOrganizationManager(
+    supabase,
+    input.organizationId,
+  );
+  const data = await callOrganizationRpc<unknown>(
+    rpcClient(supabase),
+    ORGANIZATION_RPC_NAMES.createClass,
+    {
+      p_organization_id: input.organizationId,
+      p_club_id: input.organizationId,
+      p_code: input.code ?? null,
+      p_title: input.title.trim(),
+      p_description: input.description ?? null,
+      p_program_type: input.programType ?? "debate",
+      p_grade_level: input.gradeLevel ?? null,
+      p_status: input.status ?? "draft",
+      p_start_date: input.startDate ?? null,
+      p_end_date: input.endDate ?? null,
+      p_meeting_schedule: input.meetingSchedule ?? null,
+      p_room: input.room ?? null,
+      p_max_students: input.maxStudents ?? null,
+      p_idempotency_key: input.idempotencyKey,
+      p_actor_id: actorId,
+    },
+  );
   const result = normalizeOrganizationClassResult(data, input.organizationId);
   revalidateOrganization(input.organizationId);
   return result;
@@ -265,15 +321,23 @@ export async function assignOrganizationTeacher(
   const validation = validateOrganizationAssignment(input);
   if (!validation.ok) throw new Error(validation.reason);
   const supabase = await createClient();
-  const actorId = await requireAcademicOrganizationManager(supabase, input.organizationId, "canManagePeople");
-  const data = await callOrganizationRpc<unknown>(rpcClient(supabase), ORGANIZATION_RPC_NAMES.assignTeacher, {
-    p_organization_id: input.organizationId,
-    p_class_id: input.classId,
-    p_teacher_id: input.teacherId,
-    p_action: "add",
-    p_idempotency_key: input.idempotencyKey,
-    p_actor_id: actorId,
-  });
+  const actorId = await requireAcademicOrganizationManager(
+    supabase,
+    input.organizationId,
+    "canManagePeople",
+  );
+  const data = await callOrganizationRpc<unknown>(
+    rpcClient(supabase),
+    ORGANIZATION_RPC_NAMES.assignTeacher,
+    {
+      p_organization_id: input.organizationId,
+      p_class_id: input.classId,
+      p_teacher_id: input.teacherId,
+      p_action: "add",
+      p_idempotency_key: input.idempotencyKey,
+      p_actor_id: actorId,
+    },
+  );
   const result = normalizeOrganizationAssignmentResult(data, {
     organizationId: input.organizationId,
     classId: input.classId,
@@ -289,15 +353,23 @@ export async function assignOrganizationCourse(
   const validation = validateOrganizationAssignment(input);
   if (!validation.ok) throw new Error(validation.reason);
   const supabase = await createClient();
-  const actorId = await requireAcademicOrganizationManager(supabase, input.organizationId, "canManageCurriculum");
-  const data = await callOrganizationRpc<unknown>(rpcClient(supabase), ORGANIZATION_RPC_NAMES.assignCourse, {
-    p_organization_id: input.organizationId,
-    p_class_id: input.classId,
-    p_course_id: input.resourceId,
-    p_action: "assign",
-    p_idempotency_key: input.idempotencyKey,
-    p_actor_id: actorId,
-  });
+  const actorId = await requireAcademicOrganizationManager(
+    supabase,
+    input.organizationId,
+    "canManageCurriculum",
+  );
+  const data = await callOrganizationRpc<unknown>(
+    rpcClient(supabase),
+    ORGANIZATION_RPC_NAMES.assignCourse,
+    {
+      p_organization_id: input.organizationId,
+      p_class_id: input.classId,
+      p_course_id: input.resourceId,
+      p_action: "assign",
+      p_idempotency_key: input.idempotencyKey,
+      p_actor_id: actorId,
+    },
+  );
   const result = normalizeOrganizationAssignmentResult(data, {
     organizationId: input.organizationId,
     classId: input.classId,
@@ -313,14 +385,22 @@ export async function assignOrganizationMaterial(
   const validation = validateOrganizationAssignment(input);
   if (!validation.ok) throw new Error(validation.reason);
   const supabase = await createClient();
-  const actorId = await requireAcademicOrganizationManager(supabase, input.organizationId, "canManageCurriculum");
-  const data = await callOrganizationRpc<unknown>(rpcClient(supabase), ORGANIZATION_RPC_NAMES.assignMaterial, {
-    p_organization_id: input.organizationId,
-    p_class_id: input.classId,
-    p_material_id: input.resourceId,
-    p_idempotency_key: input.idempotencyKey,
-    p_actor_id: actorId,
-  });
+  const actorId = await requireAcademicOrganizationManager(
+    supabase,
+    input.organizationId,
+    "canManageCurriculum",
+  );
+  const data = await callOrganizationRpc<unknown>(
+    rpcClient(supabase),
+    ORGANIZATION_RPC_NAMES.assignMaterial,
+    {
+      p_organization_id: input.organizationId,
+      p_class_id: input.classId,
+      p_material_id: input.resourceId,
+      p_idempotency_key: input.idempotencyKey,
+      p_actor_id: actorId,
+    },
+  );
   const result = normalizeOrganizationAssignmentResult(data, {
     organizationId: input.organizationId,
     classId: input.classId,
@@ -336,12 +416,19 @@ export async function activateOrganization(
   const validation = validateOrganizationActivation(input);
   if (!validation.ok) throw new Error(validation.reason);
   const supabase = await createClient();
-  const actorId = await requireOrganizationManager(supabase, input.organizationId);
-  const data = await callOrganizationRpc<unknown>(rpcClient(supabase), ORGANIZATION_RPC_NAMES.activate, {
-    p_organization_id: input.organizationId,
-    p_idempotency_key: input.idempotencyKey,
-    p_actor_id: actorId,
-  });
+  const actorId = await requireOrganizationManager(
+    supabase,
+    input.organizationId,
+  );
+  const data = await callOrganizationRpc<unknown>(
+    rpcClient(supabase),
+    ORGANIZATION_RPC_NAMES.activate,
+    {
+      p_organization_id: input.organizationId,
+      p_idempotency_key: input.idempotencyKey,
+      p_actor_id: actorId,
+    },
+  );
   const result = normalizeOrganizationRpcResult(data, input.organizationId);
   revalidateOrganization(input.organizationId);
   return result;

@@ -194,7 +194,10 @@ function requestCorrelationId(value?: string | null) {
   return candidate && isUuid(candidate) ? candidate : crypto.randomUUID();
 }
 
-function responseHeaders(requestId: string, extra: Record<string, string> = {}) {
+function responseHeaders(
+  requestId: string,
+  extra: Record<string, string> = {},
+) {
   return {
     ...extra,
     "x-thinkfy-request-id": requestId,
@@ -209,7 +212,9 @@ async function reportChatFailure(params: {
 }) {
   const error = params.error;
   const errorCode =
-    error && typeof error === "object" && "code" in error &&
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
     typeof error.code === "string"
       ? error.code.slice(0, 80)
       : undefined;
@@ -223,18 +228,20 @@ async function reportChatFailure(params: {
     ...(errorCode ? { "thinkfy.chat.error_code": errorCode } : {}),
   });
   if (error) recordServerException(error, span);
-  console.error(JSON.stringify({
-    scope: "api/chat",
-    event: "chat_request_failed",
-    requestId: params.requestId,
-    route: CHAT_PROVIDER_SOURCE_ROUTE,
-    featureArea: "ai-coach",
-    sourceHash,
-    incidentCode: params.incidentCode,
-    stage: params.stage,
-    errorCode: errorCode ?? "UNKNOWN",
-    type: errorType,
-  }));
+  console.error(
+    JSON.stringify({
+      scope: "api/chat",
+      event: "chat_request_failed",
+      requestId: params.requestId,
+      route: CHAT_PROVIDER_SOURCE_ROUTE,
+      featureArea: "ai-coach",
+      sourceHash,
+      incidentCode: params.incidentCode,
+      stage: params.stage,
+      errorCode: errorCode ?? "UNKNOWN",
+      type: errorType,
+    }),
+  );
   await emitServerFaroException({
     requestId: params.requestId,
     stage: params.stage,
@@ -281,10 +288,7 @@ function parseChatRequest(body: JsonRecord): ChatRequest {
       "productContext and subjectContext must be provided together.",
     );
   }
-  if (
-    productContext !== undefined &&
-    productContext !== subjectContext
-  ) {
+  if (productContext !== undefined && productContext !== subjectContext) {
     throw new RequestValidationError("Coach product context is ambiguous.");
   }
   if (requestId && !isUuid(requestId)) {
@@ -811,13 +815,11 @@ function buildCoachSystemPrompt(params: {
 }
 
 export async function POST(req: NextRequest) {
-  let requestId = requestCorrelationId(
-    req.headers.get("x-thinkfy-request-id"),
-  );
+  let requestId = requestCorrelationId(req.headers.get("x-thinkfy-request-id"));
   let failureStage: ChatFailureStage = "request";
   try {
     failureStage = "auth";
-    const auth = await requireRequestAuth(req, { allowDevBypass: false });
+    const auth = await requireRequestAuth(req);
 
     if (!auth.ok) {
       const response = unauthorizedTextResponse();
@@ -885,9 +887,8 @@ export async function POST(req: NextRequest) {
           "IELTS Coach requires requestId and an explicit IELTS context.",
         );
       }
-      const contextType = ieltsCoachContextTypeSchema.safeParse(
-        normalizedContext,
-      );
+      const contextType =
+        ieltsCoachContextTypeSchema.safeParse(normalizedContext);
       if (!contextType.success) {
         throw new RequestValidationError("IELTS Coach context is invalid.");
       }

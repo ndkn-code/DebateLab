@@ -1,6 +1,5 @@
 import "server-only";
 
-import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import type {
@@ -19,7 +18,7 @@ export async function loadVocabActivityView(
   const source = content.vocabSource;
   if (!source)
     throw new Error("loadVocabActivityView: missing vocabulary source");
-  const client = isDevAdminBypassEnabled()
+  const client = false
     ? createTypedAdminClient()
     : await createTypedServerClient();
   let query = client

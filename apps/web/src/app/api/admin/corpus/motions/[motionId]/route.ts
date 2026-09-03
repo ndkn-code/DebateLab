@@ -29,7 +29,7 @@ export const dynamic = "force-dynamic";
 
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ motionId: string }> }
+  context: { params: Promise<{ motionId: string }> },
 ) {
   try {
     const auth = await requireRequestAuth(req);
@@ -39,7 +39,8 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
     const { motionId } = await context.params;
-    if (!isUuid(motionId)) throw new RequestValidationError("motionId is invalid.");
+    if (!isUuid(motionId))
+      throw new RequestValidationError("motionId is invalid.");
 
     const body = await readJsonObject(req, { maxBytes: 128 * 1024 });
     const action = getEnum(body, "action", ["update", "publish"] as const, {
@@ -50,7 +51,7 @@ export async function PATCH(
       const result = await publishCorpusMotionCandidate({
         supabase: admin,
         motionId,
-        reviewedBy: auth.authSource === "dev-bypass" ? null : user.id,
+        reviewedBy: user.id,
       });
       return NextResponse.json({ ok: true, ...result });
     }
@@ -61,7 +62,9 @@ export async function PATCH(
     const categoryKey = getEnum(body, "categoryKey", CATEGORY_KEYS);
     const difficulty = getEnum(body, "difficulty", DIFFICULTIES);
     const adminNotes = getString(body, "adminNotes", { maxLength: 4000 });
-    const qualityFlags = getJsonRecord(body, "qualityFlags", { maxBytes: 16 * 1024 });
+    const qualityFlags = getJsonRecord(body, "qualityFlags", {
+      maxBytes: 16 * 1024,
+    });
 
     const { data, error } = await admin
       .from("debate_corpus_motion_candidates")
@@ -74,23 +77,32 @@ export async function PATCH(
           reviewStatus,
           adminNotes,
           qualityFlags,
-          reviewerId: auth.authSource === "dev-bypass" ? null : user.id,
-        })
+          reviewerId: user.id,
+        }),
       )
       .eq("id", motionId)
       .select("*")
       .single();
     if (error) {
-      return NextResponse.json({ error: "Unable to update motion" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Unable to update motion" },
+        { status: 500 },
+      );
     }
     return NextResponse.json({ ok: true, motion: data });
   } catch (error) {
     if (error instanceof RequestValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
     }
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to update motion" },
-      { status: 500 }
+      {
+        error:
+          error instanceof Error ? error.message : "Unable to update motion",
+      },
+      { status: 500 },
     );
   }
 }

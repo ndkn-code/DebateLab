@@ -12,16 +12,18 @@ import {
 
 export const maxDuration = 15;
 
-const OnboardingFeedbackSchema = z.object({
-  score: z.number().finite(),
-  strength: z.string().min(1).max(400),
-  improvement: z.string().min(1).max(400),
-  encouragement: z.string().min(1).max(400),
-}).strict();
+const OnboardingFeedbackSchema = z
+  .object({
+    score: z.number().finite(),
+    strength: z.string().min(1).max(400),
+    improvement: z.string().min(1).max(400),
+    encouragement: z.string().min(1).max(400),
+  })
+  .strict();
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = await requireRequestAuth(req, { allowDevBypass: false });
+    const auth = await requireRequestAuth(req);
 
     if (!auth.ok) {
       return auth.errorResponse;
@@ -39,7 +41,7 @@ export async function POST(req: NextRequest) {
         {
           status: 429,
           headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-        }
+        },
       );
     }
 
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
           encouragement:
             "Everyone starts somewhere. Thinkfy will help you find your voice!",
         },
-        { status: 200 }
+        { status: 200 },
       );
     }
 
@@ -118,20 +120,31 @@ Keep all responses under 20 words each.`;
 
     return NextResponse.json({
       score: Math.min(100, Math.max(0, data.score ?? 70)),
-      strength: data.strength ?? "You made a clear attempt to express your idea.",
-      improvement: data.improvement ?? "Try adding one clear reason and one short example next time.",
-      encouragement: data.encouragement ?? "Great start! Keep practicing and you'll improve fast.",
+      strength:
+        data.strength ?? "You made a clear attempt to express your idea.",
+      improvement:
+        data.improvement ??
+        "Try adding one clear reason and one short example next time.",
+      encouragement:
+        data.encouragement ??
+        "Great start! Keep practicing and you'll improve fast.",
     });
   } catch (error) {
     if (error instanceof RequestValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
     }
-    if (process.env.NODE_ENV === 'development') console.error("Onboarding feedback error:", error);
+    if (process.env.NODE_ENV === "development")
+      console.error("Onboarding feedback error:", error);
     return NextResponse.json({
       score: 70,
       strength: "You took the initiative to practice - great first step!",
-      improvement: "Try organizing your response with one clear point and one example.",
-      encouragement: "Every strong speaker started as a beginner. You've got this!",
+      improvement:
+        "Try organizing your response with one clear point and one example.",
+      encouragement:
+        "Every strong speaker started as a beginner. You've got this!",
     });
   }
 }

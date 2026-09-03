@@ -1,6 +1,5 @@
 import "server-only";
 
-import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/supabase";
@@ -37,23 +36,31 @@ export interface TopReferrer extends ProfileSummary {
 }
 
 async function verifyAdmin(): Promise<void> {
-  if (isDevAdminBypassEnabled()) return;
   const session = await createTypedServerClient();
-  const { data: { user }, error: userError } = await session.auth.getUser();
+  const {
+    data: { user },
+    error: userError,
+  } = await session.auth.getUser();
   if (userError || !user) throw new Error("referrals-admin: unauthorized");
   const { data: profile, error: profileError } = await session
     .from("profiles")
     .select("role")
     .eq("id", user.id)
     .single();
-  if (profileError || profile?.role !== "admin") throw new Error("referrals-admin: forbidden");
+  if (profileError || profile?.role !== "admin")
+    throw new Error("referrals-admin: forbidden");
 }
 
 function escapeSearch(value: string): string {
-  return value.replace(/[%_,()]/g, " ").replace(/\s+/g, " ").trim();
+  return value
+    .replace(/[%_,()]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-async function loadProfiles(ids: readonly string[]): Promise<Map<string, ProfileSummary>> {
+async function loadProfiles(
+  ids: readonly string[],
+): Promise<Map<string, ProfileSummary>> {
   if (ids.length === 0) return new Map();
   const admin = createTypedAdminClient();
   const { data, error } = await admin
@@ -90,13 +97,23 @@ export async function listReferrals({
     if (error) throw new Error(`referrals-admin(search): ${error.message}`);
     matchingProfileIds = (data ?? []).map((profile) => profile.id);
     if (matchingProfileIds.length === 0) {
-      return { referrals: [], filters, page: filters.page, pageSize, pageCount: 1, totalCount: 0 };
+      return {
+        referrals: [],
+        filters,
+        page: filters.page,
+        pageSize,
+        pageCount: 1,
+        totalCount: 0,
+      };
     }
   }
 
   let query = admin
     .from("referrals")
-    .select("id, referrer_id, referee_id, status, referrer_orbs_awarded, referee_orbs_awarded, qualified_at, credited_at, created_at", { count: "exact" });
+    .select(
+      "id, referrer_id, referee_id, status, referrer_orbs_awarded, referee_orbs_awarded, qualified_at, credited_at, created_at",
+      { count: "exact" },
+    );
   if (filters.status !== "all") query = query.eq("status", filters.status);
   if (matchingProfileIds) {
     const ids = matchingProfileIds.join(",");
@@ -111,7 +128,9 @@ export async function listReferrals({
   if (error) throw new Error(`referrals-admin(list): ${error.message}`);
 
   const rows = data ?? [];
-  const profiles = await loadProfiles(rows.flatMap((row) => [row.referrer_id, row.referee_id]));
+  const profiles = await loadProfiles(
+    rows.flatMap((row) => [row.referrer_id, row.referee_id]),
+  );
   const referrals = rows.map((row) => ({
     ...row,
     referrer: profiles.get(row.referrer_id) ?? null,
@@ -155,19 +174,31 @@ export async function getReferralKpis(): Promise<ReferralKpis> {
       .limit(20000),
   ]);
   if (ledgerResult.error) {
-    throw new Error(`referrals-admin(orb-ledger): ${ledgerResult.error.message}`);
+    throw new Error(
+      `referrals-admin(orb-ledger): ${ledgerResult.error.message}`,
+    );
   }
   const kpis = buildReferralKpis(rows);
   return {
     ...kpis,
-    orbsAwarded: (ledgerResult.data ?? []).reduce((sum, transaction) => sum + transaction.amount, 0),
+    orbsAwarded: (ledgerResult.data ?? []).reduce(
+      (sum, transaction) => sum + transaction.amount,
+      0,
+    ),
   };
 }
 
-export async function getTopReferrers({ limit = 5 }: { limit?: number } = {}): Promise<TopReferrer[]> {
+export async function getTopReferrers({
+  limit = 5,
+}: { limit?: number } = {}): Promise<TopReferrer[]> {
   await verifyAdmin();
-  const aggregates = buildTopReferrerAggregates(await loadAggregateRows(), limit);
-  const profiles = await loadProfiles(aggregates.map((entry) => entry.referrerId));
+  const aggregates = buildTopReferrerAggregates(
+    await loadAggregateRows(),
+    limit,
+  );
+  const profiles = await loadProfiles(
+    aggregates.map((entry) => entry.referrerId),
+  );
   return aggregates.map((entry) => {
     const profile = profiles.get(entry.referrerId);
     return {

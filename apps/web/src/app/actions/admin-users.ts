@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import type { PlanType } from "@/lib/entitlements";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 
@@ -15,12 +14,7 @@ async function verifyAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAdminBypass = isDevAdminBypassEnabled();
-
-  if (!user) {
-    if (devAdminBypass) return DEV_ADMIN_PROFILE.id;
-    throw new Error("Unauthorized");
-  }
+  if (!user) throw new Error("Unauthorized");
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -29,15 +23,10 @@ async function verifyAdmin(supabase: Awaited<ReturnType<typeof createClient>>) {
     .single();
 
   if (profile?.role !== "admin") {
-    if (devAdminBypass) return user.id;
     throw new Error("Forbidden");
   }
 
   return user.id;
-}
-
-function isDevMockId(id: string) {
-  return isDevAdminBypassEnabled() && id.startsWith("00000000-0000-4000-8000-");
 }
 
 async function logAdminAction(
@@ -46,7 +35,7 @@ async function logAdminAction(
   action: string,
   entityType: string,
   entityId: string,
-  changes: Record<string, unknown>
+  changes: Record<string, unknown>,
 ) {
   await supabase.from("admin_activity_log").insert({
     admin_user_id: adminId,
@@ -69,11 +58,6 @@ export async function updateUserRole(userId: string, role: UserRole) {
   const supabase = await createClient();
   const adminId = await verifyAdmin(supabase);
 
-  if (isDevMockId(userId)) {
-    revalidatePath("/dashboard/admin/users");
-    return;
-  }
-
   const { error } = await supabase
     .from("profiles")
     .update({ role, updated_at: new Date().toISOString() })
@@ -81,29 +65,32 @@ export async function updateUserRole(userId: string, role: UserRole) {
 
   if (error) throw new Error(error.message);
 
-  await logAdminAction(supabase, adminId, "update_user_role", "profile", userId, {
-    role,
-  });
+  await logAdminAction(
+    supabase,
+    adminId,
+    "update_user_role",
+    "profile",
+    userId,
+    {
+      role,
+    },
+  );
   revalidatePath("/dashboard/admin/users");
 }
 
 export async function grantUserSubscription(
   userId: string,
   planType: PlanType,
-  durationMonths = 12
+  durationMonths = 12,
 ) {
   if (!PLAN_TYPES.has(planType)) throw new Error("Invalid plan");
-  if (durationMonths < 1 || durationMonths > 60) throw new Error("Invalid duration");
+  if (durationMonths < 1 || durationMonths > 60)
+    throw new Error("Invalid duration");
 
   const supabase = await createClient();
   const adminId = await verifyAdmin(supabase);
   const now = new Date();
   const periodEnd = addMonths(now, durationMonths);
-
-  if (isDevMockId(userId)) {
-    revalidatePath("/dashboard/admin/users");
-    return;
-  }
 
   await supabase
     .from("subscriptions")
@@ -147,7 +134,7 @@ export async function grantUserSubscription(
       user_id: userId,
       plan_type: planType,
       duration_months: durationMonths,
-    }
+    },
   );
   await recordAnalyticsEvent(
     supabase,
@@ -162,7 +149,7 @@ export async function grantUserSubscription(
         subscription_id: subscription.id,
       },
     },
-    "admin"
+    "admin",
   );
   revalidatePath("/dashboard/admin/users");
 }
@@ -171,11 +158,6 @@ export async function cancelUserSubscription(subscriptionId: string) {
   const supabase = await createClient();
   const adminId = await verifyAdmin(supabase);
   const now = new Date().toISOString();
-
-  if (isDevMockId(subscriptionId)) {
-    revalidatePath("/dashboard/admin/users");
-    return;
-  }
 
   const { data: subscription, error: fetchError } = await supabase
     .from("subscriptions")
@@ -206,7 +188,7 @@ export async function cancelUserSubscription(subscriptionId: string) {
     "cancel_subscription",
     "subscription",
     subscriptionId,
-    subscription
+    subscription,
   );
   await recordAnalyticsEvent(
     supabase,
@@ -220,7 +202,7 @@ export async function cancelUserSubscription(subscriptionId: string) {
         subscription_id: subscriptionId,
       },
     },
-    "admin"
+    "admin",
   );
   revalidatePath("/dashboard/admin/users");
 }

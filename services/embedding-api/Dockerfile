@@ -14,11 +14,18 @@ RUN apt-get update \
 
 COPY requirements.txt .
 RUN python -m pip install --upgrade pip \
-    && python -m pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.5.1 \
+    && python -m pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch==2.7.1 \
     && python -m pip install --no-cache-dir -r requirements.txt
 
-COPY app.py .
+RUN groupadd --system app \
+    && useradd --system --gid app --create-home app \
+    && mkdir -p /data/huggingface /data/sentence-transformers \
+    && chown -R app:app /app /data
+
+COPY --chown=app:app app.py .
 
 EXPOSE 7860
+
+USER app
 
 CMD ["sh", "-c", "uvicorn app:app --host 0.0.0.0 --port ${PORT:-7860}"]

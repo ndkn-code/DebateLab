@@ -1,17 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
-import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
 import { DUEL_ENABLED } from "@/lib/features";
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>;
 
 export async function isAdminUser(
   supabase: SupabaseServerClient,
-  userId: string
+  userId: string,
 ) {
-  if (process.env.NODE_ENV !== "production" && userId === DEV_ADMIN_PROFILE.id) {
-    return true;
-  }
-
   const { data: profile } = await supabase
     .from("profiles")
     .select("role")
@@ -28,7 +23,7 @@ export async function isAdminUser(
  */
 export async function canAccessDuels(
   supabase: SupabaseServerClient,
-  userId: string
+  userId: string,
 ) {
   if (DUEL_ENABLED) {
     return true;

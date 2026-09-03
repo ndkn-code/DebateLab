@@ -3,8 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { DEV_ADMIN_PROFILE, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import {
   LEADERBOARD_ABUSE_GUARDS_ENABLED,
   LEADERBOARD_ANALYTICS_ENABLED,
@@ -19,9 +17,7 @@ import {
   getDefaultLeaderboardPrivacySettings,
   normalizeLeaderboardDisplayMode,
 } from "@/lib/leaderboards/social-trust";
-import {
-  normalizeLeaderboardPrivacySettings,
-} from "@/lib/leaderboards/social-trust-server";
+import { normalizeLeaderboardPrivacySettings } from "@/lib/leaderboards/social-trust-server";
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import type {
   LeaderboardDisplayMode,
@@ -31,33 +27,32 @@ import type {
   LeaderboardXpEventFlagType,
 } from "@/lib/leaderboards/types";
 
-type RpcResult = { data: unknown; error: { message?: string; code?: string } | null };
-type RpcClient = { rpc: (fn: string, args?: Record<string, unknown>) => Promise<RpcResult> };
+type RpcResult = {
+  data: unknown;
+  error: { message?: string; code?: string } | null;
+};
+type RpcClient = {
+  rpc: (fn: string, args?: Record<string, unknown>) => Promise<RpcResult>;
+};
 
 async function getActionUser() {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devUser = user ? null : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devUser) {
+  if (!user) {
     throw new Error("Unauthorized");
   }
 
   return {
     supabase,
-    userId: user?.id ?? devUser?.id ?? DEV_ADMIN_PROFILE.id,
-    isDevBypass: !user && Boolean(devUser),
+    userId: user.id,
   };
 }
 
 async function verifyAdminAction() {
-  const { supabase, userId, isDevBypass } = await getActionUser();
-
-  if (isDevBypass || isDevAdminBypassEnabled()) {
-    return { supabase, userId, isDevBypass: true };
-  }
+  const { supabase, userId } = await getActionUser();
 
   const { data: profile } = await supabase
     .from("profiles")
@@ -69,7 +64,7 @@ async function verifyAdminAction() {
     throw new Error("Forbidden");
   }
 
-  return { supabase, userId, isDevBypass: false };
+  return { supabase, userId };
 }
 
 function rpcClient(supabase: unknown): RpcClient {
@@ -91,12 +86,17 @@ async function recordLeaderboardActionEvent(input: {
   if (!LEADERBOARD_ANALYTICS_ENABLED) return;
 
   const admin = createAdminClient();
-  await recordAnalyticsEvent(admin, input.userId, {
-    eventName: input.eventName,
-    featureArea: "leaderboards",
-    route: input.route ?? "/leaderboards",
-    metadata: sanitizeLeaderboardAnalyticsMetadata(input.metadata ?? {}),
-  }, "server");
+  await recordAnalyticsEvent(
+    admin,
+    input.userId,
+    {
+      eventName: input.eventName,
+      featureArea: "leaderboards",
+      route: input.route ?? "/leaderboards",
+      metadata: sanitizeLeaderboardAnalyticsMetadata(input.metadata ?? {}),
+    },
+    "server",
+  );
 }
 
 export async function sendLeaderboardKudos(input: {
@@ -104,27 +104,24 @@ export async function sendLeaderboardKudos(input: {
   seasonId: string;
   kind?: LeaderboardKudosKind;
 }) {
-  const { supabase, userId, isDevBypass } = await getActionUser();
+  const { supabase, userId } = await getActionUser();
   const kind = normalizeLeaderboardKudosKind(input.kind);
 
-  if (!LEADERBOARD_SOCIAL_SIGNALS_ENABLED && !isDevBypass) {
-    return { status: "disabled" as const, message: "Kudos are not enabled yet." };
+  if (!LEADERBOARD_SOCIAL_SIGNALS_ENABLED) {
+    return {
+      status: "disabled" as const,
+      message: "Kudos are not enabled yet.",
+    };
   }
 
-  if (isDevBypass) {
-    await recordLeaderboardActionEvent({
-      userId,
-      eventName: "leaderboard_kudos_sent",
-      metadata: { seasonId: input.seasonId, kind, dev: true },
-    });
-    return { status: "sent" as const, message: "Encouragement sent." };
-  }
-
-  const { data, error } = await rpcClient(supabase).rpc("send_leaderboard_kudos", {
-    p_recipient_user_id: input.recipientUserId,
-    p_season_id: input.seasonId,
-    p_kudos_kind: kind,
-  });
+  const { data, error } = await rpcClient(supabase).rpc(
+    "send_leaderboard_kudos",
+    {
+      p_recipient_user_id: input.recipientUserId,
+      p_season_id: input.seasonId,
+      p_kudos_kind: kind,
+    },
+  );
 
   if (error) {
     throw new Error(error.message ?? "Unable to send kudos.");
@@ -154,8 +151,8 @@ export async function updateLeaderboardPrivacySettings(input: {
   showOrganization: boolean;
   participateInLeaderboards: boolean;
 }): Promise<LeaderboardPrivacySettings> {
-  const { supabase, userId, isDevBypass } = await getActionUser();
-  if (!LEADERBOARD_PRIVACY_CONTROLS_ENABLED && !isDevBypass) {
+  const { supabase, userId } = await getActionUser();
+  if (!LEADERBOARD_PRIVACY_CONTROLS_ENABLED) {
     throw new Error("Leaderboard privacy controls are not enabled yet.");
   }
 
@@ -164,18 +161,6 @@ export async function updateLeaderboardPrivacySettings(input: {
     isStudent: true,
   });
 
-  if (isDevBypass) {
-    return {
-      ...fallback,
-      displayMode: normalizeLeaderboardDisplayMode(input.displayMode),
-      allowKudos: Boolean(input.allowKudos),
-      showOrganization: Boolean(input.showOrganization),
-      participateInLeaderboards: Boolean(input.participateInLeaderboards),
-      isDefault: false,
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
   const { data, error } = await rpcClient(supabase).rpc(
     "update_leaderboard_privacy_settings",
     {
@@ -183,7 +168,7 @@ export async function updateLeaderboardPrivacySettings(input: {
       p_allow_kudos: Boolean(input.allowKudos),
       p_show_organization: Boolean(input.showOrganization),
       p_participate_in_leaderboards: Boolean(input.participateInLeaderboards),
-    }
+    },
   );
 
   if (error) {
@@ -217,22 +202,21 @@ export async function flagLeaderboardXpEvent(input: {
   severity?: "low" | "medium" | "high";
   status?: LeaderboardXpEventFlagStatus;
 }) {
-  const { supabase, userId, isDevBypass } = await verifyAdminAction();
-  if (!LEADERBOARD_ABUSE_GUARDS_ENABLED && !isDevBypass) {
+  const { supabase, userId } = await verifyAdminAction();
+  if (!LEADERBOARD_ABUSE_GUARDS_ENABLED) {
     throw new Error("Leaderboard abuse guards are not enabled yet.");
   }
 
-  if (isDevBypass) {
-    return { status: input.status ?? "flagged_pending_review" };
-  }
-
-  const { data, error } = await rpcClient(supabase).rpc("flag_leaderboard_xp_event", {
-    p_xp_event_id: input.xpEventId,
-    p_flag_type: input.flagType,
-    p_reason: input.reason ?? null,
-    p_severity: input.severity ?? "medium",
-    p_status: input.status ?? "flagged_pending_review",
-  });
+  const { data, error } = await rpcClient(supabase).rpc(
+    "flag_leaderboard_xp_event",
+    {
+      p_xp_event_id: input.xpEventId,
+      p_flag_type: input.flagType,
+      p_reason: input.reason ?? null,
+      p_severity: input.severity ?? "medium",
+      p_status: input.status ?? "flagged_pending_review",
+    },
+  );
 
   if (error) {
     throw new Error(error.message ?? "Unable to flag XP event.");
@@ -259,13 +243,9 @@ export async function resolveLeaderboardXpEventFlag(input: {
   status: LeaderboardXpEventFlagStatus;
   note?: string | null;
 }) {
-  const { supabase, isDevBypass } = await verifyAdminAction();
-  if (!LEADERBOARD_ABUSE_GUARDS_ENABLED && !isDevBypass) {
+  const { supabase } = await verifyAdminAction();
+  if (!LEADERBOARD_ABUSE_GUARDS_ENABLED) {
     throw new Error("Leaderboard abuse guards are not enabled yet.");
-  }
-
-  if (isDevBypass) {
-    return { status: input.status };
   }
 
   const { data, error } = await rpcClient(supabase).rpc(
@@ -274,7 +254,7 @@ export async function resolveLeaderboardXpEventFlag(input: {
       p_flag_id: input.flagId,
       p_status: input.status,
       p_note: input.note ?? null,
-    }
+    },
   );
 
   if (error) {

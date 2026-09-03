@@ -8,7 +8,6 @@ import {
   UserAccessDashboard,
   type AdminUserAccessRow,
 } from "@/components/admin/users/UserAccessDashboard";
-import { getDevAdminUsers, isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 
 type ProfileRow = {
   id: string;
@@ -30,25 +29,30 @@ type SessionRow = {
 export default async function AdminUsersPage() {
   const supabase = await createClient();
   const betaAllAccess = isBetaAllAccessEnabled();
-  const devAdminBypass = isDevAdminBypassEnabled();
 
   const profilesRes = await supabase
     .from("profiles")
-    .select("id, email, display_name, avatar_url, role, orb_balance, xp, level, created_at")
+    .select(
+      "id, email, display_name, avatar_url, role, orb_balance, xp, level, created_at",
+    )
     .order("created_at", { ascending: false })
     .limit(250);
 
-  const profileIds = ((profilesRes.data ?? []) as ProfileRow[]).map((profile) => profile.id);
-  const subscriptionsRes = profileIds.length > 0
-    ? await supabase
-        .from("subscriptions")
-        .select("*")
-        .in("user_id", profileIds)
-        .order("created_at", { ascending: false })
-    : { data: [], error: null };
+  const profileIds = ((profilesRes.data ?? []) as ProfileRow[]).map(
+    (profile) => profile.id,
+  );
+  const subscriptionsRes =
+    profileIds.length > 0
+      ? await supabase
+          .from("subscriptions")
+          .select("*")
+          .in("user_id", profileIds)
+          .order("created_at", { ascending: false })
+      : { data: [], error: null };
 
   const subscriptionsByUser = new Map<string, SubscriptionRecord[]>();
-  for (const subscription of (subscriptionsRes.data ?? []) as SubscriptionRecord[]) {
+  for (const subscription of (subscriptionsRes.data ??
+    []) as SubscriptionRecord[]) {
     const userId = subscription.user_id;
     if (!userId) continue;
     const list = subscriptionsByUser.get(userId) ?? [];
@@ -56,58 +60,64 @@ export default async function AdminUsersPage() {
     subscriptionsByUser.set(userId, list);
   }
 
-  const sessionsRes = profileIds.length > 0
-    ? await supabase
-        .from("user_sessions")
-        .select("user_id, last_seen_at")
-        .in("user_id", profileIds)
-        .order("last_seen_at", { ascending: false })
-        .limit(1000)
-    : { data: [], error: null };
+  const sessionsRes =
+    profileIds.length > 0
+      ? await supabase
+          .from("user_sessions")
+          .select("user_id, last_seen_at")
+          .in("user_id", profileIds)
+          .order("last_seen_at", { ascending: false })
+          .limit(1000)
+      : { data: [], error: null };
 
   const lastSeenByUser = new Map<string, string>();
   for (const session of (sessionsRes.data ?? []) as SessionRow[]) {
-    if (session.user_id && session.last_seen_at && !lastSeenByUser.has(session.user_id)) {
+    if (
+      session.user_id &&
+      session.last_seen_at &&
+      !lastSeenByUser.has(session.user_id)
+    ) {
       lastSeenByUser.set(session.user_id, session.last_seen_at);
     }
   }
 
-  const databaseRows: AdminUserAccessRow[] = ((profilesRes.data ?? []) as ProfileRow[]).map(
-    (profile) => {
-      const subscriptions = subscriptionsByUser.get(profile.id) ?? [];
-      const entitlement = resolveEntitlementFromSubscriptions(subscriptions, {
-        betaAllAccess,
-      });
+  const databaseRows: AdminUserAccessRow[] = (
+    (profilesRes.data ?? []) as ProfileRow[]
+  ).map((profile) => {
+    const subscriptions = subscriptionsByUser.get(profile.id) ?? [];
+    const entitlement = resolveEntitlementFromSubscriptions(subscriptions, {
+      betaAllAccess,
+    });
 
-      return {
-        id: profile.id,
-        email: profile.email,
-        displayName: profile.display_name || profile.email?.split("@")[0] || "Unnamed user",
-        avatarUrl: profile.avatar_url,
-        role: profile.role,
-        orbBalance: profile.orb_balance ?? 0,
-        xp: profile.xp ?? 0,
-        level: profile.level ?? 1,
-        createdAt: profile.created_at,
-        lastOnlineAt: lastSeenByUser.get(profile.id) ?? null,
-        subscriptions,
-        latestSubscription: subscriptions[0] ?? null,
-        entitlement: {
-          planType: entitlement.planType,
-          source: entitlement.source,
-          hasPremiumAccess: entitlement.hasPremiumAccess,
-          hasEnterpriseAccess: entitlement.hasEnterpriseAccess,
-          reason: entitlement.reason,
-        },
-      };
-    }
-  );
-  const rows = databaseRows.length > 0 || !devAdminBypass
-    ? databaseRows
-    : getDevAdminUsers();
-  const loadError = devAdminBypass
-    ? null
-    : profilesRes.error?.message ?? subscriptionsRes.error?.message ?? sessionsRes.error?.message ?? null;
+    return {
+      id: profile.id,
+      email: profile.email,
+      displayName:
+        profile.display_name || profile.email?.split("@")[0] || "Unnamed user",
+      avatarUrl: profile.avatar_url,
+      role: profile.role,
+      orbBalance: profile.orb_balance ?? 0,
+      xp: profile.xp ?? 0,
+      level: profile.level ?? 1,
+      createdAt: profile.created_at,
+      lastOnlineAt: lastSeenByUser.get(profile.id) ?? null,
+      subscriptions,
+      latestSubscription: subscriptions[0] ?? null,
+      entitlement: {
+        planType: entitlement.planType,
+        source: entitlement.source,
+        hasPremiumAccess: entitlement.hasPremiumAccess,
+        hasEnterpriseAccess: entitlement.hasEnterpriseAccess,
+        reason: entitlement.reason,
+      },
+    };
+  });
+  const rows = databaseRows;
+  const loadError =
+    profilesRes.error?.message ??
+    subscriptionsRes.error?.message ??
+    sessionsRes.error?.message ??
+    null;
 
   return (
     <UserAccessDashboard

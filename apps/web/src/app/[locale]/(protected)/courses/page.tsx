@@ -7,8 +7,6 @@ import { ensureDevelopmentLibraryCourses } from "@/lib/seed/ensure-development-l
 import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
 import { areStudentCoursesEnabled } from "@/lib/features";
 import { getActiveSubject } from "@/lib/subject/server";
-import { DEV_ADMIN_PROFILE } from "@/lib/dev-admin-bypass";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { isEnrolledStudent } from "@/lib/ielts/enrollment";
 
 export const metadata = {
@@ -20,24 +18,18 @@ async function CoursesPayload() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) redirect("/auth/login");
+  if (!user) redirect("/auth/login");
 
-  const activeUserId =
-    user?.id ?? devAuthBypassUser?.id ?? DEV_ADMIN_PROFILE.id;
+  const activeUserId = user.id;
   const subject = await getActiveSubject();
 
   if (!areStudentCoursesEnabled(subject)) {
-    const { data: profile } = user
-      ? await supabase
-          .from("profiles")
-          .select("role")
-          .eq("id", user.id)
-          .single()
-      : { data: DEV_ADMIN_PROFILE };
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
 
     redirect(
       profile?.role === "admin" ? "/dashboard/admin/courses" : "/dashboard",

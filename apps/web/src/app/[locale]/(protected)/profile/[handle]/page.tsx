@@ -1,8 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 
 import { SocialProfilePage } from "@/components/profile/social-profile-page";
-import { getAnalyticsPageData, normalizeRangePreset } from "@/lib/api/analytics-page";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
+import {
+  getAnalyticsPageData,
+  normalizeRangePreset,
+} from "@/lib/api/analytics-page";
 import {
   PROFILE_PUBLIC_READS_ENABLED,
   PROFILE_SOCIAL_ENABLED,
@@ -14,9 +16,7 @@ import {
   getProfileActivityFeedData,
   getProfileAnalyticsTabData,
 } from "@/lib/profile-social/tab-data";
-import {
-  normalizeProfileHandle,
-} from "@/lib/profile-social/model";
+import { normalizeProfileHandle } from "@/lib/profile-social/model";
 import { normalizeProfileSocialTab } from "@/lib/profile-social/ui-model";
 import { createClient } from "@/lib/supabase/server";
 
@@ -34,7 +34,11 @@ export default async function PublicProfilePage({
   const [{ locale, handle }, query] = await Promise.all([params, searchParams]);
   const normalizedHandle = normalizeProfileHandle(handle);
 
-  if (!normalizedHandle || !PROFILE_SOCIAL_ENABLED || !PROFILE_PUBLIC_READS_ENABLED) {
+  if (
+    !normalizedHandle ||
+    !PROFILE_SOCIAL_ENABLED ||
+    !PROFILE_PUBLIC_READS_ENABLED
+  ) {
     notFound();
   }
 
@@ -42,11 +46,8 @@ export default async function PublicProfilePage({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) {
+  if (!user) {
     redirect("/auth/login");
   }
 
@@ -76,7 +77,11 @@ export default async function PublicProfilePage({
     achievementsData,
   ] = await Promise.all([
     shouldLoadAnalytics && isSelfProfile && publicProfile.profile
-      ? getAnalyticsPageData(publicProfile.profile.userId, range, practiceLanguage)
+      ? getAnalyticsPageData(
+          publicProfile.profile.userId,
+          range,
+          practiceLanguage,
+        )
       : Promise.resolve(null),
     shouldLoadAnalytics && targetUserId && !isSelfProfile
       ? getProfileAnalyticsTabData({

@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 import { getConversations } from "@/lib/api/chat";
 import {
   getCoachContextEnvelope,
@@ -19,7 +18,12 @@ async function ChatPayload({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ message?: string; conversationId?: string; context?: string; contextId?: string }>;
+  searchParams: Promise<{
+    message?: string;
+    conversationId?: string;
+    context?: string;
+    contextId?: string;
+  }>;
 }) {
   const { locale } = await params;
   const practiceLanguage = coercePracticeLanguage(locale);
@@ -27,14 +31,11 @@ async function ChatPayload({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) redirect("/auth/login");
-  const userId = user?.id ?? devAuthBypassUser!.id;
+  if (!user) redirect("/auth/login");
+  const userId = user.id;
 
-  const conversations = user ? await getConversations(user.id) : [];
+  const conversations = await getConversations(user.id);
   const query = await searchParams;
   const normalizedContext =
     query.context === "dashboard-home" ? "coach-home" : query.context;
@@ -66,7 +67,12 @@ export default async function ChatPage({
   searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ message?: string; conversationId?: string; context?: string; contextId?: string }>;
+  searchParams: Promise<{
+    message?: string;
+    conversationId?: string;
+    context?: string;
+    contextId?: string;
+  }>;
 }) {
   return await ChatPayload({ params, searchParams });
 }

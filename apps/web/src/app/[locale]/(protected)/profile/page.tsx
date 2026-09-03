@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
-import { getAnalyticsPageData, normalizeRangePreset } from "@/lib/api/analytics-page";
+import {
+  getAnalyticsPageData,
+  normalizeRangePreset,
+} from "@/lib/api/analytics-page";
 import { coercePracticeLanguage } from "@/lib/practice-language";
 import { AnalyticsPage } from "@/components/analytics/analytics-page";
 import { SocialProfilePage } from "@/components/profile/social-profile-page";
@@ -25,7 +27,10 @@ interface ProfilePageProps {
   searchParams: Promise<{ range?: string; tab?: string; preview?: string }>;
 }
 
-export default async function ProfilePage({ params, searchParams }: ProfilePageProps) {
+export default async function ProfilePage({
+  params,
+  searchParams,
+}: ProfilePageProps) {
   const [{ locale }, query] = await Promise.all([params, searchParams]);
   const range = normalizeRangePreset(query.range);
   const practiceLanguage = coercePracticeLanguage(locale);
@@ -33,11 +38,8 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = user
-    ? null
-    : await getDevAuthBypassUserFromServerContext();
 
-  if (!user && !devAuthBypassUser) {
+  if (!user) {
     redirect("/auth/login");
   }
 
@@ -60,7 +62,11 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
       achievementsData,
     ] = await Promise.all([
       shouldLoadAnalytics && isSelfProfile && publicProfile.profile
-        ? getAnalyticsPageData(publicProfile.profile.userId, range, practiceLanguage)
+        ? getAnalyticsPageData(
+            publicProfile.profile.userId,
+            range,
+            practiceLanguage,
+          )
         : Promise.resolve(null),
       shouldLoadAnalytics && targetUserId && !isSelfProfile
         ? getProfileAnalyticsTabData({
@@ -101,11 +107,7 @@ export default async function ProfilePage({ params, searchParams }: ProfilePageP
     );
   }
 
-  const data = await getAnalyticsPageData(
-    user?.id ?? devAuthBypassUser!.id,
-    range,
-    practiceLanguage
-  );
+  const data = await getAnalyticsPageData(user.id, range, practiceLanguage);
 
   return <AnalyticsPage data={data} />;
 }

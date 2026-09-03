@@ -8,7 +8,7 @@ function buildFileName() {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireRequestAuth(request, { allowDevBypass: false });
+  const auth = await requireRequestAuth(request);
 
   if (!auth.ok) {
     return auth.errorResponse;
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
   if (sessionsResult.error) {
     return NextResponse.json(
       { error: sessionsResult.error.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 

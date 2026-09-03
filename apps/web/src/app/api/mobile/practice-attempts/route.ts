@@ -90,10 +90,6 @@ async function chargeCredits(
   input: PracticeAnalysisInput,
 ) {
   const cost = CREDIT_COSTS[input.practiceTrack];
-  if (auth.authSource === "dev-bypass") {
-    return { ok: true as const, chargedCredits: 0, orbBalance: null };
-  }
-
   const attemptId = input.attemptId;
   if (!attemptId) {
     return {

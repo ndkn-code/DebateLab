@@ -1,7 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { createTypedServerClient } from "@/lib/supabase/server";
-import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { StudentRouteSkeleton } from "@/components/shared/student-route-skeleton";
 import { IeltsOnboardingFlow } from "@/components/ielts/onboarding/IeltsOnboardingFlow";
 import {
@@ -17,7 +16,6 @@ import {
   initialOnboardingStep,
   selfReportedBandFromPreferences,
 } from "@/lib/ielts/onboarding/model";
-import { getDevAuthBypassUserFromServerContext } from "@/lib/dev-auth-bypass";
 
 export const metadata = {
   title: "IELTS onboarding",
@@ -27,11 +25,6 @@ export const dynamic = "force-dynamic";
 
 function todayIso(): string {
   return new Date().toISOString().slice(0, 10);
-}
-
-async function loadDevBypassUser(hasAuthenticatedUser: boolean) {
-  if (hasAuthenticatedUser) return null;
-  return getDevAuthBypassUserFromServerContext();
 }
 
 function initialGoalFor(
@@ -67,16 +60,14 @@ async function IeltsOnboardingPayload({
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const devAuthBypassUser = await loadDevBypassUser(Boolean(user));
-
-  if (!user && !devAuthBypassUser) {
+  if (!user) {
     redirect("/auth/login");
   }
 
-  const userId = user?.id ?? devAuthBypassUser?.id;
+  const userId = user.id;
   if (!userId) redirect("/auth/login");
 
-  const ieltsClient = devAuthBypassUser ? createTypedAdminClient() : supabase;
+  const ieltsClient = supabase;
   const [activePlan, diagnosticTest, profileResult] = await Promise.all([
     loadActiveIeltsStudyPlan(userId, ieltsClient),
     findQuickDiagnosticTest(ieltsClient),

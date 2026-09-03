@@ -54,7 +54,7 @@ async function guardRateLimit(auth: RequestAuthSuccess) {
       {
         status: 429,
         headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-      }
+      },
     );
   }
 
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   let userId: string | undefined;
   try {
-    const auth = await requireRequestAuth(request, { allowDevBypass: false });
+    const auth = await requireRequestAuth(request);
 
     if (!auth.ok) {
       return auth.errorResponse;
@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
         route: searchParams.get("route"),
         commit: false,
       },
-      error
+      error,
     );
     return emptyPopupResponse();
   }
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
   let route: string | null = null;
   let timezone: string | null = null;
   try {
-    const auth = await requireRequestAuth(request, { allowDevBypass: false });
+    const auth = await requireRequestAuth(request);
 
     if (!auth.ok) {
       return auth.errorResponse;
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
         route,
         commit: true,
       },
-      error
+      error,
     );
     return emptyPopupResponse();
   }

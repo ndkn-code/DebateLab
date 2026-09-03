@@ -2,7 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { normalizeAnalyticsEventInput } from "@/lib/analytics/events";
 import { requireRequestAuth } from "@/lib/api/request-auth";
 import { consumeRateLimit } from "@/lib/rate-limit";
-import { RequestValidationError, readJsonObject } from "@/lib/api/request-validation";
+import {
+  RequestValidationError,
+  readJsonObject,
+} from "@/lib/api/request-validation";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +14,6 @@ export async function POST(request: NextRequest) {
 
   if (!auth.ok) {
     return auth.errorResponse;
-  }
-
-  if (auth.authSource === "dev-bypass") {
-    return NextResponse.json({ ok: true, skipped: "dev-auth-bypass" });
   }
 
   const { supabase, user } = auth;
@@ -30,23 +29,21 @@ export async function POST(request: NextRequest) {
       {
         status: 429,
         headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-      }
+      },
     );
   }
 
   let event;
   try {
     const body = await readJsonObject(request, { maxBytes: 12 * 1024 });
-    event = normalizeAnalyticsEventInput(
-      body,
-      { source: "web" }
-    );
+    event = normalizeAnalyticsEventInput(body, { source: "web" });
   } catch (error) {
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : "Invalid analytics event",
+        error:
+          error instanceof Error ? error.message : "Invalid analytics event",
       },
-      { status: error instanceof RequestValidationError ? error.status : 400 }
+      { status: error instanceof RequestValidationError ? error.status : 400 },
     );
   }
 
@@ -63,7 +60,10 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    return NextResponse.json({ error: "Unable to record analytics event" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Unable to record analytics event" },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ ok: true });

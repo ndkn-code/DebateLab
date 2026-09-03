@@ -20,10 +20,6 @@ export async function POST(request: NextRequest) {
     return auth.errorResponse;
   }
 
-  if (auth.authSource === "dev-bypass") {
-    return new NextResponse(null, { status: 204 });
-  }
-
   let sessionId: string | undefined;
   try {
     const body = await readJsonObject(request, { maxBytes: 1024 });
@@ -38,14 +34,14 @@ export async function POST(request: NextRequest) {
               ? error.message
               : "Invalid session end payload",
       },
-      { status: error instanceof RequestValidationError ? error.status : 400 }
+      { status: error instanceof RequestValidationError ? error.status : 400 },
     );
   }
 
   if (!sessionId) {
     return NextResponse.json(
       { error: "sessionId is required." },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -63,7 +59,7 @@ export async function POST(request: NextRequest) {
   if (error) {
     return NextResponse.json(
       { error: "Unable to end session." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 

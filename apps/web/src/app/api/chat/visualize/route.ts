@@ -81,7 +81,7 @@ ${params.assistantText.slice(0, 5000)}`;
 
 function inferLanguage(text: string): "vi" | "en" {
   return /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/i.test(
-    text
+    text,
   )
     ? "vi"
     : "en";
@@ -89,17 +89,19 @@ function inferLanguage(text: string): "vi" | "en" {
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = await requireRequestAuth(req, { allowDevBypass: false });
+    const auth = await requireRequestAuth(req);
     if (!auth.ok) {
       return unauthorizedTextResponse();
     }
     const { supabase, user } = auth;
-    const body = parseRequest(await readJsonObject(req, { maxBytes: 8 * 1024 }));
+    const body = parseRequest(
+      await readJsonObject(req, { maxBytes: 8 * 1024 }),
+    );
 
     const { data: message, error } = await supabase
       .from("chat_messages")
       .select(
-        "id, conversation_id, role, content, metadata, created_at, chat_conversations!inner(user_id)"
+        "id, conversation_id, role, content, metadata, created_at, chat_conversations!inner(user_id)",
       )
       .eq("id", body.messageId)
       .eq("role", "assistant")
@@ -109,11 +111,18 @@ export async function POST(req: NextRequest) {
     if (error || !message) {
       return NextResponse.json({ error: "Message not found" }, { status: 404 });
     }
-    if (body.conversationId && message.conversation_id !== body.conversationId) {
-      return NextResponse.json({ error: "Conversation mismatch" }, { status: 400 });
+    if (
+      body.conversationId &&
+      message.conversation_id !== body.conversationId
+    ) {
+      return NextResponse.json(
+        { error: "Conversation mismatch" },
+        { status: 400 },
+      );
     }
 
-    const existingMetadata = (message.metadata ?? null) as CoachMessageMetadata | null;
+    const existingMetadata = (message.metadata ??
+      null) as CoachMessageMetadata | null;
     if (existingMetadata?.visualExplainer) {
       return NextResponse.json({
         visualExplainer: existingMetadata.visualExplainer,
@@ -129,69 +138,76 @@ export async function POST(req: NextRequest) {
       .order("created_at", { ascending: false })
       .limit(6);
     const previousUserText = (previousRows ?? []).find(
-      (row) => row.role === "user"
+      (row) => row.role === "user",
     )?.content;
 
     const prompt = buildPlannerPrompt({
       assistantText: message.content,
       previousUserText,
-      languageHint: inferLanguage(`${previousUserText ?? ""}\n${message.content}`),
+      languageHint: inferLanguage(
+        `${previousUserText ?? ""}\n${message.content}`,
+      ),
     });
 
     try {
-        const plan = await generateStructured({
+      const plan = await generateStructured({
+        task: "coach_visualization",
+        prompt,
+        schema: VisualPlannerSchema,
+        context: {
           task: "coach_visualization",
-          prompt,
-          schema: VisualPlannerSchema,
-          context: {
-            task: "coach_visualization",
-            sourceRoute: "/api/chat/visualize",
-            outputType: "coach_visual_planner",
-            userId: user.id,
-            deadlineAt: Date.now() + 35_000,
-            idempotencyKey: `coach-visual:${message.id}`,
-            metadata: { messageId: message.id },
-          },
-        });
-        const visualExplainer = normalizeCoachVisualExplainerSpec(
-          plan.output,
-          {
-            sourceMessageId: message.id,
-            plannerModel: plan.model,
-          }
-        );
-        if (!visualExplainer) {
-          throw new Error("Planner returned invalid visual explainer JSON");
-        }
-        const metadata: CoachMessageMetadata = {
-          renderVersion: 1,
-          blocks: existingMetadata?.blocks ?? [],
-          suggestedActions: existingMetadata?.suggestedActions ?? [],
-          ...(existingMetadata ?? {}),
-          visualizable: true,
-          autoVisualize: false,
-          visualExplainer,
-          visualTemplate: visualExplainer.template,
-          visualPlannerModel: plan.model,
-        };
-        await supabase
-          .from("chat_messages")
-          .update({ metadata })
-          .eq("id", message.id);
-        return NextResponse.json({ visualExplainer, metadata });
+          sourceRoute: "/api/chat/visualize",
+          outputType: "coach_visual_planner",
+          userId: user.id,
+          deadlineAt: Date.now() + 35_000,
+          idempotencyKey: `coach-visual:${message.id}`,
+          metadata: { messageId: message.id },
+        },
+      });
+      const visualExplainer = normalizeCoachVisualExplainerSpec(plan.output, {
+        sourceMessageId: message.id,
+        plannerModel: plan.model,
+      });
+      if (!visualExplainer) {
+        throw new Error("Planner returned invalid visual explainer JSON");
+      }
+      const metadata: CoachMessageMetadata = {
+        renderVersion: 1,
+        blocks: existingMetadata?.blocks ?? [],
+        suggestedActions: existingMetadata?.suggestedActions ?? [],
+        ...(existingMetadata ?? {}),
+        visualizable: true,
+        autoVisualize: false,
+        visualExplainer,
+        visualTemplate: visualExplainer.template,
+        visualPlannerModel: plan.model,
+      };
+      await supabase
+        .from("chat_messages")
+        .update({ metadata })
+        .eq("id", message.id);
+      return NextResponse.json({ visualExplainer, metadata });
     } catch (error) {
       return NextResponse.json(
-        { error: error instanceof Error ? error.message : "Could not create visual explainer" },
-        { status: 502 }
+        {
+          error:
+            error instanceof Error
+              ? error.message
+              : "Could not create visual explainer",
+        },
+        { status: 502 },
       );
     }
   } catch (error) {
     if (error instanceof RequestValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
     }
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

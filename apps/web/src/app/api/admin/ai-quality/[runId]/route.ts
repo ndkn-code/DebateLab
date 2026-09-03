@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 
 export async function PATCH(
   req: NextRequest,
-  context: { params: Promise<{ runId: string }> }
+  context: { params: Promise<{ runId: string }> },
 ) {
   try {
     const auth = await requireRequestAuth(req);
@@ -39,7 +39,7 @@ export async function PATCH(
       body,
       "reviewStatus",
       AI_QUALITY_REVIEW_STATUSES,
-      { required: true }
+      { required: true },
     ) as AiQualityReviewStatus;
     const adminNotes = getString(body, "adminNotes", { maxLength: 2000 });
 
@@ -49,7 +49,7 @@ export async function PATCH(
       .update({
         review_status: reviewStatus,
         admin_notes: adminNotes ?? null,
-        reviewed_by: auth.authSource === "dev-bypass" ? null : user.id,
+        reviewed_by: user.id,
         reviewed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       })
@@ -58,17 +58,23 @@ export async function PATCH(
       .single();
 
     if (error) {
-      return NextResponse.json({ error: "Unable to update AI quality run" }, { status: 500 });
+      return NextResponse.json(
+        { error: "Unable to update AI quality run" },
+        { status: 500 },
+      );
     }
 
     return NextResponse.json({ ok: true, run: data });
   } catch (error) {
     if (error instanceof RequestValidationError) {
-      return NextResponse.json({ error: error.message }, { status: error.status });
+      return NextResponse.json(
+        { error: error.message },
+        { status: error.status },
+      );
     }
     return NextResponse.json(
       { error: "Unable to update AI quality run" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export async function POST(request: NextRequest) {
-  const auth = await requireRequestAuth(request, { allowDevBypass: false });
+  const auth = await requireRequestAuth(request);
 
   if (!auth.ok) {
     return auth.errorResponse;
@@ -38,17 +38,18 @@ export async function POST(request: NextRequest) {
       {
         status: 429,
         headers: { "Retry-After": String(rateLimit.retryAfterSeconds) },
-      }
+      },
     );
   }
 
   try {
     const body = await readJsonObject(request, { maxBytes: 12 * 1024 });
-    const campaignKey = getString(body, "campaignKey", {
-      required: true,
-      minLength: 1,
-      maxLength: 120,
-    }) ?? "";
+    const campaignKey =
+      getString(body, "campaignKey", {
+        required: true,
+        minLength: 1,
+        maxLength: 120,
+      }) ?? "";
     const eventType = getEnum(body, "eventType", SMART_POPUP_EVENT_TYPES, {
       required: true,
     }) as SmartPopupEventType;
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
             ? error.message
             : "Unable to record popup event.",
       },
-      { status: error instanceof RequestValidationError ? error.status : 500 }
+      { status: error instanceof RequestValidationError ? error.status : 500 },
     );
   }
 }

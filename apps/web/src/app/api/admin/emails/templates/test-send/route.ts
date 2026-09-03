@@ -6,7 +6,6 @@ import {
 } from "@/lib/email/admin-template-auth";
 import {
   getOverrideForTemplate,
-  loadDevEmailTemplateOverrides,
   loadActiveEmailTemplateOverrides,
   normalizeEmailTemplateCopy,
   renderTemplatePreview,
@@ -79,9 +78,7 @@ export async function POST(request: NextRequest) {
     const draftFields = body.fields
       ? normalizeEmailTemplateCopy(body.fields, { requireRequiredFields: true })
       : null;
-    const overrides = context.supabase
-      ? await loadActiveEmailTemplateOverrides(context.supabase)
-      : loadDevEmailTemplateOverrides();
+    const overrides = await loadActiveEmailTemplateOverrides(context.supabase);
     const activeOverride = getOverrideForTemplate(
       overrides,
       locale,

@@ -1,6 +1,5 @@
 import "server-only";
 
-import { isDevAdminBypassEnabled } from "@/lib/dev-admin-bypass";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import type { Tables } from "@/types/supabase";
@@ -28,18 +27,13 @@ export type VocabPage = {
 type VocabClient = Awaited<ReturnType<typeof createTypedServerClient>>;
 
 async function createReadClient(): Promise<VocabClient> {
-  return isDevAdminBypassEnabled()
-    ? createTypedAdminClient()
-    : createTypedServerClient();
+  return false ? createTypedAdminClient() : createTypedServerClient();
 }
 
 async function verifyAdmin(): Promise<{
   client: VocabClient;
   userId: string | null;
 }> {
-  if (isDevAdminBypassEnabled()) {
-    return { client: createTypedAdminClient(), userId: null };
-  }
   const client = await createReadClient();
   const {
     data: { user },
