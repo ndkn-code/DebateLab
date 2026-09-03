@@ -1,12 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useCspNonce } from "@/components/shared/theme-provider";
+import { nonceMermaidStyles } from "@/lib/security/mermaid-csp";
 
 interface MermaidBlockProps {
   chart: string;
 }
 
 export function MermaidBlock({ chart }: MermaidBlockProps) {
+  const nonce = useCspNonce();
   const [svg, setSvg] = useState("");
   const [hasError, setHasError] = useState(false);
 
@@ -26,7 +29,7 @@ export function MermaidBlock({ chart }: MermaidBlockProps) {
         const { svg: rendered } = await mermaid.render(id, chart);
 
         if (!cancelled) {
-          setSvg(rendered);
+          setSvg(nonceMermaidStyles(rendered, nonce));
           setHasError(false);
         }
       } catch {
@@ -42,7 +45,7 @@ export function MermaidBlock({ chart }: MermaidBlockProps) {
     return () => {
       cancelled = true;
     };
-  }, [chart]);
+  }, [chart, nonce]);
 
   if (hasError) {
     return (

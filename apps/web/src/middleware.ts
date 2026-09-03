@@ -3,13 +3,29 @@ import { routing } from "@/i18n/routing";
 import { updateSession } from "@/lib/supabase/middleware";
 import { getMaintenanceGateResponse } from "@/lib/maintenance/middleware";
 import { NextRequest } from "next/server";
+import {
+  createContentSecurityPolicyContext,
+  setContentSecurityPolicyResponseHeader,
+} from "@/lib/security/content-security-policy";
 
 const intlMiddleware = createIntlMiddleware(routing);
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const maintenanceResponse = await getMaintenanceGateResponse(request);
-  if (maintenanceResponse) return maintenanceResponse;
+  const csp = createContentSecurityPolicyContext(request.headers, {
+    isDevelopment: process.env.NODE_ENV === "development",
+    grafanaFaroCollectorUrl: process.env.NEXT_PUBLIC_GRAFANA_FARO_COLLECTOR_URL,
+  });
+  const requestHeaders = csp.requestHeaders;
+  const securedRequest = new NextRequest(request, { headers: requestHeaders });
+
+  const withCsp = (response: Awaited<ReturnType<typeof updateSession>>) => {
+    setContentSecurityPolicyResponseHeader(response.headers, csp.value);
+    return response;
+  };
+
+  const maintenanceResponse = await getMaintenanceGateResponse(securedRequest);
+  if (maintenanceResponse) return withCsp(maintenanceResponse);
 
   // Skip intl middleware for API routes, auth callback, and join referral route
   if (
@@ -19,10 +35,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/ingest/") ||
     pathname.startsWith("/join/")
   ) {
-    return await updateSession(request);
+    return withCsp(await updateSession(securedRequest));
   }
 
-  const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-thinkfy-pathname", pathname);
   const requestWithPath = new NextRequest(request, { headers: requestHeaders });
 
@@ -33,7 +48,7 @@ export async function middleware(request: NextRequest) {
 
   // Then run Supabase session update, passing the intl response to preserve
   // locale cookies/headers while adding Supabase session cookies
-  return await updateSession(requestWithPath, intlResponse);
+  return withCsp(await updateSession(requestWithPath, intlResponse));
 }
 
 export const config = {

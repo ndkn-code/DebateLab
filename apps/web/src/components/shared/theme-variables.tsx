@@ -11,8 +11,14 @@ function cssBlock(selector: string, mode: ThinkfyThemeMode) {
   return `${selector} {\n${declarations}\n}`;
 }
 
-export function ThinkfyThemeVariables() {
+export function ThinkfyThemeVariables({ nonce }: { nonce?: string }) {
   const css = `${cssBlock(":root", "light")}\n${cssBlock(".dark", "dark")}`;
 
-  return <style id="thinkfy-theme-variables" dangerouslySetInnerHTML={{ __html: css }} />;
+  return (
+    <style
+      id="thinkfy-theme-variables"
+      nonce={nonce}
+      dangerouslySetInnerHTML={{ __html: css }}
+    />
+  );
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { StructuredData } from "@/components/seo/structured-data";
 import { PublicGuidePage } from "@/components/seo/public-guide-page";
@@ -37,9 +38,11 @@ export default async function GuideRoute({ params }: Props) {
   if (!isPublicGuideSlug(slug)) notFound();
   const locale = asPublicLocale(rawLocale);
   const guide = getPublicGuide(locale, slug);
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <>
       <StructuredData
+        nonce={nonce}
         value={{
           "@context": "https://schema.org",
           "@type": "Article",

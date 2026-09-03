@@ -13,5 +13,7 @@ assert.match(getHandler, /<form method=\\?"post\\?"/i);
 assert.doesNotMatch(getHandler, /applyEmailUnsubscribe\(/);
 assert.match(postHandler, /applyEmailUnsubscribe\(/);
 assert.match(source, /<html lang="\$\{input\.locale\}" dir="ltr">/);
+assert.match(source, /request\.headers\.get\("x-nonce"\)/);
+assert.match(source, /<style nonce="\$\{escapeHtml\(input\.nonce \?\? ""\)\}">/);
 
 console.log("unsubscribe confirmation route tests passed");

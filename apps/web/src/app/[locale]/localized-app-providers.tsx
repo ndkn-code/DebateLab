@@ -1,4 +1,4 @@
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages } from "next-intl/server";
 import { Analytics } from "@vercel/analytics/react";
@@ -26,7 +26,7 @@ async function resolveInitialTheme(): Promise<AppTheme> {
   const cookieStore = await cookies();
   const cookieTheme = coerceAppTheme(
     cookieStore.get(APP_THEME_COOKIE_NAME)?.value,
-    "light"
+    "light",
   );
 
   try {
@@ -48,7 +48,7 @@ async function resolveInitialTheme(): Promise<AppTheme> {
     return coerceAppTheme(
       (profile?.preferences as Record<string, unknown> | null | undefined)
         ?.theme,
-      cookieTheme
+      cookieTheme,
     );
   } catch {
     return cookieTheme;
@@ -73,10 +73,11 @@ export async function LocalizedAppProviders({
   children,
 }: LocalizedAppProvidersProps) {
   const cookieStore = await cookies();
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const messages = await getMessages();
   const initialTheme = await resolveInitialTheme();
   const analyticsEnabled = isAnalyticsEnabled(
-    cookieStore.get(ANALYTICS_COOKIE_NAME)?.value
+    cookieStore.get(ANALYTICS_COOKIE_NAME)?.value,
   );
   const analyticsContent = analyticsEnabled ? (
     <PostHogProvider enabled>
@@ -86,19 +87,16 @@ export async function LocalizedAppProviders({
   ) : (
     children
   );
-  const content = (
-    <FaroProvider>
-      {analyticsContent}
-    </FaroProvider>
-  );
+  const content = <FaroProvider>{analyticsContent}</FaroProvider>;
 
   return (
     <>
       <script
+        nonce={nonce}
         suppressHydrationWarning
         dangerouslySetInnerHTML={{ __html: themeSyncScript(initialTheme) }}
       />
-      <AppThemeProvider initialTheme={initialTheme}>
+      <AppThemeProvider initialTheme={initialTheme} nonce={nonce}>
         <NextIntlClientProvider messages={messages}>
           {content}
           <ToastProvider />

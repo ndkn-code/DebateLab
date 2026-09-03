@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { setRequestLocale } from "next-intl/server";
 import { IeltsLanding } from "@/components/landing/ielts/IeltsLanding";
 import { getMarketingCopy } from "@/components/landing/marketing/copy";
@@ -45,6 +46,7 @@ export default async function IeltsLandingPage({ params }: Props) {
   setRequestLocale(locale);
   const landingLocale = asPublicLocale(locale);
   const marketingCopy = getMarketingCopy("ielts", landingLocale);
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   const supabase = await createTypedServerClient();
   const {
     data: { user },
@@ -53,6 +55,7 @@ export default async function IeltsLandingPage({ params }: Props) {
   return (
     <PublicSiteAnalytics locale={landingLocale} product="ielts">
       <StructuredData
+        nonce={nonce}
         value={[
           {
             "@context": "https://schema.org",

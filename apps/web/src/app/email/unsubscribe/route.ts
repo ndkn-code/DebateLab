@@ -36,6 +36,7 @@ function htmlPage(input: {
   title: string;
   body: string;
   locale: PageLocale;
+  nonce?: string;
   status?: number;
 }) {
   return new NextResponse(
@@ -45,7 +46,7 @@ function htmlPage(input: {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>${input.title}</title>
-    <style>
+    <style nonce="${escapeHtml(input.nonce ?? "")}">
       body { margin: 0; background: #F5F5F2; color: #333333; font-family: Arial, Helvetica, sans-serif; }
       main { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
       section { width: min(100%, 520px); background: #fff; border: 1px solid #D9D9D4; border-radius: 12px; padding: 32px; box-shadow: 0 18px 42px -34px rgba(17,17,17,.35); }
@@ -76,10 +77,12 @@ function htmlPage(input: {
 
 export async function GET(request: NextRequest) {
   const locale = requestLocale(request);
+  const nonce = request.headers.get("x-nonce") ?? undefined;
   const token = request.nextUrl.searchParams.get("token");
   if (!token) {
     return htmlPage({
       locale,
+      nonce,
       title:
         locale === "vi" ? "Thiếu mã hủy email" : "Missing unsubscribe code",
       body:
@@ -96,6 +99,7 @@ export async function GET(request: NextRequest) {
 
     return htmlPage({
       locale,
+      nonce,
       title:
         locale === "vi" ? "Xác nhận hủy nhận email" : "Confirm unsubscribe",
       body:
@@ -106,6 +110,7 @@ export async function GET(request: NextRequest) {
   } catch {
     return htmlPage({
       locale,
+      nonce,
       title:
         locale === "vi"
           ? "Link hủy email không hợp lệ"
@@ -120,6 +125,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const nonce = request.headers.get("x-nonce") ?? undefined;
   const formData = await request.formData();
   const token = formData.get("token");
   const locale = formData.get("lang") === "vi" ? "vi" : "en";
@@ -127,6 +133,7 @@ export async function POST(request: NextRequest) {
   if (typeof token !== "string" || !token) {
     return htmlPage({
       locale,
+      nonce,
       title:
         locale === "vi" ? "Thiếu mã hủy email" : "Missing unsubscribe code",
       body:
@@ -147,6 +154,7 @@ export async function POST(request: NextRequest) {
 
     return htmlPage({
       locale,
+      nonce,
       title: locale === "vi" ? "Đã hủy nhận email" : "You are unsubscribed",
       body:
         locale === "vi"
@@ -156,6 +164,7 @@ export async function POST(request: NextRequest) {
   } catch {
     return htmlPage({
       locale,
+      nonce,
       title:
         locale === "vi"
           ? "Link hủy email không hợp lệ"

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { Inter, Geist_Mono, Noto_Serif } from "next/font/google";
 import { ThinkfyThemeVariables } from "@/components/shared/theme-variables";
 import "./globals.css";
@@ -76,10 +77,11 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="en" className="light scroll-smooth" suppressHydrationWarning>
       <head>
-        <ThinkfyThemeVariables />
+        <ThinkfyThemeVariables nonce={nonce} />
       </head>
       <body
         className={`${inter.variable} ${notoSerif.variable} ${geistMono.variable} bg-background font-sans antialiased`}

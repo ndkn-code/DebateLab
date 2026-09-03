@@ -1393,11 +1393,6 @@ export function AdminUiShowcasePage({
   return (
     <AdminV2Frame>
     <main className="min-h-full bg-white">
-      <style jsx global>{`
-        .admin-ui-showcase-preview .fixed {
-          position: absolute !important;
-        }
-      `}</style>
       <div className="mx-auto flex max-w-[1680px] flex-col">
         <header className="border-b border-outline-variant/20 bg-white">
           <div className="flex min-h-11 items-center justify-between border-b border-outline-variant/20 px-4 py-2 sm:px-6 lg:px-7">
@@ -1501,7 +1496,7 @@ export function AdminUiShowcasePage({
               <div
                 ref={previewContainerRef}
                 data-showcase-preview
-                className="admin-ui-showcase-preview relative min-h-[640px] overflow-auto rounded-lg border border-outline-variant/20 bg-white"
+                className="relative min-h-[640px] overflow-auto rounded-lg border border-outline-variant/20 bg-white [&_.fixed]:!absolute"
               >
                 <ShowcasePreview
                   scenario={activeScenario}
