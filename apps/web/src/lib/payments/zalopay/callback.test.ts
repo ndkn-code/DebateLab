@@ -28,11 +28,18 @@ const macFor = (raw: string) => hmacSha256Hex(raw, "k2");
 test("payments/zalopay/callback grant + idempotency + guards", async () => {
   const repo = new FakeRepository(["u1"]);
   const raw = body();
+  await repo.createZaloPayOrder({ userId: "u1", appTransId: "260619_000001", amount: 197000, currency: "VND", planType: "premium", billingCycle: "monthly" });
 
   // Happy path: grants a 1-month premium subscription.
   const r1 = await processZaloPayCallback(raw, macFor(raw), repo, { config, now });
   assert.equal(r1.return_code, 1);
   assert.equal(r1.return_message, "success");
+  assert.equal(repo.subscriptionCount(), 1);
+
+  // A valid provider MAC cannot change the server-authorized amount.
+  const mismatched = body({ amount: 1 });
+  const mismatchResult = await processZaloPayCallback(mismatched, macFor(mismatched), repo, { config, now });
+  assert.equal(mismatchResult.return_code, 0);
   assert.equal(repo.subscriptionCount(), 1);
   const txn = await repo.getTransaction("zalopay", "260619_000001");
   assert.ok(txn && txn.processed);
@@ -60,6 +67,7 @@ test("payments/zalopay/callback grant + idempotency + guards", async () => {
 
   // Transient grant failure -> return_code 0 so ZaloPay retries.
   const throwing = new FakeRepository(["u1"]);
+  await throwing.createZaloPayOrder({ userId: "u1", appTransId: "260619_000002", amount: 197000, currency: "VND", planType: "premium", billingCycle: "monthly" });
   throwing.applySubscription = async () => {
     throw new Error("db down");
   };

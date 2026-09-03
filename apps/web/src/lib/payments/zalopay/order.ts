@@ -87,6 +87,10 @@ interface OrderDeps {
   fetchFn?: ZaloFetch;
 }
 
+export function createZaloPayAppTransId(now: Date = new Date()): string {
+  return generateAppTransId(now);
+}
+
 export async function createZaloPayOrder(
   input: OrderInput,
   deps: OrderDeps = {},

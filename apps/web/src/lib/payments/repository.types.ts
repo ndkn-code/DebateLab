@@ -41,6 +41,24 @@ export interface StoredTransaction {
   subscriptionId: string | null;
 }
 
+export interface ZaloPayOrderInput {
+  userId: string;
+  appTransId: string;
+  amount: number;
+  currency: string;
+  planType: string;
+  billingCycle: string;
+}
+
+export interface ZaloPayCallbackInput {
+  appTransId: string;
+  userId: string;
+  amount: number;
+  currency: string;
+  billingCycle: string;
+  providerRef: string;
+}
+
 export interface PaymentRepository {
   /** True only when a prior delivery of this event fully processed (cheap dedup). */
   isWebhookProcessed(provider: Provider, eventId: string): Promise<boolean>;
@@ -80,4 +98,7 @@ export interface PaymentRepository {
     limit: number | null,
   ): Promise<UsageResult>;
   userExists(userId: string): Promise<boolean>;
+  createZaloPayOrder(input: ZaloPayOrderInput): Promise<void>;
+  failZaloPayOrder(appTransId: string): Promise<void>;
+  settleZaloPayCallback(input: ZaloPayCallbackInput): Promise<"success" | "duplicate">;
 }

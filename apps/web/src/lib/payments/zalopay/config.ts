@@ -20,11 +20,15 @@ export function loadZaloPayConfig(
   env: Record<string, string | undefined> = process.env,
 ): ZaloPayConfig {
   const mode = env.ZALOPAY_ENV === "production" ? "production" : "sandbox";
-  return {
-    appId: env.ZALOPAY_APP_ID ?? "",
-    key1: env.ZALOPAY_KEY1 ?? "",
-    key2: env.ZALOPAY_KEY2 ?? "",
+  const config = {
+    appId: env.ZALOPAY_APP_ID?.trim() ?? "",
+    key1: env.ZALOPAY_KEY1?.trim() ?? "",
+    key2: env.ZALOPAY_KEY2?.trim() ?? "",
     createEndpoint: ENDPOINTS[mode],
-    callbackUrl: env.ZALOPAY_CALLBACK_URL ?? "",
+    callbackUrl: env.ZALOPAY_CALLBACK_URL?.trim() ?? "",
   };
+  if (!config.appId || !config.key1 || !config.key2 || !config.callbackUrl) {
+    throw new Error("ZaloPay configuration is incomplete");
+  }
+  return config;
 }

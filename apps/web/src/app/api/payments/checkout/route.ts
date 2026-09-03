@@ -8,7 +8,12 @@ import {
 } from "@/lib/api/request-validation";
 import { findPlan } from "@/lib/payments/plans";
 import { createStripeCheckoutSession } from "@/lib/payments/stripe/checkout";
-import { createZaloPayOrder } from "@/lib/payments/zalopay/order";
+import {
+  createZaloPayAppTransId,
+  createZaloPayOrder,
+} from "@/lib/payments/zalopay/order";
+import { loadZaloPayConfig } from "@/lib/payments/zalopay/config";
+import { createPaymentRepository } from "@/lib/api/payments-repository";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -58,12 +63,32 @@ export async function POST(request: NextRequest) {
     if (!plan) {
       return NextResponse.json({ error: "No matching plan" }, { status: 400 });
     }
-    const order = await createZaloPayOrder({
+    const config = loadZaloPayConfig();
+    const appTransId = createZaloPayAppTransId();
+    const repo = createPaymentRepository();
+    await repo.createZaloPayOrder({
       userId: auth.user.id,
-      billingCycle: input.billingCycle,
+      appTransId,
       amount: plan.amountMajor,
-      returnUrl: input.returnUrl,
+      currency: plan.currency,
+      planType: plan.planType,
+      billingCycle: input.billingCycle,
     });
+    let order;
+    try {
+      order = await createZaloPayOrder(
+        {
+          userId: auth.user.id,
+          billingCycle: input.billingCycle,
+          amount: plan.amountMajor,
+          returnUrl: input.returnUrl,
+        },
+        { config, appTransId },
+      );
+    } catch (error) {
+      await repo.failZaloPayOrder(appTransId);
+      throw error;
+    }
     return NextResponse.json({ url: order.orderUrl, appTransId: order.appTransId });
   } catch (error) {
     if (error instanceof RequestValidationError) {

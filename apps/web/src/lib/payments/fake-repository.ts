@@ -21,6 +21,8 @@ import type {
   PaymentRepository,
   StoredTransaction,
   UsageResult,
+  ZaloPayCallbackInput,
+  ZaloPayOrderInput,
 } from "./repository.types";
 
 interface SubRecord {
@@ -218,6 +220,56 @@ export class FakeRepository implements PaymentRepository {
 
   async userExists(userId: string): Promise<boolean> {
     return this.users.has(userId);
+  }
+
+  async createZaloPayOrder(input: ZaloPayOrderInput): Promise<void> {
+    this.txns.set(this.txnKey("zalopay", input.appTransId), {
+      userId: input.userId,
+      provider: "zalopay",
+      idempotencyKey: input.appTransId,
+      amount: input.amount,
+      currency: input.currency,
+      planType: input.planType,
+      billingCycle: input.billingCycle,
+      status: "pending",
+      processed: false,
+      subscriptionId: null,
+      providerRef: null,
+    });
+  }
+
+  async failZaloPayOrder(appTransId: string): Promise<void> {
+    const txn = this.txns.get(this.txnKey("zalopay", appTransId));
+    if (txn) txn.status = "failed";
+  }
+
+  async settleZaloPayCallback(input: ZaloPayCallbackInput): Promise<"success" | "duplicate"> {
+    const txn = this.txns.get(this.txnKey("zalopay", input.appTransId));
+    if (!txn || txn.userId !== input.userId || txn.amount !== input.amount || txn.currency !== input.currency || txn.billingCycle !== input.billingCycle) {
+      throw new Error("invalid ZaloPay order");
+    }
+    if (txn.processed) return "duplicate";
+    const subscriptionId = await this.applySubscription({
+      userId: txn.userId,
+      provider: "zalopay",
+      providerSubscriptionId: null,
+      providerCustomerId: null,
+      planType: "premium",
+      status: "active",
+      currentPeriodStart: new Date().toISOString(),
+      currentPeriodEnd: null,
+      trialEndDate: null,
+      cancelAtPeriodEnd: false,
+      billingCycle: txn.billingCycle as BillingCycle,
+      amountPaid: txn.amount,
+      currency: txn.currency,
+      eventAt: new Date().toISOString(),
+    });
+    txn.processed = true;
+    txn.status = "success";
+    txn.subscriptionId = subscriptionId;
+    txn.providerRef = input.providerRef;
+    return "success";
   }
 
   // ── test inspection helpers ───────────────────────────────────────────────

@@ -15,6 +15,8 @@ import type {
   ClaimTransactionInput,
   PaymentRepository,
   StoredTransaction,
+  ZaloPayCallbackInput,
+  ZaloPayOrderInput,
   UsageResult,
 } from "./repository.types";
 import type { ApplySubscriptionParams, ClaimResult, Provider } from "./types";
@@ -181,5 +183,41 @@ export class SupabasePaymentRepository implements PaymentRepository {
       .eq("id", userId)
       .maybeSingle();
     return Boolean(data);
+  }
+
+  async createZaloPayOrder(input: ZaloPayOrderInput): Promise<void> {
+    const { error } = await this.rpc("create_zalopay_payment_order", {
+      p_user_id: input.userId,
+      p_app_trans_id: input.appTransId,
+      p_amount: input.amount,
+      p_currency: input.currency,
+      p_plan_type: input.planType,
+      p_billing_cycle: input.billingCycle,
+    });
+    if (error) throw new Error(`createZaloPayOrder: ${error.message}`);
+  }
+
+  async failZaloPayOrder(appTransId: string): Promise<void> {
+    const { error } = await this.rpc("fail_zalopay_payment_order", {
+      p_app_trans_id: appTransId,
+    });
+    if (error) throw new Error(`failZaloPayOrder: ${error.message}`);
+  }
+
+  async settleZaloPayCallback(input: ZaloPayCallbackInput): Promise<"success" | "duplicate"> {
+    const { data, error } = await this.rpc("settle_zalopay_payment", {
+      p_app_trans_id: input.appTransId,
+      p_user_id: input.userId,
+      p_amount: input.amount,
+      p_currency: input.currency,
+      p_billing_cycle: input.billingCycle,
+      p_provider_ref: input.providerRef,
+    });
+    if (error) throw new Error(`settleZaloPayCallback: ${error.message}`);
+    return data === "duplicate" ? "duplicate" : "success";
+  }
+
+  private async rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error: { message: string } | null }> {
+    return (this.db as unknown as { rpc: (rpcName: string, rpcArgs: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }> }).rpc(name, args);
   }
 }
