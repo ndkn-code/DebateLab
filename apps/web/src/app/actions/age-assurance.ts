@@ -35,32 +35,30 @@ export async function submitAgeAssuranceAction(input: {
   } = await supabase.auth.getUser();
 
   if (!user) return { ok: false as const, error: "not_authenticated" };
-  if (!hasAdminClientConfig()) {
-    return { ok: false as const, error: "consent_service_unavailable" };
-  }
-
-  const admin = createAdminClient();
   const now = new Date();
 
   if (input.ageBand === "adult") {
-    const { error } = await admin.from("user_age_assurance").upsert({
-      user_id: user.id,
-      age_band: "adult",
-      consent_status: "adult_attested",
-      consent_version: "2026-08-30",
-      guardian_email: null,
-      verification_token_hash: null,
-      verification_expires_at: null,
-      guardian_acted_at: now.toISOString(),
-      updated_at: now.toISOString(),
+    const { data: status, error } = await supabase.rpc("submit_age_assurance", {
+      p_age_band: "adult",
+      p_consent_version: "2026-08-30",
     });
 
-    if (error) return { ok: false as const, error: "save_failed" };
+    if (error) {
+      return {
+        ok: false as const,
+        error: error.message.includes("AGE_ASSURANCE_LOCKED")
+          ? "age_assurance_locked"
+          : "save_failed",
+      };
+    }
     revalidatePath(`/${input.locale}/onboarding`);
-    return { ok: true as const, status: "adult_attested" as const };
+    return { ok: true as const, status: status as AgeAssuranceStatus };
   }
 
   const guardianEmail = input.guardianEmail?.trim().toLowerCase() ?? "";
+  if (!hasAdminClientConfig()) {
+    return { ok: false as const, error: "consent_service_unavailable" };
+  }
   if (
     !EMAIL_PATTERN.test(guardianEmail) ||
     guardianEmail === user.email?.toLowerCase()
@@ -76,19 +74,17 @@ export async function submitAgeAssuranceAction(input: {
   ) {
     return { ok: false as const, error: "consent_service_unavailable" };
   }
-  const { error } = await admin.from("user_age_assurance").upsert({
-    user_id: user.id,
-    age_band: "minor",
-    consent_status: "guardian_pending",
-    consent_version: "2026-08-30",
-    guardian_email: guardianEmail,
-    verification_token_hash: tokenHash(token),
-    verification_expires_at: expiresAt.toISOString(),
-    guardian_acted_at: null,
-    updated_at: now.toISOString(),
+  const { data: status, error } = await supabase.rpc("submit_age_assurance", {
+    p_age_band: "minor",
+    p_guardian_email: guardianEmail,
+    p_token_hash: tokenHash(token),
+    p_expires_at: expiresAt.toISOString(),
+    p_consent_version: "2026-08-30",
   });
 
   if (error) return { ok: false as const, error: "save_failed" };
+
+  const admin = createAdminClient();
 
   const consentUrl = `${getAppBaseUrl()}/${input.locale}/guardian-consent/${encodeURIComponent(token)}`;
   if (isEmailSendingEnabled() && !isEmailDryRun()) {
@@ -124,7 +120,7 @@ export async function submitAgeAssuranceAction(input: {
   revalidatePath(`/${input.locale}/onboarding`);
   return {
     ok: true as const,
-    status: "guardian_pending" as const,
+    status: status as AgeAssuranceStatus,
     previewUrl: process.env.NODE_ENV === "production" ? undefined : consentUrl,
   };
 }
@@ -137,37 +133,12 @@ export async function recordGuardianDecisionAction(input: {
     return { ok: false as const, error: "unavailable" };
 
   const admin = createAdminClient();
-  const now = new Date();
-  const { data: record, error } = await admin
-    .from("user_age_assurance")
-    .select("user_id, consent_status, verification_expires_at")
-    .eq("verification_token_hash", tokenHash(input.token))
-    .maybeSingle();
+  const { error } = await admin.rpc("consume_guardian_consent_token", {
+    p_token_hash: tokenHash(input.token),
+    p_decision: input.decision,
+  });
 
-  if (error || !record) return { ok: false as const, error: "invalid" };
-  if (record.consent_status !== "guardian_pending") {
-    return { ok: false as const, error: "already_used" };
-  }
-  if (
-    !record.verification_expires_at ||
-    new Date(record.verification_expires_at) <= now
-  ) {
-    return { ok: false as const, error: "expired" };
-  }
-
-  const { error: updateError } = await admin
-    .from("user_age_assurance")
-    .update({
-      consent_status:
-        input.decision === "grant" ? "guardian_granted" : "guardian_declined",
-      guardian_acted_at: now.toISOString(),
-      verification_token_hash: null,
-      verification_expires_at: null,
-      updated_at: now.toISOString(),
-    })
-    .eq("user_id", record.user_id);
-
-  return updateError
-    ? { ok: false as const, error: "save_failed" }
+  return error
+    ? { ok: false as const, error: "invalid_or_expired" }
     : { ok: true as const, decision: input.decision };
 }
