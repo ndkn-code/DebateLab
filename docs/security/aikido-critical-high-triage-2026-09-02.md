@@ -147,6 +147,12 @@ Acceptance completed on 2026-09-02/03 against the clean remediation worktree:
   been pushed or deployed. The 46 non-actionable dispositions must each cite this
   ledger, the final closure revision, and their individual evidence code.
 
+Disposition completed on 2026-09-03: all 46 reviewed non-actionable findings were
+ignored individually through the Aikido MCP with their evidence code, this ledger,
+and closure revision `25bc391e` in the reason. A fresh `DebateLab/main` Critical/High
+feed query returned only the 18 confirmed findings. Those remain open on `main` until
+this branch is pushed, scanned, and merged; none of them were suppressed.
+
 As an intentionally separate concern, `npm audit` currently reports seven High
 advisories outside the 64-item Aikido scope (including transitive Browserslist,
 Fast URI, Hono, ip-address, js-yaml, PostCSS, and protobufjs findings). They were not
