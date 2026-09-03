@@ -62,7 +62,8 @@ function useDashboardTimezoneCookie() {
 
     if (hasCookie) return;
 
-    document.cookie = `${DASHBOARD_TIMEZONE_COOKIE}=${encodedTimezone}; Max-Age=${DASHBOARD_TIMEZONE_MAX_AGE}; Path=/; SameSite=Lax`;
+    const secure = window.location.protocol === "https:" ? "; Secure" : "";
+    document.cookie = `${DASHBOARD_TIMEZONE_COOKIE}=${encodedTimezone}; Max-Age=${DASHBOARD_TIMEZONE_MAX_AGE}; Path=/; SameSite=Lax${secure}`;
     router.refresh();
   }, [router]);
 }

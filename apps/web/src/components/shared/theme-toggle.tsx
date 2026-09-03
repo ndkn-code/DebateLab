@@ -31,7 +31,8 @@ interface ThemeToggleProps {
 }
 
 function writeThemeCookie(theme: AppTheme) {
-  document.cookie = `${APP_THEME_COOKIE_NAME}=${theme}; Max-Age=${APP_THEME_COOKIE_MAX_AGE}; Path=/; SameSite=Lax`;
+  const secure = window.location.protocol === "https:" ? "; Secure" : "";
+  document.cookie = `${APP_THEME_COOKIE_NAME}=${theme}; Max-Age=${APP_THEME_COOKIE_MAX_AGE}; Path=/; SameSite=Lax${secure}`;
 }
 
 function getDocumentTheme(): AppTheme | undefined {
