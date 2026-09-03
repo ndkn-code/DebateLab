@@ -70,7 +70,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const writeClient = tryCreateAdminClient() ?? supabase;
+    const adminClient = tryCreateAdminClient();
+    const writeClient = adminClient ?? supabase;
     const existing = await getRecentActivePracticeAnalysis(
       writeClient,
       authUser.id,
@@ -140,11 +141,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!adminClient) {
+      return NextResponse.json(
+        { error: "Analysis worker configuration is unavailable." },
+        { status: 503 },
+      );
+    }
+
     const { attempt, job, idempotencyKey } = await createPracticeAnalysisRecords(
-      writeClient,
+      adminClient,
       authUser.id,
       input,
-      { debugId }
+      { debugId, chargeCredits: true }
     );
 
     if (isGcpAiGradingEnabled()) {
@@ -198,8 +206,10 @@ export async function POST(req: NextRequest) {
         { status: 202 }
       );
     } catch {
-      // The GCP publisher creates the durable run before external publish.
-      // Leave the source queued so Cloud Scheduler can reconcile a lost ack.
+      await adminClient.rpc("refund_practice_analysis", {
+        p_attempt_id: attempt.id,
+        p_user_id: authUser.id,
+      });
       return NextResponse.json(
         {
           error:

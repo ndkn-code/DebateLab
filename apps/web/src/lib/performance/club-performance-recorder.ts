@@ -148,16 +148,99 @@ export function validatePerformanceAttemptDraft(draft: PerformanceAttemptDraft) 
   return { ok: true as const };
 }
 
+async function revalidateOrganizationContext(
+  supabase: SupabaseClient,
+  draft: PerformanceAttemptDraft,
+): Promise<PerformanceAttemptDraft | null> {
+  if (!draft.club_id && !draft.class_id && !draft.assignment_id) return draft;
+
+  if (draft.assignment_id) {
+    const { data: assignment } = await supabase
+      .from("club_assignments")
+      .select("id, club_id, class_id, status")
+      .eq("id", draft.assignment_id)
+      .eq("status", "active")
+      .maybeSingle();
+    if (!assignment?.club_id || !assignment.class_id) return null;
+    if (
+      (draft.club_id && draft.club_id !== assignment.club_id) ||
+      (draft.class_id && draft.class_id !== assignment.class_id)
+    ) {
+      return null;
+    }
+    const [{ data: classMembership }, { data: clubMembership }] =
+      await Promise.all([
+        supabase
+          .from("class_memberships")
+          .select("id")
+          .eq("class_id", assignment.class_id)
+          .eq("user_id", draft.user_id)
+          .eq("member_role", "student")
+          .eq("status", "active")
+          .maybeSingle(),
+        supabase
+          .from("club_memberships")
+          .select("id")
+          .eq("club_id", assignment.club_id)
+          .eq("user_id", draft.user_id)
+          .eq("status", "active")
+          .maybeSingle(),
+      ]);
+    if (!classMembership || !clubMembership) return null;
+    return {
+      ...draft,
+      club_id: assignment.club_id,
+      class_id: assignment.class_id,
+      assignment_id: assignment.id,
+    };
+  }
+
+  if (draft.class_id) {
+    const { data: classRow } = await supabase
+      .from("classes")
+      .select("id, club_id")
+      .eq("id", draft.class_id)
+      .maybeSingle();
+    if (!classRow?.club_id || (draft.club_id && draft.club_id !== classRow.club_id)) {
+      return null;
+    }
+    const { data: membership } = await supabase
+      .from("class_memberships")
+      .select("id")
+      .eq("class_id", classRow.id)
+      .eq("user_id", draft.user_id)
+      .eq("member_role", "student")
+      .eq("status", "active")
+      .maybeSingle();
+    if (!membership) return null;
+    return { ...draft, club_id: classRow.club_id, class_id: classRow.id };
+  }
+
+  const { data: membership } = await supabase
+    .from("club_memberships")
+    .select("id")
+    .eq("club_id", draft.club_id!)
+    .eq("user_id", draft.user_id)
+    .eq("status", "active")
+    .maybeSingle();
+  return membership ? draft : null;
+}
+
 export async function recordPerformanceAttemptForSession(
   supabase: SupabaseClient,
   session: DebateSession,
   userId: string
 ): Promise<RecordPerformanceAttemptResult> {
-  const draft = buildPerformanceAttemptFromSession(session, userId);
+  let draft = buildPerformanceAttemptFromSession(session, userId);
   const validation = validatePerformanceAttemptDraft(draft);
   if (!validation.ok) {
     return { ok: false, reason: validation.reason };
   }
+  const authorizedDraft = await revalidateOrganizationContext(supabase, draft);
+  if (!authorizedDraft) {
+    return { ok: false, reason: "unauthorized_organization_context" };
+  }
+  draft = authorizedDraft;
 
   let submissionId: string | null = null;
   if (draft.assignment_id && draft.club_id) {

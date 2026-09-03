@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type {
   MobilePracticeAttemptResponse,
-  PracticeAnalysisInput,
 } from "@thinkfy/shared/practice-analysis";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { recordAnalyticsEvent } from "@/lib/analytics/server-events";
 import {
@@ -13,7 +12,6 @@ import {
 import {
   requireRequestAuth,
   shouldConsumeUserRateLimit,
-  type RequestAuthSuccess,
 } from "@/lib/api/request-auth";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { enqueuePracticeAnalysis } from "@/lib/queues/practice-analysis";
@@ -34,31 +32,15 @@ const CREDIT_COSTS = {
   debate: 200,
 } as const;
 
-function getChargeType(practiceTrack: PracticeAnalysisInput["practiceTrack"]) {
-  return practiceTrack === "speaking" ? "practice_speaking" : "practice_debate";
-}
-
-async function deleteUnchargedRecords(
-  supabase: SupabaseClient,
-  userId: string,
-  attemptId: string,
-) {
-  await supabase
-    .from("practice_attempts")
-    .delete()
-    .eq("id", attemptId)
-    .eq("user_id", userId);
-}
-
 async function getExistingMobileAttempt(
   supabase: SupabaseClient,
   userId: string,
-  attemptId: string,
+  clientAttemptAlias: string,
 ): Promise<MobilePracticeAttemptResponse | null> {
   const { data: attempt } = await supabase
     .from("practice_attempts")
     .select("id, status")
-    .eq("id", attemptId)
+    .eq("client_attempt_alias", clientAttemptAlias)
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -67,7 +49,7 @@ async function getExistingMobileAttempt(
   const { data: job } = await supabase
     .from("analysis_jobs")
     .select("id, status, idempotency_key, queue_message_id")
-    .eq("attempt_id", attemptId)
+    .eq("attempt_id", attempt.id)
     .eq("user_id", userId)
     .maybeSingle();
 
@@ -82,94 +64,6 @@ async function getExistingMobileAttempt(
     queueMessageId: job.queue_message_id,
     chargedCredits: 0,
     orbBalance: null,
-  };
-}
-
-async function chargeCredits(
-  auth: RequestAuthSuccess,
-  input: PracticeAnalysisInput,
-) {
-  const cost = CREDIT_COSTS[input.practiceTrack];
-  const attemptId = input.attemptId;
-  if (!attemptId) {
-    return {
-      ok: false as const,
-      status: 400,
-      message: "attemptId is required.",
-      code: "missing_attempt_id",
-    };
-  }
-
-  const chargeType = getChargeType(input.practiceTrack);
-  const existingCharge = await auth.supabase
-    .from("orb_transactions")
-    .select("balance_after")
-    .eq("user_id", auth.user.id)
-    .eq("reference_id", attemptId)
-    .in("type", ["practice_speaking", "practice_debate"])
-    .maybeSingle();
-
-  if (existingCharge.data) {
-    return {
-      ok: true as const,
-      chargedCredits: cost,
-      orbBalance: existingCharge.data.balance_after as number,
-    };
-  }
-
-  const { data: profile } = await auth.supabase
-    .from("profiles")
-    .select("orb_balance")
-    .eq("id", auth.user.id)
-    .single();
-  const balance = profile?.orb_balance ?? 0;
-  if (balance < cost) {
-    return {
-      ok: false as const,
-      status: 402,
-      message: `Insufficient Credits. ${cost} Credits required.`,
-      code: "insufficient_credits",
-      orbBalance: balance,
-    };
-  }
-
-  const { data, error } = await auth.supabase.rpc("adjust_orb_balance", {
-    p_user_id: auth.user.id,
-    p_amount: -cost,
-    p_type: chargeType,
-    p_reference_id: attemptId,
-  });
-
-  if (error) {
-    const retryCharge = await auth.supabase
-      .from("orb_transactions")
-      .select("balance_after")
-      .eq("user_id", auth.user.id)
-      .eq("reference_id", attemptId)
-      .in("type", ["practice_speaking", "practice_debate"])
-      .maybeSingle();
-
-    if (retryCharge.data) {
-      return {
-        ok: true as const,
-        chargedCredits: cost,
-        orbBalance: retryCharge.data.balance_after as number,
-      };
-    }
-
-    return {
-      ok: false as const,
-      status: 500,
-      message: error.message,
-      code: "credit_deduction_failed",
-      orbBalance: balance,
-    };
-  }
-
-  return {
-    ok: true as const,
-    chargedCredits: cost,
-    orbBalance: typeof data === "number" ? data : null,
   };
 }
 
@@ -272,22 +166,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(existing, { status: 202 });
     }
 
-    const { attempt, job, idempotencyKey } =
-      await createPracticeAnalysisRecords(writeClient, auth.user.id, input);
-
-    const charge = await chargeCredits(auth, input);
-    if (!charge.ok) {
-      await deleteUnchargedRecords(writeClient, auth.user.id, input.attemptId);
-      return NextResponse.json(
-        {
-          error: charge.message,
-          code: charge.code,
-          orbBalance: "orbBalance" in charge ? charge.orbBalance : null,
-          requiredCredits: CREDIT_COSTS[input.practiceTrack],
-        },
-        { status: charge.status },
-      );
+    let created: Awaited<ReturnType<typeof createPracticeAnalysisRecords>>;
+    try {
+      created = await createPracticeAnalysisRecords(writeClient, auth.user.id, input, {
+        chargeCredits: true,
+      });
+    } catch (error) {
+      if (error instanceof Error && /Insufficient Credits/i.test(error.message)) {
+        return NextResponse.json(
+          {
+            error: `Insufficient Credits. ${CREDIT_COSTS[input.practiceTrack]} Credits required.`,
+            code: "insufficient_credits",
+            requiredCredits: CREDIT_COSTS[input.practiceTrack],
+          },
+          { status: 402 },
+        );
+      }
+      throw error;
     }
+    const { attempt, job, idempotencyKey } = created;
+    const chargedCredits = CREDIT_COSTS[input.practiceTrack];
 
     await recordAnalyticsEvent(writeClient, auth.user.id, {
       eventName: "ai_feedback_requested",
@@ -302,7 +200,7 @@ export async function POST(req: NextRequest) {
         word_count: wordCount,
         stt_provider: input.transcription?.provider,
         stt_warnings: input.transcription?.warnings,
-        charged_credits: charge.chargedCredits,
+        charged_credits: chargedCredits,
         practice_attempt_id: attempt.id,
         analysis_job_id: job.id,
       },
@@ -331,14 +229,16 @@ export async function POST(req: NextRequest) {
           attemptStatus: attempt.status,
           idempotencyKey,
           queueMessageId: messageId,
-          chargedCredits: charge.chargedCredits,
-          orbBalance: charge.orbBalance,
+          chargedCredits,
+          orbBalance: null,
         } satisfies MobilePracticeAttemptResponse,
         { status: 202 },
       );
     } catch {
-      // Keep the saved source queued; the GCP reconciler republishes durable
-      // runs whose initial Pub/Sub acknowledgement was lost.
+      await writeClient.rpc("refund_practice_analysis", {
+        p_attempt_id: attempt.id,
+        p_user_id: auth.user.id,
+      });
       return NextResponse.json(
         {
           error:

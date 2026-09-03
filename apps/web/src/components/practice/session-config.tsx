@@ -22,7 +22,6 @@ import { Heading, Text } from "@/components/ui/typography";
 import { CategoryVisual } from "@/components/practice/category-visual";
 import { CREDIT_ICON_SRC } from "@/components/dashboard/dashboard-stats-panel";
 import { OutOfOrbsModal } from "@/components/shared/out-of-orbs-modal";
-import { deductOrbsAction, getOrbBalanceAction } from "@/app/actions/orbs";
 import {
   clampDurationSeconds,
   secondsToMinutes,
@@ -41,6 +40,7 @@ import {
 import { trackAnalyticsEvent } from "@/lib/hooks/useAnalyticsEventTracker";
 import { getTopicCategoryKey } from "@/lib/topics";
 import { cn } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 import type { DebateRound, DebateTopic } from "@/types";
 
 interface SessionConfigProps {
@@ -261,7 +261,6 @@ export function SessionConfig({
   onToggleBookmark,
   orbBalance,
   referralCode,
-  onBalanceChange,
   layout = "desktop",
   showcaseMode = false,
 }: SessionConfigProps) {
@@ -312,87 +311,7 @@ export function SessionConfig({
       return;
     }
 
-    setIsDeducting(true);
-    let result: Awaited<ReturnType<typeof deductOrbsAction>>;
-    try {
-      result = await deductOrbsAction(practiceTrack);
-    } catch (error) {
-      console.error("Practice session start failed", {
-        cause: error,
-        practiceTrack,
-        supportCode: "PRACTICE-START-01",
-      });
-      trackAnalyticsEvent({
-        eventName: "practice_session_start_failed",
-        featureArea: "practice",
-        route: window.location.pathname,
-        metadata: {
-          practice_track: practiceTrack,
-          support_code: "PRACTICE-START-01",
-        },
-      });
-
-      try {
-        const verifiedBalance = await getOrbBalanceAction();
-        const chargeWasApplied =
-          orbBalance !== null && verifiedBalance === orbBalance - orbCost;
-        onBalanceChange(verifiedBalance);
-        if (chargeWasApplied) {
-          result = { success: true, newBalance: verifiedBalance };
-        } else {
-          setStartError(
-            locale === "vi"
-              ? "Chưa thể bắt đầu. Hãy thử lại. Mã hỗ trợ: PRACTICE-START-01."
-              : "We couldn’t start this practice. Try again. Support code: PRACTICE-START-01.",
-          );
-          return;
-        }
-      } catch (balanceError) {
-        console.error(
-          "Practice start balance verification failed",
-          balanceError,
-        );
-        setStartError(
-          locale === "vi"
-            ? "Chưa thể xác nhận phiên luyện tập. Hãy tải lại trang trước khi thử lại. Mã hỗ trợ: PRACTICE-START-01."
-            : "We couldn’t confirm the practice start. Refresh before trying again. Support code: PRACTICE-START-01.",
-        );
-        return;
-      } finally {
-        setIsDeducting(false);
-      }
-    }
     setIsDeducting(false);
-
-    if (!result.success) {
-      onBalanceChange(result.newBalance);
-      if (result.error === "Insufficient Credits") {
-        setShowOrbModal(true);
-      } else {
-        console.error("Practice session start rejected", {
-          reason: result.error,
-          practiceTrack,
-          supportCode: "PRACTICE-START-02",
-        });
-        trackAnalyticsEvent({
-          eventName: "practice_session_start_failed",
-          featureArea: "practice",
-          route: window.location.pathname,
-          metadata: {
-            practice_track: practiceTrack,
-            support_code: "PRACTICE-START-02",
-          },
-        });
-        setStartError(
-          locale === "vi"
-            ? "Chưa thể bắt đầu. Hãy thử lại. Mã hỗ trợ: PRACTICE-START-02."
-            : "We couldn’t start this practice. Try again. Support code: PRACTICE-START-02.",
-        );
-      }
-      return;
-    }
-
-    onBalanceChange(result.newBalance);
     setTopic(topic);
     startSession();
     const sessionState = useSessionStore.getState();
@@ -417,7 +336,10 @@ export function SessionConfig({
     };
     clearStoredPracticeDraftId();
     clearLocalPracticeSessionDraft();
-    setPendingPracticeSessionHandoff(handoffPayload);
+    const {
+      data: { user },
+    } = await createClient().auth.getUser();
+    setPendingPracticeSessionHandoff(handoffPayload, user?.id ?? null);
     trackAnalyticsEvent({
       eventName: "practice_session_handoff_written",
       featureArea: "practice",

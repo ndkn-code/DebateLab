@@ -458,6 +458,7 @@ export function parsePracticeAnalysisInput(body: JsonRecord): PracticeAnalysisIn
 
   return {
     attemptId: getOptionalUuid(body, "attemptId"),
+    draftId: getOptionalUuid(body, "draftId"),
     transcript,
     topic,
     side,

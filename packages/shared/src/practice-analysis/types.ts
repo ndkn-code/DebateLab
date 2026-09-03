@@ -26,6 +26,7 @@ export type AnalysisJobStatus =
 
 export interface PracticeAnalysisInput {
   attemptId?: string;
+  draftId?: string;
   transcript: string;
   topic: string;
   side: "proposition" | "opposition";

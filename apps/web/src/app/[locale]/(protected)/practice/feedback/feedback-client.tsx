@@ -319,6 +319,7 @@ export default function FeedbackPage() {
         signal: controller.signal,
         body: JSON.stringify({
           attemptId,
+          draftId: draftId || undefined,
           transcript: analysisTranscript,
           topic: selectedTopic.title,
           side: resolvedSide,

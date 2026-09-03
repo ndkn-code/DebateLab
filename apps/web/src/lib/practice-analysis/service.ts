@@ -33,6 +33,167 @@ function requireNoSupabaseError(error: { message?: string } | null, action: stri
   }
 }
 
+async function canonicalizePracticeInput(
+  supabase: SupabaseClient,
+  userId: string,
+  input: PracticeAnalysisInput,
+): Promise<PracticeAnalysisInput> {
+  let canonical = { ...input, actualDuration: 0 };
+
+  if (input.draftId) {
+    const { data: draft, error: draftError } = await supabase
+      .from("practice_session_drafts")
+      .select("id, user_id, topic_id, practice_topic_key, topic_title, topic_category, topic_category_key, topic_difficulty, side, practice_track, practice_language, mode, prep_time, speech_time, ai_difficulty, session_started_at")
+      .eq("id", input.draftId)
+      .eq("user_id", userId)
+      .maybeSingle();
+    requireNoSupabaseError(draftError, "resolve practice draft");
+    if (!draft?.session_started_at) throw new Error("Practice draft is not available");
+    const elapsedSeconds = Math.floor(
+      (Date.now() - Date.parse(draft.session_started_at)) / 1000,
+    );
+    canonical = {
+      ...canonical,
+      topicId: draft.topic_id ?? undefined,
+      practiceTopicKey: draft.practice_topic_key ?? draft.topic_id ?? undefined,
+      topic: draft.topic_title,
+      topicCategory: draft.topic_category,
+      topicCategoryKey: draft.topic_category_key ?? undefined,
+      topicDifficulty: draft.topic_difficulty,
+      side: draft.side,
+      practiceTrack: draft.practice_track,
+      practiceLanguage: draft.practice_language,
+      mode: draft.mode,
+      prepTime: draft.prep_time,
+      speechTime: draft.speech_time,
+      aiDifficulty: draft.ai_difficulty ?? undefined,
+      actualDuration: Math.max(0, Math.min(7200, elapsedSeconds)),
+    };
+  }
+
+  if (input.practiceTopicKey) {
+    const { data: topic, error: topicError } = await supabase
+      .from("practice_topics")
+      .select("topic_key, category_key, difficulty, is_active")
+      .eq("topic_key", input.practiceTopicKey)
+      .eq("is_active", true)
+      .maybeSingle();
+    requireNoSupabaseError(topicError, "resolve practice topic");
+    if (!topic) throw new Error("Practice topic is not available");
+
+    const { data: translation, error: translationError } = await supabase
+      .from("practice_topic_translations")
+      .select("title")
+      .eq("topic_key", topic.topic_key)
+      .eq("language", input.practiceLanguage)
+      .maybeSingle();
+    requireNoSupabaseError(translationError, "resolve practice topic translation");
+
+    canonical = {
+      ...canonical,
+      topic: translation?.title ?? canonical.topic,
+      topicCategoryKey: topic.category_key,
+      topicDifficulty: topic.difficulty,
+    };
+  } else {
+    // Custom motions do not have a trusted catalog difficulty. Keep them at a
+    // neutral server-owned value so a request cannot inflate difficulty-based XP.
+    canonical = { ...canonical, topicDifficulty: "intermediate" };
+  }
+
+  const context = input.clubContext;
+  if (!context) return canonical;
+
+  if (context.assignmentId) {
+    const { data: assignment, error: assignmentError } = await supabase
+      .from("club_assignments")
+      .select("id, club_id, class_id, title, status")
+      .eq("id", context.assignmentId)
+      .eq("status", "active")
+      .maybeSingle();
+    requireNoSupabaseError(assignmentError, "resolve practice assignment");
+    if (!assignment?.club_id || !assignment.class_id) {
+      throw new Error("Practice assignment is not available");
+    }
+    if (
+      (context.clubId && context.clubId !== assignment.club_id) ||
+      (context.classId && context.classId !== assignment.class_id)
+    ) {
+      throw new Error("Practice assignment scope mismatch");
+    }
+
+    const [{ data: classMembership }, { data: clubMembership }] =
+      await Promise.all([
+        supabase
+          .from("class_memberships")
+          .select("id")
+          .eq("class_id", assignment.class_id)
+          .eq("user_id", userId)
+          .eq("member_role", "student")
+          .eq("status", "active")
+          .maybeSingle(),
+        supabase
+          .from("club_memberships")
+          .select("id")
+          .eq("club_id", assignment.club_id)
+          .eq("user_id", userId)
+          .eq("status", "active")
+          .maybeSingle(),
+      ]);
+    if (!classMembership || !clubMembership) {
+      throw new Error("Practice assignment is not authorized");
+    }
+    return {
+      ...canonical,
+      clubContext: {
+        clubId: assignment.club_id,
+        classId: assignment.class_id,
+        assignmentId: assignment.id,
+        assignmentTitle: assignment.title ?? undefined,
+      },
+    };
+  }
+
+  if (context.classId) {
+    const { data: classRow, error: classError } = await supabase
+      .from("classes")
+      .select("id, club_id")
+      .eq("id", context.classId)
+      .maybeSingle();
+    requireNoSupabaseError(classError, "resolve practice class");
+    if (!classRow?.club_id || (context.clubId && context.clubId !== classRow.club_id)) {
+      throw new Error("Practice class scope mismatch");
+    }
+    const { data: membership } = await supabase
+      .from("class_memberships")
+      .select("id")
+      .eq("class_id", classRow.id)
+      .eq("user_id", userId)
+      .eq("member_role", "student")
+      .eq("status", "active")
+      .maybeSingle();
+    if (!membership) throw new Error("Practice class is not authorized");
+    return {
+      ...canonical,
+      clubContext: { clubId: classRow.club_id, classId: classRow.id },
+    };
+  }
+
+  if (context.clubId) {
+    const { data: membership } = await supabase
+      .from("club_memberships")
+      .select("id")
+      .eq("club_id", context.clubId)
+      .eq("user_id", userId)
+      .eq("status", "active")
+      .maybeSingle();
+    if (!membership) throw new Error("Practice club is not authorized");
+    return { ...canonical, clubContext: { clubId: context.clubId } };
+  }
+
+  return { ...canonical, clubContext: undefined };
+}
+
 export function practiceAttemptRowToInput(
   attempt: PracticeAttemptRecord
 ): PracticeAnalysisInput {
@@ -71,39 +232,52 @@ export async function createPracticeAnalysisRecords(
   input: PracticeAnalysisInput,
   options: {
     debugId?: string | null;
+    chargeCredits?: boolean;
   } = {}
 ) {
-  const attemptId = input.attemptId ?? crypto.randomUUID();
+  const clientAttemptAlias = input.attemptId ?? null;
+  const attemptId = crypto.randomUUID();
   const jobId = crypto.randomUUID();
   const now = new Date().toISOString();
-  const snapshot = buildPracticeAttemptSnapshot(input, now);
-  const inputHash = createPracticeInputHash(input);
-  const promptManifest = getPracticeFeedbackPromptManifest(input);
+  const canonicalInput = await canonicalizePracticeInput(supabase, userId, input);
+  // The request may contain a client-produced repair artifact. It is retained
+  // only as diagnostic input; the worker always judges the server transcript.
+  const serverTranscription = canonicalInput.transcription
+    ? { ...canonicalInput.transcription, judgeTranscript: undefined, repair: undefined }
+    : undefined;
+  const serverInput = {
+    ...canonicalInput,
+    attemptId: undefined,
+    draftId: undefined,
+    transcription: serverTranscription,
+  };
+  const inputHash = createPracticeInputHash(serverInput);
+  const promptManifest = getPracticeFeedbackPromptManifest(serverInput);
   const idempotencyKey = createPracticeAnalysisIdempotencyKey(attemptId);
-
   const attemptRow = {
     id: attemptId,
+    client_attempt_alias: clientAttemptAlias,
     user_id: userId,
     status: "submitted",
-    practice_track: input.practiceTrack,
-    practice_language: input.practiceLanguage,
-    topic_id: input.topicId ?? null,
-    practice_topic_key: input.practiceTopicKey ?? null,
-    topic_title: input.topic,
-    topic_category: input.topicCategory,
-    topic_category_key: input.topicCategoryKey ?? null,
-    topic_difficulty: input.topicDifficulty,
-    side: input.side,
-    mode: input.mode,
-    prep_time: input.prepTime,
-    speech_time: input.speechTime,
-    duration_seconds: input.actualDuration,
-    transcript: input.transcript,
-    prep_notes: input.prepNotes ?? null,
-    ai_difficulty: input.aiDifficulty ?? null,
-    rounds: input.rounds ?? null,
-    audio_storage_path: input.audioStoragePath ?? null,
-    attempt_snapshot: snapshot,
+    practice_track: serverInput.practiceTrack,
+    practice_language: serverInput.practiceLanguage,
+    topic_id: serverInput.topicId ?? null,
+    practice_topic_key: serverInput.practiceTopicKey ?? null,
+    topic_title: serverInput.topic,
+    topic_category: serverInput.topicCategory,
+    topic_category_key: serverInput.topicCategoryKey ?? null,
+    topic_difficulty: serverInput.topicDifficulty,
+    side: serverInput.side,
+    mode: serverInput.mode,
+    prep_time: serverInput.prepTime,
+    speech_time: serverInput.speechTime,
+    duration_seconds: serverInput.actualDuration,
+    transcript: serverInput.transcript,
+    prep_notes: serverInput.prepNotes ?? null,
+    ai_difficulty: serverInput.aiDifficulty ?? null,
+    rounds: serverInput.rounds ?? null,
+    audio_storage_path: serverInput.audioStoragePath ?? null,
+    attempt_snapshot: buildPracticeAttemptSnapshot(serverInput, now),
     input_hash: inputHash,
     prompt_hash: promptManifest.promptHash,
     prompt_bundle_key: PRACTICE_FEEDBACK_PROMPT_BUNDLE_KEY,
@@ -113,15 +287,9 @@ export async function createPracticeAnalysisRecords(
     model_provider: getPracticeFeedbackModelProvider(input.practiceTrack),
     model_name: getPracticeFeedbackModelName(input.practiceTrack),
     submitted_at: now,
+    created_at: now,
     updated_at: now,
   };
-
-  const { data: attempt, error: attemptError } = await supabase
-    .from("practice_attempts")
-    .insert(attemptRow)
-    .select("*")
-    .single();
-  requireNoSupabaseError(attemptError, "create practice attempt");
 
   const jobRow = {
     id: jobId,
@@ -135,15 +303,39 @@ export async function createPracticeAnalysisRecords(
     prompt_hash: promptManifest.promptHash,
     model_provider: getPracticeFeedbackModelProvider(input.practiceTrack),
     model_name: getPracticeFeedbackModelName(input.practiceTrack),
+    delivery_count: 0,
+    max_attempts: 3,
+    created_at: now,
     result: options.debugId ? { debugId: options.debugId } : null,
     updated_at: now,
   };
 
+  if (options.chargeCredits) {
+    const { data, error } = await supabase.rpc("begin_practice_analysis", {
+      p_attempt_id: attemptId,
+      p_job_id: jobId,
+      p_user_id: userId,
+      p_attempt: attemptRow,
+      p_job: jobRow,
+      p_cost: serverInput.practiceTrack === "speaking" ? 100 : 200,
+      p_charge_type:
+        serverInput.practiceTrack === "speaking" ? "practice_speaking" : "practice_debate",
+    });
+    requireNoSupabaseError(error, "begin practice analysis");
+    const result = data as { attempt: PracticeAttemptRecord; job: AnalysisJobRecord };
+    return {
+      attempt: result.attempt,
+      job: result.job,
+      idempotencyKey,
+      promptManifest,
+    };
+  }
+
+  const { data: attempt, error: attemptError } = await supabase
+    .from("practice_attempts").insert(attemptRow).select("*").single();
+  requireNoSupabaseError(attemptError, "create practice attempt");
   const { data: job, error: jobError } = await supabase
-    .from("analysis_jobs")
-    .insert(jobRow)
-    .select("*")
-    .single();
+    .from("analysis_jobs").insert(jobRow).select("*").single();
   requireNoSupabaseError(jobError, "create analysis job");
 
   return {
