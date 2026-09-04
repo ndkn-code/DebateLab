@@ -65,6 +65,8 @@ import {
   type IeltsTeacherWorkbenchData,
   type WorkbenchTab,
 } from "@/components/admin/classes/IeltsTeacherWorkbench";
+import { ClassExportMenu } from "@/components/admin/classes/ClassExportMenu";
+import { RosterImportDialog } from "@/components/admin/classes/RosterImportDialog";
 import { getProgramLabel } from "@/lib/api/admin-class-schedules-model";
 import { cn } from "@/lib/utils";
 import type {
@@ -82,6 +84,14 @@ interface Props {
   ieltsWorkbench?: IeltsTeacherWorkbenchData;
   ieltsInitialTab?: WorkbenchTab;
   ieltsInitialResponseId?: string | null;
+  /**
+   * `ROSTER_IMPORT_V1` is a server-evaluated const and this file is a client
+   * component, so the flag is read in the server page and threaded down.
+   * Export is never gated: it only reads tables that already exist.
+   */
+  rosterImportEnabled?: boolean;
+  /** The class's organization. Roster import writes club-scoped records. */
+  clubId?: string | null;
 }
 
 type Tab =
@@ -521,6 +531,8 @@ export function ClassDetailDashboard({
   ieltsWorkbench,
   ieltsInitialTab,
   ieltsInitialResponseId,
+  rosterImportEnabled = false,
+  clubId = null,
 }: Props) {
   const t = useTranslations("admin.classes.detail");
   const router = useRouter();
@@ -942,41 +954,55 @@ export function ClassDetailDashboard({
             <h2 className="text-lg font-bold text-on-surface">
               {t("roster.title", { count: data.roster.length })}
             </h2>
-            <div className="w-full md:w-80">
-              <SearchPanel
-                placeholder={t("roster.search")}
-                results={studentResults}
-                onSearch={(query) => {
-                  if (query.trim().length < 2) return setStudentResults([]);
-                  startTransition(async () => {
-                    const results = await searchStudentsForClass(
-                      query,
-                      data.classInfo.id,
-                    );
-                    setStudentResults(
-                      results.map((student) => ({
-                        id: student.id,
-                        displayName:
-                          student.display_name ||
-                          student.email?.split("@")[0] ||
-                          "Unnamed student",
-                        email: student.email,
-                        avatarUrl: student.avatar_url,
-                      })),
-                    );
-                  });
-                }}
-                onAdd={(student) => {
-                  startTransition(async () => {
-                    await addStudentToClass(data.classInfo.id, student.id);
-                    router.refresh();
-                  });
-                }}
-                renderLabel={(student) => ({
-                  title: student.displayName,
-                  subtitle: student.email,
-                })}
-              />
+            <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
+              <div className="w-full md:w-72">
+                <SearchPanel
+                  placeholder={t("roster.search")}
+                  results={studentResults}
+                  onSearch={(query) => {
+                    if (query.trim().length < 2) return setStudentResults([]);
+                    startTransition(async () => {
+                      const results = await searchStudentsForClass(
+                        query,
+                        data.classInfo.id,
+                      );
+                      setStudentResults(
+                        results.map((student) => ({
+                          id: student.id,
+                          displayName:
+                            student.display_name ||
+                            student.email?.split("@")[0] ||
+                            "Unnamed student",
+                          email: student.email,
+                          avatarUrl: student.avatar_url,
+                        })),
+                      );
+                    });
+                  }}
+                  onAdd={(student) => {
+                    startTransition(async () => {
+                      await addStudentToClass(data.classInfo.id, student.id);
+                      router.refresh();
+                    });
+                  }}
+                  renderLabel={(student) => ({
+                    title: student.displayName,
+                    subtitle: student.email,
+                  })}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <ClassExportMenu
+                  classId={data.classInfo.id}
+                  showIeltsGradebook={data.classInfo.programType === "ielts"}
+                />
+                {rosterImportEnabled && clubId ? (
+                  <RosterImportDialog
+                    clubId={clubId}
+                    classId={data.classInfo.id}
+                  />
+                ) : null}
+              </div>
             </div>
           </div>
           <div className="overflow-hidden rounded-lg border border-outline-variant/20">

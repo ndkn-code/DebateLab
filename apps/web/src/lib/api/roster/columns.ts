@@ -51,11 +51,12 @@ export const ROSTER_FIELDS: readonly RosterField[] = [
     required: false,
     aliases: ["e mail", "thu dien tu", "dia chi email", "email hoc vien", "mail"],
     hint: {
-      // Siblings sharing one parent address is common here, and two rows with
-      // the same email block each other. Say where the shared address belongs
-      // before the teacher hits that wall.
-      en: "Optional. If present, the student is invited to create an account. Use the student's own address — a shared family address belongs in Guardian email.",
-      vi: "Không bắt buộc. Nếu có, học viên sẽ nhận lời mời tạo tài khoản. Dùng email riêng của học viên — email chung của gia đình hãy điền ở cột Email phụ huynh.",
+      // Kept to two short clauses: this string is a helper line under a mapping
+      // row, and the Vietnamese runs ~30% longer. Siblings sharing one parent
+      // address is common here and two rows with the same email block each
+      // other, so the second clause has to survive the trim.
+      en: "Invites the student. A shared family address goes in Guardian email.",
+      vi: "Dùng để mời học viên. Email chung của gia đình điền ở cột Email phụ huynh.",
     },
   },
   {
