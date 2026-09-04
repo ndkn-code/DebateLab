@@ -2300,7 +2300,67 @@
         "roster": {
           "title": "Roster ({count} Students)",
           "empty": "No students assigned yet.",
-          "search": "Search students to add"
+          "search": "Search students to add",
+          "export": {
+            "label": "Xuất",
+            "roster": "Danh sách lớp",
+            "attendance": "Điểm danh",
+            "gradebook": "Bảng điểm IELTS",
+            "xlsx": "Excel (.xlsx)",
+            "csv": "CSV (.csv)",
+            "failed": "Không xuất được. Thử lại."
+          },
+          "import": {
+            "open": "Nhập danh sách",
+            "title": "Nhập danh sách lớp",
+            "description": "Tải tệp lên, ghép cột, xem trước rồi nhập.",
+            "steps": {
+              "upload": "Tệp",
+              "map": "Cột",
+              "preview": "Xem trước",
+              "result": "Kết quả"
+            },
+            "upload": {
+              "help": "Dùng tệp mẫu của Thinkfy, hoặc tải lên tệp trung tâm đang dùng.",
+              "template": "Tải tệp mẫu",
+              "choose": "Chọn tệp",
+              "accept": "Excel (.xlsx) hoặc CSV. Dòng đầu là tiêu đề cột."
+            },
+            "map": {
+              "field": "Trường Thinkfy",
+              "source": "Cột trong tệp",
+              "none": "Không nhập",
+              "unnamed": "Cột {index}",
+              "required": "Bắt buộc",
+              "guessed": "Đoán",
+              "missingRequired": "Chọn cột chứa họ và tên.",
+              "samples": "vd. {values}",
+              "sheet": "Trang {name}",
+              "columns": "{count} cột"
+            },
+            "preview": {
+              "capacity": "Lớp {current}/{max} · thêm {incoming}",
+              "capacityOpen": "{current} đang học · thêm {incoming}",
+              "problemsTitle": "Dòng cần sửa",
+              "row": "Dòng",
+              "name": "Họ tên",
+              "problem": "Vấn đề",
+              "clean": "Mọi dòng đều sẵn sàng nhập.",
+              "confirm": "Nhập {count} dòng"
+            },
+            "result": {
+              "downloadErrors": "Tải các dòng cần sửa",
+              "invite": "Gửi lời mời",
+              "inviting": "Đang gửi… đã gửi {invited}, còn {remaining}",
+              "invited": "Đã mời {invited} · bỏ qua {skipped}",
+              "inviteFailures": "{count} lỗi"
+            },
+            "back": "Quay lại",
+            "continue": "Tiếp tục",
+            "cancel": "Hủy",
+            "close": "Xong",
+            "failed": "Có lỗi xảy ra. Thử lại."
+          }
         },
         "courses": {
           "title": "Assigned Courses ({count})",
