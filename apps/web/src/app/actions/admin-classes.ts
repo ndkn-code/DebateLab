@@ -25,7 +25,12 @@ import {
   requireClassOwner,
   requireClubOwner,
   requirePlatformAdmin,
+  type ClassManagerContext,
 } from "@/lib/api/class-manager-access";
+import {
+  resolveRosterIdentities,
+  rosterScopeFromClassManager,
+} from "@/lib/api/roster-identity";
 import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
 // ---- B3 · roster import + data export -------------------------------------
 import { getAdminClassDetail } from "@/lib/api/admin-classes";
@@ -987,6 +992,39 @@ export async function exportClassAttendance(
 }
 
 /**
+ * Names for the gradebook sheet.
+ *
+ * `loadIeltsClassGradebook` reads `profiles` under the caller's RLS, which is
+ * admin-or-self — so a teacher's gradebook export shipped blank names and blank
+ * emails. Same resolver, same escalation-after-gate as the roster: `context` is
+ * what `requireClassManager` returned two lines above the call site.
+ *
+ * Unlike the class detail page this does NOT swallow a failure. The page has
+ * other content worth rendering; a gradebook export is *only* the names, and a
+ * silently nameless sheet sent to a parent is worse than an error a teacher can
+ * retry.
+ */
+async function withRosterIdentities(
+  context: ClassManagerContext,
+  rows: readonly IeltsGradebookRow[],
+): Promise<IeltsGradebookRow[]> {
+  if (rows.length === 0) return [...rows];
+  const identities = await resolveRosterIdentities(
+    rosterScopeFromClassManager(context),
+    rows.map((row) => ({ key: row.userId, userId: row.userId })),
+  );
+  return rows.map((row) => {
+    const identity = identities.get(row.userId);
+    if (!identity) return row;
+    return {
+      ...row,
+      displayName: identity.displayName ?? row.displayName,
+      email: identity.email ?? row.email,
+    };
+  });
+}
+
+/**
  * The gradebook pages at 25 rows. Following `nextCursor` to exhaustion is the
  * whole job here: exporting page one as if it were the class is the exact bug
  * a teacher would not notice until a parent asked why their child is missing.
@@ -1022,7 +1060,7 @@ export async function exportIeltsClassGradebook(
   }
   return encodeExportPayload(
     buildIeltsGradebookExport(
-      { classTitle, rows },
+      { classTitle, rows: await withRosterIdentities(context, rows) },
       { format: requireExportFormat(format), locale: requireExportLocale(locale) },
     ),
   );

@@ -75,6 +75,7 @@
     "test:admin-clubs": "npm run test:admin-clubs -w @thinkfy/web",
     "test:export": "npm run test:export -w @thinkfy/web",
     "test:roster-import": "npm run test:roster-import -w @thinkfy/web",
+    "test:roster-identity": "npm run test:roster-identity -w @thinkfy/web",
     "test:vocab": "npm run test:vocab -w @thinkfy/web",
     "test:club-performance": "npm run test:club-performance -w @thinkfy/web",
     "test:entitlements": "npm run test:entitlements -w @thinkfy/web",

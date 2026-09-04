@@ -41,6 +41,7 @@
     "test:admin-clubs": "tsx src/lib/api/admin-clubs-model.test.ts",
     "test:export": "tsx src/lib/export/export.test.ts",
     "test:roster-import": "tsx src/lib/api/roster/import/roster-import.test.ts",
+    "test:roster-identity": "tsx --conditions=react-server src/lib/api/roster-identity.test.ts",
     "test:vocab": "tsx src/lib/vocab/model.test.ts",
     "test:club-performance": "tsx src/lib/performance/club-performance-recorder.test.ts",
     "test:entitlements": "tsx src/lib/entitlements.test.ts",
