@@ -199,3 +199,15 @@ export const PROFILE_SOCIAL_GUARDRAILS_ENABLED: boolean =
     process.env.NEXT_PUBLIC_PROFILE_SOCIAL_GUARDRAILS_ENABLED ??
       process.env.PROFILE_SOCIAL_GUARDRAILS_ENABLED,
   );
+
+/**
+ * B3 · roster spreadsheet import. Opt-in until the migration
+ * `20260904120000_club_student_records.sql` is applied — the surface reads and
+ * writes tables that do not exist yet, so shipping it on by default would fail
+ * at runtime rather than at build time. Export is deliberately NOT behind this
+ * flag: it only reads tables that already exist, and it is the manual fallback
+ * if B4 slips.
+ */
+export const ROSTER_IMPORT_V1: boolean =
+  isEnabled(process.env.NEXT_PUBLIC_ROSTER_IMPORT_V1) ||
+  isEnabled(process.env.ROSTER_IMPORT_V1);

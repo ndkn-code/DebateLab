@@ -27,6 +27,44 @@ import {
   requirePlatformAdmin,
 } from "@/lib/api/class-manager-access";
 import { normalizeOrganizationRole } from "@/lib/organizations/compatibility";
+// ---- B3 · roster import + data export -------------------------------------
+import { getAdminClassDetail } from "@/lib/api/admin-classes";
+import {
+  loadIeltsClassGradebook,
+  type IeltsClassGradebook,
+  type IeltsGradebookRow,
+} from "@/lib/api/ielts/gradebook-repository";
+import { parseCsvSheet } from "@/lib/api/ielts/import/parse-csv";
+import { parseXlsxWorkbook } from "@/lib/api/ielts/import/parse-xlsx";
+import type { ParsedSheet } from "@/lib/api/ielts/import/workbook";
+import {
+  buildClassAttendanceExport,
+  buildClassRosterExport,
+  buildIeltsGradebookExport,
+} from "@/lib/api/class-exports";
+import { ROSTER_TEMPLATE_SHEET } from "@/lib/api/roster/columns";
+import { buildRosterErrorExport, buildRosterTemplate } from "@/lib/api/roster/template";
+import {
+  suggestColumnMapping,
+  type ColumnSuggestion,
+  type RosterColumnMapping,
+} from "@/lib/api/roster/import/column-map";
+import {
+  commitRosterImport,
+  resolveRosterImport,
+  sendRosterInvitations,
+  type InvitationRunResult,
+  type RosterImportContext,
+} from "@/lib/api/roster/import/execute";
+import { planRosterSheet, sheetToGrid } from "@/lib/api/roster/import/plan";
+import type { RosterImportReport } from "@/lib/api/roster/import/types";
+import {
+  encodeExportPayload,
+  type ExportFormat,
+  type ExportLocale,
+  type ExportPayload,
+} from "@/lib/export";
+import { ROSTER_IMPORT_V1 } from "@/lib/features";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
@@ -814,4 +852,306 @@ export async function deleteClassSchedule(classId: string, scheduleId: string) {
 function timeToMinutes(value: string) {
   const [hours, minutes] = value.split(":").map(Number);
   return (hours || 0) * 60 + (minutes || 0);
+}
+
+// ---------------------------------------------------------------------------
+// B3 · roster import + data export.
+//
+// These live here rather than in their own `app/actions/roster.ts` because
+// `scripts/ci/checks/no-new-vercel-functions.ts` fails `ci:checks` on any new
+// module with a top-level "use server" directive. This file is already
+// baselined (`scripts/ci/baselines/vercel-function-entrypoints.txt:125`).
+//
+// Files cannot cross the server-action boundary as bytes, so every export
+// returns an `ExportPayload` (base64) and the client rebuilds the Blob with
+// `downloadExportFile` from `@/lib/export/download`. Same reason: no route
+// handler is allowed.
+// ---------------------------------------------------------------------------
+
+/** A roster sheet is a few hundred rows. Anything larger is a mistake. */
+const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Decode an uploaded workbook into one sheet, reusing the IELTS readers rather
+ * than adding a second parser idiom. For a multi-tab workbook we take the tab
+ * named like our template, else the first — the mapping step handles the rest.
+ */
+function readRosterSheet(filename: string, base64: string): ParsedSheet {
+  if (typeof base64 !== "string" || base64.length === 0) {
+    throw new Error("No file was uploaded");
+  }
+  const bytes = new Uint8Array(Buffer.from(base64, "base64"));
+  if (bytes.byteLength === 0) throw new Error("The uploaded file is empty");
+  if (bytes.byteLength > MAX_UPLOAD_BYTES) {
+    throw new Error("The file is too large. Split it into smaller sheets.");
+  }
+  const name = typeof filename === "string" ? filename.toLowerCase() : "";
+  if (name.endsWith(".csv") || name.endsWith(".txt")) {
+    return parseCsvSheet(ROSTER_TEMPLATE_SHEET, new TextDecoder().decode(bytes));
+  }
+  const workbook = parseXlsxWorkbook(bytes);
+  if (workbook.sheets.length === 0) throw new Error("The workbook has no sheets");
+  const preferred = workbook.sheets.find(
+    (sheet) => sheet.name.trim().toLowerCase() === ROSTER_TEMPLATE_SHEET.toLowerCase(),
+  );
+  return preferred ?? workbook.sheets[0];
+}
+
+/**
+ * Authorize a roster write with `requireClubOwner`, not `requireClassManager`.
+ * The import can touch profile-adjacent state and issue invitations, and
+ * `private.prevent_profile_authority_escalation` raises 42501 for a plain class
+ * teacher — mid-batch, after rows have already been written.
+ *
+ * Also re-checks that the class belongs to the club: without it a legitimate
+ * owner of club A could enroll students into a class in club B.
+ */
+async function rosterContext(
+  clubId: string,
+  classId: string | null,
+): Promise<RosterImportContext> {
+  const club = requireUuid(clubId, "club id");
+  const supabase = await createClient();
+  const actorId = await requireClubOwner(
+    supabase as Parameters<typeof requireClubOwner>[0],
+    club,
+  );
+  let scopedClassId: string | null = null;
+  if (classId) {
+    scopedClassId = requireUuid(classId, "class id");
+    const { data, error } = await supabase
+      .from("classes")
+      .select("club_id")
+      .eq("id", scopedClassId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!data || data.club_id !== club) {
+      throw new Error("Class does not belong to this organization");
+    }
+  }
+  return { supabase, clubId: club, classId: scopedClassId, actorId };
+}
+
+function requireExportFormat(value: unknown): ExportFormat {
+  return value === "csv" ? "csv" : "xlsx";
+}
+
+function requireExportLocale(value: unknown): ExportLocale {
+  return value === "en" ? "en" : "vi";
+}
+
+function requireUuid(value: unknown, label: string): string {
+  if (typeof value !== "string" || !UUID_RE.test(value)) {
+    throw new Error(`Invalid ${label}`);
+  }
+  return value;
+}
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Read-side authorization only. `getAdminClassDetail` and
+ * `loadIeltsClassGradebook` already gate on `requireClassManager`, which is the
+ * right predicate for a read — a class teacher may export their own class.
+ * The *write* paths below use `requireClubOwner` instead; see there.
+ */
+export async function exportClassRoster(
+  classId: string,
+  format: ExportFormat = "xlsx",
+  locale: ExportLocale = "vi",
+): Promise<ExportPayload> {
+  const detail = await getAdminClassDetail(requireUuid(classId, "class id"));
+  if (!detail) throw new Error("Class not found");
+  return encodeExportPayload(
+    buildClassRosterExport(detail, {
+      format: requireExportFormat(format),
+      locale: requireExportLocale(locale),
+    }),
+  );
+}
+
+export async function exportClassAttendance(
+  classId: string,
+  format: ExportFormat = "xlsx",
+  locale: ExportLocale = "vi",
+): Promise<ExportPayload> {
+  const detail = await getAdminClassDetail(requireUuid(classId, "class id"));
+  if (!detail) throw new Error("Class not found");
+  return encodeExportPayload(
+    buildClassAttendanceExport(detail, {
+      format: requireExportFormat(format),
+      locale: requireExportLocale(locale),
+    }),
+  );
+}
+
+/**
+ * The gradebook pages at 25 rows. Following `nextCursor` to exhaustion is the
+ * whole job here: exporting page one as if it were the class is the exact bug
+ * a teacher would not notice until a parent asked why their child is missing.
+ */
+export async function exportIeltsClassGradebook(
+  classId: string,
+  format: ExportFormat = "xlsx",
+  locale: ExportLocale = "vi",
+): Promise<ExportPayload> {
+  const id = requireUuid(classId, "class id");
+  const supabase = await createClient();
+  const context = await requireClassManager(
+    supabase as Parameters<typeof requireClassManager>[0],
+    id,
+  );
+  if (!context.clubId) throw new Error("Class is not attached to an organization");
+
+  const rows: IeltsGradebookRow[] = [];
+  let cursor: string | null = null;
+  let classTitle = "";
+  // Bounded so a corrupt cursor cannot spin forever: 100 pages × 100 rows.
+  for (let page = 0; page < 100; page++) {
+    const gradebook: IeltsClassGradebook = await loadIeltsClassGradebook(supabase, {
+      classId: id,
+      clubId: context.clubId,
+      cursor,
+      limit: 100,
+    });
+    classTitle = gradebook.classTitle;
+    rows.push(...gradebook.rows);
+    cursor = gradebook.nextCursor;
+    if (!cursor) break;
+  }
+  return encodeExportPayload(
+    buildIeltsGradebookExport(
+      { classTitle, rows },
+      { format: requireExportFormat(format), locale: requireExportLocale(locale) },
+    ),
+  );
+}
+
+/** Mode A of the import: the empty, canonical-header workbook. */
+export async function downloadRosterTemplate(
+  locale: ExportLocale = "vi",
+  format: ExportFormat = "xlsx",
+): Promise<ExportPayload> {
+  return encodeExportPayload(
+    buildRosterTemplate(requireExportLocale(locale), requireExportFormat(format)),
+  );
+}
+
+/**
+ * Parse an uploaded sheet and auto-suggest a mapping. No authorization beyond
+ * club ownership and no writes: this is the "what did you give me" step, and
+ * the file never leaves the request.
+ */
+export async function parseRosterUpload(
+  clubId: string,
+  filename: string,
+  base64: string,
+): Promise<{
+  headers: string[];
+  sampleRows: string[][];
+  suggestions: ColumnSuggestion[];
+  sheetNames: string[];
+}> {
+  const supabase = await createClient();
+  await requireClubOwner(
+    supabase as Parameters<typeof requireClubOwner>[0],
+    requireUuid(clubId, "club id"),
+  );
+  const sheet = readRosterSheet(filename, base64);
+  const { headers, grid } = sheetToGrid(sheet);
+  return {
+    headers,
+    sampleRows: grid.slice(0, 3),
+    suggestions: suggestColumnMapping(headers),
+    sheetNames: [sheet.name],
+  };
+}
+
+/**
+ * Phase 2: dry run. Returns the same report shape as the commit, so the preview
+ * and the result screen render from one component.
+ */
+export async function planRosterImport(input: {
+  clubId: string;
+  classId?: string | null;
+  filename: string;
+  base64: string;
+  mapping: RosterColumnMapping;
+}): Promise<RosterImportReport> {
+  // Gated even though it only reads: it reads `student_records`, which does not
+  // exist until `20260904120000_club_student_records.sql` is applied.
+  if (!ROSTER_IMPORT_V1) throw new Error("Roster import is not enabled yet.");
+  const ctx = await rosterContext(input.clubId, input.classId ?? null);
+  const plan = planRosterSheet(readRosterSheet(input.filename, input.base64), input.mapping);
+  return resolveRosterImport(plan, ctx);
+}
+
+/**
+ * Phase 3: commit. Records only — invitations are a separate, resumable call,
+ * because 150 emails inside one action would exceed its time budget and a
+ * timeout here would leave the roster half-written.
+ */
+export async function commitRosterImportAction(input: {
+  clubId: string;
+  classId?: string | null;
+  filename: string;
+  base64: string;
+  mapping: RosterColumnMapping;
+  idempotencyKey: string;
+}): Promise<RosterImportReport> {
+  if (!ROSTER_IMPORT_V1) throw new Error("Roster import is not enabled yet.");
+  const ctx = await rosterContext(input.clubId, input.classId ?? null);
+  if (typeof input.idempotencyKey !== "string" || input.idempotencyKey.length < 8) {
+    throw new Error("Invalid idempotency key");
+  }
+  const plan = planRosterSheet(readRosterSheet(input.filename, input.base64), input.mapping);
+  const report = await commitRosterImport(plan, ctx, {
+    idempotencyKey: input.idempotencyKey,
+    sourceFilename: input.filename,
+  });
+  revalidatePath("/dashboard/admin/classes");
+  if (input.classId) revalidatePath(`/dashboard/admin/classes/${input.classId}`);
+  return report;
+}
+
+/** Call until `remaining` is 0. Idempotent per record. */
+export async function sendRosterInvitationsAction(
+  clubId: string,
+  batchId: string,
+  limit = 20,
+): Promise<InvitationRunResult> {
+  if (!ROSTER_IMPORT_V1) throw new Error("Roster import is not enabled yet.");
+  const ctx = await rosterContext(clubId, null);
+  return sendRosterInvitations(
+    ctx,
+    requireUuid(batchId, "batch id"),
+    Math.min(Math.max(Math.trunc(limit) || 20, 1), 50),
+  );
+}
+
+/** The fix-and-re-import artifact for the rows that did not land. */
+export async function exportRosterImportErrors(input: {
+  clubId: string;
+  filename: string;
+  base64: string;
+  mapping: RosterColumnMapping;
+  report: RosterImportReport;
+  locale?: ExportLocale;
+  format?: ExportFormat;
+}): Promise<ExportPayload> {
+  const supabase = await createClient();
+  await requireClubOwner(
+    supabase as Parameters<typeof requireClubOwner>[0],
+    requireUuid(input.clubId, "club id"),
+  );
+  const plan = planRosterSheet(readRosterSheet(input.filename, input.base64), input.mapping);
+  return encodeExportPayload(
+    buildRosterErrorExport(
+      input.report.rows,
+      plan.rows,
+      requireExportLocale(input.locale),
+      requireExportFormat(input.format),
+    ),
+  );
 }
