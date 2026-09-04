@@ -1,7 +1,10 @@
 import { notFound } from "next/navigation";
 import { ClassDetailDashboard } from "@/components/admin/classes/ClassDetailDashboard";
 import { getAdminClassDetail } from "@/lib/api/admin-classes";
-import { requireClassManager } from "@/lib/api/class-manager-access";
+import {
+  canManageClubRoster,
+  requireClassManager,
+} from "@/lib/api/class-manager-access";
 import { loadAuthorizedIeltsWorkbench } from "@/lib/api/ielts/class-workbench-page";
 import { ROSTER_IMPORT_V1 } from "@/lib/features";
 import { createTypedServerClient } from "@/lib/supabase/server";
@@ -22,8 +25,14 @@ export default async function AdminClassDetailPage({
   // component, so the flag is read here. The club id comes from the same
   // manager context the roster actions authorize against — `classInfo` does not
   // carry it.
+  //
+  // The flag alone is not enough to render the control: this route only
+  // requires `requireClassManager`, while the roster actions require
+  // `requireClubOwner`. Ask the same predicate the action will.
   const db = await createTypedServerClient();
   const manager = await requireClassManager(db, classId);
+  const canImportRoster =
+    ROSTER_IMPORT_V1 && (await canManageClubRoster(db, manager.clubId));
 
   const ieltsWorkbench =
     data.classInfo.programType === "ielts"
@@ -34,7 +43,7 @@ export default async function AdminClassDetailPage({
     <ClassDetailDashboard
       data={data}
       ieltsWorkbench={ieltsWorkbench}
-      rosterImportEnabled={ROSTER_IMPORT_V1}
+      rosterImportEnabled={canImportRoster}
       clubId={manager.clubId}
     />
   );
