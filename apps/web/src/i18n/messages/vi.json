@@ -2286,7 +2286,8 @@
           "courses": "Courses",
           "schedule": "Schedule",
           "attendance": "Attendance",
-          "workbench": "Bàn làm việc IELTS"
+          "workbench": "Bàn làm việc IELTS",
+          "analytics": "Phân tích"
         },
         "metrics": {
           "students": "Students",

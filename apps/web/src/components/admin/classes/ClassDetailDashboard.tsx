@@ -7,7 +7,9 @@ import {
   useState,
   useTransition,
 } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import dynamic from "next/dynamic";
+import { PageContainer } from "@/components/shared/product-layout";
 import { curveNatural } from "@visx/curve";
 import {
   ArrowLeft,
@@ -94,8 +96,12 @@ interface Props {
   clubId?: string | null;
 }
 
+const ClassAnalyticsPanel = dynamic(() =>
+  import("@/components/analytics/ClassAnalyticsPanel").then((module) => module.ClassAnalyticsPanel),
+);
+
 type Tab =
-  "workbench" | "overview" | "students" | "courses" | "schedule" | "attendance";
+  "workbench" | "analytics" | "overview" | "students" | "courses" | "schedule" | "attendance";
 
 function initials(name: string) {
   return (
@@ -535,6 +541,7 @@ export function ClassDetailDashboard({
   clubId = null,
 }: Props) {
   const t = useTranslations("admin.classes.detail");
+  const locale = useLocale() === "vi" ? "vi" : "en";
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(
     data.classInfo.programType === "ielts" ? "workbench" : "overview",
@@ -574,6 +581,7 @@ export function ClassDetailDashboard({
 
   const tabs: Tab[] = [
     ...(data.classInfo.programType === "ielts" ? (["workbench"] as const) : []),
+    ...(data.classInfo.programType === "ielts" && ieltsWorkbench?.enabled ? (["analytics"] as const) : []),
     "overview",
     "students",
     "courses",
@@ -669,7 +677,8 @@ export function ClassDetailDashboard({
   }
 
   return (
-    <PageTransition className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+    <PageContainer size="data" className="min-w-0">
+    <PageTransition className="min-w-0">
       <div className="flex flex-col gap-4 border-b border-outline-variant pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Link
@@ -809,6 +818,12 @@ export function ClassDetailDashboard({
             initialTab={ieltsInitialTab}
             initialResponseId={ieltsInitialResponseId}
           />
+        </div>
+      )}
+
+      {tab === "analytics" && data.classInfo.programType === "ielts" && (
+        <div role="tabpanel" id="class-panel-analytics" aria-labelledby="class-tab-analytics">
+          <ClassAnalyticsPanel classId={data.classInfo.id} locale={locale} />
         </div>
       )}
 
@@ -1389,6 +1404,7 @@ export function ClassDetailDashboard({
         </div>
       )}
     </PageTransition>
+    </PageContainer>
   );
 }
 

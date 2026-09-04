@@ -2286,7 +2286,8 @@
           "courses": "Courses",
           "schedule": "Schedule",
           "attendance": "Attendance",
-          "workbench": "IELTS Workbench"
+          "workbench": "IELTS Workbench",
+          "analytics": "Analytics"
         },
         "metrics": {
           "students": "Students",

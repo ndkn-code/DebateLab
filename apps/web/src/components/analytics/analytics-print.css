@@ -1,0 +1,20 @@
+/* A stylesheet survives the app CSP; an injected inline style does not. */
+@media print {
+  body:has(#b6-print-root) > *:not(#b6-print-root) {
+    display: none !important;
+  }
+  #b6-print-root {
+    display: block !important;
+  }
+  #b6-print-root [role="region"],
+  #b6-print-root .overflow-x-auto {
+    overflow: visible !important;
+  }
+  #b6-print-root table {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+  #b6-print-root tr {
+    break-inside: avoid;
+  }
+}
