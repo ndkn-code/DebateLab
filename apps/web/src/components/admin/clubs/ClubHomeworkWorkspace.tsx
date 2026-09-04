@@ -526,6 +526,20 @@ function Metric({ label, value }: { label: string; value: number }) {
 }
 
 /**
+ * storage-js sends a `File`/`Blob` body as multipart and ignores the
+ * `contentType` option for it (the part's type is the Blob's own `type`), so a
+ * macOS Chrome `.m4a` lands as `audio/x-m4a` and an untyped `.docx` as
+ * `application/octet-stream`, and `finalize_homework_submission` then raises
+ * STORAGE_OBJECT_MIME_MISMATCH after the bytes are already uploaded. Re-type the
+ * Blob to the MIME the server registered for this path; `slice` shares the
+ * bytes, so this costs nothing.
+ */
+function homeworkUploadBody(file: File, mimeType: string | null | undefined): Blob {
+  if (!mimeType || file.type === mimeType) return file;
+  return file.slice(0, file.size, mimeType);
+}
+
+/**
  * The interrupted-upload lane. `submitClubAssignment` reserves the attempt
  * before the browser uploads a single byte, so a dropped connection leaves a
  * `draft` / `uploading` / `failed` row that the happy path can never finish.
@@ -574,7 +588,7 @@ function PendingSubmissionPanel({
         for (const { target, file } of pairs) {
           const { error } = await supabase.storage
             .from(HOMEWORK_BUCKET)
-            .uploadToSignedUrl(target.storagePath, target.token, file, {
+            .uploadToSignedUrl(target.storagePath, target.token, homeworkUploadBody(file, target.mimeType), {
               contentType: target.mimeType ?? undefined,
             });
           if (error) throw new Error(error.message);
@@ -820,7 +834,7 @@ function StudentWorkspace({
           // finalize with STORAGE_OBJECT_MIME_MISMATCH after a full upload.
           const { error } = await supabase.storage
             .from(HOMEWORK_BUCKET)
-            .uploadToSignedUrl(target.storagePath, target.token, file, {
+            .uploadToSignedUrl(target.storagePath, target.token, homeworkUploadBody(file, target.mimeType), {
               contentType: target.mimeType ?? undefined,
             });
           if (error) throw new Error(error.message);
