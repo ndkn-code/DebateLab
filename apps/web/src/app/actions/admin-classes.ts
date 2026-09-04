@@ -1080,7 +1080,7 @@ export async function planRosterImport(input: {
   mapping: RosterColumnMapping;
 }): Promise<RosterImportReport> {
   // Gated even though it only reads: it reads `student_records`, which does not
-  // exist until `20260904120000_club_student_records.sql` is applied.
+  // exist until `20260904130000_club_student_records.sql` is applied.
   if (!ROSTER_IMPORT_V1) throw new Error("Roster import is not enabled yet.");
   const ctx = await rosterContext(input.clubId, input.classId ?? null);
   const plan = planRosterSheet(readRosterSheet(input.filename, input.base64), input.mapping);

@@ -202,7 +202,7 @@ export const PROFILE_SOCIAL_GUARDRAILS_ENABLED: boolean =
 
 /**
  * B3 · roster spreadsheet import. Opt-in until the migration
- * `20260904120000_club_student_records.sql` is applied — the surface reads and
+ * `20260904130000_club_student_records.sql` is applied — the surface reads and
  * writes tables that do not exist yet, so shipping it on by default would fail
  * at runtime rather than at build time. Export is deliberately NOT behind this
  * flag: it only reads tables that already exist, and it is the manual fallback

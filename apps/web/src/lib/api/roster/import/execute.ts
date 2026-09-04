@@ -16,7 +16,7 @@
  * reports `skipped`, which is what makes fix-the-errors-and-re-upload safe.
  *
  * The types below are declared by hand because the migration
- * (`20260904120000_club_student_records.sql`) is **not applied**; regenerate
+ * (`20260904130000_club_student_records.sql`) is **not applied**; regenerate
  * `types/supabase.ts` through the Supabase MCP once it is, and this file keeps
  * working because it selects an explicit column list.
  */

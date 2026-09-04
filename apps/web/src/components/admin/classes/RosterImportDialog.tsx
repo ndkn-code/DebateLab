@@ -369,7 +369,7 @@ export function RosterImportDialog({
               <span>{t("map.columns", { count: parsed.headers.length })}</span>
             </p>
             <div className="overflow-hidden rounded-lg border border-outline-variant">
-              <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] gap-3 bg-surface-container px-3 py-2 type-caption font-semibold uppercase text-on-surface-variant">
+              <div className="hidden gap-3 bg-surface-container px-3 py-2 type-caption font-semibold uppercase text-on-surface-variant sm:grid sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]">
                 <span>{t("map.field")}</span>
                 <span>{t("map.source")}</span>
               </div>
@@ -392,7 +392,7 @@ export function RosterImportDialog({
                 return (
                   <div
                     key={field.id}
-                    className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] items-center gap-3 border-t border-outline-variant px-3 py-2"
+                    className="grid grid-cols-1 gap-2 border-t border-outline-variant px-3 py-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] sm:items-center sm:gap-3"
                   >
                     <div className="min-w-0">
                       <p className="flex flex-wrap items-center gap-1.5 type-label text-on-surface">
