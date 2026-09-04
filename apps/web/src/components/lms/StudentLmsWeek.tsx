@@ -21,6 +21,11 @@ import type {
   StudentWeeklyLmsView,
   StudentWeeklyOccurrence,
 } from "@/lib/api/class-lms/student-weekly-repository";
+import {
+  selectNextStudentAssignment,
+  type StudentAssignmentSummary,
+} from "@/lib/api/class-lms/student-assignments-model";
+import { AssignedWorkList } from "@/components/lms/AssignedWorkList";
 import { LearnerMaterials } from "@/components/materials/LearnerMaterials";
 import type { LearnerMaterialProjection } from "@/components/materials/material-ui-model";
 
@@ -395,6 +400,45 @@ function OccurrenceCard({
   );
 }
 
+/**
+ * `lms_notifications.title`/`body` are written in English by SECURITY DEFINER
+ * triggers that cannot know the reader's locale. Vietnamese is this product's
+ * default locale, so render from `event_type` + `payload` where we can and keep
+ * the stored text only as the fallback for events we do not recognise.
+ */
+function notificationCopy(
+  notification: StudentWeeklyLmsView["notifications"][number],
+  vi: boolean,
+): { title: string; body: string } {
+  if (!vi) return { title: notification.title, body: notification.body };
+
+  const payload = notification.payload;
+  const assignmentTitle =
+    typeof payload.assignmentTitle === "string" ? payload.assignmentTitle : null;
+  const gradeStatus =
+    typeof payload.gradeStatus === "string" ? payload.gradeStatus : null;
+  const subject = assignmentTitle ? `: ${assignmentTitle}` : ".";
+
+  if (notification.eventType === "assignment_published") {
+    return { title: "Bài tập mới", body: `Bạn có bài tập mới${subject}` };
+  }
+  if (notification.eventType === "due_soon") {
+    return { title: "Sắp đến hạn nộp", body: `Bài tập sắp đến hạn${subject}` };
+  }
+  if (notification.eventType === "returned") {
+    return gradeStatus === "resubmit_requested"
+      ? { title: "Cần nộp lại", body: `Giáo viên yêu cầu bạn nộp lại${subject}` }
+      : {
+          title: "Đã có nhận xét",
+          body: `Giáo viên đã trả bài và nhận xét${subject}`,
+        };
+  }
+  if (notification.eventType === "result_published") {
+    return { title: "Đã có kết quả", body: "Kết quả bài thi của bạn đã sẵn sàng." };
+  }
+  return { title: notification.title, body: notification.body };
+}
+
 function EmptyState({ vi }: { vi: boolean }) {
   return (
     <div className="rounded-control border border-dashed border-outline-variant bg-surface-container-low px-4 py-8 text-center">
@@ -420,12 +464,19 @@ export function StudentLmsWeek({
   timezone,
   materialsByOccurrence = {},
   generalMaterials = [],
+  assignedWork = [],
 }: {
   data: StudentWeeklyLmsView;
   locale: string;
   timezone: string;
   materialsByOccurrence?: Record<string, LearnerMaterialProjection[]>;
   generalMaterials?: LearnerMaterialProjection[];
+  /**
+   * Every active assignment in the learner's classes, independent of lesson
+   * occurrences. Without this the week view can only show work a teacher
+   * linked to a published occurrence inside this exact week.
+   */
+  assignedWork?: StudentAssignmentSummary[];
 }) {
   const vi = locale === "vi";
   const dates = Array.from({ length: 7 }, (_, index) =>
@@ -458,6 +509,36 @@ export function StudentLmsWeek({
     if (!right.assignment.dueAt) return -1;
     return left.assignment.dueAt.localeCompare(right.assignment.dueAt);
   })[0];
+
+  // Occurrence-linked work is already rendered inside its lesson card; the
+  // standalone list carries everything else so nothing is delivery-invisible.
+  const scheduledAssignmentIds = new Set(
+    data.occurrences.flatMap((occurrence) =>
+      occurrence.assignments.map((assignment) => assignment.id),
+    ),
+  );
+  const unscheduledWork = assignedWork.filter(
+    (work) => !scheduledAssignmentIds.has(work.id),
+  );
+  const outstandingWorkCount = assignedWork.filter(
+    (work) => work.outstanding,
+  ).length;
+  const nextWork = selectNextStudentAssignment(assignedWork);
+  const nextAction = nextAssignment
+    ? {
+        title: nextAssignment.assignment.title,
+        dueAt: nextAssignment.assignment.dueAt,
+        context: nextAssignment.occurrence.classTitle,
+        href: `/dashboard/clubs/${nextAssignment.assignment.clubId}/assignments/${nextAssignment.assignment.id}`,
+      }
+    : nextWork
+      ? {
+          title: nextWork.title,
+          dueAt: nextWork.dueAt,
+          context: nextWork.classTitle,
+          href: nextWork.href,
+        }
+      : null;
 
   return (
     <ProductPageShell>
@@ -510,30 +591,29 @@ export function StudentLmsWeek({
                 {vi ? "Việc tiếp theo" : "Next action"}
               </p>
               <h2 className="mt-0.5 truncate type-body font-semibold text-on-surface">
-                {nextAssignment?.assignment.title ??
+                {nextAction?.title ??
                   nextOccurrence?.title ??
                   (vi ? "Xem bài được giao" : "Review assigned work")}
               </h2>
               <p className="mt-0.5 type-body-sm text-on-surface-variant">
-                {nextAssignment?.assignment.dueAt
-                  ? `${vi ? "Hạn" : "Due"} ${formatDateTime(nextAssignment.assignment.dueAt, locale, timezone)} · ${nextAssignment.occurrence.classTitle}`
-                  : nextOccurrence
-                    ? `${formatDateTime(nextOccurrence.startsAt, locale, nextOccurrence.timezone)} · ${nextOccurrence.classTitle}`
-                    : vi
-                      ? "Tất cả bài tập và phản hồi ở một nơi."
-                      : "Assignments and teacher feedback in one place."}
+                {nextAction?.dueAt
+                  ? `${vi ? "Hạn" : "Due"} ${formatDateTime(nextAction.dueAt, locale, timezone)} · ${nextAction.context}`
+                  : nextAction
+                    ? nextAction.context ||
+                      (vi ? "Chưa có hạn nộp" : "No due date")
+                    : nextOccurrence
+                      ? `${formatDateTime(nextOccurrence.startsAt, locale, nextOccurrence.timezone)} · ${nextOccurrence.classTitle}`
+                      : vi
+                        ? "Tất cả bài tập và phản hồi ở một nơi."
+                        : "Assignments and teacher feedback in one place."}
               </p>
             </div>
           </div>
           <Link
-            href={
-              nextAssignment
-                ? `/dashboard/clubs/${nextAssignment.assignment.clubId}/assignments/${nextAssignment.assignment.id}`
-                : "/ielts/assigned"
-            }
+            href={nextAction ? nextAction.href : "/ielts/assigned"}
             className="inline-flex h-8 items-center justify-center gap-2 rounded-control bg-primary px-3 type-label font-semibold text-on-primary transition-colors hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
-            {nextAssignment
+            {nextAction
               ? vi
                 ? "Mở bài"
                 : "Open work"
@@ -543,6 +623,35 @@ export function StudentLmsWeek({
             <ExternalLink className="size-3.5" aria-hidden="true" />
           </Link>
         </section>
+
+        <AssignedWorkList
+          className="mt-3 rounded-control border border-outline-variant bg-surface p-3"
+          headingId="student-assigned-work-heading"
+          work={unscheduledWork}
+          locale={locale}
+          timezone={timezone}
+          outstandingCount={outstandingWorkCount}
+          heading={vi ? "Bài được giao" : "Assigned work"}
+          description={
+            vi
+              ? "Mọi bài tập của các lớp bạn đang học, kể cả khi giáo viên chưa xếp vào buổi học nào."
+              : "Every assignment from your classes, including work never attached to a scheduled lesson."
+          }
+          emptyTitle={
+            assignedWork.length
+              ? vi
+                ? "Tất cả bài tập đã nằm trong lịch tuần này"
+                : "All assigned work is on this week's schedule"
+              : vi
+                ? "Chưa có bài tập nào được giao"
+                : "No assigned work yet"
+          }
+          emptyBody={
+            vi
+              ? "Giáo viên giao bài xong là bài sẽ hiện ở đây."
+              : "Work your teacher assigns shows up here."
+          }
+        />
 
         {generalMaterials.length ? (
           <section
@@ -736,10 +845,10 @@ export function StudentLmsWeek({
                         ) : null}
                         <div className="min-w-0">
                           <p className="type-label font-semibold text-on-surface">
-                            {notification.title}
+                            {notificationCopy(notification, vi).title}
                           </p>
                           <p className="mt-0.5 line-clamp-3 type-body-sm text-on-surface-variant">
-                            {notification.body}
+                            {notificationCopy(notification, vi).body}
                           </p>
                           <p className="mt-1 type-caption text-on-surface-variant">
                             {formatDateTime(

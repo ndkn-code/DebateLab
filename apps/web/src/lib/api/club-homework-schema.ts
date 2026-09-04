@@ -2,6 +2,13 @@ import { z } from "zod";
 
 const UuidSchema = z.string().uuid();
 
+/**
+ * `mimeType` is only meaningful when the client is echoing back a value the
+ * server itself recorded (see `RecordAssignmentSubmissionFilesSchema`). On the
+ * submit path it is ignored: the reservation derives the storage MIME from the
+ * file extension via `canonicalMimeType`, because the browser reports an empty
+ * `File.type` for .m4a and for many .docx.
+ */
 export const HomeworkFileRequestSchema = z.object({
   fileName: z.string().trim().min(1).max(180),
   mimeType: z.string().trim().max(120).nullable().optional(),

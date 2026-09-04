@@ -11,12 +11,17 @@ import {
   RetryAssignmentSubmissionSchema,
   SubmitClubAssignmentSchema,
 } from "@/lib/api/club-homework-schema";
+import {
+  canonicalMimeType,
+  homeworkFileExtension,
+  normalizeAllowedExtensions,
+} from "@/lib/api/club-homework-files";
+import { sameHomeworkMime } from "@/lib/api/club-homework-model";
 import { getSessionUserId } from "@/lib/api/ielts/assignment-access";
 import { requireClassManager, requireClubOwner } from "@/lib/api/class-manager-access";
 import { createTypedServerClient } from "@/lib/supabase/server";
 
 const HOMEWORK_BUCKET = "assignment-submissions";
-const DEFAULT_ALLOWED_EXT = ["pdf", "doc", "docx", "png", "jpg", "jpeg", "mp3", "m4a", "wav"];
 
 type HomeworkFileInput = {
   fileName: string;
@@ -31,16 +36,33 @@ type HomeworkRpcClient = {
   }>;
 };
 
-type HomeworkFileIntent = HomeworkFileInput & { storagePath: string };
+type HomeworkFileIntent = {
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  storagePath: string;
+};
 
-function homeworkRpc(supabase: Awaited<ReturnType<typeof createTypedServerClient>>) {
+type ReservedFileRow = {
+  storage_path: string;
+  file_name: string;
+  mime_type: string | null;
+  size_bytes: number | null;
+};
+
+type HomeworkUploadTarget = {
+  storagePath: string;
+  fileName: string;
+  mimeType: string | null;
+  sizeBytes: number;
+  token: string;
+  signedUrl: string;
+};
+
+type HomeworkServerClient = Awaited<ReturnType<typeof createTypedServerClient>>;
+
+function homeworkRpc(supabase: HomeworkServerClient) {
   return supabase as unknown as HomeworkRpcClient;
-}
-
-function fileExtension(fileName: string) {
-  const sanitized = fileName.trim().toLowerCase();
-  const index = sanitized.lastIndexOf(".");
-  return index >= 0 ? sanitized.slice(index + 1).replace(/[^a-z0-9]/g, "") : "";
 }
 
 function safeFileName(fileName: string) {
@@ -53,10 +75,20 @@ function safeFileName(fileName: string) {
   return cleaned || "submission-file";
 }
 
+/**
+ * The assignment's configured extensions, intersected with what the
+ * `assignment-submissions` bucket actually accepts. A teacher typing `heic`
+ * must not create an assignment whose uploads storage rejects after the fact.
+ */
 function allowedExtensions(raw: string[] | null) {
-  return raw?.length ? raw.map((ext) => ext.toLowerCase().replace(/^\./, "")) : DEFAULT_ALLOWED_EXT;
+  return normalizeAllowedExtensions(raw);
 }
 
+/**
+ * Errors thrown from this module are stable codes (optionally `CODE|detail`),
+ * mirroring the codes the homework RPCs raise. The student surface owns the
+ * bilingual copy for them; none of these should ever be rendered verbatim.
+ */
 function validateFiles(input: {
   files: HomeworkFileInput[];
   filesEnabled: boolean;
@@ -65,30 +97,70 @@ function validateFiles(input: {
   allowedExt: string[];
 }) {
   if (input.files.length === 0) return;
-  if (!input.filesEnabled) throw new Error("This assignment does not accept files.");
-  if (input.files.length > input.maxFiles) throw new Error(`Upload at most ${input.maxFiles} files.`);
+  if (!input.filesEnabled) throw new Error("FILES_NOT_ACCEPTED");
+  if (input.files.length > input.maxFiles) throw new Error(`TOO_MANY_FILES|${input.maxFiles}`);
 
   const maxBytes = input.maxFileMb * 1024 * 1024;
   for (const file of input.files) {
-    const ext = fileExtension(file.fileName);
-    if (!ext || !input.allowedExt.includes(ext)) {
-      throw new Error(`File type .${ext || "unknown"} is not allowed.`);
+    const ext = homeworkFileExtension(file.fileName);
+    // No canonical MIME means the storage allowlist would reject the object,
+    // so the reservation must fail here rather than after the upload.
+    if (!ext || !input.allowedExt.includes(ext) || !canonicalMimeType(file.fileName)) {
+      throw new Error(`FILE_TYPE_NOT_ALLOWED|${file.fileName}|${ext}`);
     }
     if (file.sizeBytes > maxBytes) {
-      throw new Error(`${file.fileName} is larger than ${input.maxFileMb}MB.`);
+      throw new Error(`FILE_TOO_LARGE|${file.fileName}|${input.maxFileMb}`);
     }
   }
 }
 
-async function loadAssignmentForSubmit(supabase: Awaited<ReturnType<typeof createTypedServerClient>>, assignmentId: string) {
+async function loadAssignmentForSubmit(supabase: HomeworkServerClient, assignmentId: string) {
   const { data, error } = await supabase
     .from("club_assignments")
     .select("id, club_id, class_id, status, due_at, required_attempts, submission_text_enabled, submission_files_enabled, submission_max_files, submission_max_file_mb, submission_allowed_ext")
     .eq("id", assignmentId)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!data) throw new Error("Assignment not found.");
+  if (!data) throw new Error("ASSIGNMENT_NOT_FOUND");
   return data;
+}
+
+async function signUploadTargets(
+  supabase: HomeworkServerClient,
+  rows: ReservedFileRow[],
+): Promise<HomeworkUploadTarget[]> {
+  return Promise.all(
+    rows.map(async (file) => {
+      const { data, error } = await supabase.storage
+        .from(HOMEWORK_BUCKET)
+        .createSignedUploadUrl(file.storage_path);
+      if (error) throw new Error(error.message);
+      return {
+        storagePath: file.storage_path,
+        fileName: file.file_name,
+        mimeType: file.mime_type,
+        sizeBytes: file.size_bytes ?? 0,
+        token: data.token,
+        signedUrl: data.signedUrl,
+      };
+    }),
+  );
+}
+
+/**
+ * Reserved rows are inserted in one statement, so `created_at` ties and the
+ * database order is not deterministic. The client pairs upload target N with
+ * its file N, so the targets must follow the caller's file order exactly —
+ * otherwise, with two or more files, bytes land on each other's paths.
+ * `storagePath` is unique and generated in input order, so it is the key.
+ */
+function orderReservedRows(rows: ReservedFileRow[], intents: HomeworkFileIntent[]): ReservedFileRow[] {
+  const byPath = new Map(rows.map((row) => [row.storage_path, row]));
+  return intents.map((intent) => {
+    const row = byPath.get(intent.storagePath);
+    if (!row) throw new Error("FILE_SET_MISMATCH");
+    return row;
+  });
 }
 
 export async function submitClubAssignment(raw: unknown) {
@@ -97,10 +169,7 @@ export async function submitClubAssignment(raw: unknown) {
   const userId = await getSessionUserId(supabase);
   const assignment = await loadAssignmentForSubmit(supabase, input.assignmentId);
 
-  if (assignment.status !== "active") throw new Error("This assignment is not accepting submissions.");
-  if (assignment.due_at && new Date(assignment.due_at).getTime() < Date.now()) {
-    throw new Error("This assignment is past due.");
-  }
+  if (assignment.status !== "active") throw new Error("ASSIGNMENT_NOT_ACCEPTING_SUBMISSIONS");
 
   if (assignment.class_id) {
     const { data: membership, error: membershipError } = await supabase
@@ -112,12 +181,12 @@ export async function submitClubAssignment(raw: unknown) {
       .eq("status", "active")
       .maybeSingle();
     if (membershipError) throw new Error(membershipError.message);
-    if (!membership) throw new Error("You are not enrolled in this class.");
+    if (!membership) throw new Error("NOT_ENROLLED");
   }
 
   const submissionText = input.submissionText?.trim() ?? "";
   if (submissionText && !assignment.submission_text_enabled) {
-    throw new Error("This assignment does not accept text responses.");
+    throw new Error("TEXT_NOT_ACCEPTED");
   }
 
   const allowedExt = allowedExtensions(assignment.submission_allowed_ext);
@@ -130,15 +199,30 @@ export async function submitClubAssignment(raw: unknown) {
   });
 
   if (!submissionText && input.files.length === 0) {
-    throw new Error("Add text or at least one file before submitting.");
+    throw new Error("EMPTY_SUBMISSION");
   }
 
+  // The deadline is enforced inside `reserve_homework_submission`, deliberately
+  // *after* it resolves a `resubmit_requested` predecessor: a revision the
+  // teacher explicitly asked for must survive the due date, a first attempt must
+  // not. Re-checking it here would reinstate the lock-out this card removed.
   const idempotencyKey = input.idempotencyKey ?? randomUUID();
-  const fileIntents: HomeworkFileIntent[] = input.files.map((file) => ({
-    ...file,
-    mimeType: file.mimeType ?? null,
-    storagePath: `${assignment.club_id}/${assignment.id}/${userId}/${randomUUID()}-${safeFileName(file.fileName)}`,
-  }));
+  // The browser-reported `File.type` is never trusted: it is empty for .m4a and
+  // for many .docx, and supabase-js then uploads as text/plain, which fails
+  // `finalize_homework_submission`'s STORAGE_OBJECT_MIME_MISMATCH check *after*
+  // the bytes have landed. Extension -> canonical MIME, identically both sides.
+  const fileIntents: HomeworkFileIntent[] = input.files.map((file) => {
+    const mimeType = canonicalMimeType(file.fileName);
+    if (!mimeType) {
+      throw new Error(`FILE_TYPE_NOT_ALLOWED|${file.fileName}|${homeworkFileExtension(file.fileName)}`);
+    }
+    return {
+      fileName: file.fileName,
+      sizeBytes: file.sizeBytes,
+      mimeType,
+      storagePath: `${assignment.club_id}/${assignment.id}/${userId}/${randomUUID()}-${safeFileName(file.fileName)}`,
+    };
+  });
   const { data: submissionId, error: reserveError } = await homeworkRpc(supabase).rpc<string>(
     "reserve_homework_submission",
     {
@@ -149,7 +233,7 @@ export async function submitClubAssignment(raw: unknown) {
       p_file_intents: fileIntents,
     },
   );
-  if (reserveError || !submissionId) throw new Error(reserveError?.message ?? "Unable to reserve submission.");
+  if (reserveError || !submissionId) throw new Error(reserveError?.message ?? "SUBMISSION_RESERVE_FAILED");
 
   const db = supabase as unknown as SupabaseClient;
   const { data: reservedSubmission, error: reservedSubmissionError } = await db
@@ -159,9 +243,9 @@ export async function submitClubAssignment(raw: unknown) {
     .eq("user_id", userId)
     .maybeSingle();
   if (reservedSubmissionError) throw new Error(reservedSubmissionError.message);
-  if (reservedSubmission?.submission_state === "failed") throw new Error("Submission has been cancelled.");
+  if (reservedSubmission?.submission_state === "failed") throw new Error("SUBMISSION_CANCELLED");
   if (reservedSubmission?.submission_state === "submitted") {
-    return { submissionId, uploadTargets: [] };
+    return { submissionId, uploadTargets: [] as HomeworkUploadTarget[] };
   }
 
   const { data: intents, error: intentsError } = await supabase
@@ -172,31 +256,9 @@ export async function submitClubAssignment(raw: unknown) {
     .order("created_at", { ascending: true });
   if (intentsError) throw new Error(intentsError.message);
 
-  let uploadTargets: Array<{
-    storagePath: string;
-    fileName: string;
-    mimeType: string | null;
-    sizeBytes: number;
-    token: string;
-    signedUrl: string;
-  }>;
+  let uploadTargets: HomeworkUploadTarget[];
   try {
-    uploadTargets = await Promise.all(
-      (intents ?? []).map(async (file) => {
-        const { data, error } = await supabase.storage
-          .from(HOMEWORK_BUCKET)
-          .createSignedUploadUrl(file.storage_path);
-        if (error) throw new Error(error.message);
-        return {
-          storagePath: file.storage_path,
-          fileName: file.file_name,
-          mimeType: file.mime_type,
-          sizeBytes: file.size_bytes ?? 0,
-          token: data.token,
-          signedUrl: data.signedUrl,
-        };
-      }),
-    );
+    uploadTargets = await signUploadTargets(supabase, orderReservedRows(intents ?? [], fileIntents));
   } catch (error) {
     await homeworkRpc(supabase).rpc<string>("fail_homework_submission", {
       p_submission_id: submissionId,
@@ -235,10 +297,10 @@ export async function recordAssignmentSubmissionFiles(raw: unknown) {
     .eq("user_id", userId)
     .maybeSingle();
   if (submissionError) throw new Error(submissionError.message);
-  if (!submission) throw new Error("Submission not found.");
+  if (!submission) throw new Error("SUBMISSION_NOT_FOUND");
   if (submission.submission_state === "submitted") return { submissionId: submission.id };
-  if (submission.submission_state === "failed") throw new Error("Submission has been cancelled.");
-  if (input.files.length === 0) throw new Error("File metadata is required to finalize this submission.");
+  if (submission.submission_state === "failed") throw new Error("SUBMISSION_CANCELLED");
+  if (input.files.length === 0) throw new Error("FILE_SET_MISMATCH");
 
   const assignment = await loadAssignmentForSubmit(supabase, submission.assignment_id);
   const allowedExt = allowedExtensions(assignment.submission_allowed_ext);
@@ -257,17 +319,22 @@ export async function recordAssignmentSubmissionFiles(raw: unknown) {
     .eq("user_id", userId)
     .order("created_at", { ascending: true });
   if (expectedError) throw new Error(expectedError.message);
-  if ((expectedRows?.length ?? 0) !== input.files.length) throw new Error("File set does not match the reservation.");
+  if ((expectedRows?.length ?? 0) !== input.files.length) throw new Error("FILE_SET_MISMATCH");
 
   const expectedByPath = new Map((expectedRows ?? []).map((row) => [row.storage_path, row]));
   const prefix = `${submission.club_id}/${submission.assignment_id}/${userId}/`;
   for (const file of input.files) {
     if (!file.storagePath.startsWith(prefix) || file.storagePath.includes("..")) {
-      throw new Error("Invalid upload path.");
+      throw new Error("INVALID_UPLOAD_PATH");
     }
     const expected = expectedByPath.get(file.storagePath);
-    if (!expected || expected.file_name !== file.fileName || (expected.mime_type ?? null) !== (file.mimeType ?? null) || Number(expected.size_bytes ?? -1) !== file.sizeBytes) {
-      throw new Error("File metadata does not match the reservation.");
+    if (
+      !expected ||
+      expected.file_name !== file.fileName ||
+      !sameHomeworkMime(expected.mime_type, file.mimeType) ||
+      Number(expected.size_bytes ?? -1) !== file.sizeBytes
+    ) {
+      throw new Error("FILE_METADATA_MISMATCH");
     }
   }
 
@@ -279,7 +346,7 @@ export async function recordAssignmentSubmissionFiles(raw: unknown) {
       p_storage_paths: input.files.map((file) => file.storagePath),
     },
   );
-  if (finalizeError || !finalizedId) throw new Error(finalizeError?.message ?? "Unable to finalize submission.");
+  if (finalizeError || !finalizedId) throw new Error(finalizeError?.message ?? "SUBMISSION_FINALIZE_FAILED");
 
   revalidatePath(`/dashboard/clubs/${submission.club_id}/assignments/${submission.assignment_id}`);
   return { submissionId: finalizedId };
@@ -304,46 +371,84 @@ export async function failClubAssignmentSubmission(raw: unknown) {
     p_user_id: userId,
     p_reason: input.reason ?? null,
   });
-  if (error || !failedId) throw new Error(error?.message ?? "Unable to cancel submission.");
+  if (error || !failedId) throw new Error(error?.message ?? "SUBMISSION_CANCEL_FAILED");
   return { submissionId: failedId };
 }
 
-/** Resume the same failed reservation without consuming another attempt. */
+/**
+ * Resume an unfinished reservation without consuming another attempt.
+ *
+ * A student whose upload died mid-flight is left with a `draft` / `uploading`
+ * (or `failed`, once the cleanup worker ran) submission that the happy path can
+ * never finish. This mints fresh signed upload URLs for the rows already
+ * reserved, so the browser can re-upload the same files into the same attempt.
+ *
+ * `retry_homework_submission` only accepts a `failed` submission whose blobs
+ * the cleanup worker already removed, so the draft/uploading case is resumed
+ * directly here: students have no storage UPDATE policy, so any partially
+ * uploaded object must be dropped before a signed URL can insert it again.
+ */
 export async function retryClubAssignmentSubmission(raw: unknown) {
   const input = parseInput(RetryAssignmentSubmissionSchema, raw);
   const supabase = await createTypedServerClient();
   const userId = await getSessionUserId(supabase);
-  const { data: retriedId, error: retryError } = await homeworkRpc(supabase).rpc<string>(
-    "retry_homework_submission",
-    { p_submission_id: input.submissionId, p_user_id: userId },
-  );
-  if (retryError || !retriedId) {
-    throw new Error(retryError?.message ?? "Unable to retry submission.");
+  const db = supabase as unknown as SupabaseClient;
+  const { data: submission, error: submissionError } = await db
+    .from("club_assignment_submissions")
+    .select("id, assignment_id, club_id, submission_state")
+    .eq("id", input.submissionId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (submissionError) throw new Error(submissionError.message);
+  if (!submission) throw new Error("SUBMISSION_NOT_FOUND");
+  if (submission.submission_state === "submitted") throw new Error("ALREADY_SUBMITTED");
+
+  const assignment = await loadAssignmentForSubmit(supabase, submission.assignment_id);
+  if (assignment.status !== "active") throw new Error("ASSIGNMENT_NOT_ACCEPTING_SUBMISSIONS");
+  // Deliberately no due-date guard: the attempt was reserved before the
+  // deadline and only our upload failed. Finishing it is not a late submission.
+
+  let resumableId: string = submission.id;
+  if (submission.submission_state === "failed") {
+    const { data: retriedId, error: retryError } = await homeworkRpc(supabase).rpc<string>(
+      "retry_homework_submission",
+      { p_submission_id: input.submissionId, p_user_id: userId },
+    );
+    if (retryError || !retriedId) {
+      throw new Error(retryError?.message ?? "SUBMISSION_RETRY_FAILED");
+    }
+    resumableId = retriedId;
   }
+
   const { data: files, error: filesError } = await supabase
     .from("assignment_submission_files")
     .select("storage_path, file_name, mime_type, size_bytes")
-    .eq("submission_id", retriedId)
+    .eq("submission_id", resumableId)
     .eq("user_id", userId)
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true })
+    .order("storage_path", { ascending: true });
   if (filesError) throw new Error(filesError.message);
-  const uploadTargets = await Promise.all(
-    (files ?? []).map(async (file) => {
-      const { data, error } = await supabase.storage
-        .from(HOMEWORK_BUCKET)
-        .createSignedUploadUrl(file.storage_path);
-      if (error) throw new Error(error.message);
-      return {
-        storagePath: file.storage_path,
-        fileName: file.file_name,
-        mimeType: file.mime_type,
-        sizeBytes: file.size_bytes ?? 0,
-        token: data.token,
-        signedUrl: data.signedUrl,
-      };
-    }),
-  );
-  return { submissionId: retriedId, uploadTargets };
+  const reserved = (files ?? []) as ReservedFileRow[];
+  if (reserved.length === 0) throw new Error("FILE_SET_MISMATCH");
+  // Reservations made before the canonical-MIME fix recorded a NULL mime type,
+  // which no HTTP upload can ever match at finalize time. Not resumable.
+  if (reserved.some((row) => !row.mime_type)) throw new Error("RESERVATION_NOT_RESUMABLE");
+
+  if (submission.submission_state !== "failed") {
+    const { error: removeError } = await supabase.storage
+      .from(HOMEWORK_BUCKET)
+      .remove(reserved.map((row) => row.storage_path));
+    if (removeError) throw new Error(removeError.message);
+  }
+
+  const uploadTargets = await signUploadTargets(supabase, reserved);
+  const { error: uploadingError } = await homeworkRpc(supabase).rpc<string>("mark_homework_submission_uploading", {
+    p_submission_id: resumableId,
+    p_user_id: userId,
+  });
+  if (uploadingError) throw new Error(uploadingError.message);
+
+  return { submissionId: resumableId, uploadTargets };
 }
 
 export async function gradeAssignmentSubmission(raw: unknown) {
@@ -351,7 +456,7 @@ export async function gradeAssignmentSubmission(raw: unknown) {
   const supabase = await createTypedServerClient();
 
   if (input.score != null && input.scoreMax != null && input.score > input.scoreMax) {
-    throw new Error("Score cannot be greater than max score.");
+    throw new Error("SCORE_ABOVE_MAX");
   }
 
   const { data: submission, error: submissionError } = await supabase
@@ -361,7 +466,7 @@ export async function gradeAssignmentSubmission(raw: unknown) {
     .eq("club_id", input.clubId)
     .maybeSingle();
   if (submissionError) throw new Error(submissionError.message);
-  if (!submission) throw new Error("Submission not found.");
+  if (!submission) throw new Error("SUBMISSION_NOT_FOUND");
   if (submission.class_id) {
     await requireClassManager(supabase, submission.class_id);
   } else {
