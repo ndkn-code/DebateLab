@@ -25,11 +25,20 @@ import {
   type LmsVocabularySet,
 } from "@/lib/api/class-lms/model";
 import { loadMyStudentLmsWeek } from "@/lib/api/class-lms/student-weekly-repository";
+import { openTeacherAttendanceRegister } from "@/lib/api/class-lms/teacher-attendance-register";
 import {
+  correctTeacherAttendance,
+  gradeTeacherHomework,
+  publishTeacherAnnouncement,
+  publishTeacherAssignment,
   rescheduleTeacherCalendar,
   rescheduleTeacherCalendarOccurrence,
   setTeacherOccurrenceState,
 } from "@/lib/api/class-lms/teacher-operation-repository";
+import {
+  teacherWorkspaceWriteFailure,
+  type TeacherWorkspaceWriteResult,
+} from "@/lib/teacher-workspace/write-seam";
 
 type Db = Awaited<ReturnType<typeof createClient>>;
 
@@ -396,4 +405,94 @@ export async function rescheduleTeacherWorkspaceOccurrence(input: {
   idempotencyKey: string;
 }) {
   return rescheduleTeacherCalendarOccurrence(input);
+}
+
+/* ------------------------------------------------------------------------ *
+ * Teacher workspace write seam.
+ *
+ * Contract (see `lib/teacher-workspace/write-seam.ts`): these actions never
+ * throw. A rejected write comes back as `{ ok: false, failure, message }` so
+ * the surface can tell a teacher mid-class what happened to their edit, rather
+ * than tripping the route error boundary or — worse — appearing to succeed.
+ * Every one is idempotency-keyed; the versioned ones also carry
+ * `expectedUpdatedAt`, so a colleague's concurrent edit surfaces as `stale`
+ * instead of being silently overwritten.
+ * ------------------------------------------------------------------------ */
+
+async function teacherWorkspaceWrite<T>(
+  locale: string,
+  run: () => Promise<T>,
+): Promise<TeacherWorkspaceWriteResult<T>> {
+  try {
+    return { ok: true, data: await run() };
+  } catch (error) {
+    return teacherWorkspaceWriteFailure(error, locale);
+  }
+}
+
+export async function gradeTeacherWorkspaceHomework(input: {
+  locale: string;
+  submissionId: string;
+  score: number;
+  scoreMax: number;
+  feedback?: string | null;
+  expectedUpdatedAt: string;
+  idempotencyKey: string;
+}): Promise<TeacherWorkspaceWriteResult<unknown>> {
+  const { locale, ...payload } = input;
+  return teacherWorkspaceWrite(locale, () =>
+    gradeTeacherHomework({ ...payload, rubricBreakdown: {} }),
+  );
+}
+
+export async function openTeacherWorkspaceAttendanceRegister(input: {
+  locale: string;
+  classId: string;
+  courseId: string;
+  occurrenceId: string;
+  sessionDate: string;
+  title?: string | null;
+}): Promise<TeacherWorkspaceWriteResult<{ sessionId: string }>> {
+  const { locale, ...payload } = input;
+  return teacherWorkspaceWrite(locale, async () => {
+    const result = await openTeacherAttendanceRegister(payload);
+    revalidatePath("/dashboard/teacher");
+    return result;
+  });
+}
+
+export async function correctTeacherWorkspaceAttendance(input: {
+  locale: string;
+  sessionId: string;
+  userId: string;
+  status: "present" | "late" | "absent";
+  notes?: string | null;
+  idempotencyKey: string;
+}): Promise<TeacherWorkspaceWriteResult<unknown>> {
+  const { locale, ...payload } = input;
+  return teacherWorkspaceWrite(locale, () => correctTeacherAttendance(payload));
+}
+
+export async function publishTeacherWorkspaceAssignment(input: {
+  locale: string;
+  assignmentId: string;
+  expectedUpdatedAt: string;
+  idempotencyKey: string;
+}): Promise<TeacherWorkspaceWriteResult<unknown>> {
+  const { locale, ...payload } = input;
+  return teacherWorkspaceWrite(locale, () => publishTeacherAssignment(payload));
+}
+
+export async function publishTeacherWorkspaceAnnouncement(input: {
+  locale: string;
+  classId: string;
+  title: string;
+  body: string;
+  publish: boolean;
+  idempotencyKey: string;
+}): Promise<TeacherWorkspaceWriteResult<unknown>> {
+  const { locale, ...payload } = input;
+  return teacherWorkspaceWrite(locale, () =>
+    publishTeacherAnnouncement({ ...payload, publishAt: null }),
+  );
 }

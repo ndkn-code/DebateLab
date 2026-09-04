@@ -20,7 +20,7 @@ export interface HeadTeacherPersonRow {
   id: string;
   name: string;
   role: "student";
-  attendance: "present" | "late" | "absent" | "excused" | "unrecorded";
+  attendance: "present" | "late" | "absent" | "unmarked" | "unrecorded";
   scoredAssessments: number;
   pendingAssessments: number;
 }
@@ -62,7 +62,7 @@ export function buildHeadTeacherSurfaceModel(
     ).length,
   }));
   const attendanceByStudent = new Map(
-    data.attendance.map((item) => [item.id, item.status]),
+    data.attendance.students.map((item) => [item.id, item.status]),
   );
   const people: HeadTeacherPersonRow[] = data.gradebook.students.map(
     (student) => {

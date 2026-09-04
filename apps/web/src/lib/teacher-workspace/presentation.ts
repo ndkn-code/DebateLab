@@ -107,6 +107,12 @@ export interface TeacherEventDetailPresentation {
     reviews: number;
   }>;
   attendance: {
+    /**
+     * The register row `teacher_workspace_correct_attendance` corrects. Null
+     * means no register was ever opened for this lesson — see the known gap in
+     * `docs/cards/B1.md`: nothing in the product can create one today.
+     */
+    sessionId: string | null;
     present: number;
     late: number;
     absent: number;
@@ -125,6 +131,12 @@ export interface TeacherReviewPresentation {
   kind: "homework" | "writing" | "speaking";
   /** Present only for IELTS response reviews; never an answer-key identifier. */
   responseId: string | null;
+  /** Write-seam handle: the row `teacher_workspace_grade_homework` grades. */
+  submissionId: string | null;
+  /** Optimistic-concurrency token for that grade; null means grading is unsafe. */
+  submissionUpdatedAt: string | null;
+  /** Chooses the default score ceiling: IELTS grades out of 9, everything else out of 10. */
+  programType: string;
   classId: string;
   classTitle: string;
   studentName: string;
@@ -143,8 +155,11 @@ export interface TeacherAssignmentPresentation {
   title: string;
   classTitle: string;
   kind: "homework" | "reading" | "listening" | "writing" | "speaking";
-  dueAt: string;
+  /** Null for a draft a teacher has not dated yet; those must still be publishable. */
+  dueAt: string | null;
   status: "draft" | "assigned" | "closed";
+  /** Optimistic-concurrency token for `teacher_workspace_publish_assignment`. */
+  updatedAt: string | null;
   submitted: number;
   reviewed: number;
   missing: number;
@@ -191,12 +206,28 @@ export interface TeacherWorkspacePresentation {
       Record<string, number | "missing" | "late" | "draft">
     >;
   };
-  attendance: Array<{
-    id: string;
-    name: string;
-    classId: string;
-    status: "present" | "late" | "absent" | "excused";
-  }>;
+  /**
+   * The register for one lesson — the most recent lesson that already has a
+   * roster. `sessionId` is the write handle; when it is null the register was
+   * never opened and no correction is possible, which the surface says out loud
+   * rather than showing a dead control.
+   * Statuses mirror `class_attendance_records.status`, which has no "excused".
+   */
+  attendance: {
+    classId: string | null;
+    classTitle: string | null;
+    sessionId: string | null;
+    /** Everything the register needs to be opened when `sessionId` is null. */
+    courseId: string | null;
+    occurrenceId: string | null;
+    sessionDate: string | null;
+    lessonAt: string | null;
+    students: Array<{
+      id: string;
+      name: string;
+      status: "present" | "late" | "absent" | "unmarked";
+    }>;
+  };
   materials: TeacherMaterialPresentation[];
   announcements: TeacherAnnouncementPresentation[];
 }
@@ -508,7 +539,13 @@ function detailFor(
         reviews: eventItem.counts.reviewCount,
       },
     ],
-    attendance: { present: 13, late: 2, absent: 1, recorded: 16 },
+    attendance: {
+      sessionId: `${eventItem.id}-register`,
+      present: 13,
+      late: 2,
+      absent: 1,
+      recorded: 16,
+    },
     announcements: [
       {
         id: `${eventItem.id}-announcement`,
@@ -546,6 +583,9 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
       key: "writing-linh",
       kind: "writing",
       responseId: "demo-writing-response",
+      submissionId: null,
+      submissionUpdatedAt: null,
+      programType: "ielts",
       classId: "class-ielts-7b",
       classTitle: "IELTS Academic 7B",
       studentName: "Linh Pham",
@@ -561,6 +601,9 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
       key: "speaking-minh",
       kind: "speaking",
       responseId: "demo-speaking-response",
+      submissionId: null,
+      submissionUpdatedAt: null,
+      programType: "ielts",
       classId: "class-ielts-7b",
       classTitle: "IELTS Academic 7B",
       studentName: "Minh Anh",
@@ -576,6 +619,9 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
       key: "homework-noah",
       kind: "homework",
       responseId: null,
+      submissionId: "demo-submission-noah",
+      submissionUpdatedAt: "2026-08-28T21:05:00.000Z",
+      programType: "debate",
       classId: "class-debate-foundations",
       classTitle: "Debate Foundations",
       studentName: "Noah Williams",
@@ -591,6 +637,9 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
       key: "homework-sofia",
       kind: "homework",
       responseId: null,
+      submissionId: "demo-submission-sofia",
+      submissionUpdatedAt: "2026-08-27T16:30:00.000Z",
+      programType: "public_speaking",
       classId: "class-speaking-studio",
       classTitle: "Public Speaking Studio",
       studentName: "Sofia Tran",
@@ -612,6 +661,7 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
       kind: "writing",
       dueAt: "2026-09-02T22:00:00.000Z",
       status: "assigned",
+      updatedAt: "2026-08-30T09:00:00.000Z",
       submitted: 15,
       reviewed: 8,
       missing: 3,
@@ -624,6 +674,7 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
       kind: "listening",
       dueAt: "2026-09-03T22:00:00.000Z",
       status: "assigned",
+      updatedAt: "2026-08-30T09:05:00.000Z",
       submitted: 12,
       reviewed: 12,
       missing: 6,
@@ -636,6 +687,7 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
       kind: "homework",
       dueAt: "2026-09-01T22:00:00.000Z",
       status: "assigned",
+      updatedAt: "2026-08-29T09:00:00.000Z",
       submitted: 14,
       reviewed: 11,
       missing: 2,
@@ -648,6 +700,7 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
       kind: "speaking",
       dueAt: "2026-09-04T22:00:00.000Z",
       status: "draft",
+      updatedAt: "2026-08-31T09:00:00.000Z",
       submitted: 0,
       reviewed: 0,
       missing: 0,
@@ -723,13 +776,21 @@ export function buildTeacherWorkspaceDemoPresentation(input: {
     reviews,
     assignments,
     gradebook: { students, assessments, scores },
-    attendance: students.map((student, index) => ({
-      ...student,
+    attendance: {
       classId: "class-ielts-7b",
-      status: (["present", "present", "late", "absent", "excused"] as const)[
-        index
-      ],
-    })),
+      classTitle: "IELTS Academic 7B",
+      sessionId: "demo-register",
+      courseId: "demo-course",
+      occurrenceId: "demo-occurrence",
+      sessionDate: "2026-08-31",
+      lessonAt: "2026-08-31T13:00:00.000Z",
+      students: students.map((student, index) => ({
+        ...student,
+        status: (["present", "present", "late", "absent", "unmarked"] as const)[
+          index
+        ],
+      })),
+    },
     materials: [
       {
         id: "material-rubric",

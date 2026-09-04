@@ -40,7 +40,7 @@ export async function loadTeacherReviewQueue(params: {
   const assignmentIds = assignmentRows.map((row) => String(row.id));
   if (assignmentIds.length === 0) return { items: [], total: 0, counts: { needs_review: 0, returned: 0, draft: 0 }, classes: classes.map((row) => ({ id: row.id, clubId: row.club_id, title: row.title, programType: row.program_type ?? "debate" })) };
   const [submissionsResult, attemptsResult] = await Promise.all([
-    db.from("club_assignment_submissions").select("id, assignment_id, club_id, class_id, user_id, submission_state, grade_status, submitted_at, created_at").in("assignment_id", assignmentIds).eq("submission_state", "submitted").not("submitted_at", "is", null).order("submitted_at", { ascending: true }),
+    db.from("club_assignment_submissions").select("id, assignment_id, club_id, class_id, user_id, submission_state, grade_status, submitted_at, created_at, updated_at").in("assignment_id", assignmentIds).eq("submission_state", "submitted").not("submitted_at", "is", null).order("submitted_at", { ascending: true }),
     db.from("ielts_attempts").select("id, assignment_id, user_id, club_id, class_id, submitted_at, status").in("assignment_id", assignmentIds).not("submitted_at", "is", null),
   ]);
   if (submissionsResult.error || attemptsResult.error) throw new Error(`loadTeacherReviewQueue submissions: ${submissionsResult.error?.message ?? attemptsResult.error?.message}`);
