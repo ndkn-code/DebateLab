@@ -17,6 +17,23 @@ export async function middleware(request: NextRequest) {
     grafanaFaroCollectorUrl: process.env.NEXT_PUBLIC_GRAFANA_FARO_COLLECTOR_URL,
   });
   const requestHeaders = csp.requestHeaders;
+
+  // Skip intl middleware for API routes, auth callback, and join referral route
+  const skipIntl =
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/auth/callback") ||
+    pathname.startsWith("/email/unsubscribe") ||
+    pathname.startsWith("/ingest/") ||
+    pathname.startsWith("/join/");
+
+  // The path header lets the protected shell preserve the intended return URL
+  // without trusting a client-provided query parameter.
+  if (!skipIntl) requestHeaders.set("x-thinkfy-pathname", pathname);
+
+  // Derive the forwarded request exactly once. A request body can be adopted
+  // by only one derived Request: a second `new NextRequest(request, …)` on a
+  // POST throws "Cannot construct a Request with a Request object that has
+  // already been used", which turns every server action into a 500.
   const securedRequest = new NextRequest(request, { headers: requestHeaders });
 
   const withCsp = (response: Awaited<ReturnType<typeof updateSession>>) => {
@@ -27,28 +44,16 @@ export async function middleware(request: NextRequest) {
   const maintenanceResponse = await getMaintenanceGateResponse(securedRequest);
   if (maintenanceResponse) return withCsp(maintenanceResponse);
 
-  // Skip intl middleware for API routes, auth callback, and join referral route
-  if (
-    pathname.startsWith("/api") ||
-    pathname.startsWith("/auth/callback") ||
-    pathname.startsWith("/email/unsubscribe") ||
-    pathname.startsWith("/ingest/") ||
-    pathname.startsWith("/join/")
-  ) {
+  if (skipIntl) {
     return withCsp(await updateSession(securedRequest));
   }
 
-  requestHeaders.set("x-thinkfy-pathname", pathname);
-  const requestWithPath = new NextRequest(request, { headers: requestHeaders });
-
   // Run intl middleware first (handles locale detection, redirects, rewrites).
-  // The path header lets the protected shell preserve the intended return URL
-  // without trusting a client-provided query parameter.
-  const intlResponse = intlMiddleware(requestWithPath);
+  const intlResponse = intlMiddleware(securedRequest);
 
   // Then run Supabase session update, passing the intl response to preserve
   // locale cookies/headers while adding Supabase session cookies
-  return withCsp(await updateSession(requestWithPath, intlResponse));
+  return withCsp(await updateSession(securedRequest, intlResponse));
 }
 
 export const config = {
