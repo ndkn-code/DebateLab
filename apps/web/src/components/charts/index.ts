@@ -15,6 +15,8 @@ export { BarYAxis } from "./bar-y-axis";
 // Line
 export { LineChart } from "./line-chart";
 export { Line } from "./line";
+export { BandHistoryChart } from "./band-history-chart";
+export type { BandHistoryPoint } from "./band-history-chart";
 
 // Radar
 export { RadarChart } from "./radar-chart";

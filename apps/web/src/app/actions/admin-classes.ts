@@ -65,6 +65,33 @@ import {
   type ExportPayload,
 } from "@/lib/export";
 import { ROSTER_IMPORT_V1 } from "@/lib/features";
+import { z } from "zod";
+import { ParentReportInputSchema } from "@/lib/ielts/parent-report/request";
+import { loadParentBandReport, loadParentReportRoster } from "@/lib/api/ielts/parent-report-repository";
+import { buildParentBandReportExport } from "@/lib/api/ielts/parent-report-export";
+
+const ParentReportExportSchema = ParentReportInputSchema.extend({
+  locale: z.enum(["vi", "en"]).default("vi"),
+  nextSteps: z.array(z.string().trim().min(1).max(180)).max(2).optional(),
+}).strict();
+
+/** B4 reuses this approved action module; every read reauthorizes the class. */
+export async function getParentReportRoster(raw: unknown) {
+  const { classId } = z.object({ classId: z.string().uuid() }).strict().parse(raw);
+  return loadParentReportRoster(classId);
+}
+
+export async function getParentBandReport(raw: unknown) {
+  return loadParentBandReport(ParentReportInputSchema.parse(raw));
+}
+
+export async function exportParentBandReport(raw: unknown) {
+  const { locale, nextSteps, ...input } = ParentReportExportSchema.parse(raw);
+  const report = await loadParentBandReport(input);
+  const payload = encodeExportPayload(buildParentBandReportExport(report, locale, nextSteps));
+  // Refresh the preview to exactly the regenerated data in this workbook.
+  return { report, payload };
+}
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 
