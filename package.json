@@ -73,6 +73,7 @@
     "test:admin-classes": "npm run test:admin-classes -w @thinkfy/web",
     "test:admin-class-schedules": "npm run test:admin-class-schedules -w @thinkfy/web",
     "test:admin-clubs": "npm run test:admin-clubs -w @thinkfy/web",
+    "test:parent-band-report": "npm run test:parent-band-report -w @thinkfy/web",
     "test:export": "npm run test:export -w @thinkfy/web",
     "test:roster-import": "npm run test:roster-import -w @thinkfy/web",
     "test:roster-identity": "npm run test:roster-identity -w @thinkfy/web",

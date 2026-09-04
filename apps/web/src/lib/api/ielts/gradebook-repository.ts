@@ -18,6 +18,7 @@ import { IELTS_SPEAKING_AUDIO_BUCKET } from "@/lib/ielts/speaking-scorer/constan
 import { currentResponseRows, latestByKey } from "./deterministic-selection";
 import {
   projectEffectiveScoreSource,
+  projectParentReportScoreSource,
   type EffectiveScoreSource,
 } from "./effective-score-contract";
 
@@ -478,6 +479,24 @@ export function buildReviewTargets(
       makeReviewTarget("speaking", response, assignmentId, attemptId, reviews),
     ),
   ];
+}
+
+/** B4 reads every dated attempt, reusing gradebook revision and score semantics. */
+export function projectParentReportAttempt(input: {
+  attemptId: string;
+  assignmentId: string;
+  effective?: Record<string, unknown>;
+  ai?: Record<string, unknown>;
+  writing: Record<string, unknown>[];
+  speaking: Record<string, unknown>[];
+  reviews: TeacherReviewRow[];
+}) {
+  const rawScore = input.effective ?? input.ai;
+  return {
+    score: makeScore(rawScore),
+    source: projectParentReportScoreSource(input.effective, rawScore),
+    reviewTargets: buildReviewTargets(input.assignmentId, input.attemptId, input.writing, input.speaking, reviewIndex(input.reviews)),
+  };
 }
 function makeAssignment(
   assignment: Raw,

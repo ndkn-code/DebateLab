@@ -1,0 +1,82 @@
+.reportPaper {
+  background: var(--color-surface);
+}
+.reportBody {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+.scoreGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+.criteriaGrid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+.printRoot {
+  display: none;
+}
+@media (min-width: 640px) {
+  .scoreGrid {
+    grid-template-columns: 1fr 1.5fr;
+  }
+  .criteriaGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+}
+@page parent-band-report {
+  size: A4 portrait;
+  margin: 12mm;
+}
+@media print {
+  :global(html):has(.printRoot) {
+    page: parent-band-report;
+    height: auto;
+    min-height: 0;
+    background: transparent !important;
+    color-scheme: light;
+  }
+  :global(body):has(> .printRoot) {
+    page: parent-band-report;
+    margin: 0;
+    padding: 0;
+    height: auto;
+    min-height: 0;
+    background: transparent !important;
+    overflow: visible;
+  }
+  :global(body):has(> .printRoot) > :not(.printRoot) {
+    display: none !important;
+  }
+  .printRoot {
+    display: block;
+    width: 100%;
+    color-scheme: light;
+  }
+  .reportBody {
+    padding: 0;
+    max-width: none;
+    gap: 12px;
+  }
+  .scoreGrid {
+    grid-template-columns: 1fr 1.5fr;
+    gap: 24px;
+  }
+  .criteriaGrid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 24px;
+  }
+  .reportPaper {
+    background: var(--color-surface);
+    color: var(--color-on-surface);
+  }
+  .reportBody > * {
+    break-inside: avoid;
+  }
+  .noPrint {
+    display: none !important;
+  }
+}

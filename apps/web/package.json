@@ -39,6 +39,7 @@
     "test:admin-classes": "tsx src/lib/api/admin-classes-model.test.ts",
     "test:admin-class-schedules": "tsx src/lib/api/admin-class-schedules-model.test.ts",
     "test:admin-clubs": "tsx src/lib/api/admin-clubs-model.test.ts",
+    "test:parent-band-report": "NODE_OPTIONS='--conditions=react-server' tsx src/lib/ielts/parent-report/model.test.ts && NODE_OPTIONS='--conditions=react-server' tsx src/lib/api/ielts/parent-report-export.test.ts && NODE_OPTIONS='--conditions=react-server' tsx src/lib/api/ielts/parent-report-repository.test.ts && NODE_OPTIONS='--conditions=react-server' tsx src/lib/api/ielts/parent-report-projection.test.ts",
     "test:export": "tsx src/lib/export/export.test.ts",
     "test:roster-import": "tsx src/lib/api/roster/import/roster-import.test.ts",
     "test:roster-identity": "tsx --conditions=react-server src/lib/api/roster-identity.test.ts",

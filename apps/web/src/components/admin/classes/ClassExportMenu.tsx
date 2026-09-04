@@ -32,6 +32,7 @@ import {
 import { ChevronDown, Download, Loader2 } from "@/components/ui/icons";
 import type { ExportFormat, ExportLocale } from "@/lib/export";
 import { downloadExportFile } from "@/lib/export/download";
+import { Link } from "@/i18n/navigation";
 
 type ReportId = "roster" | "attendance" | "gradebook";
 
@@ -96,6 +97,14 @@ export function ClassExportMenu({
         <ChevronDown data-icon="inline-end" aria-hidden="true" />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-auto min-w-[184px]">
+        {showIeltsGradebook ? (
+          <>
+            <DropdownMenuItem render={<Link href={`/dashboard/teacher/classes/${classId}/reports`} />}>
+              {exportLocale === "vi" ? "Báo cáo cho phụ huynh" : "Parent progress report"}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-outline-variant" />
+          </>
+        ) : null}
         {reports.map((report, index) => (
           <DropdownMenuGroup key={report}>
             {index > 0 ? (
