@@ -4,6 +4,7 @@ import { createTypedServerClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSessionUserId, type IeltsServerClient } from "@/lib/api/ielts/assignment-access";
 import { requireClassManager, requireClubOwner } from "@/lib/api/class-manager-access";
+import type { HomeworkSubmissionState } from "@/lib/api/club-homework-model";
 
 const HOMEWORK_BUCKET = "assignment-submissions";
 
@@ -55,6 +56,28 @@ export interface HomeworkSubmission {
   files: HomeworkSubmissionFile[];
 }
 
+/**
+ * A reservation the student started but never finalized. The submissions list
+ * only carries `submission_state = 'submitted'` rows, so without this the UI
+ * cannot even see an attempt stuck mid-upload — and `retryClubAssignmentSubmission`
+ * has nothing to resume.
+ */
+export interface HomeworkPendingSubmissionFile {
+  storagePath: string;
+  fileName: string;
+  mimeType: string | null;
+  sizeBytes: number | null;
+}
+
+export interface HomeworkPendingSubmission {
+  id: string;
+  state: Exclude<HomeworkSubmissionState, "submitted">;
+  failureReason: string | null;
+  submissionText: string | null;
+  createdAt: string;
+  files: HomeworkPendingSubmissionFile[];
+}
+
 export type HomeworkWorkspaceData =
   | {
       mode: "manager";
@@ -67,6 +90,7 @@ export type HomeworkWorkspaceData =
       viewerId: string;
       assignment: HomeworkAssignmentDetail;
       submissions: HomeworkSubmission[];
+      pendingSubmission: HomeworkPendingSubmission | null;
     };
 
 type AssignmentRow = {
@@ -236,17 +260,32 @@ export async function getClubHomeworkWorkspace(
   } catch {
     isManager = false;
   }
-  if (!isManager && assignmentRow.class_id) {
-    const { data: membership, error: membershipError } = await supabase
-      .from("class_memberships")
-      .select("id")
-      .eq("class_id", assignmentRow.class_id)
-      .eq("user_id", viewerId)
-      .eq("member_role", "student")
-      .eq("status", "active")
-      .maybeSingle();
-    if (membershipError) throw new Error(membershipError.message);
-    if (!membership) return null;
+  if (!isManager) {
+    if (assignmentRow.class_id) {
+      const { data: membership, error: membershipError } = await supabase
+        .from("class_memberships")
+        .select("id")
+        .eq("class_id", assignmentRow.class_id)
+        .eq("user_id", viewerId)
+        .eq("member_role", "student")
+        .eq("status", "active")
+        .maybeSingle();
+      if (membershipError) throw new Error(membershipError.message);
+      if (!membership) return null;
+    } else {
+      // Club-wide assignment. RLS already restricts SELECT on club_assignments
+      // for these rows, but the application boundary must not depend on that
+      // alone — defence in depth for the `class_id IS NULL` case.
+      const { data: clubMembership, error: clubMembershipError } = await supabase
+        .from("club_memberships")
+        .select("id")
+        .eq("club_id", clubId)
+        .eq("user_id", viewerId)
+        .eq("status", "active")
+        .maybeSingle();
+      if (clubMembershipError) throw new Error(clubMembershipError.message);
+      if (!clubMembership) return null;
+    }
   }
 
   const detail: HomeworkAssignmentDetail = {
@@ -283,10 +322,64 @@ export async function getClubHomeworkWorkspace(
   const { data: submissions, error: submissionsError } = await submissionsQuery;
   if (submissionsError) throw new Error(submissionsError.message);
 
+  const decorated = await decorateSubmissions(supabase, submissions ?? [], isManager);
+
+  if (isManager) {
+    return { mode: "manager", viewerId, assignment: detail, submissions: decorated };
+  }
+
   return {
-    mode: isManager ? "manager" : "student",
+    mode: "student",
     viewerId,
     assignment: detail,
-    submissions: await decorateSubmissions(supabase, submissions ?? [], isManager),
-  } as HomeworkWorkspaceData;
+    submissions: decorated,
+    pendingSubmission: await loadPendingSubmission(supabase, assignmentId, viewerId),
+  };
+}
+
+/**
+ * The newest reservation the learner started but never finalized. Only one is
+ * surfaced: it is the only one they can resume, and older ones are the cleanup
+ * worker's problem.
+ */
+async function loadPendingSubmission(
+  supabase: IeltsServerClient,
+  assignmentId: string,
+  viewerId: string,
+): Promise<HomeworkPendingSubmission | null> {
+  const db = supabase as unknown as SupabaseClient;
+  const { data: row, error } = await db
+    .from("club_assignment_submissions")
+    .select("id, submission_state, failure_reason, submission_text, created_at")
+    .eq("assignment_id", assignmentId)
+    .eq("user_id", viewerId)
+    .in("submission_state", ["draft", "uploading", "failed"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) return null;
+
+  const { data: files, error: filesError } = await db
+    .from("assignment_submission_files")
+    .select("storage_path, file_name, mime_type, size_bytes")
+    .eq("submission_id", row.id)
+    .eq("user_id", viewerId)
+    .order("created_at", { ascending: true })
+    .order("storage_path", { ascending: true });
+  if (filesError) throw new Error(filesError.message);
+
+  return {
+    id: row.id,
+    state: row.submission_state as HomeworkPendingSubmission["state"],
+    failureReason: row.failure_reason ?? null,
+    submissionText: row.submission_text ?? null,
+    createdAt: row.created_at,
+    files: (files ?? []).map((file) => ({
+      storagePath: file.storage_path,
+      fileName: file.file_name,
+      mimeType: file.mime_type,
+      sizeBytes: file.size_bytes == null ? null : Number(file.size_bytes),
+    })),
+  };
 }

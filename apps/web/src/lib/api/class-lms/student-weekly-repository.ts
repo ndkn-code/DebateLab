@@ -72,7 +72,7 @@ export interface StudentWeeklyLmsView {
   range: { startDate: string; endDate: string };
   occurrences: StudentWeeklyOccurrence[];
   announcements: Array<{ id: string; classId: string; title: string; body: string; publishedAt: string | null }>;
-  notifications: Array<{ id: string; eventType: string; title: string; body: string; readAt: string | null; createdAt: string }>;
+  notifications: Array<{ id: string; eventType: string; title: string; body: string; payload: Record<string, unknown>; readAt: string | null; createdAt: string }>;
   unreadNotifications: number;
 }
 
@@ -136,7 +136,7 @@ export async function loadMyStudentLmsWeek(params: {
     activityIds.length ? db.from("activities").select("id, title").in("id", activityIds).eq("is_archived", false) : Promise.resolve({ data: [], error: null }),
     occurrenceIds.length ? db.from("class_attendance_sessions").select("id, occurrence_id").in("occurrence_id", occurrenceIds) : Promise.resolve({ data: [], error: null }),
     classIds.length ? db.from("class_memberships").select("class_id").eq("user_id", userId).eq("member_role", "student").eq("status", "active").in("class_id", classIds) : Promise.resolve({ data: [], error: null }),
-    db.from("lms_notifications").select("id, event_type, title, body, read_at, created_at").eq("recipient_id", userId).order("created_at", { ascending: false }).limit(100),
+    db.from("lms_notifications").select("id, event_type, title, body, payload, read_at, created_at").eq("recipient_id", userId).order("created_at", { ascending: false }).limit(100),
   ]);
   const results = [links, assignmentLinks, classes, courses, lessons, activities, sessions, activeMemberships, notifications];
   const failed = results.find((result) => result.error);
@@ -245,7 +245,7 @@ export async function loadMyStudentLmsWeek(params: {
     range: params,
     occurrences: viewOccurrences,
     announcements: ((announcementData ?? []) as Row[]).map((row) => ({ id: String(row.id), classId: String(row.class_id), title: String(row.title), body: String(row.body), publishedAt: typeof row.published_at === "string" ? row.published_at : null })),
-    notifications: notificationRows.map((row) => ({ id: String(row.id), eventType: String(row.event_type), title: String(row.title), body: String(row.body), readAt: typeof row.read_at === "string" ? row.read_at : null, createdAt: String(row.created_at) })),
+    notifications: notificationRows.map((row) => ({ id: String(row.id), eventType: String(row.event_type), title: String(row.title), body: String(row.body), payload: row.payload && typeof row.payload === "object" && !Array.isArray(row.payload) ? (row.payload as Record<string, unknown>) : {}, readAt: typeof row.read_at === "string" ? row.read_at : null, createdAt: String(row.created_at) })),
     unreadNotifications: notificationRows.filter((row) => !row.read_at).length,
   };
 }

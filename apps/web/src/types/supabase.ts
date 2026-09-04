@@ -3255,7 +3255,7 @@ export type Database = {
           status: string
           submission_state: string
           submission_text: string | null
-          submitted_at: string
+          submitted_at: string | null
           updated_at: string
           user_id: string
         }
@@ -3286,7 +3286,7 @@ export type Database = {
           status?: string
           submission_state?: string
           submission_text?: string | null
-          submitted_at?: string
+          submitted_at?: string | null
           updated_at?: string
           user_id: string
         }
@@ -3317,7 +3317,7 @@ export type Database = {
           status?: string
           submission_state?: string
           submission_text?: string | null
-          submitted_at?: string
+          submitted_at?: string | null
           updated_at?: string
           user_id?: string
         }
