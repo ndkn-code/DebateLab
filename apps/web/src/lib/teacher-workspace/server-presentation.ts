@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   loadTeacherCalendarEventDetail,
   loadTeacherCalendarRange,
@@ -54,17 +55,42 @@ function fallbackDetail(
     lessonNotes: null,
     materials: [],
     homework: [],
-    attendance: { present: 0, late: 0, absent: 0, recorded: 0 },
+    attendance: {
+      sessionId: null,
+      present: 0,
+      late: 0,
+      absent: 0,
+      recorded: 0,
+    },
     announcements: [],
   };
 }
 
+type AssignmentRow = {
+  id: string;
+  class_id: string | null;
+  title: string | null;
+  assignment_type: string | null;
+  due_at: string | null;
+  status: string | null;
+  updated_at: string | null;
+};
+
+type SubmissionCountRow = {
+  assignment_id: string;
+  grade_status: string | null;
+  submission_state: string | null;
+};
+
 function normalizeAssignmentKind(
   value: string,
 ): TeacherWorkspacePresentation["assignments"][number]["kind"] {
-  return ["reading", "listening", "writing", "speaking"].includes(value)
-    ? (value as TeacherWorkspacePresentation["assignments"][number]["kind"])
-    : "homework";
+  if (["reading", "listening", "writing", "speaking"].includes(value)) {
+    return value as TeacherWorkspacePresentation["assignments"][number]["kind"];
+  }
+  // `club_assignments.assignment_type` speaks its own vocabulary.
+  if (value === "speech") return "speaking";
+  return "homework";
 }
 
 function normalizeContentStatus(
@@ -80,10 +106,6 @@ function buildContractCollections(
   events: TeacherCalendarEvent[],
   eventDetails: Record<string, TeacherEventDetailPresentation>,
 ) {
-  const assignments = new Map<
-    string,
-    TeacherWorkspacePresentation["assignments"][number]
-  >();
   const announcements = new Map<
     string,
     TeacherWorkspacePresentation["announcements"][number]
@@ -94,23 +116,6 @@ function buildContractCollections(
     const classTitle =
       classes.find((item) => item.id === event.classId)?.title ??
       event.classTitle;
-    for (const assignment of detail.homework) {
-      // Nullable due dates cannot satisfy the teacher table's required dueAt field;
-      // retain those records in the event drawer, but do not invent a date here.
-      if (!assignment.dueAt) continue;
-      assignments.set(`${event.classId}:${assignment.id}`, {
-        id: assignment.id,
-        classId: event.classId,
-        title: assignment.title,
-        classTitle,
-        kind: normalizeAssignmentKind("homework"),
-        dueAt: assignment.dueAt,
-        status: "assigned",
-        submitted: assignment.submissions,
-        reviewed: assignment.reviews,
-        missing: Math.max(0, detail.rosterCount - assignment.submissions),
-      });
-    }
     for (const announcement of detail.announcements) {
       announcements.set(`${event.classId}:${announcement.id}`, {
         id: announcement.id,
@@ -123,9 +128,131 @@ function buildContractCollections(
       });
     }
   }
+  return { announcements: [...announcements.values()] };
+}
+
+function normalizeAssignmentStatus(
+  value: unknown,
+): TeacherWorkspacePresentation["assignments"][number]["status"] {
+  if (value === "draft") return "draft";
+  if (value === "archived") return "closed";
+  return "assigned";
+}
+
+/**
+ * Assignments read straight from `club_assignments`, not from occurrence links.
+ * The occurrence-link projection only ever showed work already attached to a
+ * calendar event, and `lms_occurrence_assignments` is empty in production — so
+ * the surface was structurally blank and `publishTeacherAssignment` had nothing
+ * to act on. A draft with no due date is the exact row a teacher needs to
+ * publish, so it is kept rather than filtered out.
+ */
+async function loadClassAssignments(
+  classes: TeacherWorkspacePresentation["classes"],
+): Promise<TeacherWorkspacePresentation["assignments"]> {
+  const classIds = classes.map((item) => item.id);
+  if (!classIds.length) return [];
+  const client = (await createTypedServerClient()) as unknown as SupabaseClient;
+  const { data: rows, error } = await client
+    .from("club_assignments")
+    .select("id, class_id, title, assignment_type, due_at, status, updated_at")
+    .in("class_id", classIds)
+    .neq("status", "archived")
+    .order("due_at", { ascending: false, nullsFirst: true })
+    .limit(200);
+  if (error) throw new Error(`teacher workspace assignments: ${error.message}`);
+  const assignmentRows = (rows ?? []) as AssignmentRow[];
+  if (!assignmentRows.length) return [];
+
+  const { data: submissionRows, error: submissionError } = await client
+    .from("club_assignment_submissions")
+    .select("assignment_id, grade_status, submission_state")
+    .in(
+      "assignment_id",
+      assignmentRows.map((row) => String(row.id)),
+    );
+  if (submissionError)
+    throw new Error(
+      `teacher workspace assignment submissions: ${submissionError.message}`,
+    );
+  const counts = new Map<string, { submitted: number; reviewed: number }>();
+  for (const row of (submissionRows ?? []) as SubmissionCountRow[]) {
+    if (row.submission_state !== "submitted") continue;
+    const key = String(row.assignment_id);
+    const entry = counts.get(key) ?? { submitted: 0, reviewed: 0 };
+    entry.submitted += 1;
+    if (row.grade_status === "graded") entry.reviewed += 1;
+    counts.set(key, entry);
+  }
+
+  const classById = new Map(classes.map((item) => [item.id, item]));
+  return assignmentRows.flatMap((row) => {
+    const classId = String(row.class_id ?? "");
+    const classItem = classById.get(classId);
+    if (!classItem) return [];
+    const tally = counts.get(String(row.id)) ?? { submitted: 0, reviewed: 0 };
+    return [
+      {
+        id: String(row.id),
+        classId,
+        title: String(row.title ?? "Assignment"),
+        classTitle: classItem.title,
+        kind: normalizeAssignmentKind(String(row.assignment_type ?? "")),
+        dueAt: (row.due_at as string | null) ?? null,
+        status: normalizeAssignmentStatus(row.status),
+        updatedAt: (row.updated_at as string | null) ?? null,
+        submitted: tally.submitted,
+        reviewed: tally.reviewed,
+        missing: Math.max(0, classItem.studentCount - tally.submitted),
+      },
+    ];
+  });
+}
+
+/**
+ * One register, for the most recent lesson that already has a roster. When no
+ * lesson in range has an attendance session the surface still shows the roster
+ * and says the register is closed, rather than pretending there are no learners.
+ */
+function buildAttendanceRegister(
+  classes: TeacherWorkspacePresentation["classes"],
+  events: TeacherCalendarEvent[],
+  eventDetails: Record<string, TeacherEventDetailPresentation>,
+): TeacherWorkspacePresentation["attendance"] {
+  const empty = {
+    classId: null,
+    classTitle: null,
+    sessionId: null,
+    courseId: null,
+    occurrenceId: null,
+    sessionDate: null,
+    lessonAt: null,
+    students: [],
+  } satisfies TeacherWorkspacePresentation["attendance"];
+  const withRoster = events
+    .filter((event) => (eventDetails[event.id]?.roster.length ?? 0) > 0)
+    .sort((left, right) => right.startsAt.localeCompare(left.startsAt));
+  const chosen =
+    withRoster.find((event) => eventDetails[event.id]?.attendance.sessionId) ??
+    withRoster[0];
+  if (!chosen) return empty;
+  const detail = eventDetails[chosen.id];
+  if (!detail) return empty;
   return {
-    assignments: [...assignments.values()],
-    announcements: [...announcements.values()],
+    classId: chosen.classId,
+    classTitle:
+      classes.find((item) => item.id === chosen.classId)?.title ??
+      chosen.classTitle,
+    sessionId: detail.attendance.sessionId,
+    courseId: chosen.courseId,
+    occurrenceId: chosen.occurrenceId,
+    sessionDate: chosen.date,
+    lessonAt: chosen.startsAt,
+    students: detail.roster.map((student) => ({
+      id: student.id,
+      name: student.name,
+      status: student.status,
+    })),
   };
 }
 
@@ -167,6 +294,7 @@ async function loadDetails(events: TeacherCalendarEvent[]) {
             reviews: assignment.reviewCount,
           })),
           attendance: {
+            sessionId: detail.attendance.sessionId,
             present: detail.attendance.present,
             late: detail.attendance.late,
             absent: detail.attendance.absent,
@@ -221,7 +349,16 @@ export async function loadTeacherWorkspacePresentation(input: {
     reviews: [],
     assignments: [],
     gradebook: { students: [], assessments: [], scores: {} },
-    attendance: [],
+    attendance: {
+      classId: null,
+      classTitle: null,
+      sessionId: null,
+      courseId: null,
+      occurrenceId: null,
+      sessionDate: null,
+      lessonAt: null,
+      students: [],
+    },
     materials: [],
     announcements: [],
   } satisfies TeacherWorkspacePresentation;
@@ -325,6 +462,19 @@ export async function loadTeacherWorkspacePresentation(input: {
       calendar.events,
       eventDetails,
     );
+    const assignmentsResult = await Promise.allSettled([
+      loadClassAssignments(classes),
+    ]);
+    const assignments =
+      assignmentsResult[0].status === "fulfilled"
+        ? assignmentsResult[0].value
+        : [];
+    if (assignmentsResult[0].status === "rejected") {
+      console.error(
+        "teacher workspace assignments failed",
+        assignmentsResult[0].reason,
+      );
+    }
     const content = await Promise.allSettled(
       capability.classes.map(async (item) => {
         const [resources, announcements] = await Promise.all([
@@ -436,6 +586,9 @@ export async function loadTeacherWorkspacePresentation(input: {
         key: item.key,
         kind: item.kind,
         responseId: item.responseId,
+        submissionId: item.submissionId,
+        submissionUpdatedAt: item.submissionUpdatedAt,
+        programType: item.programType,
         classId: item.classId,
         classTitle: item.classTitle,
         studentName: item.studentName,
@@ -448,10 +601,15 @@ export async function loadTeacherWorkspacePresentation(input: {
         attemptLabel:
           item.revision == null ? "Submission" : `Revision ${item.revision}`,
       })),
-      assignments: collections.assignments,
+      assignments,
       announcements: [...loadedAnnouncements.values()],
       materials,
       gradebook,
+      attendance: buildAttendanceRegister(
+        classes,
+        calendar.events,
+        eventDetails,
+      ),
     };
   } catch (error) {
     if (isTeacherWorkspaceAccessBoundaryError(error)) {
