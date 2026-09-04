@@ -319,6 +319,14 @@ function buildLearnerView(
   };
 }
 
+/** Shared class-priority order: learner reach, then measured weakness, stable key. */
+export function compareClassWeaknessPriority(
+  a: { affectedLearnerCount: number; weaknessWeight: number; key: string },
+  b: { affectedLearnerCount: number; weaknessWeight: number; key: string },
+): number {
+  return b.affectedLearnerCount - a.affectedLearnerCount || b.weaknessWeight - a.weaknessWeight || a.key.localeCompare(b.key);
+}
+
 type ClassWeakSubskillAggregate = { base: IeltsClassStudyPlanWeakSubskillView; affectedLearners: Set<string>; weightTotal: number; confidenceTotal: number };
 
 function buildClassWeakSubskills(
@@ -348,10 +356,7 @@ function buildClassWeakSubskills(
   return [...byKey.values()]
     .map(toClassWeakSubskillView)
     .sort(
-      (a, b) =>
-        b.affectedLearnerCount - a.affectedLearnerCount ||
-        b.weaknessWeight - a.weaknessWeight ||
-        a.key.localeCompare(b.key),
+      compareClassWeaknessPriority,
     )
     .slice(0, maxWeakSubskillsPerClass);
 }

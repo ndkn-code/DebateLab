@@ -1,4 +1,15 @@
 "use server";
+import {
+  ClassAnalyticsSchema,
+  CentreAnalyticsSchema,
+  PostMockExportSchema,
+  analyticsAction,
+} from "@/lib/api/analytics/action-contract";
+import { loadClassAnalytics } from "@/lib/api/analytics/class-repository";
+import { loadCentreAnalytics } from "@/lib/api/analytics/centre-repository";
+import { AnalyticsForbidden } from "@/lib/api/analytics/access";
+import { buildPostMockReport } from "@/lib/analytics/class-rollup";
+import { buildPostMockExport } from "@/lib/analytics/exports";
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -1154,4 +1165,32 @@ export async function exportRosterImportErrors(input: {
       requireExportFormat(input.format),
     ),
   );
+}
+
+// B6 · read-time analytics; keep transport on this baselined action entrypoint.
+export async function getClassAnalyticsAction(raw: unknown) {
+  return analyticsAction(async () => {
+    const input = ClassAnalyticsSchema.parse(raw);
+    return loadClassAnalytics(input.classId, input.days);
+  });
+}
+export async function getCentreAnalyticsAction(raw: unknown) {
+  return analyticsAction(async () => {
+    const input = CentreAnalyticsSchema.parse(raw);
+    return loadCentreAnalytics(input.clubId, input.days);
+  });
+}
+export async function exportPostMockReportAction(raw: unknown) {
+  return analyticsAction(async () => {
+    const input = PostMockExportSchema.parse(raw);
+    const analytics = await loadClassAnalytics(input.classId, input.days);
+    const report = buildPostMockReport(analytics, input.assignmentId);
+    if (!report)
+      throw new AnalyticsForbidden(
+        "Assessment outside this class or reporting period",
+      );
+    return encodeExportPayload(
+      buildPostMockExport(report, input.locale, input.format),
+    );
+  });
 }

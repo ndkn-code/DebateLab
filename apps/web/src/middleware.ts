@@ -38,17 +38,18 @@ export async function middleware(request: NextRequest) {
     return withCsp(await updateSession(securedRequest));
   }
 
-  requestHeaders.set("x-thinkfy-pathname", pathname);
-  const requestWithPath = new NextRequest(request, { headers: requestHeaders });
+  // The body was transferred to securedRequest above; constructing from the
+  // original request again throws for server-action POSTs. Reuse this request.
+  securedRequest.headers.set("x-thinkfy-pathname", pathname);
 
   // Run intl middleware first (handles locale detection, redirects, rewrites).
   // The path header lets the protected shell preserve the intended return URL
   // without trusting a client-provided query parameter.
-  const intlResponse = intlMiddleware(requestWithPath);
+  const intlResponse = intlMiddleware(securedRequest);
 
   // Then run Supabase session update, passing the intl response to preserve
   // locale cookies/headers while adding Supabase session cookies
-  return withCsp(await updateSession(requestWithPath, intlResponse));
+  return withCsp(await updateSession(securedRequest, intlResponse));
 }
 
 export const config = {

@@ -1,4 +1,5 @@
 import "server-only";
+import { readChunkedPages, readPages } from "../analytics/query-pages";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -436,7 +437,11 @@ function makeReviewTarget(
   const status = review?.status ?? "none";
   const note = review?.reviewer_note ?? review?.returned_note ?? null;
   const scoringStatus = String(response.status ?? "pending") as
-    "pending" | "scoring" | "scored" | "failed" | "overridden";
+    | "pending"
+    | "scoring"
+    | "scored"
+    | "failed"
+    | "overridden";
   return {
     responseKind: kind,
     responseId: String(response.id),
@@ -626,20 +631,30 @@ async function loadIdentity(
   const [profiles, attempts] = await Promise.all([
     optional(
       studentIds.length > 0,
-      readDb
-        .from("profiles")
-        .select("id, display_name, email")
-        .in("id", studentIds),
+      readChunkedPages([studentIds], (chunks, from, to) =>
+        readDb
+          .from("profiles")
+          .select("id, display_name, email")
+          .in("id", chunks[0])
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ),
     optional(
       assignmentIds.length > 0 && studentIds.length > 0,
-      db
-        .from("ielts_attempts")
-        .select("id, user_id, assignment_id, status, submitted_at, created_at")
-        .in("assignment_id", assignmentIds)
-        .in("user_id", studentIds)
-        .eq("class_id", classId)
-        .order("created_at", { ascending: false }),
+      readChunkedPages([assignmentIds, studentIds], (chunks, from, to) =>
+        db
+          .from("ielts_attempts")
+          .select(
+            "id, user_id, assignment_id, status, submitted_at, created_at",
+          )
+          .in("assignment_id", chunks[0])
+          .in("user_id", chunks[1])
+          .eq("class_id", classId)
+          .order("created_at", { ascending: false })
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ),
   ]);
   return { profiles, attempts };
@@ -653,41 +668,57 @@ async function loadScoring(
   const [effective, writing, speaking, reviews] = await Promise.all([
     optional(
       attemptIds.length > 0,
-      db
-        .from("ielts_effective_attempt_scores")
-        .select(
-          "attempt_id, listening_band, reading_band, writing_band, speaking_band, overall_band, provisional_band, overall_is_provisional, score_source",
-        )
-        .eq("class_id", classId)
-        .eq("club_id", clubId)
-        .in("attempt_id", attemptIds),
+      readChunkedPages([attemptIds], (chunks, from, to) =>
+        db
+          .from("ielts_effective_attempt_scores")
+          .select(
+            "attempt_id, listening_band, reading_band, writing_band, speaking_band, overall_band, provisional_band, overall_is_provisional, score_source",
+          )
+          .eq("class_id", classId)
+          .eq("club_id", clubId)
+          .in("attempt_id", chunks[0])
+          .order("attempt_id", { ascending: true })
+          .range(from, to),
+      ),
     ),
     optional(
       attemptIds.length > 0,
-      db
-        .from("writing_responses")
-        .select(
-          "id, attempt_id, task_number, revision, status, updated_at, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, task_band, paragraph_feedback",
-        )
-        .in("attempt_id", attemptIds),
+      readChunkedPages([attemptIds], (chunks, from, to) =>
+        db
+          .from("writing_responses")
+          .select(
+            "id, attempt_id, task_number, revision, status, updated_at, task_response_band, coherence_cohesion_band, lexical_resource_band, grammar_band, task_band, paragraph_feedback",
+          )
+          .in("attempt_id", chunks[0])
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ),
     optional(
       attemptIds.length > 0,
-      db
-        .from("speaking_responses")
-        .select(
-          "id, attempt_id, part_number, revision, status, updated_at, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, audio_storage_path, audio_mime_type, audio_size_bytes, audio_sha256, audio_verified_at",
-        )
-        .in("attempt_id", attemptIds),
+      readChunkedPages([attemptIds], (chunks, from, to) =>
+        db
+          .from("speaking_responses")
+          .select(
+            "id, attempt_id, part_number, revision, status, updated_at, fluency_coherence_band, lexical_resource_band, grammar_band, pronunciation_band, speaking_band, feedback, audio_storage_path, audio_mime_type, audio_size_bytes, audio_sha256, audio_verified_at",
+          )
+          .in("attempt_id", chunks[0])
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ),
     optional(
       attemptIds.length > 0,
-      db
-        .from("ielts_teacher_reviews")
-        .select("*")
-        .eq("class_id", classId)
-        .eq("club_id", clubId)
-        .in("attempt_id", attemptIds),
+      readChunkedPages([attemptIds], (chunks, from, to) =>
+        db
+          .from("ielts_teacher_reviews")
+          .select("*")
+          .eq("class_id", classId)
+          .eq("club_id", clubId)
+          .in("attempt_id", chunks[0])
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ),
   ]);
   return { effective, writing, speaking, reviews };
@@ -704,41 +735,66 @@ async function loadEngagement(
     await Promise.all([
       optional(
         assignmentIds.length > 0 && studentIds.length > 0,
-        db
-          .from("club_assignment_submissions")
-          .select(
-            "id, assignment_id, user_id, submission_state, grade_status, score, score_max, submitted_at, created_at",
-          )
-          .in("assignment_id", assignmentIds)
-          .in("user_id", studentIds)
-          .order("created_at", { ascending: false }),
+        readChunkedPages([assignmentIds, studentIds], (chunks, from, to) =>
+          db
+            .from("club_assignment_submissions")
+            .select(
+              "id, assignment_id, user_id, submission_state, grade_status, score, score_max, submitted_at, created_at",
+            )
+            .in("assignment_id", chunks[0])
+            .in("user_id", chunks[1])
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
       ),
       optional(
         attendanceSessionIds.length > 0 && studentIds.length > 0,
-        db
-          .from("class_attendance_records")
-          .select("session_id, user_id, status")
-          .in("session_id", attendanceSessionIds)
-          .in("user_id", studentIds),
+        readChunkedPages(
+          [attendanceSessionIds, studentIds],
+          (chunks, from, to) =>
+            db
+              .from("class_attendance_records")
+              .select("session_id, user_id, status")
+              .in("session_id", chunks[0])
+              .in("user_id", chunks[1])
+              .order("id", { ascending: true })
+              .range(from, to),
+        ),
       ),
       optional(
         courseIds.length > 0,
-        readDb.from("courses").select("id, title").in("id", courseIds),
+        readChunkedPages([courseIds], (chunks, from, to) =>
+          readDb
+            .from("courses")
+            .select("id, title")
+            .in("id", chunks[0])
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
       ),
       optional(
         courseIds.length > 0,
-        readDb
-          .from("course_modules")
-          .select("id, course_id")
-          .in("course_id", courseIds),
+        readChunkedPages([courseIds], (chunks, from, to) =>
+          readDb
+            .from("course_modules")
+            .select("id, course_id")
+            .in("course_id", chunks[0])
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
       ),
       optional(
         studentIds.length > 0 && courseIds.length > 0,
-        readDb
-          .from("enrollments")
-          .select("user_id, course_id, status, progress_percent")
-          .in("user_id", studentIds)
-          .in("course_id", courseIds),
+        readChunkedPages([studentIds, courseIds], (chunks, from, to) =>
+          readDb
+            .from("enrollments")
+            .select("user_id, course_id, status, progress_percent")
+            .in("user_id", chunks[0])
+            .in("course_id", chunks[1])
+            .order("id", { ascending: true })
+            .range(from, to),
+        ),
       ),
     ]);
   return { homework, attendance, courses, modules, enrollments };
@@ -752,16 +808,29 @@ async function loadCourseProgress(
   const [lessons, activities] = await Promise.all([
     optional(
       moduleIds.length > 0,
-      readDb.from("lessons").select("id, module_id").in("module_id", moduleIds),
+      readChunkedPages([moduleIds], (chunks, from, to) =>
+        readDb
+          .from("lessons")
+          .select("id, module_id")
+          .in("module_id", chunks[0])
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ),
     optional(
       moduleIds.length > 0,
-      readDb
-        .from("activities")
-        .select("id, module_id")
-        .in("module_id", moduleIds),
+      readChunkedPages([moduleIds], (chunks, from, to) =>
+        readDb
+          .from("activities")
+          .select("id, module_id")
+          .in("module_id", chunks[0])
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ),
   ]);
+  if (lessons.error || activities.error)
+    throw new Error("Gradebook course content unavailable");
   const lessonRows = (lessons.data ?? []) as Raw[];
   const activityRows = (activities.data ?? []) as Raw[];
   const lessonIds = ids(lessonRows, "id");
@@ -769,23 +838,34 @@ async function loadCourseProgress(
   const [lessonProgress, activityAttempts] = await Promise.all([
     optional(
       studentIds.length > 0 && lessonIds.length > 0,
-      readDb
-        .from("lesson_progress")
-        .select("user_id, lesson_id, status")
-        .in("user_id", studentIds)
-        .in("lesson_id", lessonIds)
-        .eq("status", "completed"),
+      readChunkedPages([studentIds, lessonIds], (chunks, from, to) =>
+        readDb
+          .from("lesson_progress")
+          .select("user_id, lesson_id, status")
+          .in("user_id", chunks[0])
+          .in("lesson_id", chunks[1])
+          .eq("status", "completed")
+          .order("user_id", { ascending: true })
+          .order("lesson_id", { ascending: true })
+          .range(from, to),
+      ),
     ),
     optional(
       studentIds.length > 0 && activityIds.length > 0,
-      readDb
-        .from("activity_attempts")
-        .select("user_id, activity_id, completed_at")
-        .in("user_id", studentIds)
-        .in("activity_id", activityIds)
-        .not("completed_at", "is", null),
+      readChunkedPages([studentIds, activityIds], (chunks, from, to) =>
+        readDb
+          .from("activity_attempts")
+          .select("user_id, activity_id, completed_at")
+          .in("user_id", chunks[0])
+          .in("activity_id", chunks[1])
+          .not("completed_at", "is", null)
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
     ),
   ]);
+  if (lessonProgress.error || activityAttempts.error)
+    throw new Error("Gradebook course progress unavailable");
   return {
     lessonRows,
     activityRows,
@@ -795,12 +875,16 @@ async function loadCourseProgress(
 }
 async function loadAiScores(db: Db, attemptIds: string[]) {
   return attemptIds.length
-    ? db
-        .from("attempt_band_scores")
-        .select(
-          "attempt_id, listening_band, reading_band, writing_band, speaking_band, overall_band",
-        )
-        .in("attempt_id", attemptIds)
+    ? readChunkedPages([attemptIds], (chunks, from, to) =>
+        db
+          .from("attempt_band_scores")
+          .select(
+            "attempt_id, listening_band, reading_band, writing_band, speaking_band, overall_band",
+          )
+          .in("attempt_id", chunks[0])
+          .order("id", { ascending: true })
+          .range(from, to),
+      )
     : emptyResult();
 }
 async function loadBase(db: Db, params: { classId: string; clubId: string }) {
@@ -817,26 +901,42 @@ async function loadBase(db: Db, params: { classId: string; clubId: string }) {
       .eq("id", params.classId)
       .eq("club_id", params.clubId)
       .maybeSingle(),
-    db
-      .from("class_memberships")
-      .select("user_id, status, joined_at, removed_at")
-      .eq("class_id", params.classId)
-      .eq("member_role", "student"),
-    db
-      .from("club_assignments")
-      .select("id, title, assignment_type, due_at, status, ielts_test_id")
-      .eq("club_id", params.clubId)
-      .eq("class_id", params.classId)
-      .neq("status", "archived")
-      .order("created_at", { ascending: true }),
-    db
-      .from("class_attendance_sessions")
-      .select("id")
-      .eq("class_id", params.classId),
-    db
-      .from("class_course_assignments")
-      .select("course_id")
-      .eq("class_id", params.classId),
+    readPages((from, to) =>
+      db
+        .from("class_memberships")
+        .select("user_id, status, joined_at, removed_at")
+        .eq("class_id", params.classId)
+        .eq("member_role", "student")
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    readPages((from, to) =>
+      db
+        .from("club_assignments")
+        .select("id, title, assignment_type, due_at, status, ielts_test_id")
+        .eq("club_id", params.clubId)
+        .eq("class_id", params.classId)
+        .neq("status", "archived")
+        .order("created_at", { ascending: true })
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    readPages((from, to) =>
+      db
+        .from("class_attendance_sessions")
+        .select("id")
+        .eq("class_id", params.classId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
+    readPages((from, to) =>
+      db
+        .from("class_course_assignments")
+        .select("course_id")
+        .eq("class_id", params.classId)
+        .order("id", { ascending: true })
+        .range(from, to),
+    ),
   ]);
   if (classResult.error || !classResult.data)
     throw new Error(
@@ -999,7 +1099,73 @@ async function buildIndex(
   return index;
 }
 
-/** Batched gradebook loader. It deliberately loads every child table once and joins in memory. */
+/** Complete request-local snapshot; no media signing or pagination truncation. */
+export interface IeltsGradebookSnapshot {
+  gradebook: IeltsClassGradebook;
+  speakingRows: Array<Record<string, unknown>>;
+}
+export async function loadIeltsClassGradebookSnapshot(
+  client: unknown,
+  params: { classId: string; clubId: string },
+  trustedReadClient?: unknown,
+): Promise<IeltsGradebookSnapshot> {
+  const db = asDb(client);
+  const readDb = asDb(trustedReadClient ?? client);
+  const base = await loadBase(db, params);
+  const batches = await loadBatches(db, readDb, base, params);
+  const index = await buildIndex(db, readDb, base, batches);
+  const rows = base.studentIds
+    .sort()
+    .map((userId) => makeStudentRow(userId, base.assignments, index));
+  return {
+    gradebook: {
+      classId: params.classId,
+      clubId: params.clubId,
+      classTitle: String((base.classResult.data as Raw).title ?? ""),
+      rubric: IELTS_TEACHER_RUBRIC,
+      rows,
+      nextCursor: null,
+      summary: summary(rows, base.studentIds.length),
+    },
+    speakingRows: (batches.speaking.data ?? []) as Raw[],
+  };
+}
+export function projectIeltsGradebookPage(
+  snapshot: IeltsGradebookSnapshot,
+  params: { cursor?: string | null; limit?: number },
+): IeltsClassGradebook {
+  const full = snapshot.gradebook;
+  const pageSize = Math.min(Math.max(params.limit ?? 25, 1), 100);
+  const cursorUserId = decodeGradebookCursor(
+    params.cursor,
+    full.classId,
+    full.clubId,
+  );
+  const remaining = full.rows.filter(
+    (row) => !cursorUserId || row.userId > cursorUserId,
+  );
+  // Media attachments must never mutate the reusable snapshot.
+  const rows = remaining.slice(0, pageSize).map((row) => ({
+    ...row,
+    assignments: row.assignments.map((assignment) => ({
+      ...assignment,
+      reviewTargets: assignment.reviewTargets.map((target) => ({ ...target })),
+    })),
+  }));
+  return {
+    ...full,
+    rows,
+    nextCursor:
+      remaining.length > pageSize && rows.length
+        ? encodeGradebookCursor(
+            rows[rows.length - 1].userId,
+            full.classId,
+            full.clubId,
+          )
+        : null,
+  };
+}
+/** Existing public page API remains compatible. */
 export async function loadIeltsClassGradebook(
   client: unknown,
   params: {
@@ -1010,48 +1176,18 @@ export async function loadIeltsClassGradebook(
   },
   trustedReadClient?: unknown,
 ): Promise<IeltsClassGradebook> {
-  const db = asDb(client);
-  const readDb = asDb(trustedReadClient ?? client);
-  const pageSize = Math.min(Math.max(params.limit ?? 25, 1), 100);
-  const base = await loadBase(db, params);
-  const batches = await loadBatches(db, readDb, base, params);
-  const index = await buildIndex(db, readDb, base, batches);
-  const cursorUserId = decodeGradebookCursor(
-    params.cursor,
-    params.classId,
-    params.clubId,
+  const snapshot = await loadIeltsClassGradebookSnapshot(
+    client,
+    params,
+    trustedReadClient,
   );
-  const sortedStudents = base.studentIds
-    .sort()
-    .filter((id) => !cursorUserId || id > cursorUserId);
-  const pageStudentIds = sortedStudents.slice(0, pageSize);
-  const rows = pageStudentIds.map((userId) =>
-    makeStudentRow(userId, base.assignments, index),
-  );
-  const fullRows = base.studentIds.map((userId) =>
-    makeStudentRow(userId, base.assignments, index),
-  );
+  const page = projectIeltsGradebookPage(snapshot, params);
   await attachSignedSpeakingMedia(
-    readDb,
-    rows,
-    (batches.speaking.data ?? []) as Raw[],
+    asDb(trustedReadClient ?? client),
+    page.rows,
+    snapshot.speakingRows,
   );
-  return {
-    classId: params.classId,
-    clubId: params.clubId,
-    classTitle: String((base.classResult.data as Raw).title ?? ""),
-    rubric: IELTS_TEACHER_RUBRIC,
-    rows,
-    nextCursor:
-      sortedStudents.length > pageSize && pageStudentIds.length
-        ? encodeGradebookCursor(
-            pageStudentIds[pageStudentIds.length - 1],
-            params.classId,
-            params.clubId,
-          )
-        : null,
-    summary: summary(fullRows, base.studentIds.length),
-  };
+  return page;
 }
 
 async function attachSignedSpeakingMedia(

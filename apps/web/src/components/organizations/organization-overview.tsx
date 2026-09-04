@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { PageContainer } from "@/components/shared/product-layout";
+import { CentreAnalyticsPanel } from "@/components/analytics/CentreAnalyticsPanel";
 import {
   AlertCircle,
   ArrowRight,
@@ -169,9 +171,10 @@ export function OrganizationOverview({
     (item) => item.id !== organization.id,
   );
   const typeLabel = organization.type === "school" ? t.school : t.club;
+  const canViewAnalytics = ["owner", "admin", "head_teacher"].includes(organization.role ?? "");
 
   return (
-    <main className="w-full max-w-none space-y-5 p-4 sm:p-6 lg:p-8">
+    <main><PageContainer size="data" className="min-w-0 space-y-5">
       <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <p className="type-eyebrow text-primary">{t.title}</p>
@@ -209,6 +212,8 @@ export function OrganizationOverview({
         />
       </section>
 
+      {canViewAnalytics ? <CentreAnalyticsPanel clubId={organization.id} locale={locale} /> : null}
+
       <section className="grid gap-3 lg:grid-cols-2">
         {setupHref ? (
           <ActionCard
@@ -244,7 +249,7 @@ export function OrganizationOverview({
           </div>
         </section>
       ) : null}
-    </main>
+    </PageContainer></main>
   );
 }
 
