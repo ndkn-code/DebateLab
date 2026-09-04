@@ -81,8 +81,8 @@ begin
     when 'monthly' then interval '1 month'
     when 'three_months' then interval '3 months'
     when 'yearly' then interval '1 year'
-    else interval '0';
-  end case;
+    else interval '0'
+  end;
   v_sub := public.apply_subscription_from_webhook(
     v_txn.user_id, 'zalopay', null, null, 'premium', 'active', v_start, v_end,
     null, false, v_txn.billing_cycle, v_txn.amount, v_txn.currency, v_txn.created_at);
