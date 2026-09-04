@@ -8,6 +8,8 @@ export interface TeacherReviewQueueItem {
   key: string; kind: "homework" | "writing" | "speaking"; classId: string; clubId: string; classTitle: string; programType: string;
   studentId: string; studentName: string; assignmentId: string; assignmentTitle: string; dueAt: string | null; submittedAt: string | null; ageDays: number;
   attemptId: string | null; responseId: string | null; submissionId: string | null; revision: number | null;
+  /** Optimistic-concurrency token for `teacher_workspace_grade_homework`; homework only. */
+  submissionUpdatedAt: string | null;
   status: "needs_review" | "returned" | "draft"; scoreSource: TeacherReviewScoreSource; teacherPublished: boolean;
 }
 export interface TeacherReviewQueue { items: TeacherReviewQueueItem[]; total: number; counts: Record<Exclude<TeacherReviewQueueStatus, "all">, number>; classes: Array<{ id: string; clubId: string; title: string; programType: string }>; }
@@ -41,13 +43,13 @@ export function buildTeacherReviewQueue(source: TeacherReviewQueueSource): Teach
   for (const row of source.homework) {
     const gradeStatus = String(row.grade_status ?? "submitted"); if (gradeStatus === "graded") continue;
     const submittedAt = iso(row.submitted_at); if (!submittedAt || row.submission_state === "failed" || row.submission_state === "draft") continue;
-    items.push({ key: `homework:${String(row.id)}`, kind: "homework", classId: String(row.class_id), clubId: String(row.club_id), classTitle: String(row.class_title ?? "Class"), programType: String(row.program_type ?? "debate"), studentId: String(row.user_id), studentName: String(row.student_name ?? "Student"), assignmentId: String(row.assignment_id), assignmentTitle: String(row.assignment_title ?? "Homework"), dueAt: iso(row.due_at), submittedAt, ageDays: ageDays(submittedAt, now), attemptId: null, responseId: null, submissionId: String(row.id), revision: null, status: statusForReview(gradeStatus), scoreSource: "none", teacherPublished: false });
+    items.push({ key: `homework:${String(row.id)}`, kind: "homework", classId: String(row.class_id), clubId: String(row.club_id), classTitle: String(row.class_title ?? "Class"), programType: String(row.program_type ?? "debate"), studentId: String(row.user_id), studentName: String(row.student_name ?? "Student"), assignmentId: String(row.assignment_id), assignmentTitle: String(row.assignment_title ?? "Homework"), dueAt: iso(row.due_at), submittedAt, ageDays: ageDays(submittedAt, now), attemptId: null, responseId: null, submissionId: String(row.id), revision: null, submissionUpdatedAt: iso(row.updated_at), status: statusForReview(gradeStatus), scoreSource: "none", teacherPublished: false });
   }
   for (const row of currentResponses(source.responses)) {
     if (row.status && row.status !== "scored" && row.status !== "overridden") continue;
     const responseId = String(row.id); const revision = Number(row.revision ?? 0); const review = reviews.get(`${responseId}:${revision}`); if (review?.status === "published") continue;
     const submittedAt = iso(row.submitted_at ?? row.updated_at ?? row.created_at);
-    items.push({ key: `${row.kind}:${responseId}:${revision}`, kind: row.kind, classId: String(row.class_id), clubId: String(row.club_id), classTitle: String(row.class_title ?? "Class"), programType: String(row.program_type ?? "ielts"), studentId: String(row.user_id), studentName: String(row.student_name ?? "Student"), assignmentId: String(row.assignment_id), assignmentTitle: String(row.assignment_title ?? "IELTS response"), dueAt: iso(row.due_at), submittedAt, ageDays: ageDays(submittedAt, now), attemptId: iso(row.attempt_id), responseId, submissionId: null, revision, status: statusForReview(review?.status), scoreSource: "ai_provisional", teacherPublished: false });
+    items.push({ key: `${row.kind}:${responseId}:${revision}`, kind: row.kind, classId: String(row.class_id), clubId: String(row.club_id), classTitle: String(row.class_title ?? "Class"), programType: String(row.program_type ?? "ielts"), studentId: String(row.user_id), studentName: String(row.student_name ?? "Student"), assignmentId: String(row.assignment_id), assignmentTitle: String(row.assignment_title ?? "IELTS response"), dueAt: iso(row.due_at), submittedAt, ageDays: ageDays(submittedAt, now), attemptId: iso(row.attempt_id), responseId, submissionId: null, revision, submissionUpdatedAt: null, status: statusForReview(review?.status), scoreSource: "ai_provisional", teacherPublished: false });
   }
   return items.sort((left, right) => (left.submittedAt ?? left.dueAt ?? "9999").localeCompare(right.submittedAt ?? right.dueAt ?? "9999") || left.key.localeCompare(right.key));
 }
