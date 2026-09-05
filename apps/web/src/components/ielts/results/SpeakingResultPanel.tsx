@@ -91,7 +91,7 @@ function SpeakingPartCard({ part }: { part: SpeakingPartResult }) {
         </div>
       ) : (
         <div className="mt-3">
-          <PendingNote skill={label} />
+          <PendingNote skill={label} failed={part.status === "failed"} />
         </div>
       )}
       {part.modelAnswer ? (
