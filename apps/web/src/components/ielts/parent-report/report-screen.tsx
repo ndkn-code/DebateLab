@@ -1,5 +1,10 @@
 "use client";
 
+import { LearnerFollowupPanel } from "@/components/analytics/LearnerFollowupPanel";
+import {
+  followupQuery,
+  type FollowupContext,
+} from "@/lib/analytics/learner-followup-navigation";
 import { createPortal } from "react-dom";
 import { useEffect, useState, type CSSProperties } from "react";
 import { getThinkfyWebCssVariables } from "@thinkfy/shared/design-system";
@@ -47,12 +52,14 @@ type ExportAction = (input: {
 }>;
 export function ParentBandReportScreen({
   initialReport,
+  followupContext,
   roster,
   locale,
   getReport,
   exportReport,
 }: {
   initialReport: ParentBandReport;
+  followupContext?: FollowupContext;
   roster: ParentReportRoster;
   locale: ReportLocale;
   getReport: ReportAction;
@@ -78,8 +85,17 @@ export function ParentBandReportScreen({
     nextSteps: cleanSteps.length ? cleanSteps : undefined,
     chartMetric: metric,
   };
+  const activeFollowup = followupContext
+    ? {
+        ...followupContext,
+        reasons:
+          report.context.studentId === initialReport.context.studentId
+            ? followupContext.reasons
+            : [],
+      }
+    : undefined;
   const destination = (studentId: string, month: string) =>
-    `/dashboard/teacher/classes/${report.context.classId}/reports/${studentId}?month=${month}`;
+    `/dashboard/teacher/classes/${report.context.classId}/reports/${studentId}?month=${month}${activeFollowup ? `&${followupQuery({ ...activeFollowup, reasons: studentId === initialReport.context.studentId ? activeFollowup.reasons : [] })}` : ""}`;
 
   async function load(studentId: string, month: string) {
     if (busy) return;
@@ -152,6 +168,14 @@ export function ParentBandReportScreen({
         size="focused"
         className={`${styles.noPrint} space-y-3 pb-0`}
       >
+        {activeFollowup && (
+          <LearnerFollowupPanel
+            classId={report.context.classId}
+            studentId={report.context.studentId}
+            locale={locale}
+            context={activeFollowup}
+          />
+        )}
         <div className="grid min-w-0 gap-2 sm:grid-cols-3">
           <ReportSelect
             label={c.student}
@@ -195,7 +219,7 @@ export function ParentBandReportScreen({
         <div className="flex flex-wrap gap-2">
           <Button
             disabled={busy || !mounted}
-            variant="primary"
+            variant={activeFollowup ? "outline" : "primary"}
             onClick={() => void print()}
           >
             {c.print}

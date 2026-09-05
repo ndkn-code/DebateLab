@@ -1,4 +1,6 @@
 "use server";
+
+import { loadLearnerFollowup } from "@/lib/api/analytics/learner-followup-repository";
 import {
   ClassAnalyticsSchema,
   CentreAnalyticsSchema,
@@ -1257,5 +1259,15 @@ export async function exportPostMockReportAction(raw: unknown) {
     return encodeExportPayload(
       buildPostMockExport(report, input.locale, input.format),
     );
+  });
+}
+
+/** Read-only learner drill-through on the existing action entrypoint. */
+export async function getLearnerFollowupAction(raw: unknown) {
+  return analyticsAction(async () => {
+    const input = ClassAnalyticsSchema.extend({
+      studentId: z.string().uuid(),
+    }).parse(raw);
+    return loadLearnerFollowup(input.classId, input.studentId, input.days);
   });
 }

@@ -1,0 +1,44 @@
+[
+  {
+    "check": "student change clears prior reasons",
+    "url": "http://127.0.0.1:4318/vi/dashboard/teacher/classes/00000000-0000-4000-8000-000000000001/reports/00000000-0000-4000-8000-000000000101?month=2026-08&attention=1&days=90&reasons=",
+    "heading": "Trần Nguyễn Phương Thảo – Học viên kiểm thử · Theo dõi học viên"
+  },
+  {
+    "check": "month change preserves learner/locale/period",
+    "url": "http://127.0.0.1:4318/vi/dashboard/teacher/classes/00000000-0000-4000-8000-000000000001/reports/00000000-0000-4000-8000-000000000101?month=2026-07&attention=1&days=90&reasons="
+  },
+  {
+    "check": "return link preserves class/period/learner anchor",
+    "url": "http://127.0.0.1:4318/vi/dashboard/teacher/classes/00000000-0000-4000-8000-000000000001?classTab=analytics&attentionDays=90#learner-attention-00000000-0000-4000-8000-000000000101",
+    "period": "90"
+  },
+  {
+    "check": "unavailable",
+    "text": "Back to class attentionLearner evidence could not be loaded. This does not mean there is no work.Try again"
+  },
+  {
+    "check": "retry recovers",
+    "evidence": true
+  },
+  {
+    "check": "forbidden",
+    "text": "Back to class attentionThis learner's evidence is not available with your current access."
+  },
+  {
+    "check": "partial",
+    "text": "Back to class attentionNguyễn Hoàng Minh Anh – Học viên kiểm thử · Learner follow-upIELTS Academic · Lớp tối thứ haiAug 6, 2026 – Sep 4, 2026 · Asia/Ho_Chi_MinhCurrent signalsAssignments past their due date without a submission: 1 · Bài tập luyện viết: Phân tích nguyên nhân và đề xuất giải pháp cho vấn đề môi trườngRecorded absences in this period: 2Assignments and workBài tập luyện viết: Phân tích nguyên nhân và đề xuất giải pháp cho vấn đề môi trườngLinked to the attention signalOverdue · not submittedDue: Sep 1, 2026Submitted: Not recordedOpen assignmentAcademic Mock · Đánh giá đầu thángSubmitted · awaiting reviewDue: Sep 2, 2026Submitted: Sep 2, 2026Review work · Writing 1Review work · Writing 2Open assignmentStudy-plan evidenceThese are learner-wide study-plan records; they are not attributed to a class assignment.Study-plan evidence is unavailable. No conclusion can be drawn from m"
+  },
+  {
+    "check": "empty",
+    "text": "Back to class attentionNguyễn Hoàng Minh Anh – Học viên kiểm thử · Learner follow-upIELTS Academic · Lớp tối thứ haiAug 6, 2026 – Sep 4, 2026 · Asia/Ho_Chi_MinhCurrent signalsNo current attention signals in this period. The records may have changed since you opened the list.The selected signal is no longer present in the current records.Assignments and workNo assignments are available for this learner.Study-plan evidenceThese are learner-wide study-plan records; they are not attributed to a class assignment.No demonstrated study-plan weaknesses in this period.Recorded attendanceNo attendance records in this period."
+  },
+  {
+    "check": "review uses established response destination",
+    "url": "http://127.0.0.1:4318/en/dashboard/teacher/classes/00000000-0000-4000-8000-000000000001?workbenchTab=reviews&responseId=00000000-0000-4000-8000-000000003001"
+  },
+  {
+    "check": "assignment opens concrete ID destination",
+    "url": "http://127.0.0.1:4318/en/dashboard/clubs/00000000-0000-4000-8000-000000000002/assignments/00000000-0000-4000-8000-000000000099"
+  }
+]

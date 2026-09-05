@@ -99,7 +99,7 @@
     "test:ielts-speaking-scorer": "tsx src/lib/ielts/speaking-scorer/status.test.ts && tsx src/lib/ielts/speaking-scorer/prompt.test.ts && tsx src/lib/ielts/speaking-scorer/phoneme-contract.test.ts",
     "test:payments": "node --import tsx --test 'src/lib/payments/**/*.test.ts'",
     "test:coverage:critical": "tsx ../../scripts/ci/run-critical-coverage.ts",
-    "test:class-analytics": "NODE_OPTIONS='--conditions=react-server' tsx --test src/lib/analytics/class-rollup.test.ts src/lib/analytics/centre-rollup.test.ts src/lib/api/analytics/*.test.ts",
+    "test:class-analytics": "NODE_OPTIONS='--conditions=react-server' tsx --test src/lib/analytics/class-rollup.test.ts src/lib/analytics/centre-rollup.test.ts src/lib/analytics/learner-*.test.ts src/lib/api/analytics/*.test.ts",
     "test:middleware": "tsx --test src/middleware.test.ts",
     "test:lms-question-import": "tsx --test src/lib/api/class-lms/question-imports/*.test.ts",
     "test:center-operations": "node --conditions=react-server --import tsx --test src/lib/center-operations/*.test.ts"
