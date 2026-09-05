@@ -231,3 +231,22 @@ This file records release evidence; verify the current canonical deployment afte
 - Ten local rollback suites pass: 137 pgTAP assertions plus the OAuth contract block,
   including 27 new behavioral rebooking assertions. App tests: 20 passed; service: 49 passed.
   Design audit/tests, lint (12 existing warnings), typecheck and architecture gates pass.
+
+- Live acceptance ran against private production-target candidate
+  `dpl_uuv2w5X1d2tya8a7gMw6SNaVLSrf`, source `17315adcc55f3ad8b706545133dd4c25da00b9ed`.
+  The workbench rejected equal start/end times and preserved the form; a corrected
+  submission created one linked replacement and retained the original no-show history.
+- The teacher assistant prepared a rebooking proposal, cancellation produced no booking,
+  and a new explicitly confirmed proposal completed with exactly one replacement.
+- Google API readback confirmed both replacement events: September 11 and 12, 2026,
+  09:00–10:00 `Asia/Ho_Chi_Minh`. Both `trial.booked` jobs completed on their first attempt.
+  All fixtures belong to Thinkfy Center Pilot QA; no invitations or external messages sent.
+- Trials form/history passed 16 layout checks: EN/VI, verified light/dark state, and
+  1280×720, 1440×900, 768×1024, 390×844. Empty replacement times keep confirmation disabled.
+  Desktop/mobile captures were inspected for labels, wrapping and control placement.
+- Production readback confirms one canonical migration entry and zero center tables
+  without RLS. CLI candidate builds require explicit `VERCEL_GIT_COMMIT_SHA` in both
+  build and runtime environments for Grafana source-map finalization; failed attempts
+  were not promoted. Main Git deployments supply this source metadata automatically.
+- Connected Google integrations passed another 16 locale/theme/viewport checks. The optional
+  existing-calendar consent control is absent while default Calendar/Sheets/Drive controls remain.
