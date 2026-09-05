@@ -69,6 +69,7 @@ import {
 } from "@/components/admin/classes/IeltsTeacherWorkbench";
 import { ClassExportMenu } from "@/components/admin/classes/ClassExportMenu";
 import { RosterImportDialog } from "@/components/admin/classes/RosterImportDialog";
+import { ClassInvitationDialog } from "@/components/class-join/ClassInvitationDialog";
 import { getProgramLabel } from "@/lib/api/admin-class-schedules-model";
 import { cn } from "@/lib/utils";
 import type {
@@ -967,11 +968,11 @@ export function ClassDetailDashboard({
           aria-labelledby="class-tab-students"
           className="mt-5 rounded-lg border border-outline-variant/30 bg-surface-container-lowest p-4 shadow-sm transition-all duration-200 hover:border-primary/15 hover:shadow-md"
         >
-          <div className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <h2 className="text-lg font-bold text-on-surface">
               {t("roster.title", { count: data.roster.length })}
             </h2>
-            <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
+            <div className="flex w-full flex-col gap-2 xl:w-auto xl:flex-row xl:items-center">
               <div className="w-full md:w-72">
                 <SearchPanel
                   placeholder={t("roster.search")}
@@ -1008,7 +1009,11 @@ export function ClassDetailDashboard({
                   })}
                 />
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <ClassInvitationDialog
+                  classId={data.classInfo.id}
+                  classTitle={data.classInfo.title}
+                />
                 <ClassExportMenu
                   classId={data.classInfo.id}
                   showIeltsGradebook={data.classInfo.programType === "ielts"}
