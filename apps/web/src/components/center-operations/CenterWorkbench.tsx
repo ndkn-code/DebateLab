@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,22 +10,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type {
   CenterCommand,
   CenterSnapshot,
-  TeacherHistory,
-  TeacherProposal,
-  TeacherTurn,
 } from "@/lib/center-operations/contracts";
 import {
   loadCenterOperations,
   executeCenterOperation,
-  sendCenterTeacherMessage,
-  decideCenterTeacherProposal,
-  loadCenterTeacherHistory,
   createCenterGuardianInvite,
 } from "@/app/actions/admin-clubs";
 import { centerCopy } from "./copy";
 import { CenterSheetReview } from "./CenterSheetReview";
 import { CenterIntegrations } from "./CenterIntegrations";
 import { CenterDateTime } from "./CenterDateTime";
+import { TeacherAssistant } from "./teacher-assistant/TeacherAssistant";
 
 type Props = {
   initial: CenterSnapshot;
@@ -55,11 +50,7 @@ export function CenterWorkbench({
   const [form, setForm] = useState<Form>(initialForm);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [assistant, setAssistant] = useState<TeacherTurn | null>(null);
-  const [question, setQuestion] = useState("");
-  const [history, setHistory] = useState<TeacherHistory | null>(null);
   const commandKey = useRef<{ key: string; fingerprint: string } | null>(null);
-  const chatKey = useRef<{ key: string; fingerprint: string } | null>(null);
   const [guardian, setGuardian] = useState({
     fullName: "",
     email: "",
@@ -150,14 +141,6 @@ export function CenterWorkbench({
   const studentOptions = snapshot.students.map(
     (item) => [item.id, item.name] as [string, string],
   );
-  useEffect(() => {
-    const key = `center-teacher:${clubId}:${initial.actorId}`;
-    const conversationId = window.localStorage.getItem(key);
-    if (!conversationId) return;
-    void loadCenterTeacherHistory(clubId, conversationId).then((result) => {
-      if (result.ok) setHistory(result.data);
-    });
-  }, [clubId, initial.actorId]);
 
   return (
     <main className="min-w-0 space-y-4 p-4 lg:p-6">
@@ -868,429 +851,19 @@ export function CenterWorkbench({
             </p>
           ))}
         </TabsContent>
-        <TabsContent
-          value="assistant"
-          className="grid min-w-0 items-start gap-4 pt-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,360px)]"
-        >
-          <section className="min-w-0 space-y-3 rounded-2xl border border-border bg-surface p-3">
-            <h2 className="type-heading-md text-on-surface">{t.assistant}</h2>
-            {!assistant && !history?.messages.length && (
-              <div className="space-y-3">
-                <p className="type-body text-on-surface-variant">
-                  {locale === "vi"
-                    ? "Tra cứu lớp học, ghi nhận học viên hoặc soạn nội dung giảng dạy. Bạn sẽ xem và xác nhận trước khi thay đổi lịch, học phí hay gửi tin nhắn."
-                    : "Look up class context, record student notes, or draft teaching materials. Review and confirm changes to schedules, tuition, or outgoing messages."}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {(locale === "vi"
-                    ? [
-                        "Tóm tắt các buổi học thử sắp tới",
-                        "Giúp tôi soạn bài tập cho một lớp",
-                        "Tôi muốn ghi nhận xét cho học viên",
-                      ]
-                    : [
-                        "Summarize upcoming trial sessions",
-                        "Help me draft homework for a class",
-                        "I want to record a student note",
-                      ]
-                  ).map((prompt) => (
-                    <Button
-                      key={prompt}
-                      variant="outline"
-                      size="sm"
-                      className="h-auto min-h-9 whitespace-normal px-3 py-2 text-left"
-                      onClick={() => setQuestion(prompt)}
-                    >
-                      {prompt}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            )}
-            {history?.messages
-              .filter(
-                (message) =>
-                  !(
-                    assistant &&
-                    message.role === "assistant" &&
-                    message.body === assistant.answer
-                  ),
-              )
-              .map((message) => (
-                <p
-                  key={message.id}
-                  className="whitespace-pre-wrap break-words type-body text-on-surface"
-                >
-                  <strong>
-                    {message.role === "assistant"
-                      ? t.assistant
-                      : locale === "vi"
-                        ? "Bạn"
-                        : "You"}
-                    :{" "}
-                  </strong>
-                  {message.body}
-                </p>
-              ))}
-            {assistant && (
-              <>
-                <p className="whitespace-pre-wrap break-words type-body text-on-surface">
-                  {assistant.answer}
-                </p>
-                <div>
-                  <h3 className="type-label text-on-surface">{t.sources}</h3>
-                  {assistant.sources.map((source) => (
-                    <details
-                      key={source.id}
-                      className="rounded-control border border-border p-2"
-                    >
-                      <summary className="type-label text-primary">
-                        {source.label}
-                      </summary>
-                      <p className="mt-1 whitespace-pre-wrap break-words type-body text-on-surface-variant">
-                        {source.text ?? sourceText(source.id, snapshot)}
-                      </p>
-                    </details>
-                  ))}
-                </div>
-              </>
-            )}
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setAssistant(null);
-                setHistory(null);
-                window.localStorage.removeItem(
-                  `center-teacher:${clubId}:${initial.actorId}`,
-                );
-              }}
-            >
-              {locale === "vi" ? "Cuộc trò chuyện mới" : "New conversation"}
-            </Button>
-            <form
-              className="flex min-w-0 items-end gap-2"
-              onSubmit={async (event) => {
-                event.preventDefault();
-                if (!question.trim() || busy) return;
-                if (chatKey.current?.fingerprint !== question)
-                  chatKey.current = {
-                    key: crypto.randomUUID(),
-                    fingerprint: question,
-                  };
-                setBusy(true);
-                setError("");
-                const result = await sendCenterTeacherMessage(
-                  clubId,
-                  question,
-                  assistant?.conversationId ?? history?.conversationId,
-                  chatKey.current.key,
-                );
-                if (result.ok) {
-                  chatKey.current = null;
-                  setAssistant(result.data);
-                  const savedHistory = await loadCenterTeacherHistory(
-                    clubId,
-                    result.data.conversationId,
-                  );
-                  if (savedHistory.ok) setHistory(savedHistory.data);
-                  window.localStorage.setItem(
-                    `center-teacher:${clubId}:${initial.actorId}`,
-                    result.data.conversationId,
-                  );
-                  setQuestion("");
-                  await refresh();
-                } else setError(result.error);
-                setBusy(false);
-              }}
-            >
-              <textarea
-                aria-label={t.ask}
-                rows={3}
-                maxLength={4000}
-                value={question}
-                onChange={(event) => setQuestion(event.target.value)}
-                placeholder={t.ask}
-                className="min-w-0 w-full rounded-control border border-outline-variant bg-surface p-3 type-body text-on-surface focus-visible:outline-primary"
-              />
-              <Button type="submit" disabled={busy || !question.trim()}>
-                {t.send}
-              </Button>
-            </form>
-          </section>
-          <div className="space-y-3">
-            {[
-              ...new Map(
-                [
-                  ...(history?.proposals ?? []),
-                  ...(assistant?.proposals ?? []),
-                ].map((p) => [p.id, p]),
-              ).values(),
-            ].map((proposal) => (
-              <Proposal
-                key={proposal.id}
-                proposal={proposal}
-                copy={t}
-                snapshot={snapshot}
-                clubId={clubId}
-                onDone={refresh}
-              />
-            ))}
-          </div>
+        <TabsContent value="assistant" className="min-w-0 pt-4">
+          <TeacherAssistant
+            key={`${clubId}:${initial.actorId}`}
+            snapshot={snapshot.organizationId === clubId ? snapshot : initial}
+            locale={locale}
+            onChanged={refresh}
+          />
         </TabsContent>
       </Tabs>
     </main>
   );
 }
 
-function Proposal({
-  proposal,
-  copy,
-  snapshot,
-  clubId,
-  onDone,
-}: {
-  proposal: TeacherProposal;
-  copy: typeof centerCopy.en;
-  snapshot: CenterSnapshot;
-  clubId: string;
-  onDone: () => Promise<void>;
-}) {
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [status, setStatus] = useState(proposal.status);
-  const decide = async (decision: "confirm" | "cancel") => {
-    setBusy(true);
-    setError("");
-    const result = await decideCenterTeacherProposal(
-      clubId,
-      proposal.id,
-      decision,
-    );
-    if (!result.ok) setError(result.error);
-    else {
-      setStatus(decision === "confirm" ? "executed" : "cancelled");
-      await onDone();
-    }
-    setBusy(false);
-  };
-  return (
-    <section className="min-w-0 rounded-2xl border border-border bg-surface p-3">
-      <h3 className="type-title text-on-surface">
-        {copy.proposal} · {proposalOperationLabel(proposal.kind, copy)} ·{" "}
-        {statusLabel(status, copy)}
-      </h3>
-      <p className="type-caption text-on-surface-variant">
-        {proposalTarget(proposal, snapshot, copy)}
-      </p>
-      <dl className="mt-2 space-y-1">
-        {Object.entries(proposal.input).map(([key, value]) => (
-          <div
-            key={key}
-            className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 type-body"
-          >
-            <dt className="text-on-surface-variant">
-              {proposalFieldLabel(key, copy)}
-            </dt>
-            <dd className="break-words text-on-surface">
-              {formatProposalValue(value, key, copy, snapshot)}
-            </dd>
-          </div>
-        ))}
-      </dl>
-      {error && <p className="mt-2 type-caption text-error">{error}</p>}
-      {status === "pending" && proposal.requires_confirmation && (
-        <div className="mt-3 flex gap-2">
-          <Button onClick={() => decide("confirm")} disabled={busy}>
-            {copy.confirm}
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => decide("cancel")}
-            disabled={busy}
-          >
-            {copy.cancelProposal}
-          </Button>
-        </div>
-      )}
-    </section>
-  );
-}
-
-const proposalFieldKeys: Record<string, keyof typeof centerCopy.en> = {
-  studentRecordId: "name",
-  classId: "class",
-  trialId: "trial",
-  priorTrialId: "trial",
-  admissionId: "admission",
-  scheduleId: "schedule",
-  startAt: "start",
-  endAt: "end",
-  amount: "amount",
-  startDate: "offerStart",
-  endDate: "offerEnd",
-  title: "proposalTitle",
-  body: "body",
-  draftType: "draftType",
-  templateKey: "templateKey",
-  assessment: "assessment",
-  expectedRevision: "revision",
-  expectedUpdatedAt: "updatedAt",
-};
-
-const proposalEnumKeys: Record<string, keyof typeof centerCopy.en> = {
-  homework: "draftTypeHomework",
-  lesson: "draftTypeLesson",
-  report: "draftTypeReport",
-  announcement: "draftTypeAnnouncement",
-  trial_confirmation: "templateTrialConfirmation",
-  trial_reminder: "templateTrialReminder",
-  class_rescheduled: "templateClassRescheduled",
-  progress_summary: "templateProgressSummary",
-  renewal_reminder: "templateRenewalReminder",
-};
-
-function proposalOperationLabel(
-  kind: string,
-  copy: typeof centerCopy.en,
-): string {
-  const labels: Record<string, keyof typeof centerCopy.en> = {
-    "trial.book": "bookTrial",
-    "trial.rebook": "rebook",
-    "trial.evaluate": "evaluate",
-    "admission.stage": "stage",
-    "offer.create": "offer",
-    "schedule.reschedule": "reschedule",
-    "message.send": "send",
-    "draft.create": "draft",
-    "note.create": "addNote",
-  };
-  return labels[kind] ? copy[labels[kind]] : copy.proposal;
-}
-
-function proposalFieldLabel(key: string, copy: typeof centerCopy.en): string {
-  const copyKey = proposalFieldKeys[key];
-  return copyKey ? copy[copyKey] : (copy[key] ?? key.replaceAll("_", " "));
-}
-
-function formatProposalValue(
-  value: unknown,
-  key: string,
-  copy: typeof centerCopy.en,
-  snapshot: CenterSnapshot,
-): string {
-  const locale = copy === centerCopy.vi ? "vi-VN" : "en-GB";
-  if (Array.isArray(value))
-    return value
-      .map((item) => formatProposalValue(item, key, copy, snapshot))
-      .join(", ");
-  if (value && typeof value === "object")
-    return Object.entries(value)
-      .map(
-        ([childKey, childValue]) =>
-          `${proposalFieldLabel(childKey, copy)}: ${formatProposalValue(childValue, childKey, copy, snapshot)}`,
-      )
-      .join(", ");
-  if (typeof value === "number") return value.toLocaleString(locale);
-  if (typeof value !== "string") return String(value);
-  const targetName =
-    snapshot.students.find((item) => item.id === value)?.name ??
-    snapshot.classes.find((item) => item.id === value)?.name;
-  if (targetName) return targetName;
-  if (key === "trialId") {
-    const trial = snapshot.trials.find((item) => item.id === value);
-    if (trial)
-      return `${snapshot.students.find((item) => item.id === trial.student_record_id)?.name ?? copy.trial} · ${formatProposalValue(trial.starts_at, "startAt", copy, snapshot)}`;
-  }
-  if (key === "priorTrialId") {
-    const trial = snapshot.trials.find((item) => item.id === value);
-    if (trial)
-      return `${copy.trial} · ${snapshot.students.find((item) => item.id === trial.student_record_id)?.name ?? "—"} · ${classNameForProposal(trial.class_id, snapshot)} · ${formatProposalValue(trial.starts_at, "startAt", copy, snapshot)}`;
-  }
-  if (key === "admissionId") {
-    const admission = snapshot.admissions.find((item) => item.id === value);
-    if (admission)
-      return (
-        snapshot.students.find(
-          (item) => item.id === admission.student_record_id,
-        )?.name ?? copy.admission
-      );
-  }
-  if (key === "scheduleId") {
-    const schedule = snapshot.schedules.find((item) => item.id === value);
-    if (schedule)
-      return `${schedule.title} · ${formatProposalValue(schedule.starts_at, "startAt", copy, snapshot)}`;
-  }
-  if (key === "stage") return copy[value] ?? value;
-  const enumKey =
-    key === "draftType" || key === "templateKey"
-      ? proposalEnumKeys[value]
-      : undefined;
-  if (enumKey) return copy[enumKey];
-  if (key === "startAt" || key === "endAt" || key === "expectedUpdatedAt") {
-    const date = new Date(value);
-    if (!Number.isNaN(date.getTime()))
-      return new Intl.DateTimeFormat(locale, {
-        dateStyle: "medium",
-        timeStyle: "short",
-        timeZone: "Asia/Ho_Chi_Minh",
-      }).format(date);
-  }
-  return value;
-}
-
-function sourceText(id: string, snapshot: CenterSnapshot): string {
-  const [kind, value] = id.split(":");
-  if (kind === "note")
-    return snapshot.notes.find((item) => item.id === value)?.body ?? "—";
-  if (kind === "draft") {
-    const item = snapshot.drafts.find((draft) => draft.id === value);
-    return item ? `${item.title}: ${item.body}` : "—";
-  }
-  if (kind === "trial") {
-    const item = snapshot.trials.find((trial) => trial.id === value);
-    return item?.assessment ? JSON.stringify(item.assessment) : "—";
-  }
-  return "—";
-}
-function proposalTarget(
-  proposal: TeacherProposal,
-  snapshot: CenterSnapshot,
-  copy: typeof centerCopy.en,
-): string {
-  const input = proposal.input;
-  const student =
-    typeof input.studentRecordId === "string"
-      ? snapshot.students.find((item) => item.id === input.studentRecordId)
-          ?.name
-      : undefined;
-  const priorTrial =
-    typeof input.priorTrialId === "string"
-      ? snapshot.trials.find((item) => item.id === input.priorTrialId)
-      : undefined;
-  const cls =
-    typeof input.classId === "string"
-      ? snapshot.classes.find((item) => item.id === input.classId)?.name
-      : undefined;
-  return (
-    [
-      student ??
-        (priorTrial
-          ? snapshot.students.find(
-              (item) => item.id === priorTrial.student_record_id,
-            )?.name
-          : undefined),
-      cls ??
-        (priorTrial
-          ? classNameForProposal(priorTrial.class_id, snapshot)
-          : undefined),
-    ]
-      .filter(Boolean)
-      .join(" · ") || (priorTrial ? `${copy.trial} ${priorTrial.id}` : "")
-  );
-}
-function classNameForProposal(id: string, snapshot: CenterSnapshot) {
-  return snapshot.classes.find((item) => item.id === id)?.name ?? "—";
-}
 function statusLabel(value: string, copy: typeof centerCopy.en): string {
   const labels: Record<string, string> = {
     offered: copy.offered,

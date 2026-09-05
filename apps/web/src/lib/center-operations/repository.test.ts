@@ -84,7 +84,7 @@ test("normalizes validated teacher actions with confirmation semantics and revis
       },
       expectedRevision: 4,
     },
-    requiresConfirmation: false,
+    requiresConfirmation: true,
   });
   assert.equal(actions[1]?.requiresConfirmation, true);
   assert.equal(actions[2]?.requiresConfirmation, false);

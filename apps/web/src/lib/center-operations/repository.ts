@@ -8,6 +8,8 @@ import {
   type CommandReceipt,
   type TeacherProposal,
   type TeacherTurn,
+  type TeacherRun,
+  type TeacherConversationSummary,
 } from "./contracts";
 import {
   planTeacherTurn,
@@ -15,6 +17,7 @@ import {
   teacherPlanSchema,
   type TeacherContext,
 } from "./teacher-agent";
+import { runTeacherWorkspace, type TeacherRunStage } from "./teacher-workspace";
 
 type RpcResponse = { data: unknown; error: { message: string } | null };
 type RpcClient = {
@@ -23,6 +26,20 @@ type RpcClient = {
 const rpcClient = (
   client: Awaited<ReturnType<typeof createTypedServerClient>>,
 ) => client as unknown as RpcClient;
+
+function normalizeTeacherRun(value: unknown): TeacherRun | null {
+  if (!value || typeof value !== "object") return null;
+  const row = value as Record<string, unknown>;
+  return {
+    requestKey: String(row.requestKey ?? row.request_key ?? ""),
+    conversationId: String(row.conversationId ?? row.conversation_id ?? ""),
+    status: row.status as TeacherRun["status"],
+    stage: String(row.stage ?? "loading_context"),
+    startedAt: String(row.startedAt ?? row.started_at ?? ""),
+    updatedAt: String(row.updatedAt ?? row.updated_at ?? ""),
+    errorCode: (row.errorCode ?? row.error_code ?? null) as string | null,
+  };
+}
 
 function assertEnabled() {
   if (process.env.CENTER_OPERATIONS_V1 !== "true")
@@ -48,7 +65,13 @@ export async function loadCenterSnapshot(
   const data = await callRpc("center_snapshot", { p_club_id: clubId });
   if (!data || typeof data !== "object")
     throw new Error("center_snapshot returned no snapshot.");
-  return data as CenterSnapshot;
+  const client = await createTypedServerClient();
+  const { data: organization } = await client
+    .from("clubs")
+    .select("name")
+    .eq("id", clubId)
+    .maybeSingle();
+  return { ...(data as CenterSnapshot), organizationName: organization?.name };
 }
 
 export async function executeCenterCommand(
@@ -164,7 +187,6 @@ export function normalizeTeacherActions(
     if (!parsed.success) throw new Error("Invalid teacher command.");
     const automatic =
       parsed.data.kind === "note.create" ||
-      parsed.data.kind === "trial.evaluate" ||
       parsed.data.kind === "draft.create";
     return {
       kind: parsed.data.kind,
@@ -184,9 +206,9 @@ export async function sendTeacherTurn(
   message: string,
   conversationId?: string,
   requestKey = crypto.randomUUID(),
+  locale: "en" | "vi" = "en",
 ): Promise<TeacherTurn> {
   assertEnabled();
-  const snapshot = await loadCenterSnapshot(clubId);
   const opened = await callRpc("center_chat_open", {
     p_club_id: clubId,
     p_conversation_id: conversationId ?? null,
@@ -200,120 +222,204 @@ export async function sendTeacherTurn(
     recentMessages?: Array<{ role: string; content: string }>;
     completedTurn?: TeacherTurn | null;
   };
-  if (open.completedTurn)
-    return executeAutomaticProposals(clubId, open.completedTurn);
-  const materialSources = (await callRpc("center_teacher_materials", {
-    p_club_id: clubId,
-    p_query: message,
-  })) as { id: string; label: string; text: string }[];
-  const context: TeacherContext = {
-    organizationId: snapshot.organizationId,
-    classes: snapshot.classes,
-    students: snapshot.students.map((student) => ({
-      id: student.id,
-      name: student.name,
-      classIds: student.classIds,
-    })),
-    trials: snapshot.trials.map((trial) => ({
-      id: trial.id,
-      studentRecordId: trial.student_record_id,
-      classId: trial.class_id,
-      startsAt: trial.starts_at,
-      endsAt: trial.ends_at,
-      status: trial.status,
-      rebookOf: trial.rebook_of,
-    })),
-    admissions: snapshot.admissions,
-    schedules: snapshot.schedules ?? [],
-    sources: [
-      ...materialSources,
-      ...snapshot.trials.flatMap((trial) =>
-        trial.assessment
-          ? [
-              {
-                id: `trial:${trial.id}`,
-                label: `Trial ${trial.id}`,
-                text: JSON.stringify(trial.assessment),
-              },
-            ]
-          : [],
-      ),
-      ...snapshot.notes.map((note) => ({
-        id: `note:${note.id}`,
-        label: `Note ${note.id}`,
-        text: note.body,
-      })),
-      ...snapshot.drafts.map((draft) => ({
-        id: `draft:${draft.id}`,
-        label: `Draft ${draft.id}`,
-        text: `${draft.title}: ${draft.body}`,
-      })),
-    ],
-    timezone: snapshot.trials[0]?.timezone ?? "Asia/Ho_Chi_Minh",
-    currentTime: new Date().toISOString(),
-    recentMessages: open.recentMessages,
-  };
-  context.students = context.students.slice(0, 200);
-  context.sources = context.sources
-    .slice(0, 40)
-    .map((source) => ({ ...source, text: source.text.slice(0, 3000) }));
-  const planned = await planTeacherTurn({
-    message,
-    context,
-    generate: async ({ system, prompt }) => {
-      const generated = await generateStructured({
-        task: "teacher_operations",
-        messages: [
-          { role: "system", content: system },
-          { role: "user", content: prompt },
-        ],
-        context: {
-          task: "teacher_operations",
-          userId: snapshot.actorId,
-          idempotencyKey: requestKey,
-          sourceRoute: "dashboard/teacher/center",
-          outputType: "teacher_plan",
-        },
-        prompt,
-        schema: teacherPlanSchema,
-        repairInstruction:
-          "Return exactly the teacher plan JSON shape, including source citations as {id,label} objects.",
-      });
-      return JSON.stringify(generated.output);
-    },
-  });
-  if (!planned.ok) throw new Error(planned.error);
-  const normalized = normalizeTeacherActions(
-    planned.plan.actions as unknown as Record<string, unknown>[],
-    snapshot,
-  );
-  const completed = await callRpc("center_chat_complete", {
+  if (open.completedTurn) return open.completedTurn;
+  const startedRaw = (await callRpc("center_teacher_run_start", {
     p_club_id: clubId,
     p_conversation_id: open.conversationId,
-    p_answer: planned.plan.answer,
-    p_sources: planned.plan.sources.map((source) => {
-      const canonical = context.sources.find((item) => item.id === source.id)!;
-      return {
-        id: canonical.id,
-        label: canonical.label,
-        text: canonical.text.slice(0, 1500),
-      };
-    }),
-    p_actions: normalized,
     p_request_key: requestKey,
-  });
-  if (!completed || typeof completed !== "object")
-    throw new Error("center_chat_complete returned no turn.");
-  const result = completed as TeacherTurn;
-  return executeAutomaticProposals(clubId, {
-    ...result,
-    proposals: proposalsFrom(result.proposals),
+    p_message: message,
+  })) as { run: unknown; leaseToken: string; completed?: boolean };
+  const started = { ...startedRaw, run: normalizeTeacherRun(startedRaw.run)! };
+  if (started.run.status === "stopped") throw new Error("TEACHER_RUN_STOPPED");
+  if (started.completed)
+    throw new Error("Teacher run completed without a saved turn.");
+
+  return runTeacherWorkspace({
+    driver: {
+      start: async () => started,
+      stage: async (stage: TeacherRunStage, leaseToken: string) => {
+        await callRpc("center_teacher_run_stage", {
+          p_club_id: clubId,
+          p_request_key: requestKey,
+          p_lease_token: leaseToken,
+          p_stage: stage,
+        });
+      },
+      active: async (leaseToken: string) =>
+        Boolean(
+          await callRpc("center_teacher_run_active", {
+            p_club_id: clubId,
+            p_request_key: requestKey,
+            p_lease_token: leaseToken,
+          }),
+        ),
+      complete: async (status, leaseToken, errorCode) => {
+        await callRpc("center_teacher_run_finish", {
+          p_club_id: clubId,
+          p_request_key: requestKey,
+          p_lease_token: leaseToken,
+          p_status: status,
+          p_error_code: errorCode ?? null,
+        });
+      },
+    },
+    work: async (checkpoint) => {
+      await checkpoint("loading_context");
+      const snapshot = await loadCenterSnapshot(clubId);
+      await checkpoint("reading_materials");
+      const materialSources = (await callRpc("center_teacher_materials", {
+        p_club_id: clubId,
+        p_query: message,
+      })) as { id: string; label: string; text: string }[];
+      const context: TeacherContext = {
+        organizationId: snapshot.organizationId,
+        classes: snapshot.classes,
+        students: snapshot.students.map((student) => ({
+          id: student.id,
+          name: student.name,
+          classIds: student.classIds,
+        })),
+        trials: snapshot.trials.map((trial) => ({
+          id: trial.id,
+          studentRecordId: trial.student_record_id,
+          classId: trial.class_id,
+          startsAt: trial.starts_at,
+          endsAt: trial.ends_at,
+          status: trial.status,
+          rebookOf: trial.rebook_of,
+        })),
+        admissions: snapshot.admissions,
+        schedules: snapshot.schedules ?? [],
+        sources: [
+          {
+            id: "center:classes",
+            label: locale === "vi" ? "Lớp phụ trách" : "Assigned classes",
+            text: snapshot.classes.map((cls) => cls.name).join(", "),
+          },
+          {
+            id: "center:schedule",
+            label: locale === "vi" ? "Lịch lớp học" : "Class schedule",
+            text: snapshot.schedules
+              .slice(0, 40)
+              .map(
+                (row) =>
+                  `${snapshot.classes.find((cls) => cls.id === row.class_id)?.name ?? ""}: ${row.title}, ${row.starts_at} – ${row.ends_at}`,
+              )
+              .join("\n"),
+          },
+          ...materialSources.map((source) => ({
+            ...source,
+            label: `${locale === "vi" ? "Tài liệu" : "Material"} · ${
+              source.label
+                .replace(/\b[0-9a-f]{8}-[0-9a-f-]{27,}\b/gi, "")
+                .replace(/^(Material|Chunk|Document)\s*/i, "")
+                .trim() ||
+              (locale === "vi" ? "Nội dung lớp học" : "Class content")
+            }`,
+          })),
+          ...snapshot.trials.flatMap((trial) =>
+            trial.assessment
+              ? [
+                  {
+                    id: `trial:${trial.id}`,
+                    label: `${locale === "vi" ? "Đánh giá học thử" : "Trial assessment"} · ${snapshot.students.find((student) => student.id === trial.student_record_id)?.name ?? (locale === "vi" ? "Học viên" : "Student")}`,
+                    text: JSON.stringify(trial.assessment),
+                  },
+                ]
+              : [],
+          ),
+          ...snapshot.notes.map((note) => ({
+            id: `note:${note.id}`,
+            label: `${locale === "vi" ? "Ghi chú" : "Note"} · ${snapshot.students.find((student) => student.id === note.student_record_id)?.name ?? (locale === "vi" ? "Học viên" : "Student")}`,
+            text: note.body,
+          })),
+          ...snapshot.drafts.map((draft) => ({
+            id: `draft:${draft.id}`,
+            label: `${locale === "vi" ? "Bản nháp" : "Draft"} · ${draft.title}`,
+            text: `${draft.title}: ${draft.body}`,
+          })),
+        ],
+        timezone: snapshot.trials[0]?.timezone ?? "Asia/Ho_Chi_Minh",
+        currentTime: new Date().toISOString(),
+        recentMessages: open.recentMessages,
+        locale,
+      };
+      context.students = context.students.slice(0, 200);
+      context.sources = context.sources
+        .slice(0, 40)
+        .map((source) => ({ ...source, text: source.text.slice(0, 3000) }));
+      await checkpoint("thinking");
+      const planned = await planTeacherTurn({
+        message,
+        context,
+        generate: async ({ system, prompt }) => {
+          const generated = await generateStructured({
+            task: "teacher_operations",
+            messages: [
+              { role: "system", content: system },
+              { role: "user", content: prompt },
+            ],
+            context: {
+              task: "teacher_operations",
+              userId: snapshot.actorId,
+              idempotencyKey: requestKey,
+              sourceRoute: "dashboard/teacher/center",
+              outputType: "teacher_plan",
+              deadlineAt: Date.parse(started.run.startedAt) + 85_000,
+            },
+            prompt,
+            schema: teacherPlanSchema,
+            repairInstruction:
+              "Return exactly the teacher plan JSON shape, including source citations as {id,label} objects.",
+          });
+          return JSON.stringify(generated.output);
+        },
+      });
+      if (!planned.ok) throw new Error(planned.error);
+      await checkpoint("saving");
+      const normalized = normalizeTeacherActions(
+        planned.plan.actions as unknown as Record<string, unknown>[],
+        snapshot,
+      );
+      const completed = await callRpc("center_teacher_chat_complete", {
+        p_club_id: clubId,
+        p_conversation_id: open.conversationId,
+        p_answer: planned.plan.answer,
+        p_sources: planned.plan.sources.map((source) => {
+          const canonical = context.sources.find(
+            (item) => item.id === source.id,
+          );
+          return {
+            id: source.id,
+            label: canonical?.label ?? source.label,
+            text: canonical?.text.slice(0, 1500),
+          };
+        }),
+        p_actions: normalized,
+        p_request_key: requestKey,
+        p_lease_token: started.leaseToken,
+      });
+      if (!completed || typeof completed !== "object")
+        throw new Error("center_chat_complete returned no turn.");
+      const result = await executeAutomaticProposals(
+        clubId,
+        {
+          ...(completed as TeacherTurn),
+          proposals: proposalsFrom((completed as TeacherTurn).proposals),
+        },
+        requestKey,
+        started.leaseToken,
+      );
+      return result;
+    },
   });
 }
 
 async function executeAutomaticProposals(
   clubId: string,
   turn: TeacherTurn,
+  requestKey?: string,
+  leaseToken?: string,
 ): Promise<TeacherTurn> {
   const proposals = [...turn.proposals];
   for (let i = 0; i < proposals.length; i++) {
@@ -321,13 +427,38 @@ async function executeAutomaticProposals(
     if (proposal.requires_confirmation || proposal.status !== "pending")
       continue;
     try {
-      const receipt = (await callRpc("center_decide_proposal", {
+      if (
+        requestKey &&
+        leaseToken &&
+        !(await callRpc("center_teacher_run_active", {
+          p_club_id: clubId,
+          p_request_key: requestKey,
+          p_lease_token: leaseToken,
+        }))
+      )
+        throw new Error("TEACHER_RUN_STOPPED");
+      const receipt = (await callRpc(
+        requestKey && leaseToken
+          ? "center_teacher_decide_proposal"
+          : "center_decide_proposal",
+        {
+          p_club_id: clubId,
+          p_proposal_id: proposal.id,
+          p_decision: "automatic",
+          ...(requestKey && leaseToken
+            ? { p_request_key: requestKey, p_lease_token: leaseToken }
+            : {}),
+        },
+      )) as CommandReceipt;
+      proposals[i] = { ...proposal, status: "executed", receipt };
+    } catch (error) {
+      if (error instanceof Error && error.message === "TEACHER_RUN_STOPPED")
+        break;
+      await callRpc("center_teacher_proposal_failure", {
         p_club_id: clubId,
         p_proposal_id: proposal.id,
-        p_decision: "automatic",
-      })) as CommandReceipt;
-      proposals[i] = { ...proposal, status: "executed", receipt };
-    } catch {
+        p_error_code: "automatic_failed",
+      }).catch(() => undefined);
       proposals[i] = { ...proposal, status: "failed" };
     }
   }
@@ -345,4 +476,38 @@ export async function decideTeacherProposal(
     p_proposal_id: proposalId,
     p_decision: decision,
   })) as CommandReceipt | null;
+}
+
+export async function listTeacherConversations(
+  clubId: string,
+): Promise<TeacherConversationSummary[]> {
+  assertEnabled();
+  const data = await callRpc("center_teacher_conversations", {
+    p_club_id: clubId,
+  });
+  return Array.isArray(data) ? (data as TeacherConversationSummary[]) : [];
+}
+
+export async function getTeacherRun(
+  clubId: string,
+  requestKey: string,
+): Promise<TeacherRun | null> {
+  assertEnabled();
+  const data = await callRpc("center_teacher_run", {
+    p_club_id: clubId,
+    p_request_key: requestKey,
+  });
+  return normalizeTeacherRun(data);
+}
+
+export async function stopTeacherRun(
+  clubId: string,
+  requestKey: string,
+): Promise<null> {
+  assertEnabled();
+  await callRpc("center_teacher_stop", {
+    p_club_id: clubId,
+    p_request_key: requestKey,
+  });
+  return null;
 }

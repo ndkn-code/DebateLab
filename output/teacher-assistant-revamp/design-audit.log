@@ -1,0 +1,9 @@
+
+> thinkfy@0.1.0 audit:design-system
+> tsx scripts/design-system-audit.ts
+
+Type-utility audit passed: every type-* class in use is defined.
+Typography audit passed: no ad-hoc type values outside the type system.
+Design-system audit passed: no raw colors outside approved token or palette files.
+(node:8217) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
