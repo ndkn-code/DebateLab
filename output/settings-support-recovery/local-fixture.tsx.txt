@@ -1,0 +1,10 @@
+import { notFound } from "next/navigation";
+import { SettingsContent } from "@/components/settings/settings-content";
+import { SupportIssueDialog } from "@/components/support/support-issue-dialog";
+import type { Profile } from "@/types/database";
+export default async function Page({params,searchParams}: {params: Promise<{locale: string}>,searchParams:Promise<{failure?:string}>}) {
+ if(process.env.NODE_ENV !== "development") notFound();
+ const {locale} = await params; const {failure} = await searchParams;
+ const profile = {id:"00000000-0000-4000-8000-000000000076",display_name:"Teacher QA fixture",preferences:{},handle:"teacher.qa"} as Profile;
+ return <main><p>LOCAL SYNTHETIC FIXTURE — no authenticated membership or saved account</p><SupportIssueDialog profile={null} userEmail={null}/><SettingsContent profile={profile} userEmail="qa@example.invalid" currentLocale={locale === "vi" ? "vi" : "en"} settingsDataError={failure === "profile" ? "profile" : null} organizationAffiliationStatus={failure === "optional" ? "unavailable" : "absent"} leaderboardPrivacySettingsStatus={failure === "optional" ? "unavailable" : "absent"} organizationJoinCodesEnabled leaderboardPrivacyControlsEnabled /></main>;
+}
