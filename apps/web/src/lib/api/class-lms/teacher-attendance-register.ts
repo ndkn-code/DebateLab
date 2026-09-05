@@ -9,22 +9,19 @@ import { createTypedServerClient } from "@/lib/supabase/server";
  *
  * `teacher_workspace_correct_attendance` corrects a row in an existing register
  * but cannot create one, and the canonical creator —
- * `save_class_attendance_transaction` — is dead: it never sets `occurrence_id`,
- * and `private.require_lms_attendance_occurrence`
- * (`supabase/migrations/20260829210000_lms_release_fixes.sql:146`) rejects every
- * insert without it. Production bears this out: zero rows in
- * `class_attendance_sessions`, ever.
+ * `save_class_attendance_transaction` now supplies `occurrence_id` through the
+ * occurrence-aware migration fix. This explicit writer remains for the teacher
+ * workspace's authorized register-opening path.
  *
- * This card may not add a migration, so the register is opened here instead —
- * a plain insert through the teacher's own RLS-scoped client, which the policy
+ * The register is opened here with a plain insert through the teacher's own
+ * RLS-scoped client, which the policy
  * "Attendance sessions insertable by admins and assigned teachers" already
  * permits and which supplies the `occurrence_id` the trigger demands. No
  * service-role key, no privilege escalation: a teacher who cannot manage the
  * class is refused by RLS exactly as before.
  *
- * FOLLOW-UP for whoever next owns a migration: repair
- * `save_class_attendance_transaction` to carry `occurrence_id`, then route this
- * back through it so there is one canonical create path again.
+ * The admin action continues to use the transaction RPC so records, correction
+ * events, and operation audit entries remain atomic.
  */
 
 export const openAttendanceRegisterSchema = z
