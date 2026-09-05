@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import { ChartCard, ChartEmpty } from "@/components/data-viz";
 
 interface GeoPoint {
@@ -27,25 +28,27 @@ function projectPoint(point: GeoPoint) {
 }
 
 export function GlobalMap({ geoData }: Props) {
+  const t = useTranslations("admin.overview");
+  const locale = useLocale();
   const [tooltip, setTooltip] = useState<GeoPoint | null>(null);
   const maxCount = Math.max(...geoData.map((d) => d.count), 1);
 
   if (geoData.length === 0) {
     return (
-      <ChartCard title="Global Users" bodyClassName="h-32">
-        <ChartEmpty title="No geo data available yet" />
+      <ChartCard title={t("globalUsers")} bodyClassName="h-32">
+        <ChartEmpty title={t("noGeoData")} />
       </ChartCard>
     );
   }
 
   return (
-    <ChartCard title="Global Users" className="relative">
+    <ChartCard title={t("globalUsers")} className="relative">
       <div className="h-[220px]">
         <svg
           viewBox="0 0 100 52"
           className="h-full w-full rounded-xl bg-surface-container"
           role="img"
-          aria-label="Global user distribution"
+          aria-label={t("globalUserDistribution")}
         >
           <defs>
             <pattern
@@ -99,7 +102,9 @@ export function GlobalMap({ geoData }: Props) {
           {tooltip.city && (
             <p className="text-on-surface-variant text-xs">{tooltip.city}</p>
           )}
-          <p className="text-primary font-semibold">{tooltip.count} users</p>
+          <p className="text-primary font-semibold">
+            {tooltip.count.toLocaleString(locale)} {t("users")}
+          </p>
         </div>
       )}
     </ChartCard>

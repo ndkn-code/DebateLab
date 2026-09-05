@@ -9,7 +9,7 @@ import {
   CalendarDays,
   Users,
 } from "@/components/ui/icons";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import { OrganizationContextCard } from "./organization-context-card";
 import {
   OrganizationSwitcher,

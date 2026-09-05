@@ -164,7 +164,7 @@ function NavLinks({
                   href={item.href}
                   onClick={onNavClick}
                   className={cn(
-                    "type-label relative isolate flex min-h-9 items-center gap-3 rounded-control px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px",
+                    "type-label relative isolate flex min-h-9 items-center gap-3 rounded-control px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px",
                     isActive
                       ? "sidebar-nav-selected-motion"
                       : "sidebar-nav-idle",
@@ -191,7 +191,7 @@ function NavLinks({
                     className="relative z-10 h-4 w-4 shrink-0"
                     aria-hidden="true"
                   />
-                  <span className="relative z-10 truncate">
+                  <span className="relative z-10 min-w-0 whitespace-normal leading-tight">
                     {t(`nav.${item.key}`)}
                   </span>
                 </Link>
@@ -206,18 +206,18 @@ function NavLinks({
         <Link
           href="/dashboard/teacher"
           onClick={onNavClick}
-          className="sidebar-nav-action type-label flex min-h-9 items-center gap-3 rounded-control px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+          className="sidebar-nav-action type-label flex min-h-9 items-center gap-3 rounded-control px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px"
         >
           <GraduationCap className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span className="truncate">{t("teacherMode")}</span>
+          <span className="min-w-0 whitespace-normal leading-tight">{t("teacherMode")}</span>
         </Link>
         <Link
           href="/dashboard"
           onClick={onNavClick}
-          className="sidebar-nav-action type-label flex min-h-9 items-center gap-3 rounded-control px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
+          className="sidebar-nav-action type-label flex min-h-9 items-center gap-3 rounded-control px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px"
         >
           <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span className="truncate">{t("backToDashboard")}</span>
+          <span className="min-w-0 whitespace-normal leading-tight">{t("backToDashboard")}</span>
         </Link>
       </div>
     </div>
@@ -240,7 +240,7 @@ export function AdminSidebar() {
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetTrigger
             aria-label={t("title")}
-            className="flex h-11 w-11 items-center justify-center rounded-control text-sidebar-muted transition-colors hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="flex h-11 w-11 items-center justify-center rounded-control text-sidebar-muted transition-colors hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
             <Menu className="h-5 w-5" aria-hidden="true" />
           </SheetTrigger>

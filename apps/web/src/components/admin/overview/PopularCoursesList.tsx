@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { BookOpen } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
 
@@ -17,6 +17,7 @@ interface Props {
 }
 
 export function PopularCoursesList({ courses }: Props) {
+  const locale = useLocale();
   const t = useTranslations("admin.overview");
 
   return (
@@ -35,7 +36,7 @@ export function PopularCoursesList({ courses }: Props) {
             <Link
               key={course.course_id}
               href={`/dashboard/admin/courses/${course.course_id}`}
-              className="flex min-h-10 items-center gap-3 rounded-[8px] px-2 py-1 transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="flex min-h-10 items-center gap-3 rounded-control px-2 py-1 transition-colors hover:bg-surface-container focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <div
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-on-primary text-xs font-bold"
@@ -49,7 +50,7 @@ export function PopularCoursesList({ courses }: Props) {
                 </p>
               </div>
               <span className="text-sm font-semibold text-on-surface-variant">
-                {course.enrollment_count.toLocaleString()}
+                {course.enrollment_count.toLocaleString(locale)}
               </span>
             </Link>
           ))}
