@@ -3,6 +3,9 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { loadCenterSnapshot, executeCenterCommand, sendTeacherTurn, decideTeacherProposal } from "@/lib/center-operations/repository";
+import { startGoogleConnection, callCenterService } from "@/lib/center-operations/transport";
+import type { CenterResult, CenterSnapshot, CommandReceipt, TeacherTurn, TeacherHistory } from "@/lib/center-operations/contracts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   normalizeClubRecipients,
@@ -49,6 +52,31 @@ import type {
 } from "@/lib/api/organizations/repository";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+// Existing approved organization boundary; all authority is rechecked in RPCs.
+async function centerResult<T>(run: () => Promise<T>): Promise<CenterResult<T>> {
+  try { return { ok: true, data: await run() }; }
+  catch (error) { return { ok: false, error: error instanceof Error ? error.message : "The operation could not be completed." }; }
+}
+export async function loadCenterOperations(clubId: string): Promise<CenterResult<CenterSnapshot>> {
+  return centerResult(() => loadCenterSnapshot(clubId));
+}
+export async function executeCenterOperation(clubId: string, command: unknown, idempotencyKey: string): Promise<CenterResult<CommandReceipt>> {
+  return centerResult(async () => {
+    const result = await executeCenterCommand(clubId, command, idempotencyKey);
+    revalidatePath("/[locale]/dashboard/teacher/center", "page");
+    return result;
+  });
+}
+export async function sendCenterTeacherMessage(clubId: string, message: string, conversationId?: string, requestKey?: string): Promise<CenterResult<TeacherTurn>> {
+  return centerResult(() => sendTeacherTurn(clubId, message, conversationId, requestKey));
+}
+export async function decideCenterTeacherProposal(clubId: string, proposalId: string, decision: "confirm" | "cancel"): Promise<CenterResult<CommandReceipt | null>> {
+  return centerResult(() => decideTeacherProposal(clubId, proposalId, decision));
+}
+export async function startCenterGoogleConnection(clubId: string, existingCalendars = false): Promise<CenterResult<{ url: string }>> {
+  return centerResult(() => startGoogleConnection(clubId, existingCalendars));
+}
 
 // Keep organization mutations on the existing admin/club action boundary.
 // The implementation module is server-only and is not a standalone action
@@ -1126,4 +1154,57 @@ export async function saveCoachReview(input: {
   if (error) throw new Error(error.message);
   revalidatePath(`/dashboard/admin/clubs/${input.clubId}`);
   return data.id as string;
+}
+
+
+export async function listCenterGoogleResources(clubId: string): Promise<CenterResult<{calendars: {id:string;summary:string}[];bindings: CenterSnapshot["bindings"]}>> {
+  return centerResult(() => callCenterService("/resources/list", clubId));
+}
+export async function bindCenterGoogleResource(clubId: string, input: {kind:"calendar"|"sheet"|"drive_file";externalId:string;label:string;classId?:string;range?:string}): Promise<CenterResult<{id:string}>> {
+  return centerResult(() => callCenterService("/resources/bind", clubId, input));
+}
+export async function getCenterGooglePickerToken(clubId: string): Promise<CenterResult<{accessToken:string;appId:string;developerKey:string}>> {
+  return centerResult(() => callCenterService("/resources/picker", clubId));
+}
+export async function loadCenterTeacherHistory(clubId: string, conversationId: string): Promise<CenterResult<TeacherHistory>> {
+  return centerResult(async () => {
+    if (process.env.CENTER_OPERATIONS_V1 !== "true") throw new Error("Center operations are unavailable.");
+    const db = await createClient();
+    const {data,error} = await db.rpc("center_chat_history",{p_club_id:clubId,p_conversation_id:conversationId});
+    if(error) throw new Error(error.message);
+    return data as unknown as TeacherHistory;
+  });
+}
+
+export async function createCenterGuardianInvite(input: {clubId:string;studentRecordId:string;fullName:string;email?:string;phone?:string;idempotencyKey:string}): Promise<CenterResult<{guardianId:string;token?:string;expiresAt:string;alreadyCreated?:boolean}>> {
+  return centerResult(async () => {
+    const {createGuardianInvite} = await import("@/lib/center-operations/guardians");
+    return await createGuardianInvite({...input,key:input.idempotencyKey}) as {guardianId:string;token?:string;expiresAt:string;alreadyCreated?:boolean};
+  });
+}
+export async function claimCenterGuardianInvite(input: unknown) {
+  return centerResult(async () => (await import("@/lib/center-operations/guardians")).claimGuardianInvite(input));
+}
+export async function loadCenterGuardianProgress(input: unknown) {
+  return centerResult(async () => (await import("@/lib/center-operations/guardians")).loadGuardianProgress(input));
+}
+export async function setCenterGuardianPreferences(input: unknown) {
+  return centerResult(async () => (await import("@/lib/center-operations/guardians")).setGuardianPreferences(input));
+}
+export async function revokeCenterGuardianLink(input: unknown) {
+  return centerResult(async () => (await import("@/lib/center-operations/guardians")).revokeGuardianLink(input));
+}
+
+export async function requestCenterResourceSync(clubId: string, bindingId: string): Promise<CenterResult<{queued:boolean}>> {
+  return centerResult(() => callCenterService("/resources/sync",clubId,{bindingId}));
+}
+
+export async function listCenterSheetStages(clubId:string) {
+ return centerResult(async () => (await import("@/lib/center-operations/sheets-repository")).listSheetStages(clubId));
+}
+export async function previewCenterSheetImport(clubId:string,stageId:string,mapping:import("@/lib/api/roster/import/column-map").RosterColumnMapping) {
+ return centerResult(async () => (await import("@/lib/center-operations/sheets-repository")).reviewSheetImport(clubId,stageId,mapping));
+}
+export async function commitCenterSheetImport(clubId:string,stageId:string,mapping:import("@/lib/api/roster/import/column-map").RosterColumnMapping) {
+ return centerResult(async () => (await import("@/lib/center-operations/sheets-repository")).reviewSheetImport(clubId,stageId,mapping,true));
 }

@@ -70,7 +70,8 @@ export type DashboardSidebarNavItem = Omit<DashboardNavItem, "key"> & {
     | "organization"
     | "people"
     | "curriculum"
-    | "reports";
+    | "reports"
+    | "center";
   label?: string;
   badge?: number | null;
 };
@@ -109,6 +110,7 @@ const NAV_ICONS = {
   people: UsersRound,
   curriculum: BookOpen,
   reports: BarChart3,
+  center: Building2,
 } as const;
 
 interface DashboardSidebarRailProps {
@@ -218,7 +220,7 @@ export function DashboardSidebarRail({
       item.key === "organization" ||
       item.key === "people" ||
       item.key === "curriculum" ||
-      item.key === "reports"
+      item.key === "reports" || item.key === "center"
     ) {
       return item.key === "calendar"
         ? pathname === "/dashboard/teacher" || pathname.startsWith(item.href)

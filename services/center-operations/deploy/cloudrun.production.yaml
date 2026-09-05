@@ -1,0 +1,36 @@
+# Production configuration, verified 2026-09-05 UTC. Apply IAM grants separately.
+# IAM must remain authenticated: do not grant allUsers roles/run.invoker.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: thinkfy-center-operations
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: '0'
+        autoscaling.knative.dev/maxScale: '3'
+    spec:
+      serviceAccountName: center-operations@thinkfy-debatelab-prod.iam.gserviceaccount.com
+      containerConcurrency: 20
+      timeoutSeconds: 300
+      containers:
+        - image: asia-southeast1-docker.pkg.dev/thinkfy-debatelab-prod/debatelab-workers/center-operations@sha256:eed64aafa819522c4d45cec31aa18f36f63f03b3c5a7c78b4110491e0a5846f6
+          resources:
+            limits: { cpu: '1', memory: 512Mi }
+          env:
+            - name: SUPABASE_URL
+              valueFrom: { secretKeyRef: { name: supabase-url, key: latest } }
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom: { secretKeyRef: { name: supabase-service-role-key, key: latest } }
+            - { name: CENTER_KMS_KEY_NAME, value: 'projects/thinkfy-debatelab-prod/locations/asia-southeast1/keyRings/thinkfy-center/cryptoKeys/provider-credentials' }
+            - { name: THINKFY_APP_ORIGIN, value: 'https://thinkfy.net' }
+            - { name: CENTER_CALLBACK_ORIGIN, value: 'https://thinkfy-center-callbacks-d91418hh.an.gateway.dev' }
+            - { name: GOOGLE_CLIENT_ID, value: '1038392416565-homl6he6ritj09ilis395h3h8p5d4sap.apps.googleusercontent.com' }
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: center-google-client-secret, key: latest } }
+            - { name: GCP_PROJECT_ID, value: 'thinkfy-debatelab-prod' }
+            - { name: GCP_PUBSUB_TOPIC, value: 'lms-material-processing' }
+            - { name: GOOGLE_PICKER_APP_ID, value: '1038392416565' }
+            - name: GOOGLE_PICKER_API_KEY
+              valueFrom: { secretKeyRef: { name: center-google-picker-key, key: latest } }

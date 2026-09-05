@@ -1,0 +1,32 @@
+swagger: '2.0'
+info:
+  title: Thinkfy center operations callbacks
+  version: '1.0'
+schemes: [https]
+host: thinkfy-center-callbacks-0abizj8sbllct.apigateway.thinkfy-debatelab-prod.cloud.goog
+x-google-endpoints:
+  - name: thinkfy-center-callbacks-0abizj8sbllct.apigateway.thinkfy-debatelab-prod.cloud.goog
+    allowCors: false
+paths:
+  /oauth/google/callback:
+    get:
+      operationId: googleOAuthCallback
+      responses: { '200': { description: OK } }
+      x-google-backend: { address: 'https://thinkfy-center-operations-1038392416565.asia-southeast1.run.app', path_translation: APPEND_PATH_TO_ADDRESS }
+  /callbacks/google:
+    post:
+      operationId: googleCallback
+      responses: { '200': { description: OK } }
+      x-google-backend: { address: 'https://thinkfy-center-operations-1038392416565.asia-southeast1.run.app', path_translation: APPEND_PATH_TO_ADDRESS }
+  /callbacks/zbs/{connectionId}:
+    post:
+      operationId: zbsCallback
+      parameters: [{ name: connectionId, in: path, required: true, type: string }]
+      responses: { '200': { description: OK } }
+      x-google-backend: { address: 'https://thinkfy-center-operations-1038392416565.asia-southeast1.run.app', path_translation: APPEND_PATH_TO_ADDRESS }
+  /callbacks/zalopay/{connectionId}:
+    post:
+      operationId: zalopayCallback
+      parameters: [{ name: connectionId, in: path, required: true, type: string }]
+      responses: { '200': { description: OK } }
+      x-google-backend: { address: 'https://thinkfy-center-operations-1038392416565.asia-southeast1.run.app', path_translation: APPEND_PATH_TO_ADDRESS }

@@ -126,7 +126,7 @@ async function failVersion(supabase, version, error) {
 export async function processMaterialVersion(versionId, injectedDependencies) {
   const { supabase, convert } = injectedDependencies ?? dependencies();
   const current = await getVersion(supabase, versionId);
-  if (!current || current.processing_status === "ready" || current.processing_status === "rejected") {
+  if (!current || current.processing_status === "ready" || current.processing_status === "rejected" || current.processing_status === "failed") {
     return "skipped";
   }
   if (current.purpose === "question_import" &&
@@ -136,11 +136,10 @@ export async function processMaterialVersion(versionId, injectedDependencies) {
   }
   const claimed = await claimVersionLease(supabase, current);
   if (!claimed) return "lease_active";
-  if (!claimed.lease_token || !claimed.original_path) {
-    throw new Error("Material lease or original path is missing.");
-  }
-
   try {
+    if (!claimed.lease_token || !claimed.original_path) {
+      throw new Error("Material lease or original path is missing.");
+    }
     if (claimed.purpose === "question_import") {
       await processQuestionImportVersion({ supabase, version: claimed, parse: injectedDependencies?.parse ?? createLlamaParseAdapter() });
       const completed = await supabase.from("lms_material_versions").update({ processing_status: "ready", lease_token: null, lease_expires_at: null, error_code: null, error_message: null, updated_at: new Date().toISOString() }).eq("id", claimed.id).eq("lease_token", claimed.lease_token).eq("processing_status", "converting").select("id").maybeSingle();

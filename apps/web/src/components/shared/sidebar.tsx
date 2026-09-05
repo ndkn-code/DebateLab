@@ -396,6 +396,7 @@ function NavContent({
                       people: "Nhân sự",
                       curriculum: "Chương trình học",
                       reports: "Báo cáo",
+                center: "Điều hành trung tâm",
                     }
                   : null;
               const label = labels?.[item.key] ?? item.label;
@@ -719,6 +720,7 @@ export function Sidebar({
                 people: "Nhân sự",
                 curriculum: "Chương trình học",
                 reports: "Báo cáo",
+                center: "Điều hành trung tâm",
               }[item.key]
             : item.label,
       }))

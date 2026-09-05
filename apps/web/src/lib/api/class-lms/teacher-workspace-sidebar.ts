@@ -12,6 +12,7 @@ type TeacherWorkspaceDb = SupabaseClient;
 
 export type TeacherSidebarItem = {
   key:
+    | "center"
     | "calendar"
     | "classes"
     | "review_queue"
@@ -45,6 +46,7 @@ function asDb(client: Awaited<ReturnType<typeof createTypedServerClient>>): Teac
 function navigationItems(reviewCount: number, isHeadTeacher: boolean): TeacherSidebarItem[] {
   const badge = (value: number) => (value > 0 ? value : null);
   return [
+    ...(process.env.CENTER_OPERATIONS_V1 === "true" ? [{key:"center",label:"Center operations",href:"/dashboard/teacher/center",badge:null}] : []),
     { key: "calendar", label: "Teaching Calendar", href: "/dashboard/teacher/calendar", badge: null },
     { key: "classes", label: "My Classes", href: "/dashboard/teacher/classes", badge: null },
     { key: "review_queue", label: "Review Queue", href: "/dashboard/teacher/review-queue", badge: badge(reviewCount) },

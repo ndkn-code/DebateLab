@@ -1,0 +1,11 @@
+begin;
+select plan(7);
+select has_function('public', 'center_prepare_payment', ARRAY['uuid','uuid','text']);
+select has_function('public', 'center_attach_checkout', ARRAY['uuid','text','timestamp with time zone']);
+select has_function('public', 'center_apply_verified_payment', ARRAY['uuid','text','text','bigint']);
+select has_function('public', 'center_claim_event', ARRAY['uuid']);
+select has_function('public', 'center_finish_event', ARRAY['uuid','uuid','text','text']);
+select function_privs_are('public', 'center_prepare_payment', ARRAY['uuid','uuid','text'], 'anon', '{}');
+select function_privs_are('public', 'center_apply_verified_payment', ARRAY['uuid','text','text','bigint'], 'authenticated', '{}');
+select * from finish();
+rollback;

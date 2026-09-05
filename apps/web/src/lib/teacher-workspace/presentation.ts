@@ -40,6 +40,7 @@ export function isHeadTeacherWorkspaceSurface(
 
 export type TeacherWorkspaceNavigationItem = {
   key:
+    | "center"
     | "calendar"
     | "classes"
     | "review_queue"
