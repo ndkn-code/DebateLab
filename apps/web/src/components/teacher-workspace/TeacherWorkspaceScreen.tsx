@@ -53,6 +53,9 @@ import {
 import { cn } from "@/lib/utils";
 import { HeadTeacherOperations } from "./HeadTeacherOperations";
 import { TeacherCalendar } from "./TeacherCalendar";
+import { QuestionImportWorkbench } from "./question-import/QuestionImportWorkbench";
+import { LMS_QUESTION_IMPORT_ENABLED } from "@/lib/features";
+import { Select } from "@/components/ui/select";
 
 type CoreTeacherSurface = Exclude<
   TeacherWorkspaceSurface,
@@ -1361,6 +1364,8 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const vi = data.locale === "vi";
   const isDemo = data.source === "explicit_demo";
   const [query, setQuery] = useState("");
+  const importOrganizations = Array.from(new Set(data.classes.filter((item) => item.programType === "ielts").map((item) => item.organizationId)));
+  const [importOrganization, setImportOrganization] = useState(importOrganizations.length === 1 ? importOrganizations[0] : "");
   const [composerOpen, setComposerOpen] = useState(false);
   const [materials, setMaterials] = useState(data.materials);
   const [selected, setSelected] = useState<
@@ -1454,6 +1459,25 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
           </div>
         </form>
       ) : null}
+      {LMS_QUESTION_IMPORT_ENABLED && !isDemo && importOrganizations.length > 1 ? (
+        <div className="my-3 min-w-0">
+          <label htmlFor="question-import-organization" className="type-label text-on-surface">
+            {vi ? "Chọn tổ chức theo lớp IELTS" : "Choose an organisation by IELTS class"}
+          </label>
+          <Select id="question-import-organization" value={importOrganization} onChange={(event) => setImportOrganization(event.target.value)}>
+            <option value="">{vi ? "Chọn tổ chức" : "Choose an organisation"}</option>
+            {importOrganizations.map((id) => <option key={id} value={id}>{data.classes.filter((item) => item.organizationId === id && item.programType === "ielts").map((item) => item.title).join(", ")}</option>)}
+          </Select>
+        </div>
+      ) : null}
+      <QuestionImportWorkbench
+        key={importOrganization || "demo"}
+        locale={data.locale}
+        enabled={isDemo || LMS_QUESTION_IMPORT_ENABLED}
+        canPublish={isDemo || data.isHeadTeacher || data.isAdminPreview}
+        demo={isDemo}
+        clubId={isDemo ? undefined : importOrganization || undefined}
+      />
       <div className="mt-3">
         <SearchField
           value={query}

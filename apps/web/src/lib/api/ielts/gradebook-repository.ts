@@ -1,3 +1,5 @@
+/* eslint-disable max-lines -- cohesive gradebook persistence and projection boundary; splitting the B4/B6 paths risks changing their shared response and review semantics. */
+
 import "server-only";
 import { readChunkedPages, readPages } from "../analytics/query-pages";
 

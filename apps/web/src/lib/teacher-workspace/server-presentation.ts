@@ -14,6 +14,8 @@ import {
 } from "@/lib/api/class-lms/teacher-calendar-model";
 import { loadTeacherReviewQueue } from "@/lib/api/class-lms/teacher-review-queue";
 import { loadTeacherWorkspaceCapability } from "@/lib/api/class-lms/teacher-workspace-capability";
+import { requireClassManager } from "@/lib/api/class-manager-access";
+import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { loadIeltsClassGradebook } from "@/lib/api/ielts/gradebook-repository";
 import { createTypedServerClient } from "@/lib/supabase/server";
 import {
@@ -536,13 +538,17 @@ export async function loadTeacherWorkspacePresentation(input: {
     if (ieltsClasses.length) {
       const client = await createTypedServerClient();
       const gradebooks = await Promise.allSettled(
-        ieltsClasses.map((item) =>
-          loadIeltsClassGradebook(client, {
-            classId: item.id,
-            clubId: item.organizationId,
+        ieltsClasses.map(async (item) => {
+          const manager = await requireClassManager(client, item.id);
+          if (manager.clubId !== item.organizationId) throw new Error("Forbidden");
+          // Profile identities are owner-only under RLS; create the trusted reader
+          // only after checking this class and its organization for the viewer.
+          return loadIeltsClassGradebook(client, {
+            classId: manager.classId,
+            clubId: manager.clubId,
             limit: 100,
-          }),
-        ),
+          }, createTypedAdminClient());
+        }),
       );
       for (const result of gradebooks) {
         if (result.status !== "fulfilled") continue;

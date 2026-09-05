@@ -43,6 +43,7 @@ function isSimulationComplete(
 }
 
 /** Mark a submitted simulation complete once R/L and required Writing exist. */
+// eslint-disable-next-line complexity -- completion coordinates the persisted attempt, blueprint, response, review, and band gates; splitting it risks changing retry semantics.
 export async function completeSimulationAttemptIfReady(
   admin: TypedAdminClient,
   attemptId: string,

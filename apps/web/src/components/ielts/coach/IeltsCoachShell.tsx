@@ -1,3 +1,4 @@
+/* eslint-disable max-lines -- Keep the tested streaming conversation lifecycle together during release; panels and message rendering are already separate modules. */
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

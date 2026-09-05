@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { setRequestLocale } from "next-intl/server";
-import { IeltsLanding } from "@/components/landing/ielts/IeltsLanding";
+import { MarketingLanding } from "@/components/landing/marketing/marketing-landing";
 import { getMarketingCopy } from "@/components/landing/marketing/copy";
 import { StructuredData } from "@/components/seo/structured-data";
 import { PublicSiteAnalytics } from "@/components/analytics/public-site-analytics";
@@ -81,7 +81,11 @@ export default async function IeltsLandingPage({ params }: Props) {
           },
         ]}
       />
-      <IeltsLanding locale={landingLocale} isLoggedIn={Boolean(user)} />
+      <MarketingLanding
+        copy={marketingCopy}
+        locale={landingLocale}
+        isLoggedIn={Boolean(user)}
+      />
     </PublicSiteAnalytics>
   );
 }

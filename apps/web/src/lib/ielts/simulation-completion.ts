@@ -48,6 +48,7 @@ export interface RequiredWritingCompletion {
  * authoritative and can complete a task whose AI score failed; drafts and
  * stale review revisions are deliberately excluded by the repository.
  */
+// eslint-disable-next-line complexity -- this pure reducer encodes the required-task, revision, teacher-review, and two-task band rules in one contract.
 export function resolveRequiredWritingCompletion(params: {
   requiredQuestionIds: string[];
   responses: RequiredWritingResponse[];

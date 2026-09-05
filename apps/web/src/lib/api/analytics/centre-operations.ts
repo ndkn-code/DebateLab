@@ -93,7 +93,8 @@ export function normalizeCentreOperations({
     });
   }
   for (const submission of submissions) {
-    if (!submission.class_id) continue;
+    // Draft/legacy rows without a submission timestamp are not submitted activity.
+    if (!submission.class_id || !submission.submitted_at) continue;
     events.push({
       id: submission.id,
       kind: "activity",

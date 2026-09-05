@@ -549,7 +549,7 @@ export async function ingestKnowledgePlan(params: {
     resolvedSources.data ?? [],
   );
 
-  let embeddings: number[][] = [];
+  const embeddings: number[][] = [];
   if (params.embed && params.plan.items.length > 0) {
     const collection = params.plan.items[0]!.collection;
     const texts = params.plan.items.map((item) => item.embeddingText);

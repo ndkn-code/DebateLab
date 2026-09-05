@@ -49,6 +49,7 @@ export default async function TeacherClassWorkspacePage({
     : query.responseId;
   return (
     <ClassDetailDashboard
+      classesHref="/dashboard/teacher/classes"
       data={data}
       ieltsWorkbench={ieltsWorkbench}
       ieltsInitialTab={

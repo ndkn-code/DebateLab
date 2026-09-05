@@ -77,6 +77,15 @@ export const SHARED_LMS_MATERIALS_V1: boolean = isEnabled(
   sharedLmsMaterialsValue,
 );
 
+const questionImportValue =
+  process.env.NEXT_PUBLIC_LMS_QUESTION_IMPORT_ENABLED ??
+  process.env.LMS_QUESTION_IMPORT_ENABLED;
+export const LMS_QUESTION_IMPORT_ENABLED: boolean = isEnabled(questionImportValue);
+export const LMS_QUESTION_IMPORT_SERVER_ENABLED: boolean = isEnabled(process.env.LMS_QUESTION_IMPORT_ENABLED);
+
+const questionImportComplianceValue = process.env.LMS_QUESTION_IMPORT_COMPLIANCE_APPROVED;
+export const LMS_QUESTION_IMPORT_COMPLIANCE_APPROVED: boolean = isEnabled(questionImportComplianceValue);
+
 /** Subjects a learner may switch to, given the launch flags. */
 export function availableSubjects(): Subject[] {
   return IELTS_ENABLED ? ["debate", "ielts"] : ["debate"];

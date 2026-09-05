@@ -1,5 +1,7 @@
 import "server-only";
 
+/* eslint-disable max-lines -- cohesive Speaking scoring service boundary; splitting it risks changing queue and retry behavior. */
+
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getUserEntitlement } from "@/lib/entitlements";
 import { parseInput } from "@/lib/api/boundary";
@@ -83,6 +85,7 @@ export interface SubmitSpeakingResponseResult {
  * request, so over-cap users never queue work), persist the response via the
  * canonical create path, then enqueue the job (carrying any reported duration).
  */
+// eslint-disable-next-line complexity -- submission coordinates validation, replay, entitlement, metering, persistence, and queue delivery as one atomic boundary.
 export async function submitSpeakingResponseForScoring(params: {
   raw: unknown;
   userId: string;

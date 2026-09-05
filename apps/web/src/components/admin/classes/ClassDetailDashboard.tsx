@@ -82,6 +82,7 @@ import type {
 } from "@/lib/types/admin-classes";
 
 interface Props {
+  classesHref?: string;
   data: AdminClassDetailData;
   ieltsWorkbench?: IeltsTeacherWorkbenchData;
   ieltsInitialTab?: WorkbenchTab;
@@ -533,6 +534,7 @@ function AttendanceSheet({
 }
 
 export function ClassDetailDashboard({
+  classesHref = "/dashboard/admin/classes",
   data,
   ieltsWorkbench,
   ieltsInitialTab,
@@ -565,7 +567,7 @@ export function ClassDetailDashboard({
   function handleArchive() {
     startTransition(async () => {
       await archiveClass(data.classInfo.id);
-      router.push("/dashboard/admin/classes");
+      router.push(classesHref);
     });
   }
 
@@ -682,7 +684,7 @@ export function ClassDetailDashboard({
       <div className="flex flex-col gap-4 border-b border-outline-variant pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Link
-            href="/dashboard/admin/classes"
+            href={classesHref}
             className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant transition-all duration-200 hover:-translate-y-0.5 hover:text-primary active:scale-[0.98]"
           >
             <ArrowLeft className="h-4 w-4" />

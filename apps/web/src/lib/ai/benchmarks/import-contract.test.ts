@@ -17,6 +17,20 @@ import {
   parseGradingBenchmarkImport,
   verifyBenchmarkReleaseAttestation,
 } from "./contracts";
+import type { GradingBenchmarkImportFile } from "./contracts";
+
+type Widen<T> = T extends string
+  ? string
+  : T extends number
+    ? number
+    : T extends boolean
+      ? boolean
+      : T extends readonly (infer U)[]
+        ? Widen<U>[]
+        : T extends object
+          ? { -readonly [K in keyof T]: Widen<T[K]> }
+          : T;
+type BenchmarkFixture = Widen<GradingBenchmarkImportFile["benchmarks"][number]>;
 
 const sha256 = (value: string) =>
   createHash("sha256").update(value, "utf8").digest("hex");
@@ -159,7 +173,7 @@ function releaseAttestationFor(params: {
   };
 }
 
-function refreshReleaseAttestation(benchmark: any) {
+function refreshReleaseAttestation(benchmark: BenchmarkFixture) {
   benchmark.releaseAttestation = releaseAttestationFor({
     benchmarkKey: benchmark.benchmarkKey,
     artifactSha256: benchmark.protectedLabel.input.artifactSha256,
@@ -253,7 +267,7 @@ assert.throws(
   "new imports must use the current V2 study design",
 );
 
-const duplicateWritingArtifact: any = structuredClone(writingBenchmark);
+const duplicateWritingArtifact: BenchmarkFixture = structuredClone(writingBenchmark);
 duplicateWritingArtifact.benchmarkKey =
   "official-writing-task2-holdout-duplicate-artifact";
 refreshReleaseAttestation(duplicateWritingArtifact);
@@ -286,7 +300,7 @@ assert.throws(
   /Invalid enum value|Invalid option/,
 );
 
-const crossSourceSplitBenchmark: any = structuredClone(writingBenchmark);
+const crossSourceSplitBenchmark: BenchmarkFixture = structuredClone(writingBenchmark);
 crossSourceSplitBenchmark.benchmarkKey =
   "official-writing-task2-development-001";
 crossSourceSplitBenchmark.split = "development";
@@ -372,7 +386,7 @@ assert.throws(
   /must be stored in ai-grading-benchmarks-private/,
 );
 
-const duplicateScannedBenchmark: any = structuredClone(
+const duplicateScannedBenchmark: BenchmarkFixture = structuredClone(
   scannedWritingBenchmark,
 );
 duplicateScannedBenchmark.benchmarkKey =
@@ -475,7 +489,7 @@ assert.throws(
   /requires adjudication/,
 );
 
-const unnecessaryAdjudication: any = structuredClone(writingBenchmark);
+const unnecessaryAdjudication: BenchmarkFixture = structuredClone(writingBenchmark);
 unnecessaryAdjudication.protectedLabel.provenance.adjudication = {
   adjudicatorKey: "examiner-adjudicator-01",
   authority: "official_examiner",
@@ -502,7 +516,7 @@ assert.throws(
   /must be absent when no adjudication trigger exists/,
 );
 
-const adjudicationWithExtraReason: any = structuredClone(disputedWriting);
+const adjudicationWithExtraReason: BenchmarkFixture = structuredClone(disputedWriting);
 adjudicationWithExtraReason.protectedLabel.provenance.adjudication = {
   ...unnecessaryAdjudication.protectedLabel.provenance.adjudication,
   triggerReasons: [
@@ -519,7 +533,7 @@ assert.throws(
   /trigger reasons must exactly match/,
 );
 
-const expiredRetention: any = structuredClone(writingBenchmark);
+const expiredRetention: BenchmarkFixture = structuredClone(writingBenchmark);
 expiredRetention.protectedLabel.consent.retentionUntil =
   "2026-08-31T11:00:00.000Z";
 refreshReleaseAttestation(expiredRetention);
@@ -534,7 +548,7 @@ assert.throws(
   /Consent retention expires before import/,
 );
 
-const staleWithdrawalSnapshot: any = structuredClone(writingBenchmark);
+const staleWithdrawalSnapshot: BenchmarkFixture = structuredClone(writingBenchmark);
 staleWithdrawalSnapshot.protectedLabel.consent.withdrawal.checkedAt =
   "2026-08-20T10:00:00.000Z";
 refreshReleaseAttestation(staleWithdrawalSnapshot);
@@ -620,7 +634,7 @@ assert.throws(
   /Minor participants require guardian consent and learner assent/,
 );
 
-const overRetainedMinor: any = structuredClone(writingBenchmark);
+const overRetainedMinor: BenchmarkFixture = structuredClone(writingBenchmark);
 overRetainedMinor.protectedLabel.consent = {
   ...overRetainedMinor.protectedLabel.consent,
   participantAgeGroup: "minor",
@@ -660,7 +674,7 @@ for (const groupKey of [
   "sourceGroupKey",
   "captureSessionKey",
 ] as const) {
-  const crossSplit: any = structuredClone(writingBenchmark);
+  const crossSplit: BenchmarkFixture = structuredClone(writingBenchmark);
   crossSplit.benchmarkKey = `cross-split-${groupKey}`;
   crossSplit.sourceUrl = secondSource.canonicalUrl;
   crossSplit.split = "development";
@@ -1383,7 +1397,11 @@ assert.equal(
         providerAttemptCountAtOutput: _,
         providerAttemptCountAtProvisional: __,
         ...scenario
-      }) => scenario,
+      }) => {
+        void _;
+        void __;
+        return scenario;
+      },
     ),
   }),
   null,

@@ -121,7 +121,7 @@ function normalizeCandidate(
   const prompt = typeof row.prompt === "string" ? row.prompt.trim() : "";
   const questionType =
     typeof row.question_type === "string" ? row.question_type : "";
-  const module =
+  const questionModule =
     test.module === "academic" || test.module === "general_training"
       ? test.module
       : null;
@@ -138,7 +138,7 @@ function normalizeCandidate(
     testSlug,
     skill,
     questionType,
-    module,
+    module: questionModule,
     title:
       typeof test.title === "string"
         ? test.title

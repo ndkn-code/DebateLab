@@ -19,6 +19,21 @@ export async function generateMetadata({
   return { title: `IELTS Mock — ${slug}` };
 }
 
+function safeReturnPath(returnTo?: string) {
+  return returnTo?.startsWith("/") && !returnTo.startsWith("//") && !returnTo.includes("://")
+    ? returnTo
+    : undefined;
+}
+
+function resolveExperience(
+  experience: string | undefined,
+  test: { skill: string | null; kind: string; assessment_mode: string },
+): IeltsPlayerExperience {
+  if (experience === "speaking_rehearsal" && test.skill === "speaking" &&
+      (test.kind === "skill_set" || test.kind === "drill")) return "speaking_rehearsal";
+  return test.assessment_mode === "simulation" ? "exam_simulation" : "guided_practice";
+}
+
 export default async function IeltsMockPage({
   params,
   searchParams,
@@ -54,21 +69,8 @@ export default async function IeltsMockPage({
     assignment && (await isAssignmentStartableForTest(assignment, test.id))
       ? assignment
       : undefined;
-  const safeReturnTo =
-    returnTo &&
-    returnTo.startsWith("/") &&
-    !returnTo.startsWith("//") &&
-    !returnTo.includes("://")
-      ? returnTo
-      : undefined;
-  const playerExperience: IeltsPlayerExperience =
-    experience === "speaking_rehearsal" &&
-    test.skill === "speaking" &&
-    (test.kind === "skill_set" || test.kind === "drill")
-      ? "speaking_rehearsal"
-      : test.assessment_mode === "simulation"
-        ? "exam_simulation"
-        : "guided_practice";
+  const safeReturnTo = safeReturnPath(returnTo);
+  const playerExperience = resolveExperience(experience, test);
 
   return (
     <main className="h-full min-h-0 w-full overflow-hidden">

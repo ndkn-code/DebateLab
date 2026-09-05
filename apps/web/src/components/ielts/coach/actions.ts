@@ -38,6 +38,25 @@ export function resolveIeltsCoachActionDestination(params: {
           }
         : null;
     case "start_practice":
+      return resolvePracticeDestination(action, base);
+    case "open_study_plan":
+      return action.resourceId === "ielts-study-plan"
+        ? { href: `${base}/study-plan`, external: false }
+        : null;
+    case "seek_support":
+      return action.resourceId === "ielts-support"
+        ? {
+            href: "mailto:support@thinkfy.net?subject=IELTS%20Coach%20support",
+            external: true,
+          }
+        : null;
+  }
+}
+
+function resolvePracticeDestination(
+  action: IeltsCoachOutput["action"],
+  base: string,
+): IeltsCoachActionDestination | null {
       if (!action.resourceId.startsWith(`ielts-practice:${action.skill}:`)) {
         return null;
       }
@@ -70,16 +89,4 @@ export function resolveIeltsCoachActionDestination(params: {
             : `${base}/tests?skill=${encodeURIComponent(action.skill)}`,
         external: false,
       };
-    case "open_study_plan":
-      return action.resourceId === "ielts-study-plan"
-        ? { href: `${base}/study-plan`, external: false }
-        : null;
-    case "seek_support":
-      return action.resourceId === "ielts-support"
-        ? {
-            href: "mailto:support@thinkfy.net?subject=IELTS%20Coach%20support",
-            external: true,
-          }
-        : null;
-  }
 }

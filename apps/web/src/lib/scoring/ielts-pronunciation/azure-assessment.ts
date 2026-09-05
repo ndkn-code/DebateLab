@@ -157,6 +157,9 @@ function nullableScore(value: number | undefined): number | null {
  * carries no usable assessment (parse failure, RecognitionStatus != "Success",
  * or no overall scores) — phoneme detail augments the band, never required.
  */
+// Keep the provider-shape validation and score fallback rules together so the
+// mapping remains auditable against Azure's two response formats.
+// eslint-disable-next-line complexity
 export function mapAzureAssessmentToReport(
   raw: unknown,
   options: AzureMappingOptions,

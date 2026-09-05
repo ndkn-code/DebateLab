@@ -34,6 +34,7 @@ export default async function TeacherClassDetailPage({
     ROSTER_IMPORT_V1 && (await canManageClubRoster(db, manager.clubId));
   return (
     <ClassDetailDashboard
+      classesHref="/dashboard/classes"
       data={data}
       ieltsWorkbench={ieltsWorkbench}
       rosterImportEnabled={canImportRoster}

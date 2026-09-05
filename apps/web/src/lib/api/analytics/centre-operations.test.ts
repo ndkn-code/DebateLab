@@ -105,3 +105,16 @@ test("linked attendance does not duplicate lessons, legacy recorded sessions qua
     2,
   );
 });
+
+test("unsubmitted drafts do not invent learner activity", () => {
+  const { period } = centreFixture();
+  const events = normalizeCentreOperations({
+    period, occurrences: [],
+    sessions: [{ id: "legacy", class_id: "class", occurrence_id: null, session_date: "2026-09-02", taken_by: "actor" }],
+    attendance: [{ id: "mark", session_id: "legacy", user_id: "learner", status: "present" }],
+    submissions: [{ id: "draft", class_id: "class", user_id: "learner", assignment_id: "work", revision_number: 1, submission_state: "draft", grade_status: "ungraded", submitted_at: null }],
+    gradeEvents: [],
+  });
+  assert.equal(events.filter((event) => event.kind === "session").length, 1);
+  assert.equal(events.filter((event) => event.kind === "feedback").length, 0);
+});

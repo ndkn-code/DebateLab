@@ -9,6 +9,11 @@ import {
   createPreviewStoragePath,
 } from "./contracts.mjs";
 import { downloadAndConvertMaterial } from "./converter.mjs";
+import { createLlamaParseAdapter } from "./llamaparse.mjs";
+import {
+  processQuestionImportVersion,
+  releaseQuestionImportVersionQuota,
+} from "./question-import.mjs";
 
 function requiredEnvironment(name) {
   const value = process.env[name]?.trim();
@@ -97,8 +102,10 @@ async function claimVersionLease(supabase, version, now = new Date()) {
 }
 
 async function failVersion(supabase, version, error) {
-  const terminal = Number(version.processing_attempts ?? 0) >= MATERIAL_MAX_ATTEMPTS;
   const message = error instanceof Error ? error.message : "Material conversion failed.";
+  // A provider job that is still running must retain its durable id and remain retryable.
+  const externallyPending = /LLAMAPARSE_PENDING|SUBMIT_AMBIGUOUS|PENDING_TIMEOUT/.test(message);
+  const terminal = !externallyPending && Number(version.processing_attempts ?? 0) >= MATERIAL_MAX_ATTEMPTS;
   const result = await supabase
     .from("lms_material_versions")
     .update({
@@ -122,6 +129,11 @@ export async function processMaterialVersion(versionId, injectedDependencies) {
   if (!current || current.processing_status === "ready" || current.processing_status === "rejected") {
     return "skipped";
   }
+  if (current.purpose === "question_import" &&
+      (!/^(true|1)$/i.test(process.env.LMS_QUESTION_IMPORT_ENABLED ?? "") ||
+       !/^(true|1)$/i.test(process.env.LMS_QUESTION_IMPORT_COMPLIANCE_APPROVED ?? ""))) {
+    throw new Error("QUESTION_IMPORT_DISABLED");
+  }
   const claimed = await claimVersionLease(supabase, current);
   if (!claimed) return "lease_active";
   if (!claimed.lease_token || !claimed.original_path) {
@@ -129,6 +141,12 @@ export async function processMaterialVersion(versionId, injectedDependencies) {
   }
 
   try {
+    if (claimed.purpose === "question_import") {
+      await processQuestionImportVersion({ supabase, version: claimed, parse: injectedDependencies?.parse ?? createLlamaParseAdapter() });
+      const completed = await supabase.from("lms_material_versions").update({ processing_status: "ready", lease_token: null, lease_expires_at: null, error_code: null, error_message: null, updated_at: new Date().toISOString() }).eq("id", claimed.id).eq("lease_token", claimed.lease_token).eq("processing_status", "converting").select("id").maybeSingle();
+      if (completed.error) throw new Error(completed.error.message);
+      return completed.data ? "completed" : "lease_lost";
+    }
     const signed = await supabase.storage
       .from(MATERIAL_BUCKETS.originals)
       .createSignedUrl(claimed.original_path, MATERIAL_PREVIEW_TTL_SECONDS);
@@ -210,7 +228,12 @@ export async function processMaterialVersion(versionId, injectedDependencies) {
     return completed.data ? "completed" : "lease_lost";
   } catch (error) {
     const terminal = await failVersion(supabase, claimed, error);
-    if (terminal) return "failed";
+    if (terminal) {
+      if (claimed.purpose === "question_import") {
+        await releaseQuestionImportVersionQuota({ supabase, version: claimed, error });
+      }
+      return "failed";
+    }
     throw error;
   }
 }

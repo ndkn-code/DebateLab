@@ -154,7 +154,8 @@ export async function assessContinuousPronunciation(
       let settled = false;
       let finishing = false;
       let stopWatchdog: ReturnType<typeof setTimeout> | undefined;
-      let abort: (() => void) | undefined;
+      const abort = () =>
+        finish(new Error("AZURE_PRONUNCIATION_CONTINUOUS_ABORTED"));
       const settle = (error?: Error) => {
         if (settled) return;
         settled = true;
@@ -191,7 +192,6 @@ export async function assessContinuousPronunciation(
         () => finish(new Error("AZURE_PRONUNCIATION_CONTINUOUS_TIMEOUT")),
         timeoutMs,
       );
-      abort = () => finish(new Error("AZURE_PRONUNCIATION_CONTINUOUS_ABORTED"));
       if (input.signal?.aborted) abort();
       else input.signal?.addEventListener("abort", abort, { once: true });
       recognizer.recognized = (_sender, event) => {

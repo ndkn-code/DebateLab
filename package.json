@@ -129,7 +129,8 @@
     "corpus:debate:embed": "tsx scripts/embed-debate-corpus.ts",
     "generate:tts-samples": "npm run generate:tts-samples -w @thinkfy/web",
     "test:class-analytics": "npm run test:class-analytics -w @thinkfy/web",
-    "test:middleware": "npm run test:middleware -w @thinkfy/web"
+    "test:middleware": "npm run test:middleware -w @thinkfy/web",
+    "test:lms-question-import": "npm run test:lms-question-import -w @thinkfy/web && npm test --prefix services/lms-material-worker"
   },
   "overrides": {
     "uuid": "14.0.0",

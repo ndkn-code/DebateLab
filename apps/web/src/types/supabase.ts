@@ -14569,6 +14569,950 @@ export type Database = {
         }
         Relationships: []
       }
+      organization_question_import_entitlements: {
+        Row: {
+          club_id: string
+          concurrent_job_limit: number
+          max_file_size_bytes: number
+          max_files_per_batch: number
+          max_pages_per_file: number
+          monthly_page_limit: number
+          monthly_question_limit: number
+          updated_at: string
+        }
+        Insert: {
+          club_id: string
+          concurrent_job_limit?: number
+          max_file_size_bytes?: number
+          max_files_per_batch?: number
+          max_pages_per_file?: number
+          monthly_page_limit?: number
+          monthly_question_limit?: number
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string
+          concurrent_job_limit?: number
+          max_file_size_bytes?: number
+          max_files_per_batch?: number
+          max_pages_per_file?: number
+          monthly_page_limit?: number
+          monthly_question_limit?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_question_import_entitlements_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: true
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_question_import_entitlements_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: true
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      organization_question_import_usage: {
+        Row: {
+          bucket_month: string
+          club_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          jobs: number
+          kind: Database["public"]["Enums"]["question_import_usage_kind"]
+          pages: number
+          questions: number
+          reservation_key: string
+        }
+        Insert: {
+          bucket_month: string
+          club_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          jobs?: number
+          kind: Database["public"]["Enums"]["question_import_usage_kind"]
+          pages?: number
+          questions?: number
+          reservation_key: string
+        }
+        Update: {
+          bucket_month?: string
+          club_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          jobs?: number
+          kind?: Database["public"]["Enums"]["question_import_usage_kind"]
+          pages?: number
+          questions?: number
+          reservation_key?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "organization_question_import_usage_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_question_import_usage_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "organization_question_import_usage_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_bank_collections: {
+        Row: {
+          club_id: string
+          created_at: string
+          created_by: string
+          id: string
+          kind: string
+          module: Database["public"]["Enums"]["ielts_module"]
+          published_at: string | null
+          quarantine_reason: string | null
+          status: Database["public"]["Enums"]["question_bank_collection_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          club_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          kind?: string
+          module?: Database["public"]["Enums"]["ielts_module"]
+          published_at?: string | null
+          quarantine_reason?: string | null
+          status?: Database["public"]["Enums"]["question_bank_collection_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          kind?: string
+          module?: Database["public"]["Enums"]["ielts_module"]
+          published_at?: string | null
+          quarantine_reason?: string | null
+          status?: Database["public"]["Enums"]["question_bank_collection_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_bank_collections_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_collections_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_collections_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_bank_items: {
+        Row: {
+          club_id: string
+          collection_id: string
+          created_at: string
+          id: string
+          ordinal: number
+          payload: Json
+          question_type: Database["public"]["Enums"]["ielts_question_type"]
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          source_action_at: string | null
+          source_action_by: string | null
+          source_action_reason: string | null
+          source_draft_item_id: string | null
+          source_evidence: Json
+          source_lifecycle: string
+          source_prior_lifecycle: string | null
+          stimulus_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          club_id: string
+          collection_id: string
+          created_at?: string
+          id?: string
+          ordinal: number
+          payload?: Json
+          question_type: Database["public"]["Enums"]["ielts_question_type"]
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          source_action_at?: string | null
+          source_action_by?: string | null
+          source_action_reason?: string | null
+          source_draft_item_id?: string | null
+          source_evidence?: Json
+          source_lifecycle?: string
+          source_prior_lifecycle?: string | null
+          stimulus_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string
+          collection_id?: string
+          created_at?: string
+          id?: string
+          ordinal?: number
+          payload?: Json
+          question_type?: Database["public"]["Enums"]["ielts_question_type"]
+          skill?: Database["public"]["Enums"]["ielts_skill"]
+          source_action_at?: string | null
+          source_action_by?: string | null
+          source_action_reason?: string | null
+          source_draft_item_id?: string | null
+          source_evidence?: Json
+          source_lifecycle?: string
+          source_prior_lifecycle?: string | null
+          stimulus_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_bank_items_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_items_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_items_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "question_bank_collections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_items_source_action_by_fkey"
+            columns: ["source_action_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_items_source_draft_item_id_fkey"
+            columns: ["source_draft_item_id"]
+            isOneToOne: false
+            referencedRelation: "question_import_draft_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_items_stimulus_id_fkey"
+            columns: ["stimulus_id"]
+            isOneToOne: false
+            referencedRelation: "question_bank_stimuli"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_bank_keys: {
+        Row: {
+          answer_payload: Json
+          bank_item_id: string
+          club_id: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          answer_payload?: Json
+          bank_item_id: string
+          club_id: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          answer_payload?: Json
+          bank_item_id?: string
+          club_id?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_bank_keys_bank_item_id_fkey"
+            columns: ["bank_item_id"]
+            isOneToOne: true
+            referencedRelation: "question_bank_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_keys_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_keys_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_bank_stimuli: {
+        Row: {
+          club_id: string
+          collection_id: string
+          created_at: string
+          id: string
+          ordinal: number
+          payload: Json
+          stimulus_kind: string
+          updated_at: string
+        }
+        Insert: {
+          club_id: string
+          collection_id: string
+          created_at?: string
+          id?: string
+          ordinal?: number
+          payload?: Json
+          stimulus_kind: string
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string
+          collection_id?: string
+          created_at?: string
+          id?: string
+          ordinal?: number
+          payload?: Json
+          stimulus_kind?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_bank_stimuli_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_stimuli_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_bank_stimuli_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "question_bank_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_import_batch_documents: {
+        Row: {
+          batch_id: string
+          club_id: string
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          id: string
+          material_id: string | null
+          media_material_id: string | null
+          media_version_id: string | null
+          page_count: number | null
+          provider_job_id: string | null
+          provider_result: Json
+          provider_status: string | null
+          provider_usage: Json
+          scanned: boolean
+          sha256: string | null
+          size_bytes: number | null
+          source_file_name: string
+          source_mime_type: string
+          source_prior_status:
+            | Database["public"]["Enums"]["question_import_document_status"]
+            | null
+          status: Database["public"]["Enums"]["question_import_document_status"]
+          updated_at: string
+          version_id: string | null
+        }
+        Insert: {
+          batch_id: string
+          club_id: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          material_id?: string | null
+          media_material_id?: string | null
+          media_version_id?: string | null
+          page_count?: number | null
+          provider_job_id?: string | null
+          provider_result?: Json
+          provider_status?: string | null
+          provider_usage?: Json
+          scanned?: boolean
+          sha256?: string | null
+          size_bytes?: number | null
+          source_file_name: string
+          source_mime_type?: string
+          source_prior_status?:
+            | Database["public"]["Enums"]["question_import_document_status"]
+            | null
+          status?: Database["public"]["Enums"]["question_import_document_status"]
+          updated_at?: string
+          version_id?: string | null
+        }
+        Update: {
+          batch_id?: string
+          club_id?: string
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          id?: string
+          material_id?: string | null
+          media_material_id?: string | null
+          media_version_id?: string | null
+          page_count?: number | null
+          provider_job_id?: string | null
+          provider_result?: Json
+          provider_status?: string | null
+          provider_usage?: Json
+          scanned?: boolean
+          sha256?: string | null
+          size_bytes?: number | null
+          source_file_name?: string
+          source_mime_type?: string
+          source_prior_status?:
+            | Database["public"]["Enums"]["question_import_document_status"]
+            | null
+          status?: Database["public"]["Enums"]["question_import_document_status"]
+          updated_at?: string
+          version_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_import_batch_documents_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "question_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_batch_documents_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_batch_documents_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_batch_documents_material_id_fkey"
+            columns: ["material_id"]
+            isOneToOne: false
+            referencedRelation: "lms_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_batch_documents_media_material_id_fkey"
+            columns: ["media_material_id"]
+            isOneToOne: false
+            referencedRelation: "lms_materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_batch_documents_media_version_id_fkey"
+            columns: ["media_version_id"]
+            isOneToOne: false
+            referencedRelation: "lms_material_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_batch_documents_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "lms_material_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_import_batches: {
+        Row: {
+          club_id: string
+          completed_at: string | null
+          copyright_attestation_locale: string
+          copyright_attestation_version: string | null
+          copyright_attested: boolean
+          copyright_attested_at: string | null
+          copyright_attested_by: string | null
+          created_at: string
+          created_by: string
+          failure_code: string | null
+          failure_message: string | null
+          id: string
+          module: Database["public"]["Enums"]["ielts_module"]
+          parser_provider: string
+          parser_version: string | null
+          prompt_version: string | null
+          quarantine_reason: string | null
+          quota_reservation_key: string | null
+          source_prior_status:
+            | Database["public"]["Enums"]["question_import_status"]
+            | null
+          status: Database["public"]["Enums"]["question_import_status"]
+          submitted_at: string | null
+          title: string
+          total_files: number
+          total_pages: number
+          total_questions: number
+          updated_at: string
+        }
+        Insert: {
+          club_id: string
+          completed_at?: string | null
+          copyright_attestation_locale?: string
+          copyright_attestation_version?: string | null
+          copyright_attested?: boolean
+          copyright_attested_at?: string | null
+          copyright_attested_by?: string | null
+          created_at?: string
+          created_by: string
+          failure_code?: string | null
+          failure_message?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["ielts_module"]
+          parser_provider?: string
+          parser_version?: string | null
+          prompt_version?: string | null
+          quarantine_reason?: string | null
+          quota_reservation_key?: string | null
+          source_prior_status?:
+            | Database["public"]["Enums"]["question_import_status"]
+            | null
+          status?: Database["public"]["Enums"]["question_import_status"]
+          submitted_at?: string | null
+          title: string
+          total_files?: number
+          total_pages?: number
+          total_questions?: number
+          updated_at?: string
+        }
+        Update: {
+          club_id?: string
+          completed_at?: string | null
+          copyright_attestation_locale?: string
+          copyright_attestation_version?: string | null
+          copyright_attested?: boolean
+          copyright_attested_at?: string | null
+          copyright_attested_by?: string | null
+          created_at?: string
+          created_by?: string
+          failure_code?: string | null
+          failure_message?: string | null
+          id?: string
+          module?: Database["public"]["Enums"]["ielts_module"]
+          parser_provider?: string
+          parser_version?: string | null
+          prompt_version?: string | null
+          quarantine_reason?: string | null
+          quota_reservation_key?: string | null
+          source_prior_status?:
+            | Database["public"]["Enums"]["question_import_status"]
+            | null
+          status?: Database["public"]["Enums"]["question_import_status"]
+          submitted_at?: string | null
+          title?: string
+          total_files?: number
+          total_pages?: number
+          total_questions?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_import_batches_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_batches_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_batches_copyright_attested_by_fkey"
+            columns: ["copyright_attested_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_batches_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_import_compliance_events: {
+        Row: {
+          actor_id: string | null
+          batch_id: string | null
+          club_id: string
+          created_at: string
+          event_type: string
+          id: string
+          metadata: Json
+          reason: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          batch_id?: string | null
+          club_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          reason?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          batch_id?: string | null
+          club_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_import_compliance_events_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_compliance_events_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "question_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_compliance_events_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_compliance_events_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_import_draft_items: {
+        Row: {
+          answer_source: string
+          batch_id: string
+          club_id: string
+          confidence: number | null
+          created_at: string
+          document_id: string
+          id: string
+          ordinal: number
+          payload: Json
+          question_type: Database["public"]["Enums"]["ielts_question_type"]
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          source_action_at: string | null
+          source_action_by: string | null
+          source_action_reason: string | null
+          source_evidence: Json
+          source_lifecycle: string
+          source_prior_lifecycle: string | null
+          status: Database["public"]["Enums"]["question_import_item_status"]
+          updated_at: string
+        }
+        Insert: {
+          answer_source?: string
+          batch_id: string
+          club_id: string
+          confidence?: number | null
+          created_at?: string
+          document_id: string
+          id?: string
+          ordinal: number
+          payload?: Json
+          question_type: Database["public"]["Enums"]["ielts_question_type"]
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          skill: Database["public"]["Enums"]["ielts_skill"]
+          source_action_at?: string | null
+          source_action_by?: string | null
+          source_action_reason?: string | null
+          source_evidence?: Json
+          source_lifecycle?: string
+          source_prior_lifecycle?: string | null
+          status?: Database["public"]["Enums"]["question_import_item_status"]
+          updated_at?: string
+        }
+        Update: {
+          answer_source?: string
+          batch_id?: string
+          club_id?: string
+          confidence?: number | null
+          created_at?: string
+          document_id?: string
+          id?: string
+          ordinal?: number
+          payload?: Json
+          question_type?: Database["public"]["Enums"]["ielts_question_type"]
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          skill?: Database["public"]["Enums"]["ielts_skill"]
+          source_action_at?: string | null
+          source_action_by?: string | null
+          source_action_reason?: string | null
+          source_evidence?: Json
+          source_lifecycle?: string
+          source_prior_lifecycle?: string | null
+          status?: Database["public"]["Enums"]["question_import_item_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_import_draft_items_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "question_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_draft_items_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_draft_items_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_draft_items_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "question_import_batch_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_draft_items_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "question_import_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_draft_items_reviewed_by_fkey"
+            columns: ["reviewed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_draft_items_source_action_by_fkey"
+            columns: ["source_action_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_import_draft_keys: {
+        Row: {
+          answer_confirmed: boolean
+          answer_payload: Json
+          club_id: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          draft_item_id: string
+          updated_at: string
+        }
+        Insert: {
+          answer_confirmed?: boolean
+          answer_payload?: Json
+          club_id: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          draft_item_id: string
+          updated_at?: string
+        }
+        Update: {
+          answer_confirmed?: boolean
+          answer_payload?: Json
+          club_id?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          draft_item_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_import_draft_keys_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_draft_keys_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_draft_keys_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_draft_keys_draft_item_id_fkey"
+            columns: ["draft_item_id"]
+            isOneToOne: true
+            referencedRelation: "question_import_draft_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      question_import_publication_receipts: {
+        Row: {
+          batch_id: string
+          club_id: string
+          collection_id: string | null
+          created_at: string
+          id: string
+          idempotency_key: string
+          item_ids: string[] | null
+          published_count: number
+        }
+        Insert: {
+          batch_id: string
+          club_id: string
+          collection_id?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key: string
+          item_ids?: string[] | null
+          published_count?: number
+        }
+        Update: {
+          batch_id?: string
+          club_id?: string
+          collection_id?: string | null
+          created_at?: string
+          id?: string
+          idempotency_key?: string
+          item_ids?: string[] | null
+          published_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "question_import_publication_receipts_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "question_import_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_publication_receipts_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "admin_club_list_rows"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_publication_receipts_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "question_import_publication_receipts_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "question_bank_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       active_practice_topic_catalog: {
@@ -17491,6 +18435,120 @@ export type Database = {
           prediction: Json
         }[]
       }
+      claim_question_import_provider_job: {
+        Args: {
+          p_batch_id: string
+          p_document_id: string
+          p_pages: number
+          p_question_estimate: number
+          p_reservation_key: string
+        }
+        Returns: Json
+      }
+      confirm_question_import_answer: {
+        Args: { p_answer_payload: Json; p_draft_item_id: string }
+        Returns: undefined
+      }
+      create_question_bank_collection: {
+        Args: {
+          p_club_id: string
+          p_kind: string
+          p_module: Database["public"]["Enums"]["ielts_module"]
+          p_title: string
+        }
+        Returns: string
+      }
+      create_question_import_batch: {
+        Args: {
+          p_actor_id: string
+          p_club_id: string
+          p_copyright_attestation_locale: string
+          p_copyright_attestation_version: string
+          p_module: Database["public"]["Enums"]["ielts_module"]
+          p_title: string
+        }
+        Returns: string
+      }
+      get_question_import_quota: { Args: { p_club_id: string }; Returns: Json }
+      mark_question_import_source_action: {
+        Args: { p_action: string; p_batch_id: string; p_reason: string }
+        Returns: undefined
+      }
+      persist_question_import_result: {
+        Args: {
+          p_batch_id: string
+          p_document_id: string
+          p_pages: number
+          p_provider_result: Json
+          p_provider_status: string
+          p_provider_usage: Json
+        }
+        Returns: number
+      }
+      publish_question_import_items: {
+        Args: {
+          p_batch_id: string
+          p_collection_id: string
+          p_idempotency_key: string
+          p_item_ids: string[]
+        }
+        Returns: number
+      }
+      reconcile_question_import_quota: {
+        Args: {
+          p_club_id: string
+          p_jobs: number
+          p_pages: number
+          p_questions: number
+          p_reservation_key: string
+        }
+        Returns: Json
+      }
+      register_question_import_material: {
+        Args: {
+          p_batch_id: string
+          p_material_id: string
+          p_media_material_id?: string
+          p_media_version_id?: string
+          p_version_id: string
+        }
+        Returns: string
+      }
+      release_question_import_quota: {
+        Args: { p_club_id: string; p_reservation_key: string }
+        Returns: Json
+      }
+      release_question_import_worker_quota: {
+        Args: { p_club_id: string; p_reservation_key: string }
+        Returns: Json
+      }
+      request_question_import_changes: {
+        Args: { p_batch_id: string; p_note: string }
+        Returns: undefined
+      }
+      reserve_question_import_quota: {
+        Args: {
+          p_club_id: string
+          p_jobs: number
+          p_pages: number
+          p_questions: number
+          p_reservation_key: string
+        }
+        Returns: Json
+      }
+      save_question_import_draft: {
+        Args: {
+          p_draft_item_id: string
+          p_payload: Json
+          p_review_note: string
+          p_status: Database["public"]["Enums"]["question_import_item_status"]
+        }
+        Returns: undefined
+      }
+      submit_question_import: {
+        Args: { p_batch_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       ielts_accent: "uk" | "us" | "aus" | "other"
@@ -17570,6 +18628,46 @@ export type Database = {
       ielts_skill: "listening" | "reading" | "writing" | "speaking"
       ielts_study_plan_status: "active" | "paused" | "completed" | "archived"
       ielts_test_kind: "full_mock" | "skill_set" | "drill"
+      question_bank_collection_status:
+        | "draft"
+        | "published"
+        | "archived"
+        | "quarantined"
+      question_import_document_status:
+        | "pending"
+        | "validating"
+        | "queued"
+        | "parsing"
+        | "extracting"
+        | "ready"
+        | "failed"
+        | "quarantined"
+        | "deleted"
+      question_import_item_status:
+        | "draft"
+        | "accepted"
+        | "rejected"
+        | "needs_confirmation"
+        | "submitted"
+        | "changes_requested"
+        | "published"
+      question_import_status:
+        | "draft"
+        | "queued"
+        | "processing"
+        | "review"
+        | "submitted"
+        | "changes_requested"
+        | "publishing"
+        | "completed"
+        | "failed"
+        | "quarantined"
+        | "deleted"
+      question_import_usage_kind:
+        | "reservation"
+        | "consumed"
+        | "released"
+        | "adjustment"
     }
     CompositeTypes: {
       [_ in never]: never

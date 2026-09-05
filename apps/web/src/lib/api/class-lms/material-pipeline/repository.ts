@@ -20,6 +20,7 @@ export type PipelineClient = SupabaseClient;
 export type MaterialVersionRow = {
   id: string;
   material_id: string;
+  purpose?: "material" | "question_import";
   status: MaterialProcessingStatus;
   idempotency_key: string;
   ingest_bucket: string | null;
@@ -46,6 +47,7 @@ export function mapVersionRow(
   return {
     id: String(row.id),
     material_id: String(row.material_id),
+    purpose: row.purpose === "question_import" ? "question_import" : "material",
     status: (row.processing_status ?? row.status) as MaterialProcessingStatus,
     idempotency_key: String(row.idempotency_key),
     ingest_bucket: (row.ingest_bucket as string | null) ?? null,
@@ -88,6 +90,7 @@ export async function insertMaterialAndVersion(
     sourceFileName: string;
     sourceMimeType: string;
     sourceSizeBytes: number;
+    purpose?: "material" | "question_import";
   },
 ) {
   const now = new Date().toISOString();
@@ -129,6 +132,7 @@ export async function insertMaterialAndVersion(
       source_file_name: input.sourceFileName,
       source_mime_type: input.sourceMimeType,
       size_bytes: input.sourceSizeBytes,
+      purpose: input.purpose ?? "material",
       processing_attempts: 0,
       created_by: input.actorId,
       created_at: now,
@@ -178,6 +182,7 @@ export async function markVersionQueued(
   versionId: string,
   sourceSha256: string,
   detectedMimeType: string,
+  storage?: { originalBucket: string; originalPath: string },
 ) {
   const result = await client
     .from(MATERIAL_TABLES.versions)
@@ -185,6 +190,8 @@ export async function markVersionQueued(
       processing_status: "queued",
       sha256: sourceSha256 || null,
       detected_mime_type: detectedMimeType,
+      ...(storage ? { original_bucket: storage.originalBucket, original_path: storage.originalPath,
+        ingest_bucket: null, ingest_path: null } : {}),
       error_code: null,
       error_message: null,
       updated_at: new Date().toISOString(),

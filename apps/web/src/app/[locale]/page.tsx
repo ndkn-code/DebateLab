@@ -2,11 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { setRequestLocale } from "next-intl/server";
 import { createTypedServerClient } from "@/lib/supabase/server";
-import { LandingV3 } from "@/components/landing/v3";
-import {
-  getLandingV3Copy,
-  type LandingLocale,
-} from "@/components/landing/v3/copy";
+import { MarketingLanding } from "@/components/landing/marketing/marketing-landing";
 import { getMarketingCopy } from "@/components/landing/marketing/copy";
 import { StructuredData } from "@/components/seo/structured-data";
 import { PublicSiteAnalytics } from "@/components/analytics/public-site-analytics";
@@ -52,8 +48,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function Home({ params }: Props) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const landingLocale: LandingLocale = locale === "en" ? "en" : "vi";
-  const copy = getLandingV3Copy(landingLocale);
+  const landingLocale = asPublicLocale(locale);
   const marketingCopy = getMarketingCopy("debate", landingLocale);
   const nonce = (await headers()).get("x-nonce") ?? undefined;
 
@@ -98,9 +93,11 @@ export default async function Home({ params }: Props) {
           },
         ]}
       />
-      <main className="min-h-dvh bg-background text-on-surface">
-        <LandingV3 copy={copy} isLoggedIn={!!user} locale={landingLocale} />
-      </main>
+      <MarketingLanding
+        copy={marketingCopy}
+        isLoggedIn={!!user}
+        locale={landingLocale}
+      />
     </PublicSiteAnalytics>
   );
 }
