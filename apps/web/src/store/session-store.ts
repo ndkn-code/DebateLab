@@ -89,6 +89,8 @@ interface SessionState {
   sessionStartTime: number | null;
   audioBlob: Blob | null;
   audioUrl: string | null;
+  // In-memory recovery across setup navigation; browser audio is not persisted.
+  speechTimeRemaining: number | null;
   draftId: string | null;
   clubContext: ClubPracticeContext | null;
 
@@ -147,6 +149,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   sessionStartTime: null,
   audioBlob: null,
   audioUrl: null,
+      speechTimeRemaining: null,
   draftId: null,
   clubContext: null,
 
@@ -211,6 +214,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         feedback: null,
         audioBlob: null,
         audioUrl: null,
+      speechTimeRemaining: null,
         draftId: null,
         side: resolvedSide,
         mode: resolvedMode,
@@ -241,6 +245,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       feedback: null,
       audioBlob: null,
       audioUrl: null,
+      speechTimeRemaining: null,
     }),
   resetSession: () =>
     set({
@@ -260,6 +265,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       sessionStartTime: null,
       audioBlob: null,
       audioUrl: null,
+      speechTimeRemaining: null,
       draftId: null,
       clubContext: null,
       currentRound: 1,

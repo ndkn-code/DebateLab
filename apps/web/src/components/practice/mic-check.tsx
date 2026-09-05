@@ -6,6 +6,13 @@ import { Mic, MicOff, Check, ArrowRight, ArrowLeft, RotateCcw } from "@/componen
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  createMicrophoneRequest,
+  getMicrophoneErrorKind,
+  isLiveAudioStream,
+  stopMediaStream,
+  type MicrophoneRequest,
+} from "@/lib/practice-microphone-request";
 
 type MicCheckStatus =
   | "requesting"
@@ -55,35 +62,57 @@ export function MicCheck({
   const analyserRef = useRef<AnalyserNode | null>(null);
   const rafRef = useRef<number | null>(null);
   const aboveThresholdStartRef = useRef<number | null>(null);
+  const requestRef = useRef<MicrophoneRequest | null>(null);
+  const handedOffRef = useRef(false);
+  const detachTracksRef = useRef<(() => void) | null>(null);
 
   const cleanup = useCallback(() => {
+    detachTracksRef.current?.();
+    detachTracksRef.current = null;
     if (rafRef.current) {
       cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
     }
     if (audioContextRef.current) {
-      audioContextRef.current.close();
+      void audioContextRef.current.close().catch(() => {});
       audioContextRef.current = null;
     }
     analyserRef.current = null;
   }, []);
 
   const stopStream = useCallback(() => {
+    requestRef.current?.cancel();
+    requestRef.current = null;
     cleanup();
-    if (streamRef.current) {
-      streamRef.current.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
-    }
+    stopMediaStream(streamRef.current);
+    streamRef.current = null;
   }, [cleanup]);
 
   const startAudioTest = useCallback((stream: MediaStream) => {
     const audioContext = new AudioContext();
+    audioContextRef.current = audioContext;
     const analyser = audioContext.createAnalyser();
     analyser.fftSize = 256;
     analyser.smoothingTimeConstant = 0.8;
 
     const source = audioContext.createMediaStreamSource(stream);
     source.connect(analyser);
+
+    const disconnected = () => {
+      if (streamRef.current !== stream || handedOffRef.current) return;
+      stopStream();
+      setStatus("error");
+      setErrorMessage(t("session.mic_disconnected"));
+    };
+    const tracks = stream.getAudioTracks();
+    tracks.forEach((track) => {
+      track.addEventListener("ended", disconnected);
+      track.addEventListener("mute", disconnected);
+    });
+    detachTracksRef.current = () => tracks.forEach((track) => {
+      track.removeEventListener("ended", disconnected);
+      track.removeEventListener("mute", disconnected);
+    });
 
     audioContextRef.current = audioContext;
     analyserRef.current = analyser;
@@ -122,89 +151,112 @@ export function MicCheck({
     };
 
     rafRef.current = requestAnimationFrame(tick);
-  }, []);
+  }, [stopStream, t]);
 
   const requestMic = useCallback(async () => {
+    handedOffRef.current = false;
     setStatus("requesting");
     setErrorMessage("");
     setAudioDetected(false);
     aboveThresholdStartRef.current = null;
 
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          channelCount: 1,
-          sampleRate: 16000,
-          echoCancellation: true,
-          noiseSuppression: true,
-        },
-      });
+    requestRef.current?.cancel();
+    const request = createMicrophoneRequest((constraints) =>
+      navigator.mediaDevices.getUserMedia(constraints)
+    );
+    requestRef.current = request;
 
-      streamRef.current = stream;
-      setStatus("testing");
-      startAudioTest(stream);
-    } catch (err) {
-      if (err instanceof DOMException) {
-        if (err.name === "NotAllowedError") {
-          setStatus("denied");
-        } else if (err.name === "NotFoundError") {
-          setStatus("not-found");
-        } else {
-          setStatus("error");
-          setErrorMessage(err.message);
-        }
-      } else {
-        setStatus("error");
-        setErrorMessage("Failed to access microphone");
+    try {
+      const stream = await request.promise;
+      if (requestRef.current !== request) {
+        stopMediaStream(stream);
+        return;
       }
+
+      if (!isLiveAudioStream(stream)) {
+        stopMediaStream(stream);
+        throw new DOMException("No microphone", "NotFoundError");
+      }
+      streamRef.current = stream;
+      requestRef.current = null;
+      setStatus("testing");
+      try {
+        startAudioTest(stream);
+      } catch {
+        cleanup();
+        stopMediaStream(stream);
+        streamRef.current = null;
+        setStatus("error");
+        setErrorMessage(t("session.mic_recovery_body"));
+      }
+    } catch (err) {
+      if (requestRef.current !== request) return;
+      requestRef.current = null;
+      const kind = getMicrophoneErrorKind(err);
+      if (kind === "cancelled") return;
+      setStatus(kind);
+      setErrorMessage(t("session.mic_recovery_body"));
     }
-  }, [startAudioTest]);
+  }, [cleanup, startAudioTest, t]);
 
   // Request mic on mount
   useEffect(() => {
     if (showcaseStatus) return;
-    requestMic();
+    const timer = window.setTimeout(() => void requestMic(), 0);
     return () => {
-      // Only clean up analysis, NOT the stream — it might be passed to onReady
+      window.clearTimeout(timer);
+      requestRef.current?.cancel();
+      requestRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [requestMic, showcaseStatus]);
 
   useEffect(() => {
     if (!showcaseStatus) return;
-    setStatus(showcaseStatus);
-    if (showcaseLevels) setLevels(showcaseLevels);
-    setAudioDetected(showcaseAudioDetected ?? showcaseStatus === "testing");
+    const timer = window.setTimeout(() => {
+      setStatus(showcaseStatus);
+      if (showcaseLevels) setLevels(showcaseLevels);
+      setAudioDetected(showcaseAudioDetected ?? showcaseStatus === "testing");
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [showcaseAudioDetected, showcaseLevels, showcaseStatus]);
 
   // Cleanup on unmount if we haven't handed off the stream
   useEffect(() => {
     return () => {
       cleanup();
-      // If stream wasn't handed off, stop it
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-      }
+      requestRef.current?.cancel();
+      requestRef.current = null;
+      if (!handedOffRef.current) stopMediaStream(streamRef.current);
+      streamRef.current = null;
     };
   }, [cleanup]);
 
   const handleStart = () => {
     if (showcaseStatus) return;
-    if (!streamRef.current) return;
+    if (!isLiveAudioStream(streamRef.current)) {
+      stopStream();
+      setStatus("not-found");
+      return;
+    }
     // Stop the analysis but keep the stream alive
     cleanup();
     const stream = streamRef.current;
-    // Prevent unmount cleanup from killing the stream
     streamRef.current = null;
+    handedOffRef.current = true;
     onReady(stream);
   };
 
   const handleSkipTest = () => {
     if (showcaseStatus) return;
-    if (!streamRef.current) return;
+    if (!isLiveAudioStream(streamRef.current)) {
+      stopStream();
+      setStatus("not-found");
+      return;
+    }
     cleanup();
     const stream = streamRef.current;
     streamRef.current = null;
+    handedOffRef.current = true;
     onReady(stream);
   };
 
@@ -219,7 +271,7 @@ export function MicCheck({
   };
 
   return (
-    <div className="flex flex-1 items-center justify-center px-6 py-8">
+    <div className="flex flex-1 items-center justify-center px-4 py-8 sm:px-6" role="status" aria-live="polite">
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -240,8 +292,8 @@ export function MicCheck({
                 className="flex h-24 w-24 items-center justify-center rounded-full bg-primary-container"
                 animate={{
                   boxShadow: [
-                    "0 0 0 0px rgba(0,184,217,0.2)",
-                    "0 0 0 16px rgba(0,184,217,0)",
+                    "0 0 0 0px var(--color-primary-container)",
+                    "0 0 0 16px transparent",
                   ],
                 }}
                 transition={{ duration: 1.5, repeat: Infinity }}
@@ -250,10 +302,10 @@ export function MicCheck({
               </motion.div>
 
               <div>
-                <h2 className="text-2xl font-semibold tracking-normal text-on-surface">
+                <h2 className="type-heading-md text-on-surface">
                   {t("session.mic_access_required")}
                 </h2>
-                <p className="mt-3 text-sm font-medium text-on-surface-variant">
+                <p className="mt-3 type-body text-on-surface-variant">
                   {t("session.mic_allow_prompt")}
                 </p>
               </div>
@@ -272,6 +324,25 @@ export function MicCheck({
                   />
                 ))}
               </div>
+
+              <div className="flex w-full flex-col gap-3 sm:flex-row pt-2">
+                <Button
+                  onClick={handleBack}
+                  variant="outline"
+                  className="flex-1 gap-2"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                  {t("session.go_back")}
+                </Button>
+                <Button
+                  onClick={handleTryAgain}
+                  variant="primary"
+                  className="flex-1 gap-2"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  {t("audioCheck.tryAgain")}
+                </Button>
+              </div>
             </motion.div>
           )}
 
@@ -288,7 +359,7 @@ export function MicCheck({
                 className={cn(
                   "flex h-24 w-24 items-center justify-center rounded-full transition-colors",
                   resolvedAudioDetected
-                    ? "bg-secondary-container/80"
+                    ? "bg-secondary-container opacity-90"
                     : "bg-primary-container"
                 )}
                 animate={
@@ -296,8 +367,8 @@ export function MicCheck({
                     ? {}
                     : {
                         boxShadow: [
-                          "0 0 0 0px rgba(0,184,217,0.15)",
-                          "0 0 0 12px rgba(0,184,217,0)",
+                          "0 0 0 0px var(--color-primary-container)",
+                          "0 0 0 12px transparent",
                         ],
                       }
                 }
@@ -321,12 +392,12 @@ export function MicCheck({
               </motion.div>
 
               <div>
-                <h2 className="text-2xl font-semibold tracking-normal text-on-surface">
+                <h2 className="type-heading-md text-on-surface">
                   {resolvedAudioDetected
                     ? t("session.mic_working")
                     : t("session.test_microphone")}
                 </h2>
-                <p className="mt-3 text-sm font-medium text-on-surface-variant">
+                <p className="mt-3 type-body text-on-surface-variant">
                   {resolvedAudioDetected
                     ? t("session.mic_detected")
                     : t("session.speak_to_test_mic")}
@@ -349,16 +420,19 @@ export function MicCheck({
                 ))}
               </div>
 
-              {/* Actions */}
+              {/* Actions remain visible throughout the device test. */}
               <div className="flex w-full flex-col items-center gap-3 pt-2">
+                <Button variant="outline" onClick={handleBack} className="w-full max-w-xs">
+                  <ArrowLeft className="h-4 w-4" />{t("session.go_back")}
+                </Button>
                 <Button
                   onClick={handleStart}
                   disabled={!resolvedAudioDetected}
                   className={cn(
-                    "h-11 w-full max-w-[300px] gap-2 rounded-lg text-sm font-semibold",
+                    "h-11 w-full max-w-xs gap-2 rounded-lg type-label",
                     resolvedAudioDetected
-                      ? "bg-primary text-on-primary hover:bg-primary/90"
-                      : "cursor-not-allowed bg-primary/40 text-on-primary/60"
+                      ? "bg-primary text-on-primary hover:opacity-90"
+                      : "cursor-not-allowed bg-primary text-on-primary opacity-40"
                   )}
                 >
                   {t("session.start_session")}
@@ -368,7 +442,7 @@ export function MicCheck({
                 {!resolvedAudioDetected && (
                   <button
                     onClick={handleSkipTest}
-                    className="text-xs text-on-surface-variant transition-colors hover:text-on-surface"
+                    className="type-caption text-on-surface-variant transition-colors hover:text-on-surface"
                   >
                     {t("session.skip_audio_test")}
                   </button>
@@ -384,48 +458,48 @@ export function MicCheck({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-none"
+                className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-xl border border-outline-variant bg-surface-container-lowest p-8 text-center shadow-none"
             >
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
-                <MicOff className="h-10 w-10 text-red-400" />
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-error-container">
+                <MicOff className="h-10 w-10 text-on-error-container" />
               </div>
 
               <div className="text-center">
-                <h2 className="text-lg font-semibold text-on-surface">
+                <h2 className="type-heading-md text-on-surface">
                   {t("session.mic_access_denied")}
                 </h2>
-                <p className="mt-2 text-sm text-on-surface-variant">
+                <p className="mt-2 type-body text-on-surface-variant">
                   {t("session.mic_enable_steps")}
                 </p>
               </div>
 
-              <ol className="w-full space-y-2 rounded-control border border-outline-variant/10 bg-surface-container-low p-4 text-sm text-on-surface-variant">
+              <ol className="w-full space-y-2 rounded-control border border-outline-variant bg-surface-container-low p-4 type-body text-on-surface-variant">
                 <li className="flex gap-2">
-                  <span className="shrink-0 font-semibold text-on-surface">1.</span>
+                  <span className="shrink-0 type-label text-on-surface">1.</span>
                   {t("session.mic_step_1")}
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 font-semibold text-on-surface">2.</span>
+                  <span className="shrink-0 type-label text-on-surface">2.</span>
                   {t("session.mic_step_2")}
                 </li>
                 <li className="flex gap-2">
-                  <span className="shrink-0 font-semibold text-on-surface">3.</span>
+                  <span className="shrink-0 type-label text-on-surface">3.</span>
                   {t("session.mic_step_3")}
                 </li>
               </ol>
 
-              <div className="flex w-full gap-3">
+              <div className="flex w-full flex-col gap-3 sm:flex-row">
                 <Button
                   onClick={handleBack}
                   variant="outline"
-                  className="flex-1 gap-2 border-outline-variant/30 bg-transparent text-on-surface-variant"
+                  className="flex-1 gap-2 border-outline-variant bg-transparent text-on-surface-variant"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   {t("session.go_back")}
                 </Button>
                 <Button
                   onClick={handleTryAgain}
-                  className="flex-1 gap-2 bg-primary text-white"
+                  className="flex-1 gap-2"
                 >
                   <RotateCcw className="h-4 w-4" />
                   {t("audioCheck.tryAgain")}
@@ -441,33 +515,33 @@ export function MicCheck({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-none"
+                className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-xl border border-outline-variant bg-surface-container-lowest p-8 text-center shadow-none"
             >
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
-                <MicOff className="h-10 w-10 text-red-400" />
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-error-container">
+                <MicOff className="h-10 w-10 text-on-error-container" />
               </div>
 
               <div className="text-center">
-                <h2 className="text-lg font-semibold text-on-surface">
+                <h2 className="type-heading-md text-on-surface">
                   {t("session.no_microphone_detected")}
                 </h2>
-                <p className="mt-2 text-sm text-on-surface-variant">
+                <p className="mt-2 type-body text-on-surface-variant">
                   {t("session.connect_microphone")}
                 </p>
               </div>
 
-              <div className="flex w-full gap-3">
+              <div className="flex w-full flex-col gap-3 sm:flex-row">
                 <Button
                   onClick={handleBack}
                   variant="outline"
-                  className="flex-1 gap-2 border-outline-variant/30 bg-transparent text-on-surface-variant"
+                  className="flex-1 gap-2 border-outline-variant bg-transparent text-on-surface-variant"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   {t("session.go_back")}
                 </Button>
                 <Button
                   onClick={handleTryAgain}
-                  className="flex-1 gap-2 bg-primary text-white"
+                  className="flex-1 gap-2"
                 >
                   <RotateCcw className="h-4 w-4" />
                   {t("audioCheck.tryAgain")}
@@ -483,33 +557,33 @@ export function MicCheck({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-3xl border border-outline-variant/50 bg-surface-container-lowest p-8 text-center shadow-none"
+                className="mx-auto flex max-w-md flex-col items-center gap-5 rounded-xl border border-outline-variant bg-surface-container-lowest p-8 text-center shadow-none"
             >
-              <div className="flex h-20 w-20 items-center justify-center rounded-full bg-red-500/10">
-                <MicOff className="h-10 w-10 text-red-400" />
+                <div className="flex h-20 w-20 items-center justify-center rounded-full bg-error-container">
+                <MicOff className="h-10 w-10 text-on-error-container" />
               </div>
 
               <div className="text-center">
-                <h2 className="text-lg font-semibold text-on-surface">
+                <h2 className="type-heading-md text-on-surface">
                   {t("session.microphone_error")}
                 </h2>
-                <p className="mt-2 text-sm text-on-surface-variant">
-                  {errorMessage || "An unexpected error occurred."}
+                <p className="mt-2 type-body text-on-surface-variant">
+                  {errorMessage || t("session.mic_recovery_body")}
                 </p>
               </div>
 
-              <div className="flex w-full gap-3">
+              <div className="flex w-full flex-col gap-3 sm:flex-row">
                 <Button
                   onClick={handleBack}
                   variant="outline"
-                  className="flex-1 gap-2 border-outline-variant/30 bg-transparent text-on-surface-variant"
+                  className="flex-1 gap-2 border-outline-variant bg-transparent text-on-surface-variant"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   {t("session.go_back")}
                 </Button>
                 <Button
                   onClick={handleTryAgain}
-                  className="flex-1 gap-2 bg-primary text-white"
+                  className="flex-1 gap-2"
                 >
                   <RotateCcw className="h-4 w-4" />
                   {t("audioCheck.tryAgain")}

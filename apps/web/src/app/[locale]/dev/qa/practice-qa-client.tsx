@@ -1,5 +1,6 @@
 "use client";
 
+import { PracticeMicrophoneQa } from "./practice-microphone-qa";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { DuelCreatePage } from "@/components/debates/duel-create-page";
@@ -30,6 +31,7 @@ import { cn } from "@/lib/utils";
 import { DevQaFrame } from "../dev-v2";
 
 type QaTab =
+  | "microphone"
   | "setup"
   | "prep"
   | "speaking"
@@ -41,6 +43,7 @@ type QaTab =
   | "ai-tts";
 
 const tabs: Array<{ key: QaTab; label: string }> = [
+  { key: "microphone", label: "Microphone lifecycle" },
   { key: "setup", label: "Solo setup" },
   { key: "prep", label: "Prep layout" },
   { key: "speaking", label: "Speaking layout" },
@@ -146,6 +149,8 @@ export function DevPracticeQaPage() {
   const [prepNotes, setPrepNotes] = useState(showcasePrepNotes);
   const ttsFixtureLanguage = searchParams.get("ttsLang") === "en" ? "en" : "vi";
   const aiTtsFixture = aiTtsFixtures[ttsFixtureLanguage];
+
+  if (activeTab === "microphone") return <PracticeMicrophoneQa />;
 
   return (
     <DevQaFrame

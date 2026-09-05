@@ -1,5 +1,7 @@
 "use client";
 
+import { canResumePracticeSession } from "@/lib/practice-session-recovery";
+
 import Image from "next/image";
 import {
   useEffect,
@@ -194,6 +196,7 @@ export default function PracticePage({
     () => readPracticePrefill(searchParams),
     [searchParams],
   );
+  const isResumeSetup = searchParams.get("resumeSetup") === "1";
   const localizedTopics = useMemo(() => initialTopics, [initialTopics]);
   const initialTopic = useMemo(
     () =>
@@ -383,6 +386,19 @@ export default function PracticePage({
       return;
     }
 
+    const existingSession = useSessionStore.getState();
+    const canPreserveSession =
+      isResumeSetup &&
+      canResumePracticeSession(existingSession.selectedTopic, initialTopic, existingSession.currentPhase);
+
+    // Returning from the recorder should keep the live session's settings and
+    // notes in memory. The query restores the topic and context; it must not
+    // turn a recoverable session into a fresh one.
+    if (canPreserveSession) {
+      appliedPrefillRef.current = prefillKey;
+      return;
+    }
+
     appliedPrefillRef.current = prefillKey;
     const practiceTrack = initialPrefill.practiceTrack ?? "speaking";
 
@@ -405,6 +421,8 @@ export default function PracticePage({
     setSide,
     setClubContext,
     practiceLanguage,
+    isResumeSetup,
+    initialTopic,
   ]);
 
   useEffect(() => {
@@ -435,16 +453,23 @@ export default function PracticePage({
           null,
       );
 
-      setPracticeTrack(initialPrefill?.practiceTrack ?? "speaking");
-      setPracticeLanguage(practiceLanguage);
-      setMode(initialPrefill?.mode ?? "quick");
-      setPrepTime(defaults.defaultPrepTime);
-      setSpeechTime(defaults.defaultSpeechTime);
-      setAiDifficulty(
-        initialPrefill?.aiDifficulty ?? defaults.defaultDifficulty,
-      );
-      setSide(initialPrefill?.side ?? "proposition");
-      setClubContext(initialPrefill?.clubContext ?? null);
+      const existingSession = useSessionStore.getState();
+      const canPreserveSession =
+        isResumeSetup &&
+        canResumePracticeSession(existingSession.selectedTopic, initialTopic, existingSession.currentPhase);
+
+      if (!canPreserveSession) {
+        setPracticeTrack(initialPrefill?.practiceTrack ?? "speaking");
+        setPracticeLanguage(practiceLanguage);
+        setMode(initialPrefill?.mode ?? "quick");
+        setPrepTime(defaults.defaultPrepTime);
+        setSpeechTime(defaults.defaultSpeechTime);
+        setAiDifficulty(
+          initialPrefill?.aiDifficulty ?? defaults.defaultDifficulty,
+        );
+        setSide(initialPrefill?.side ?? "proposition");
+        setClubContext(initialPrefill?.clubContext ?? null);
+      }
       setOrbBalance(profile?.orb_balance ?? 0);
       setReferralCode(profile?.referral_code ?? "");
     }
@@ -469,6 +494,8 @@ export default function PracticePage({
     setSide,
     setClubContext,
     setSpeechTime,
+    isResumeSetup,
+    initialTopic,
   ]);
 
   const openConfigOnMobile = () => {
