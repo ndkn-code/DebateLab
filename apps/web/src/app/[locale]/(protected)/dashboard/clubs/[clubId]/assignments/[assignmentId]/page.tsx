@@ -9,12 +9,12 @@ export const metadata = { title: "Assignment" };
 export default async function ClubHomeworkAssignmentPage({
   params,
 }: {
-  params: Promise<{ clubId: string; assignmentId: string }>;
+  params: Promise<{ locale: string; clubId: string; assignmentId: string }>;
 }) {
-  const { clubId, assignmentId } = await params;
+  const { locale, clubId, assignmentId } = await params;
   const data = await getClubHomeworkWorkspace(clubId, assignmentId);
   if (!data) notFound();
   if (data.mode === "student" && !STUDENT_LMS_WORKSPACE_V1) notFound();
 
-  return <ClubHomeworkWorkspace data={data} />;
+  return <ClubHomeworkWorkspace data={data} locale={locale} />;
 }

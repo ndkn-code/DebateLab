@@ -36,9 +36,26 @@ import type {
   TeacherWorkspaceSurface,
 } from "@/lib/teacher-workspace/presentation";
 import { isHeadTeacherWorkspaceSurface } from "@/lib/teacher-workspace/presentation";
+import {
+  classifyTeacherWorkspaceFailure,
+  newTeacherWorkspaceIdempotencyKey,
+  teacherWorkspaceFailureMessage,
+  teacherWorkspaceSavedMessage,
+  type TeacherWorkspaceWriteResult,
+} from "@/lib/teacher-workspace/write-seam";
+import {
+  correctTeacherWorkspaceAttendance,
+  openTeacherWorkspaceAttendanceRegister,
+  gradeTeacherWorkspaceHomework,
+  publishTeacherWorkspaceAnnouncement,
+  publishTeacherWorkspaceAssignment,
+} from "@/app/actions/class-lms";
 import { cn } from "@/lib/utils";
 import { HeadTeacherOperations } from "./HeadTeacherOperations";
 import { TeacherCalendar } from "./TeacherCalendar";
+import { QuestionImportWorkbench } from "./question-import/QuestionImportWorkbench";
+import { LMS_QUESTION_IMPORT_ENABLED } from "@/lib/features";
+import { Select } from "@/components/ui/select";
 
 type CoreTeacherSurface = Exclude<
   TeacherWorkspaceSurface,
@@ -237,6 +254,89 @@ function SearchField({
   );
 }
 
+type WriteNotice = { tone: "ok" | "error"; message: string } | null;
+
+/**
+ * Client half of the teacher workspace write seam.
+ *
+ * Holds one idempotency key per pending edit so a double click or a retry
+ * replays rather than double-applies, and so a teacher never sees a control go
+ * quiet: every attempt ends in either a saved notice or the reason it did not
+ * save. Transport failures (offline, a deploy mid-request) reject rather than
+ * returning the action's own result union, so they are caught here too.
+ */
+function useTeacherWorkspaceWrite(locale: string) {
+  const router = useRouter();
+  const [pendingScope, setPendingScope] = useState<string | null>(null);
+  const [notice, setNotice] = useState<WriteNotice>(null);
+  const keys = useRef(new Map<string, string>());
+
+  function idempotencyKeyFor(scope: string, operation: string) {
+    const existing = keys.current.get(scope);
+    if (existing) return existing;
+    const key = newTeacherWorkspaceIdempotencyKey(operation);
+    keys.current.set(scope, key);
+    return key;
+  }
+
+  /** Call whenever the inputs change: a new payload needs a new key. */
+  function resetKey(scope: string) {
+    keys.current.delete(scope);
+  }
+
+  async function run(
+    scope: string,
+    action: () => Promise<TeacherWorkspaceWriteResult<unknown>>,
+  ): Promise<boolean> {
+    if (pendingScope) return false;
+    setPendingScope(scope);
+    setNotice(null);
+    try {
+      const result = await action();
+      if (result.ok) {
+        resetKey(scope);
+        setNotice({ tone: "ok", message: teacherWorkspaceSavedMessage(locale) });
+        router.refresh();
+        return true;
+      }
+      setNotice({ tone: "error", message: result.message });
+      return false;
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message: teacherWorkspaceFailureMessage(
+          classifyTeacherWorkspaceFailure(error),
+          locale,
+        ),
+      });
+      return false;
+    } finally {
+      setPendingScope(null);
+    }
+  }
+
+  return { pendingScope, notice, setNotice, run, idempotencyKeyFor, resetKey };
+}
+
+function WriteNoticeBanner({ notice }: { notice: WriteNotice }) {
+  if (!notice) return null;
+  return (
+    <p
+      role={notice.tone === "error" ? "alert" : "status"}
+      className={cn(
+        "mt-3 rounded-control px-3 py-2 type-body-sm font-semibold",
+        // `on-success-container` is not a real role — the success pair is
+        // `success-container` / `success-dim`, mirroring error/error-dim.
+        notice.tone === "error"
+          ? "bg-error-container text-on-error-container"
+          : "bg-success-container text-success-dim",
+      )}
+    >
+      {notice.message}
+    </p>
+  );
+}
+
 function ClassesSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const vi = data.locale === "vi";
   const [query, setQuery] = useState("");
@@ -344,9 +444,36 @@ function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const [status, setStatus] = useState("needs_review");
   const [reviews, setReviews] = useState(data.reviews);
   const [feedback, setFeedback] = useState("");
+  const [score, setScore] = useState("");
+  const [scoreMax, setScoreMax] = useState("");
   const [selected, setSelected] = useState<TeacherReviewPresentation | null>(
     null,
   );
+  const write = useTeacherWorkspaceWrite(data.locale);
+  const gradeScope = selected ? `grade:${selected.key}` : "";
+  const scoreValue = Number(score);
+  const scoreMaxValue = Number(scoreMax);
+  const gradeValid =
+    score.trim().length > 0 &&
+    Number.isFinite(scoreValue) &&
+    Number.isFinite(scoreMaxValue) &&
+    scoreValue >= 0 &&
+    scoreMaxValue > 0 &&
+    scoreValue <= scoreMaxValue;
+  // Grading needs both the row handle and its version, or a concurrent edit
+  // could be overwritten without anyone noticing.
+  const canGrade = Boolean(
+    selected?.submissionId && selected?.submissionUpdatedAt,
+  );
+
+  function openReview(item: TeacherReviewPresentation) {
+    setFeedback("");
+    setScore("");
+    setScoreMax(item.programType === "ielts" ? "9" : "10");
+    write.setNotice(null);
+    write.resetKey(`grade:${item.key}`);
+    setSelected(item);
+  }
   const rows = reviews
     .filter((item) => status === "all" || item.status === status)
     .filter((item) =>
@@ -434,8 +561,7 @@ function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
                         );
                         return;
                       }
-                      setFeedback("");
-                      setSelected(item);
+                      openReview(item);
                     }}
                   >
                     {vi ? "Chấm" : "Review"}
@@ -492,12 +618,47 @@ function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
                       : "The submitted artifact and rubric evidence appear here. Closing this panel preserves queue position."}
                   </p>
                 </div>
-                <label className="mt-4 grid gap-1 type-label font-semibold text-on-surface">
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <label className="grid gap-1 type-label font-semibold text-on-surface">
+                    {vi ? "Điểm" : "Score"}
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.5"
+                      min={0}
+                      value={score}
+                      onChange={(event) => {
+                        setScore(event.target.value);
+                        write.resetKey(gradeScope);
+                      }}
+                      className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm font-normal text-on-surface"
+                    />
+                  </label>
+                  <label className="grid gap-1 type-label font-semibold text-on-surface">
+                    {vi ? "Thang điểm" : "Out of"}
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      step="0.5"
+                      min={0.5}
+                      value={scoreMax}
+                      onChange={(event) => {
+                        setScoreMax(event.target.value);
+                        write.resetKey(gradeScope);
+                      }}
+                      className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm font-normal text-on-surface"
+                    />
+                  </label>
+                </div>
+                <label className="mt-3 grid gap-1 type-label font-semibold text-on-surface">
                   {vi ? "Phản hồi giáo viên" : "Teacher feedback"}
                   <textarea
                     rows={6}
                     value={feedback}
-                    onChange={(event) => setFeedback(event.target.value)}
+                    onChange={(event) => {
+                      setFeedback(event.target.value);
+                      write.resetKey(gradeScope);
+                    }}
                     className="rounded-control border border-outline-variant bg-surface p-3 type-body-sm font-normal"
                     placeholder={
                       vi
@@ -506,50 +667,71 @@ function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
                     }
                   />
                 </label>
+                <WriteNoticeBanner notice={write.notice} />
                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                   <Button
-                    variant="outline"
-                    disabled={!isDemo}
-                    onClick={() => {
+                    variant="primary"
+                    disabled={
+                      !gradeValid ||
+                      (!isDemo && !canGrade) ||
+                      write.pendingScope === gradeScope
+                    }
+                    onClick={async () => {
                       if (!selected) return;
+                      if (isDemo && !canGrade) {
+                        setReviews((current) =>
+                          current.map((item) =>
+                            item.key === selected.key
+                              ? {
+                                  ...item,
+                                  status: "returned",
+                                  scoreSource: "teacher_published",
+                                }
+                              : item,
+                          ),
+                        );
+                        setSelected(null);
+                        return;
+                      }
+                      const saved = await write.run(gradeScope, () =>
+                        gradeTeacherWorkspaceHomework({
+                          locale: data.locale,
+                          submissionId: selected.submissionId as string,
+                          score: scoreValue,
+                          scoreMax: scoreMaxValue,
+                          feedback: feedback.trim() || null,
+                          expectedUpdatedAt:
+                            selected.submissionUpdatedAt as string,
+                          idempotencyKey: write.idempotencyKeyFor(
+                            gradeScope,
+                            "grade",
+                          ),
+                        }),
+                      );
+                      if (!saved) return;
                       setReviews((current) =>
-                        current.map((item) =>
-                          item.key === selected.key
-                            ? { ...item, status: "draft" }
-                            : item,
-                        ),
+                        current.filter((item) => item.key !== selected.key),
                       );
                       setSelected(null);
                     }}
                   >
-                    {vi ? "Lưu nháp" : "Save draft"}
-                  </Button>
-                  <Button
-                    disabled={!isDemo || feedback.trim().length < 3}
-                    onClick={() => {
-                      if (!selected) return;
-                      setReviews((current) =>
-                        current.map((item) =>
-                          item.key === selected.key
-                            ? {
-                                ...item,
-                                status: "returned",
-                                scoreSource: "teacher_published",
-                              }
-                            : item,
-                        ),
-                      );
-                      setSelected(null);
-                    }}
-                  >
-                    {vi ? "Xuất bản phản hồi" : "Publish feedback"}
+                    {write.pendingScope === gradeScope
+                      ? vi
+                        ? "Đang lưu…"
+                        : "Saving…"
+                      : vi
+                        ? "Trả điểm cho học viên"
+                        : "Return grade to learner"}
                   </Button>
                 </div>
-                {!isDemo ? (
-                  <p className="mt-3 type-caption text-on-surface-variant">
+                {!isDemo && !canGrade ? (
+                  <p
+                    className="mt-3 type-caption text-on-surface-variant"
+                    role="status"
+                  >
                     {vi
-                      ? "Thao tác chấm bài sẽ bật khi hợp đồng ghi dữ liệu được bàn giao."
-                      : "Review mutations stay disabled until the write contract is available."}
+                      ? "Bài này được chấm trong bảng chấm IELTS của lớp, không phải ở đây."
+                      : "This work is graded in the class IELTS review panel, not here."}
                   </p>
                 ) : null}
               </div>
@@ -564,9 +746,13 @@ function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
 function AssignmentTable({
   assignments,
   locale,
+  onPublish,
+  pendingScope,
 }: {
   assignments: TeacherAssignmentPresentation[];
   locale: string;
+  onPublish?: (assignment: TeacherAssignmentPresentation) => void;
+  pendingScope?: string | null;
 }) {
   const vi = locale === "vi";
   return (
@@ -581,6 +767,11 @@ function AssignmentTable({
             <th className="px-3 py-2.5">{vi ? "Đã chấm" : "Reviewed"}</th>
             <th className="px-3 py-2.5">{vi ? "Thiếu" : "Missing"}</th>
             <th className="px-3 py-2.5">{vi ? "Trạng thái" : "Status"}</th>
+            {onPublish ? (
+              <th className="px-3 py-2.5">
+                <span className="sr-only">{vi ? "Đăng bài" : "Publish"}</span>
+              </th>
+            ) : null}
           </tr>
         </thead>
         <tbody className="divide-y divide-outline-variant">
@@ -610,6 +801,29 @@ function AssignmentTable({
               <td className="px-3 py-3">
                 <StatusPill value={item.status} locale={locale} />
               </td>
+              {onPublish ? (
+                <td className="px-3 py-3 text-right">
+                  {item.status === "draft" ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={
+                        !item.updatedAt ||
+                        pendingScope === `publish-assignment:${item.id}`
+                      }
+                      onClick={() => onPublish(item)}
+                    >
+                      {pendingScope === `publish-assignment:${item.id}`
+                        ? vi
+                          ? "Đang đăng…"
+                          : "Publishing…"
+                        : vi
+                          ? "Giao bài"
+                          : "Publish"}
+                    </Button>
+                  ) : null}
+                </td>
+              ) : null}
             </tr>
           ))}
         </tbody>
@@ -624,11 +838,31 @@ function AssignmentsSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const [query, setQuery] = useState("");
   const [composerOpen, setComposerOpen] = useState(false);
   const [assignments, setAssignments] = useState(data.assignments);
+  const write = useTeacherWorkspaceWrite(data.locale);
   const filtered = assignments.filter((item) =>
     `${item.title} ${item.classTitle}`
       .toLowerCase()
       .includes(query.toLowerCase()),
   );
+
+  async function publish(assignment: TeacherAssignmentPresentation) {
+    if (!assignment.updatedAt) return;
+    const scope = `publish-assignment:${assignment.id}`;
+    const saved = await write.run(scope, () =>
+      publishTeacherWorkspaceAssignment({
+        locale: data.locale,
+        assignmentId: assignment.id,
+        expectedUpdatedAt: assignment.updatedAt as string,
+        idempotencyKey: write.idempotencyKeyFor(scope, "publish-assignment"),
+      }),
+    );
+    if (!saved) return;
+    setAssignments((current) =>
+      current.map((item) =>
+        item.id === assignment.id ? { ...item, status: "assigned" } : item,
+      ),
+    );
+  }
   return (
     <>
       <SurfaceHeader
@@ -665,6 +899,7 @@ function AssignmentsSurface({ data }: { data: TeacherWorkspacePresentation }) {
                 ) as TeacherAssignmentPresentation["kind"],
                 dueAt: new Date(due).toISOString(),
                 status: "assigned",
+                updatedAt: null,
                 submitted: 0,
                 reviewed: 0,
                 missing: classItem?.studentCount ?? 0,
@@ -738,8 +973,16 @@ function AssignmentsSurface({ data }: { data: TeacherWorkspacePresentation }) {
           label={vi ? "Tìm bài tập" : "Search assignments"}
         />
       </div>
+      <WriteNoticeBanner notice={write.notice} />
       <div className="mt-3">
-        <AssignmentTable assignments={filtered} locale={data.locale} />
+        <AssignmentTable
+          assignments={filtered}
+          locale={data.locale}
+          onPublish={(assignment) => {
+            void publish(assignment);
+          }}
+          pendingScope={write.pendingScope}
+        />
       </div>
     </>
   );
@@ -921,18 +1164,82 @@ function GradebookSurface({ data }: { data: TeacherWorkspacePresentation }) {
   );
 }
 
+/**
+ * One lesson's register.
+ *
+ * `teacher_workspace_correct_attendance` corrects a row in an *existing*
+ * register; nothing in the product can open one, because the only writer of
+ * `class_attendance_sessions` never sets `occurrence_id` and a trigger rejects
+ * the insert without it (see the B1 report). So when `sessionId` is null the
+ * roster is still shown, read-only, with the reason said out loud — a teacher
+ * looking for a greyed button deserves to know why it is grey.
+ */
 function AttendanceSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const vi = data.locale === "vi";
   const isDemo = data.source === "explicit_demo";
-  const [statuses, setStatuses] = useState(
-    Object.fromEntries(data.attendance.map((item) => [item.id, item.status])),
+  const register = data.attendance;
+  const [statuses, setStatuses] = useState<Record<string, string>>(() =>
+    Object.fromEntries(
+      register.students.map((student) => [student.id, student.status]),
+    ),
   );
-  const [saved, setSaved] = useState(false);
-  const values = ["present", "late", "absent", "excused"] as const;
-  const attendanceClass = data.classes.find(
-    (item) => item.id === data.attendance[0]?.classId,
+  const write = useTeacherWorkspaceWrite(data.locale);
+  const [sessionId, setSessionId] = useState(register.sessionId);
+  const values = ["present", "late", "absent"] as const;
+  const label = (value: (typeof values)[number]) =>
+    vi
+      ? { present: "Có mặt", late: "Đi muộn", absent: "Vắng" }[value]
+      : value;
+  const canWrite = Boolean(sessionId);
+  const canOpenRegister = Boolean(
+    !sessionId &&
+      register.classId &&
+      register.courseId &&
+      register.occurrenceId &&
+      register.sessionDate,
   );
-  if (!data.attendance.length) {
+
+  async function openRegister() {
+    const scope = "attendance:open-register";
+    const saved = await write.run(scope, async () => {
+      const result = await openTeacherWorkspaceAttendanceRegister({
+        locale: data.locale,
+        classId: register.classId as string,
+        courseId: register.courseId as string,
+        occurrenceId: register.occurrenceId as string,
+        sessionDate: register.sessionDate as string,
+        title: register.classTitle,
+      });
+      if (result.ok) setSessionId(result.data.sessionId);
+      return result;
+    });
+    return saved;
+  }
+
+  async function mark(studentId: string, value: (typeof values)[number]) {
+    const previous = statuses[studentId];
+    if (previous === value) return;
+    const scope = `attendance:${studentId}`;
+    write.resetKey(scope);
+    setStatuses((current) => ({ ...current, [studentId]: value }));
+    if (isDemo && !sessionId) return;
+    const saved = await write.run(scope, () =>
+      correctTeacherWorkspaceAttendance({
+        locale: data.locale,
+        sessionId: sessionId as string,
+        userId: studentId,
+        status: value,
+        notes: null,
+        idempotencyKey: write.idempotencyKeyFor(scope, "attendance"),
+      }),
+    );
+    // Never leave the row showing a mark the database did not accept.
+    if (!saved) {
+      setStatuses((current) => ({ ...current, [studentId]: previous }));
+    }
+  }
+
+  if (!register.students.length) {
     return (
       <>
         <SurfaceHeader surface="attendance" locale={data.locale} />
@@ -954,58 +1261,58 @@ function AttendanceSurface({ data }: { data: TeacherWorkspacePresentation }) {
   }
   return (
     <>
-      <SurfaceHeader
-        surface="attendance"
-        locale={data.locale}
-        action={
-          <Button
-            disabled={!isDemo}
-            onClick={() => {
-              setSaved(true);
-              window.setTimeout(() => setSaved(false), 2500);
-            }}
-          >
-            {vi ? "Lưu điểm danh" : "Save attendance"}
-          </Button>
-        }
-      />
+      <SurfaceHeader surface="attendance" locale={data.locale} />
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-control border border-outline-variant bg-surface p-3">
         <div>
           <p className="type-label font-semibold text-on-surface">
-            {attendanceClass?.title ?? (vi ? "Lớp đã chọn" : "Selected class")}
+            {register.classTitle ?? (vi ? "Lớp đã chọn" : "Selected class")}
           </p>
           <p className="type-caption text-on-surface-variant">
-            {attendanceClass?.nextLessonAt
-              ? formatDateTime(attendanceClass.nextLessonAt, data.locale)
+            {register.lessonAt
+              ? formatDateTime(register.lessonAt, data.locale)
               : vi
                 ? "Buổi học tiếp theo chưa được lên lịch"
                 : "Next lesson is not scheduled"}
           </p>
         </div>
-        <Button
-          variant="outline"
-          disabled={!isDemo}
-          onClick={() =>
-            setStatuses(
-              Object.fromEntries(
-                data.attendance.map((item) => [item.id, "present"]),
-              ),
-            )
-          }
-        >
-          {vi ? "Tất cả có mặt" : "Mark all present"}
-        </Button>
       </div>
-      {saved ? (
-        <p
-          className="mt-3 rounded-control bg-success-container px-3 py-2 type-body-sm font-semibold text-on-success-container"
+      {!canWrite ? (
+        <div
+          className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-control border border-outline-variant bg-surface-container-low px-3 py-2.5"
           role="status"
         >
-          {vi ? "Đã lưu điểm danh bản xem trước." : "Preview attendance saved."}
-        </p>
+          <p className="type-body-sm text-on-surface-variant">
+            {canOpenRegister
+              ? vi
+                ? "Sổ điểm danh của buổi này chưa được mở."
+                : "The register for this lesson has not been opened yet."
+              : vi
+                ? "Buổi học này chưa gắn với giáo trình nên chưa mở được sổ điểm danh. Danh sách bên dưới chỉ để xem."
+                : "This lesson is not linked to a course, so no register can be opened. The roster below is read-only."}
+          </p>
+          {canOpenRegister ? (
+            <Button
+              variant="primary"
+              size="sm"
+              disabled={write.pendingScope === "attendance:open-register"}
+              onClick={() => {
+                void openRegister();
+              }}
+            >
+              {write.pendingScope === "attendance:open-register"
+                ? vi
+                  ? "Đang mở…"
+                  : "Opening…"
+                : vi
+                  ? "Mở sổ điểm danh"
+                  : "Open register"}
+            </Button>
+          ) : null}
+        </div>
       ) : null}
+      <WriteNoticeBanner notice={write.notice} />
       <div className="mt-3 divide-y divide-outline-variant rounded-control border border-outline-variant bg-surface">
-        {data.attendance.map((student) => (
+        {register.students.map((student) => (
           <fieldset
             key={student.id}
             className="grid gap-3 p-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
@@ -1014,12 +1321,15 @@ function AttendanceSurface({ data }: { data: TeacherWorkspacePresentation }) {
             <div className="type-label font-semibold text-on-surface">
               {student.name}
             </div>
-            <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
+            <div className="grid grid-cols-3 gap-1.5">
               {values.map((value) => (
                 <label
                   key={value}
                   className={cn(
-                    "flex h-8 cursor-pointer items-center justify-center rounded-control border px-2 type-caption font-semibold capitalize",
+                    "flex h-8 items-center justify-center rounded-control border px-2 type-caption font-semibold capitalize",
+                    canWrite
+                      ? "cursor-pointer"
+                      : "cursor-not-allowed opacity-60",
                     statuses[student.id] === value
                       ? "border-primary bg-primary-container text-on-primary-container"
                       : "border-outline-variant text-on-surface-variant",
@@ -1027,27 +1337,19 @@ function AttendanceSurface({ data }: { data: TeacherWorkspacePresentation }) {
                 >
                   <input
                     type="radio"
-                    disabled={!isDemo}
+                    disabled={
+                      !canWrite ||
+                      write.pendingScope === `attendance:${student.id}`
+                    }
                     name={`attendance-${student.id}`}
                     value={value}
                     checked={statuses[student.id] === value}
                     onChange={() => {
-                      setSaved(false);
-                      setStatuses((current) => ({
-                        ...current,
-                        [student.id]: value,
-                      }));
+                      void mark(student.id, value);
                     }}
                     className="sr-only"
                   />
-                  {vi
-                    ? {
-                        present: "Có mặt",
-                        late: "Đi muộn",
-                        absent: "Vắng",
-                        excused: "Có phép",
-                      }[value]
-                    : value}
+                  {label(value)}
                 </label>
               ))}
             </div>
@@ -1062,6 +1364,8 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const vi = data.locale === "vi";
   const isDemo = data.source === "explicit_demo";
   const [query, setQuery] = useState("");
+  const importOrganizations = Array.from(new Set(data.classes.filter((item) => item.programType === "ielts").map((item) => item.organizationId)));
+  const [importOrganization, setImportOrganization] = useState(importOrganizations.length === 1 ? importOrganizations[0] : "");
   const [composerOpen, setComposerOpen] = useState(false);
   const [materials, setMaterials] = useState(data.materials);
   const [selected, setSelected] = useState<
@@ -1155,6 +1459,25 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
           </div>
         </form>
       ) : null}
+      {LMS_QUESTION_IMPORT_ENABLED && !isDemo && importOrganizations.length > 1 ? (
+        <div className="my-3 min-w-0">
+          <label htmlFor="question-import-organization" className="type-label text-on-surface">
+            {vi ? "Chọn tổ chức theo lớp IELTS" : "Choose an organisation by IELTS class"}
+          </label>
+          <Select id="question-import-organization" value={importOrganization} onChange={(event) => setImportOrganization(event.target.value)}>
+            <option value="">{vi ? "Chọn tổ chức" : "Choose an organisation"}</option>
+            {importOrganizations.map((id) => <option key={id} value={id}>{data.classes.filter((item) => item.organizationId === id && item.programType === "ielts").map((item) => item.title).join(", ")}</option>)}
+          </Select>
+        </div>
+      ) : null}
+      <QuestionImportWorkbench
+        key={importOrganization || "demo"}
+        locale={data.locale}
+        enabled={isDemo || LMS_QUESTION_IMPORT_ENABLED}
+        canPublish={isDemo || data.isHeadTeacher || data.isAdminPreview}
+        demo={isDemo}
+        clubId={isDemo ? undefined : importOrganization || undefined}
+      />
       <div className="mt-3">
         <SearchField
           value={query}
@@ -1237,6 +1560,8 @@ function AnnouncementsSurface({
   const isDemo = data.source === "explicit_demo";
   const [composerOpen, setComposerOpen] = useState(false);
   const [announcements, setAnnouncements] = useState(data.announcements);
+  const write = useTeacherWorkspaceWrite(data.locale);
+  const composeScope = "announcement:new";
   return (
     <>
       <SurfaceHeader
@@ -1244,8 +1569,12 @@ function AnnouncementsSurface({
         locale={data.locale}
         action={
           <Button
-            disabled={!isDemo}
-            onClick={() => setComposerOpen((open) => !open)}
+            disabled={!isDemo && !data.classes.length}
+            onClick={() => {
+              write.setNotice(null);
+              write.resetKey(composeScope);
+              setComposerOpen((open) => !open);
+            }}
           >
             <Megaphone />
             {vi ? "Thông báo mới" : "New announcement"}
@@ -1255,9 +1584,8 @@ function AnnouncementsSurface({
       {composerOpen ? (
         <form
           className="mt-3 grid gap-3 rounded-control border border-outline-variant bg-primary-container p-4"
-          onSubmit={(event: FormEvent<HTMLFormElement>) => {
+          onSubmit={async (event: FormEvent<HTMLFormElement>) => {
             event.preventDefault();
-            if (!isDemo) return;
             const form = new FormData(event.currentTarget);
             const classId = String(form.get("classId") ?? data.classes[0]?.id);
             const classItem = data.classes.find((item) => item.id === classId);
@@ -1265,16 +1593,52 @@ function AnnouncementsSurface({
               .submitter as HTMLButtonElement | null;
             const status =
               submitter?.value === "published" ? "published" : "draft";
+            const title = String(form.get("title") ?? "Announcement");
+            const body = String(form.get("body") ?? "");
+            if (isDemo) {
+              setAnnouncements((current) => [
+                {
+                  id: `preview-announcement-${current.length + 1}`,
+                  classId,
+                  classTitle: classItem?.title ?? "Class",
+                  title,
+                  body,
+                  status,
+                  publishAt:
+                    status === "published" ? "2026-08-31T16:00:00.000Z" : null,
+                },
+                ...current,
+              ]);
+              setComposerOpen(false);
+              return;
+            }
+            const saved = await write.run(composeScope, () =>
+              publishTeacherWorkspaceAnnouncement({
+                locale: data.locale,
+                classId,
+                title,
+                body,
+                publish: status === "published",
+                idempotencyKey: write.idempotencyKeyFor(
+                  composeScope,
+                  "announcement",
+                ),
+              }),
+            );
+            if (!saved) return;
+            // `router.refresh()` re-renders the server component, but this list
+            // was seeded into state on first mount and would otherwise ignore
+            // the new row — leaving a saved announcement invisible.
             setAnnouncements((current) => [
               {
-                id: `preview-announcement-${current.length + 1}`,
+                id: `pending-${classId}-${current.length + 1}`,
                 classId,
                 classTitle: classItem?.title ?? "Class",
-                title: String(form.get("title") ?? "Announcement"),
-                body: String(form.get("body") ?? ""),
+                title,
+                body,
                 status,
                 publishAt:
-                  status === "published" ? "2026-08-31T16:00:00.000Z" : null,
+                  status === "published" ? new Date().toISOString() : null,
               },
               ...current,
             ]);
@@ -1308,15 +1672,32 @@ function AnnouncementsSurface({
             ))}
           </select>
           <div className="flex justify-end gap-2">
-            <Button variant="outline" type="submit" value="draft">
+            <Button
+              variant="outline"
+              type="submit"
+              value="draft"
+              disabled={write.pendingScope === composeScope}
+            >
               {vi ? "Lưu nháp" : "Save draft"}
             </Button>
-            <Button type="submit" value="published">
-              {vi ? "Đăng" : "Publish"}
+            <Button
+              variant="primary"
+              type="submit"
+              value="published"
+              disabled={write.pendingScope === composeScope}
+            >
+              {write.pendingScope === composeScope
+                ? vi
+                  ? "Đang đăng…"
+                  : "Publishing…"
+                : vi
+                  ? "Đăng"
+                  : "Publish"}
             </Button>
           </div>
         </form>
       ) : null}
+      <WriteNoticeBanner notice={write.notice} />
       <div className="mt-3 grid gap-3 lg:grid-cols-2">
         {announcements.map((item) => (
           <article
@@ -1399,7 +1780,19 @@ function ClassDetailSurface({
       classItem.programType === "ielts"
         ? data.gradebook
         : { students: [], assessments: [], scores: {} },
-    attendance: data.attendance.filter((item) => item.classId === classItem.id),
+    attendance:
+      data.attendance.classId === classItem.id
+        ? data.attendance
+        : {
+            classId: null,
+            classTitle: null,
+            sessionId: null,
+            courseId: null,
+            occurrenceId: null,
+            sessionDate: null,
+            lessonAt: null,
+            students: [],
+          },
     materials: data.materials.filter((item) => item.classId === classItem.id),
     announcements: data.announcements.filter(
       (item) => item.classId === classItem.id,

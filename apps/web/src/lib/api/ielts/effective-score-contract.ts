@@ -36,6 +36,23 @@ export function projectEffectiveScoreSource(
     : "objective";
 }
 
+/** Parent reports retain the distinction between mixed teacher/AI coverage and
+ * fully teacher-confirmed results. The gradebook projection predates that
+ * consumer and intentionally collapses both into its legacy UI source. */
+export function projectParentReportScoreSource(
+  effective: ScoreRow,
+  source: ScoreRow,
+): "objective" | "ai" | "teacher" | "mixed" | "none" {
+  const raw = effective?.score_source ?? source?.score_source;
+  if (raw === "mixed") return "mixed";
+  if (raw === "teacher" || raw === "teacher_confirmed") return "teacher";
+  if (raw === "ai" || raw === "ai_provisional") return "ai";
+  const scored = effective ?? source;
+  if (["writing_band", "speaking_band"].some((key) => band(scored, key) !== null)) return "ai";
+  if (["listening_band", "reading_band"].some((key) => band(scored, key) !== null)) return "objective";
+  return "none";
+}
+
 /**
  * Prefer the materialized, teacher-aware score while preserving an AI-only
  * fallback for attempts created before the effective-score migration.

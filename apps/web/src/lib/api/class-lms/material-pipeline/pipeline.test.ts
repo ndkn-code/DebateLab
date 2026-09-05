@@ -42,6 +42,45 @@ test("ingest schema enforces per-file limits and rejects unknown fields", () => 
   );
 });
 
+test("question imports require a bound batch and versioned attestation", () => {
+  const questionImport = {
+    clubId: ids.clubId,
+    programType: "ielts" as const,
+    title: "Reading import",
+    fileName: "reading.pdf",
+    mimeType: "application/pdf",
+    sizeBytes: 10,
+    idempotencyKey: "teacher-reading-import",
+    purpose: "question_import" as const,
+    questionImport: {
+      batchId: ids.materialId,
+      rightsAttestationVersion: "2026-09-04.v1",
+      rightsAttested: true as const,
+    },
+  };
+  assert.equal(materialIngestSchema.safeParse(questionImport).success, true);
+  for (const invalid of [
+    { ...questionImport, programType: "debate" },
+    { ...questionImport, scopeClassId: ids.classId },
+    { ...questionImport, mimeType: "text/plain" },
+    { ...questionImport, questionImport: { ...questionImport.questionImport, rightsAttestationVersion: "unreviewed" } },
+  ]) assert.equal(materialIngestSchema.safeParse(invalid).success, false);
+  assert.equal(
+    materialIngestSchema.safeParse({
+      ...questionImport,
+      questionImport: { ...questionImport.questionImport, batchId: undefined },
+    }).success,
+    false,
+  );
+  assert.equal(
+    materialIngestSchema.safeParse({
+      ...questionImport,
+      purpose: "material",
+    }).success,
+    false,
+  );
+});
+
 test("storage paths bind scope IDs without exposing the uploaded filename", () => {
   const path = createOpaqueStoragePath({
     ...ids,

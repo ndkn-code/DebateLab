@@ -55,6 +55,7 @@ function toJson(value: unknown): Json {
   return value as unknown as Json;
 }
 
+// eslint-disable-next-line complexity -- creation coordinates replay, ownership, frozen-blueprint, and legacy-path rules in one persistence boundary.
 export async function createSpeakingResponse(
   raw: unknown,
   userId: string,

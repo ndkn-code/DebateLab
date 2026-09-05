@@ -6,9 +6,13 @@ import {
   markVersionQueued,
 } from "@/lib/api/class-lms/material-pipeline/repository";
 import { enqueueMaterialProcessing } from "@/lib/queues/lms-materials";
-import { requireMaterialManager } from "@/lib/api/class-lms/material-pipeline/service";
+import {
+  requireMaterialManager,
+  requireQuestionImportMaterialManager,
+} from "@/lib/api/class-lms/material-pipeline/service";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { SHARED_LMS_MATERIALS_V1 } from "@/lib/features";
+import { SHARED_LMS_MATERIALS_V1, LMS_QUESTION_IMPORT_COMPLIANCE_APPROVED, LMS_QUESTION_IMPORT_SERVER_ENABLED } from "@/lib/features";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -23,12 +27,23 @@ export async function POST(
   try {
     const { materialId } = await params;
     const input = materialRetrySchema.parse(await request.json());
+    if (input.purpose === "question_import") {
+      if (!LMS_QUESTION_IMPORT_SERVER_ENABLED || !LMS_QUESTION_IMPORT_COMPLIANCE_APPROVED)
+        return NextResponse.json({ ok: false, error: "Question import is not enabled." }, { status: 404 });
+      const rateLimit = await consumeRateLimit(auth.supabase, { scope: `lms-question-import:retry:${auth.user.id}:${input.versionId}`, limit: 3, windowSeconds: 86400 });
+      if (!rateLimit.success) return NextResponse.json({ ok: false, error: "Retry limit reached.", retryAfterSeconds: rateLimit.retryAfterSeconds }, { status: 429 });
+    }
     const admin = createAdminClient();
     const version = await getVersion(admin, input.versionId);
     if (!version || version.material_id !== materialId)
       return NextResponse.json(
         { error: "Material version not found." },
         { status: 404 },
+      );
+    if ((version.purpose ?? "material") !== input.purpose)
+      return NextResponse.json(
+        { error: "Material purpose does not match this request." },
+        { status: 409 },
       );
     const material = await admin
       .from("lms_materials")
@@ -41,7 +56,13 @@ export async function POST(
         { error: "Material not found." },
         { status: 404 },
       );
-    const actor = await requireMaterialManager(auth.supabase, materialId);
+    const actor = input.purpose === "question_import"
+      ? await requireQuestionImportMaterialManager(
+          auth.supabase,
+          materialId,
+          version.id,
+        )
+      : await requireMaterialManager(auth.supabase, materialId);
     const key = `lms-material:${material.data.club_id}:${actor.actorId}:${input.idempotencyKey}`;
     if (version.status !== "failed" || !version.original_path)
       return NextResponse.json(

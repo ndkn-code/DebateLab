@@ -66,7 +66,7 @@ export function buildContentSecurityPolicy({
     "font-src 'self' data:",
     "media-src 'self' blob: data: https://api.deepgram.com https://*.supabase.co",
     `connect-src ${connectSrc}`,
-    "frame-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://tally.so https://*.tally.so",
+    "frame-src 'self' blob: https://www.youtube.com https://www.youtube-nocookie.com https://tally.so https://*.tally.so",
     "worker-src 'self' blob:",
     "manifest-src 'self'",
     ...(!isDevelopment ? ["upgrade-insecure-requests"] : []),

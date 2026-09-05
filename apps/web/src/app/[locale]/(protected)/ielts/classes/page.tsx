@@ -5,6 +5,7 @@ import { fileKind } from "@/components/materials/material-ui-model";
 import { loadMySharedMaterialsWeek } from "@/app/actions/shared-lms-materials";
 import { getSessionUserId } from "@/lib/api/ielts/assignment-access";
 import { loadMyStudentLmsWeek } from "@/lib/api/class-lms/student-weekly-repository";
+import { loadMyAssignedWork } from "@/lib/api/class-lms/student-assignments-repository";
 import type { StudentWeeklyOccurrence } from "@/lib/api/class-lms/student-weekly-repository";
 import type { LearnerMaterialRow } from "@/lib/api/class-lms/materials-repository";
 import { DEFAULT_CLASS_TIMEZONE } from "@/lib/api/admin-class-schedules-model";
@@ -159,10 +160,10 @@ export default async function IeltsClassesPage({
   );
   const startDate = weekStartForTimezone(filters.weekStart, timezone);
   const endDate = addIsoDateDays(startDate, 6);
-  const data = await loadMyStudentLmsWeek({
-    startDate,
-    endDate,
-  });
+  const [data, assignedWork] = await Promise.all([
+    loadMyStudentLmsWeek({ startDate, endDate }),
+    loadMyAssignedWork(),
+  ]);
   const { data: membershipRows, error: membershipError } = await db
     .from("class_memberships")
     .select("class_id")
@@ -190,6 +191,7 @@ export default async function IeltsClassesPage({
       timezone={timezone}
       materialsByOccurrence={materialGroups.byOccurrence}
       generalMaterials={materialGroups.general}
+      assignedWork={assignedWork}
     />
   );
 }

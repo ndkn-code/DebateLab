@@ -7,7 +7,9 @@ import {
   useState,
   useTransition,
 } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import dynamic from "next/dynamic";
+import { PageContainer } from "@/components/shared/product-layout";
 import { curveNatural } from "@visx/curve";
 import {
   ArrowLeft,
@@ -65,6 +67,8 @@ import {
   type IeltsTeacherWorkbenchData,
   type WorkbenchTab,
 } from "@/components/admin/classes/IeltsTeacherWorkbench";
+import { ClassExportMenu } from "@/components/admin/classes/ClassExportMenu";
+import { RosterImportDialog } from "@/components/admin/classes/RosterImportDialog";
 import { getProgramLabel } from "@/lib/api/admin-class-schedules-model";
 import { cn } from "@/lib/utils";
 import type {
@@ -78,14 +82,27 @@ import type {
 } from "@/lib/types/admin-classes";
 
 interface Props {
+  classesHref?: string;
   data: AdminClassDetailData;
   ieltsWorkbench?: IeltsTeacherWorkbenchData;
   ieltsInitialTab?: WorkbenchTab;
   ieltsInitialResponseId?: string | null;
+  /**
+   * `ROSTER_IMPORT_V1` is a server-evaluated const and this file is a client
+   * component, so the flag is read in the server page and threaded down.
+   * Export is never gated: it only reads tables that already exist.
+   */
+  rosterImportEnabled?: boolean;
+  /** The class's organization. Roster import writes club-scoped records. */
+  clubId?: string | null;
 }
 
+const ClassAnalyticsPanel = dynamic(() =>
+  import("@/components/analytics/ClassAnalyticsPanel").then((module) => module.ClassAnalyticsPanel),
+);
+
 type Tab =
-  "workbench" | "overview" | "students" | "courses" | "schedule" | "attendance";
+  "workbench" | "analytics" | "overview" | "students" | "courses" | "schedule" | "attendance";
 
 function initials(name: string) {
   return (
@@ -517,12 +534,16 @@ function AttendanceSheet({
 }
 
 export function ClassDetailDashboard({
+  classesHref = "/dashboard/admin/classes",
   data,
   ieltsWorkbench,
   ieltsInitialTab,
   ieltsInitialResponseId,
+  rosterImportEnabled = false,
+  clubId = null,
 }: Props) {
   const t = useTranslations("admin.classes.detail");
+  const locale = useLocale() === "vi" ? "vi" : "en";
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(
     data.classInfo.programType === "ielts" ? "workbench" : "overview",
@@ -546,7 +567,7 @@ export function ClassDetailDashboard({
   function handleArchive() {
     startTransition(async () => {
       await archiveClass(data.classInfo.id);
-      router.push("/dashboard/admin/classes");
+      router.push(classesHref);
     });
   }
 
@@ -562,6 +583,7 @@ export function ClassDetailDashboard({
 
   const tabs: Tab[] = [
     ...(data.classInfo.programType === "ielts" ? (["workbench"] as const) : []),
+    ...(data.classInfo.programType === "ielts" && ieltsWorkbench?.enabled ? (["analytics"] as const) : []),
     "overview",
     "students",
     "courses",
@@ -657,11 +679,12 @@ export function ClassDetailDashboard({
   }
 
   return (
-    <PageTransition className="mx-auto w-full max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8 lg:py-7">
+    <PageContainer size="data" className="min-w-0">
+    <PageTransition className="min-w-0">
       <div className="flex flex-col gap-4 border-b border-outline-variant pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <Link
-            href="/dashboard/admin/classes"
+            href={classesHref}
             className="mb-3 inline-flex items-center gap-2 text-sm font-medium text-on-surface-variant transition-all duration-200 hover:-translate-y-0.5 hover:text-primary active:scale-[0.98]"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -797,6 +820,12 @@ export function ClassDetailDashboard({
             initialTab={ieltsInitialTab}
             initialResponseId={ieltsInitialResponseId}
           />
+        </div>
+      )}
+
+      {tab === "analytics" && data.classInfo.programType === "ielts" && (
+        <div role="tabpanel" id="class-panel-analytics" aria-labelledby="class-tab-analytics">
+          <ClassAnalyticsPanel classId={data.classInfo.id} locale={locale} />
         </div>
       )}
 
@@ -942,41 +971,55 @@ export function ClassDetailDashboard({
             <h2 className="text-lg font-bold text-on-surface">
               {t("roster.title", { count: data.roster.length })}
             </h2>
-            <div className="w-full md:w-80">
-              <SearchPanel
-                placeholder={t("roster.search")}
-                results={studentResults}
-                onSearch={(query) => {
-                  if (query.trim().length < 2) return setStudentResults([]);
-                  startTransition(async () => {
-                    const results = await searchStudentsForClass(
-                      query,
-                      data.classInfo.id,
-                    );
-                    setStudentResults(
-                      results.map((student) => ({
-                        id: student.id,
-                        displayName:
-                          student.display_name ||
-                          student.email?.split("@")[0] ||
-                          "Unnamed student",
-                        email: student.email,
-                        avatarUrl: student.avatar_url,
-                      })),
-                    );
-                  });
-                }}
-                onAdd={(student) => {
-                  startTransition(async () => {
-                    await addStudentToClass(data.classInfo.id, student.id);
-                    router.refresh();
-                  });
-                }}
-                renderLabel={(student) => ({
-                  title: student.displayName,
-                  subtitle: student.email,
-                })}
-              />
+            <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
+              <div className="w-full md:w-72">
+                <SearchPanel
+                  placeholder={t("roster.search")}
+                  results={studentResults}
+                  onSearch={(query) => {
+                    if (query.trim().length < 2) return setStudentResults([]);
+                    startTransition(async () => {
+                      const results = await searchStudentsForClass(
+                        query,
+                        data.classInfo.id,
+                      );
+                      setStudentResults(
+                        results.map((student) => ({
+                          id: student.id,
+                          displayName:
+                            student.display_name ||
+                            student.email?.split("@")[0] ||
+                            "Unnamed student",
+                          email: student.email,
+                          avatarUrl: student.avatar_url,
+                        })),
+                      );
+                    });
+                  }}
+                  onAdd={(student) => {
+                    startTransition(async () => {
+                      await addStudentToClass(data.classInfo.id, student.id);
+                      router.refresh();
+                    });
+                  }}
+                  renderLabel={(student) => ({
+                    title: student.displayName,
+                    subtitle: student.email,
+                  })}
+                />
+              </div>
+              <div className="flex items-center gap-2">
+                <ClassExportMenu
+                  classId={data.classInfo.id}
+                  showIeltsGradebook={data.classInfo.programType === "ielts"}
+                />
+                {rosterImportEnabled && clubId ? (
+                  <RosterImportDialog
+                    clubId={clubId}
+                    classId={data.classInfo.id}
+                  />
+                ) : null}
+              </div>
             </div>
           </div>
           <div className="overflow-hidden rounded-lg border border-outline-variant/20">
@@ -1363,6 +1406,7 @@ export function ClassDetailDashboard({
         </div>
       )}
     </PageTransition>
+    </PageContainer>
   );
 }
 

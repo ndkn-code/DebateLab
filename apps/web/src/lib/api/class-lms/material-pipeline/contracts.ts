@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { RIGHTS_ATTESTATION_VERSION } from "../question-imports/contracts";
 import {
   MATERIAL_ALLOWED_MIME_TYPES,
   materialUploadInputSchema,
@@ -31,8 +32,36 @@ export const materialIngestSchema = materialUploadInputSchema
     description: z.string().trim().max(2_000).nullable().optional(),
     rights: materialRightsInputSchema.default({ basis: "unknown" }),
     idempotencyKey: z.string().trim().min(8).max(200),
+    purpose: z.enum(["material", "question_import"]).default("material"),
+    questionImport: z.object({
+      batchId: uuid.optional(),
+      documentId: uuid.optional(),
+      rightsAttestationVersion: z.literal(RIGHTS_ATTESTATION_VERSION),
+      rightsAttested: z.literal(true),
+    }).strict().optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (value.purpose === "question_import" &&
+        (value.programType !== "ielts" || value.scopeClassId ||
+         !["application/pdf", "audio/mpeg", "audio/mp4", "audio/wav", "audio/x-wav"].includes(value.mimeType))) {
+      context.addIssue({ code: z.ZodIssueCode.custom, path: ["purpose"], message: "Question imports require an organisation IELTS PDF or audio file." });
+    }
+    if (value.purpose === "question_import" && !value.questionImport?.batchId) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["questionImport", "batchId"],
+        message: "A question-import batch is required.",
+      });
+    }
+    if (value.purpose === "material" && value.questionImport) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["questionImport"],
+        message: "Question-import metadata is only valid for question imports.",
+      });
+    }
+  });
 
 export function detectMaterialMime(
   bytes: Uint8Array,
@@ -101,6 +130,7 @@ export function detectMaterialMime(
 export const materialFinalizeSchema = z
   .object({
     ingestionId: uuid,
+    purpose: z.enum(["material", "question_import"]).default("material"),
     sha256: z
       .string()
       .regex(/^[a-f0-9]{64}$/i)
@@ -111,6 +141,7 @@ export const materialFinalizeSchema = z
 export const materialRetrySchema = z
   .object({
     versionId: uuid,
+    purpose: z.enum(["material", "question_import"]).default("material"),
     idempotencyKey: z.string().trim().min(8).max(200),
   })
   .strict();

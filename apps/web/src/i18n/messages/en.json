@@ -2286,7 +2286,8 @@
           "courses": "Courses",
           "schedule": "Schedule",
           "attendance": "Attendance",
-          "workbench": "IELTS Workbench"
+          "workbench": "IELTS Workbench",
+          "analytics": "Analytics"
         },
         "metrics": {
           "students": "Students",
@@ -2300,7 +2301,67 @@
         "roster": {
           "title": "Roster ({count} Students)",
           "empty": "No students assigned yet.",
-          "search": "Search students to add"
+          "search": "Search students to add",
+          "export": {
+            "label": "Export",
+            "roster": "Roster",
+            "attendance": "Attendance",
+            "gradebook": "IELTS gradebook",
+            "xlsx": "Excel (.xlsx)",
+            "csv": "CSV (.csv)",
+            "failed": "Export failed. Try again."
+          },
+          "import": {
+            "open": "Import",
+            "title": "Import roster",
+            "description": "Upload a spreadsheet, match its columns, review, then import.",
+            "steps": {
+              "upload": "File",
+              "map": "Columns",
+              "preview": "Review",
+              "result": "Result"
+            },
+            "upload": {
+              "help": "Start from our template, or upload the sheet you already keep.",
+              "template": "Download template",
+              "choose": "Choose file",
+              "accept": "Excel (.xlsx) or CSV. The first row is the header."
+            },
+            "map": {
+              "field": "Thinkfy field",
+              "source": "Column in your file",
+              "none": "Not imported",
+              "unnamed": "Column {index}",
+              "required": "Required",
+              "guessed": "Guessed",
+              "missingRequired": "Choose the column that holds the full name.",
+              "samples": "e.g. {values}",
+              "sheet": "Sheet {name}",
+              "columns": "{count} columns"
+            },
+            "preview": {
+              "capacity": "Class {current}/{max} · {incoming} to add",
+              "capacityOpen": "{current} enrolled · {incoming} to add",
+              "problemsTitle": "Rows that need a fix",
+              "row": "Row",
+              "name": "Name",
+              "problem": "Problem",
+              "clean": "Every row is ready to import.",
+              "confirm": "Import {count} rows"
+            },
+            "result": {
+              "downloadErrors": "Download the rows to fix",
+              "invite": "Send invitations",
+              "inviting": "Sending… {invited} sent, {remaining} left",
+              "invited": "{invited} invited · {skipped} skipped",
+              "inviteFailures": "{count} failed"
+            },
+            "back": "Back",
+            "continue": "Continue",
+            "cancel": "Cancel",
+            "close": "Done",
+            "failed": "Something went wrong. Try again."
+          }
         },
         "courses": {
           "title": "Assigned Courses ({count})",

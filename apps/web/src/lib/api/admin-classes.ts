@@ -27,7 +27,13 @@ import type {
 import {
   requireClassManager,
   requireClassManagerDashboard,
+  type ClassManagerContext,
 } from "@/lib/api/class-manager-access";
+import {
+  resolveRosterIdentities,
+  rosterScopeFromClassManager,
+  type RosterIdentity,
+} from "@/lib/api/roster-identity";
 
 type Supabase = Awaited<ReturnType<typeof createClient>> | SupabaseClient;
 
@@ -583,11 +589,43 @@ async function getAdminClassesKpis(
   };
 }
 
+/**
+ * Names for the roster, read through the shared resolver.
+ *
+ * `profiles` RLS is admin-or-self, so a club owner or class teacher selecting it
+ * directly gets `[]` — which is how every roster row and every spreadsheet
+ * export came out "Unnamed student" with a blank email. `manager` is the context
+ * `requireClassManager` just returned, and it is what authorizes the escalation
+ * inside `resolveRosterIdentities`; see `lib/api/roster-identity.ts`.
+ *
+ * Non-throwing on purpose: names are an enrichment, and the export is the manual
+ * fallback for reporting to parents. A roster with blank names still beats a
+ * class page that 500s.
+ */
+async function loadRosterIdentities(
+  manager: ClassManagerContext,
+  userIds: readonly string[],
+): Promise<{ identities: Map<string, RosterIdentity>; error: string | null }> {
+  if (userIds.length === 0) return { identities: new Map(), error: null };
+  try {
+    const identities = await resolveRosterIdentities(
+      rosterScopeFromClassManager(manager),
+      userIds.map((userId) => ({ key: userId, userId })),
+    );
+    return { identities, error: null };
+  } catch (error) {
+    return {
+      identities: new Map(),
+      error: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 export async function getAdminClassDetail(
   classId: string,
 ): Promise<AdminClassDetailData | null> {
   const supabase = await createClient();
-  await requireClassManager(
+  const manager = await requireClassManager(
     supabase as Parameters<typeof requireClassManager>[0],
     classId,
   );
@@ -672,14 +710,9 @@ export async function getAdminClassDetail(
   const sessionRows = sessionsRes.data ?? [];
   const sessionIds = sessionRows.map((session) => session.id as string);
 
-  const [profilesRes, coursesRes, recordsRes, recentSessionsRes] =
+  const [identityRes, coursesRes, recordsRes, recentSessionsRes] =
     await Promise.all([
-      userIds.length
-        ? supabase
-            .from("profiles")
-            .select("id, email, display_name, avatar_url, role")
-            .in("id", userIds)
-        : Promise.resolve({ data: [], error: null }),
+      loadRosterIdentities(manager, userIds),
       courseIds.length
         ? supabase
             .from("courses")
@@ -714,9 +747,6 @@ export async function getAdminClassDetail(
         .in("session_id", recentSessionIds)
     : { data: [], error: null };
 
-  const profilesById = new Map(
-    (profilesRes.data ?? []).map((profile) => [profile.id as string, profile]),
-  );
   const coursesById = new Map(
     (coursesRes.data ?? []).map((course) => [course.id as string, course]),
   );
@@ -751,20 +781,17 @@ export async function getAdminClassDetail(
   const roster: AdminClassRosterRow[] = memberships
     .filter((membership) => membership.member_role === "student")
     .map((membership) => {
-      const profile = profilesById.get(membership.user_id);
+      const identity = identityRes.identities.get(membership.user_id);
       const summary = summarizeAttendanceRecords(
         recentRecordsByUser.get(membership.user_id) ?? [],
       );
       return {
         membershipId: membership.id,
         id: membership.user_id,
-        displayName:
-          String(profile?.display_name ?? "") ||
-          String(profile?.email ?? "").split("@")[0] ||
-          "Unnamed student",
-        email: (profile?.email as string | null | undefined) ?? null,
-        avatarUrl: (profile?.avatar_url as string | null | undefined) ?? null,
-        role: (profile?.role as string | null | undefined) ?? null,
+        displayName: identity?.displayName || "Unnamed student",
+        email: identity?.email ?? null,
+        avatarUrl: identity?.avatarUrl ?? null,
+        role: identity?.role ?? null,
         memberRole: membership.member_role,
         status: membership.status,
         joinedAt: membership.joined_at,
@@ -879,7 +906,7 @@ export async function getAdminClassDetail(
     schedules,
     scheduleOccurrences: scheduleData.occurrences,
     loadError:
-      profilesRes.error?.message ??
+      identityRes.error ??
       coursesRes.error?.message ??
       recordsRes.error?.message ??
       null,

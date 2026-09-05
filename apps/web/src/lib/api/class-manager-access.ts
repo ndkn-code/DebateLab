@@ -38,11 +38,18 @@ export async function requirePlatformAdmin(supabase: ClassManagerClient) {
   throw new Error("Forbidden");
 }
 
-/** Organization academic-admin access used before a class membership exists. */
-export async function requireClubOwner(
+/**
+ * The club-owner predicate, non-throwing: the user id when they may act as an
+ * organization academic admin, else `null`.
+ *
+ * Extracted so a UI capability gate and the action that enforces it read one
+ * rule. Gating an import button on `ROSTER_IMPORT_V1` alone hands a plain class
+ * teacher a control that throws "Forbidden" the moment they press it.
+ */
+async function resolveClubOwner(
   supabase: ClassManagerClient,
   clubId: string,
-) {
+): Promise<string | null> {
   const userId = await currentUserId(supabase);
   const { data: profile } = await supabase
     .from("profiles")
@@ -60,8 +67,36 @@ export async function requireClubOwner(
     .eq("status", "active")
     .maybeSingle();
   if (error) throw new Error(error.message);
-  if (!membership) throw new Error("Forbidden");
+  return membership ? userId : null;
+}
+
+/** Organization academic-admin access used before a class membership exists. */
+export async function requireClubOwner(
+  supabase: ClassManagerClient,
+  clubId: string,
+) {
+  const userId = await resolveClubOwner(supabase, clubId);
+  if (!userId) throw new Error("Forbidden");
   return userId;
+}
+
+/**
+ * Non-throwing companion to `requireClubOwner`, for deciding whether to render
+ * a control the roster actions will accept. A plain class `teacher` is false
+ * here: `private.prevent_profile_authority_escalation` raises 42501 for them
+ * mid-import, so the control must not exist rather than fail halfway through a
+ * partially written batch.
+ */
+export async function canManageClubRoster(
+  supabase: ClassManagerClient,
+  clubId: string | null,
+): Promise<boolean> {
+  if (!clubId) return false;
+  try {
+    return (await resolveClubOwner(supabase, clubId)) !== null;
+  } catch {
+    return false;
+  }
 }
 
 /**

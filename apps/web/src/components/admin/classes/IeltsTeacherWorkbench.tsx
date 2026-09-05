@@ -532,6 +532,8 @@ export function IeltsTeacherWorkbench({
       (item) => item.target.responseId === initialResponseId,
     );
     if (!initialReview) return;
+    // Apply the URL deep link once its authorized review queue has loaded. The selected-key guard prevents repeated updates.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setTab("reviews");
     setSelectedReviewKey(initialReview.key);
   }, [initialResponseId, reviewQueue, selectedReviewKey]);

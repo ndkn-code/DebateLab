@@ -77,6 +77,15 @@ export const SHARED_LMS_MATERIALS_V1: boolean = isEnabled(
   sharedLmsMaterialsValue,
 );
 
+const questionImportValue =
+  process.env.NEXT_PUBLIC_LMS_QUESTION_IMPORT_ENABLED ??
+  process.env.LMS_QUESTION_IMPORT_ENABLED;
+export const LMS_QUESTION_IMPORT_ENABLED: boolean = isEnabled(questionImportValue);
+export const LMS_QUESTION_IMPORT_SERVER_ENABLED: boolean = isEnabled(process.env.LMS_QUESTION_IMPORT_ENABLED);
+
+const questionImportComplianceValue = process.env.LMS_QUESTION_IMPORT_COMPLIANCE_APPROVED;
+export const LMS_QUESTION_IMPORT_COMPLIANCE_APPROVED: boolean = isEnabled(questionImportComplianceValue);
+
 /** Subjects a learner may switch to, given the launch flags. */
 export function availableSubjects(): Subject[] {
   return IELTS_ENABLED ? ["debate", "ielts"] : ["debate"];
@@ -199,3 +208,15 @@ export const PROFILE_SOCIAL_GUARDRAILS_ENABLED: boolean =
     process.env.NEXT_PUBLIC_PROFILE_SOCIAL_GUARDRAILS_ENABLED ??
       process.env.PROFILE_SOCIAL_GUARDRAILS_ENABLED,
   );
+
+/**
+ * B3 · roster spreadsheet import. Opt-in until the migration
+ * `20260904130000_club_student_records.sql` is applied — the surface reads and
+ * writes tables that do not exist yet, so shipping it on by default would fail
+ * at runtime rather than at build time. Export is deliberately NOT behind this
+ * flag: it only reads tables that already exist, and it is the manual fallback
+ * if B4 slips.
+ */
+export const ROSTER_IMPORT_V1: boolean =
+  isEnabled(process.env.NEXT_PUBLIC_ROSTER_IMPORT_V1) ||
+  isEnabled(process.env.ROSTER_IMPORT_V1);

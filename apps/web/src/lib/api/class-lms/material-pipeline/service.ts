@@ -1,6 +1,7 @@
 import "server-only";
 
 import { randomUUID } from "node:crypto";
+import { assertQuestionImportUploadAccess } from "../question-imports/access";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -66,6 +67,52 @@ export async function requireMaterialManager(
   };
 }
 
+export async function requireQuestionImportMaterialManager(
+  client: RequestClient,
+  materialId: string,
+  versionId?: string,
+) {
+  const admin = createAdminClient();
+  let bindingQuery = admin
+    .from("question_import_batch_documents")
+    .select("club_id, batch_id, material_id, version_id, media_material_id, media_version_id")
+    .or(`material_id.eq.${materialId},media_material_id.eq.${materialId}`);
+  if (versionId) {
+    bindingQuery = bindingQuery.or(
+      `version_id.eq.${versionId},media_version_id.eq.${versionId}`,
+    );
+  }
+  const binding = await bindingQuery.limit(1).maybeSingle();
+  if (binding.error) throw new Error(binding.error.message);
+  if (!binding.data) throw new Error("Question import material not found.");
+  const auth = await client.auth.getUser();
+  if (auth.error || !auth.data.user) throw new Error("Unauthorized.");
+  const batch = await client.from("question_import_batches")
+    .select("id,created_by,status").eq("id", binding.data.batch_id).maybeSingle();
+  if (batch.error) throw new Error(batch.error.message);
+  if (!batch.data || !["draft", "queued", "processing", "failed", "review"].includes(batch.data.status))
+    throw new Error("Question import is not available for processing.");
+  const membership = await client
+    .from("club_memberships")
+    .select("role")
+    .eq("club_id", binding.data.club_id)
+    .eq("user_id", auth.data.user.id)
+    .eq("status", "active")
+    .maybeSingle();
+  if (membership.error) throw new Error(membership.error.message);
+  if (
+    !membership.data ||
+    !["owner", "admin", "head_teacher", "teacher"].includes(
+      String(membership.data.role),
+    )
+  ) {
+    throw new Error("You do not have permission to manage this question import.");
+  }
+  if (membership.data.role === "teacher" && batch.data.created_by !== auth.data.user.id)
+    throw new Error("You do not have permission to manage this question import.");
+  return { actorId: auth.data.user.id, clubId: binding.data.club_id };
+}
+
 function storageObjectMetadata(value: unknown) {
   const row = value as {
     metadata?: Record<string, unknown> | null;
@@ -89,13 +136,33 @@ export async function createMaterialIngest(
   const versionId = randomUUID();
   const idempotencyKey = `lms-material:${input.clubId}:${actorId}:${input.idempotencyKey}`;
   const admin = createAdminClient();
+  if (input.purpose === "question_import") {
+    const batch = await client.from("question_import_batches")
+      .select("id,club_id,created_by,status,copyright_attested,copyright_attestation_version")
+      .eq("id", input.questionImport!.batchId!).maybeSingle();
+    if (batch.error) throw new Error(batch.error.message);
+    assertQuestionImportUploadAccess(batch.data, { clubId: input.clubId, actorId, attestationVersion: input.questionImport!.rightsAttestationVersion });
+  }
   const existing = await findVersionByIdempotency(admin, idempotencyKey);
   if (existing) {
+    if (existing.purpose !== input.purpose || existing.source_mime_type !== input.mimeType || existing.size_bytes !== input.sizeBytes)
+      throw new Error("Idempotency key does not match the original upload.");
+    if (input.purpose === "question_import") {
+      const binding = await client.from("question_import_batch_documents").select("id")
+        .eq("batch_id", input.questionImport!.batchId!)
+        .or(`version_id.eq.${existing.id},media_version_id.eq.${existing.id}`).limit(1).maybeSingle();
+      if (binding.error || !binding.data) throw new Error("Idempotency key does not match the question import.");
+    }
+    const signed = existing.status === "uploading" && existing.ingest_path
+      ? await client.storage.from(MATERIAL_BUCKETS.ingest).createSignedUploadUrl(existing.ingest_path)
+      : null;
+    if (signed?.error) throw new Error(signed.error.message);
     return {
       materialId: existing.material_id,
       versionId: existing.id,
       status: existing.status,
-      upload: null,
+      upload: signed?.data ? { bucket: MATERIAL_BUCKETS.ingest, path: existing.ingest_path!, token: signed.data.token,
+        signedUrl: signed.data.signedUrl, expiresInSeconds: 15 * 60, mimeType: input.mimeType, sizeBytes: input.sizeBytes } : null,
       replay: true,
     };
   }
@@ -144,7 +211,21 @@ export async function createMaterialIngest(
     sourceFileName: input.fileName,
     sourceMimeType: input.mimeType,
     sourceSizeBytes: input.sizeBytes,
+    purpose: input.purpose,
   });
+  if (input.purpose === "question_import") {
+    const registration = await admin.rpc("register_question_import_material", {
+      p_batch_id: input.questionImport?.batchId,
+      p_material_id: materialId,
+      p_version_id: versionId,
+      p_media_material_id: null,
+      p_media_version_id: null,
+    } as never);
+    if (registration.error) {
+      await admin.from("lms_materials").delete().eq("id", materialId);
+      throw new Error(registration.error.message);
+    }
+  }
   const { data, error } = await client.storage
     .from(MATERIAL_BUCKETS.ingest)
     .createSignedUploadUrl(ingestPath);
@@ -156,6 +237,7 @@ export async function createMaterialIngest(
     replay: false,
     upload: {
       bucket: MATERIAL_BUCKETS.ingest,
+      path: ingestPath,
       token: data.token,
       signedUrl: data.signedUrl,
       expiresInSeconds: 15 * 60,
@@ -173,7 +255,15 @@ export async function finalizeMaterialIngest(
   const admin = createAdminClient();
   const version = await getVersion(admin, ingestionId);
   if (!version) throw new Error("Material ingestion not found.");
-  await requireMaterialManager(client, version.material_id);
+  if (version.purpose === "question_import") {
+    await requireQuestionImportMaterialManager(
+      client,
+      version.material_id,
+      version.id,
+    );
+  } else {
+    await requireMaterialManager(client, version.material_id);
+  }
   if (
     version.status === "ready" ||
     version.status === "queued" ||
@@ -244,18 +334,9 @@ export async function finalizeMaterialIngest(
     version.id,
     actualSha256,
     detectedMimeType,
+    { originalBucket: MATERIAL_BUCKETS.originals, originalPath },
   );
   if (!queued) return (await getVersion(admin, version.id)) ?? version;
-  await admin
-    .from("lms_material_versions")
-    .update({
-      original_bucket: MATERIAL_BUCKETS.originals,
-      original_path: originalPath,
-      ingest_bucket: null,
-      ingest_path: null,
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", version.id);
   await admin.storage
     .from(MATERIAL_BUCKETS.ingest)
     .remove([version.ingest_path]);

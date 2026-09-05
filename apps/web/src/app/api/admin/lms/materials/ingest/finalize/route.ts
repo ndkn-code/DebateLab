@@ -5,7 +5,8 @@ import { finalizeMaterialIngest } from "@/lib/api/class-lms/material-pipeline/se
 import { enqueueMaterialProcessing } from "@/lib/queues/lms-materials";
 import { getVersion } from "@/lib/api/class-lms/material-pipeline/repository";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { SHARED_LMS_MATERIALS_V1 } from "@/lib/features";
+import { SHARED_LMS_MATERIALS_V1, LMS_QUESTION_IMPORT_COMPLIANCE_APPROVED, LMS_QUESTION_IMPORT_SERVER_ENABLED } from "@/lib/features";
+import { consumeRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +17,22 @@ export async function POST(request: NextRequest) {
   if (!auth.ok) return auth.errorResponse;
   try {
     const parsed = materialFinalizeSchema.parse(await request.json());
+    if (parsed.purpose === "question_import") {
+      if (!LMS_QUESTION_IMPORT_SERVER_ENABLED || !LMS_QUESTION_IMPORT_COMPLIANCE_APPROVED)
+        return NextResponse.json({ ok: false, error: "Question import is not enabled." }, { status: 404 });
+      const rateLimit = await consumeRateLimit(auth.supabase, { scope: `lms-question-import:finalize:${auth.user.id}`, limit: 6, windowSeconds: 3600 });
+      if (!rateLimit.success) return NextResponse.json({ ok: false, error: "Too many batch submissions.", retryAfterSeconds: rateLimit.retryAfterSeconds }, { status: 429 });
+    }
     const before = await getVersion(createAdminClient(), parsed.ingestionId);
     if (!before)
       return NextResponse.json(
         { ok: false, error: "Material ingestion not found." },
         { status: 404 },
+      );
+    if ((before.purpose ?? "material") !== parsed.purpose)
+      return NextResponse.json(
+        { ok: false, error: "Material purpose does not match this request." },
+        { status: 409 },
       );
     const version = await finalizeMaterialIngest(
       auth.supabase,
