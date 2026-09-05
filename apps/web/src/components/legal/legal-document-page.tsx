@@ -27,8 +27,8 @@ export function LegalDocumentPage({
 
   return (
     <main className="min-h-dvh bg-background text-on-surface">
-      <header className="sticky top-0 z-20 border-b border-outline-variant bg-background/95 backdrop-blur">
-        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
+      <header className="sticky top-0 z-20 border-b border-outline-variant bg-background">
+        <div className="mx-auto flex min-h-16 max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6">
           <Link
             href={localizedPath(locale)}
             className="rounded-control type-title font-semibold tracking-tight focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -76,7 +76,7 @@ export function LegalDocumentPage({
         {!ready ? (
           <aside
             role="note"
-            className="mt-6 rounded-control border border-warning/35 bg-warning-container p-4 type-body-sm text-on-warning-container"
+            className="mt-6 rounded-control border border-warning bg-surface-container-low p-4 type-body-sm text-on-surface"
           >
             {document.draftNotice}
           </aside>
@@ -139,6 +139,21 @@ export function LegalDocumentPage({
                 {operator.privacyEmail}
               </a>
             </dd>
+            {operator.copyrightEmail ? (
+              <>
+                <dt className="font-semibold text-on-surface">
+                  {locale === "vi" ? "Thông báo bản quyền" : "Copyright reports"}
+                </dt>
+                <dd>
+                  <a
+                    className="text-secondary underline underline-offset-4"
+                    href={`mailto:${operator.copyrightEmail}`}
+                  >
+                    {operator.copyrightEmail}
+                  </a>
+                </dd>
+              </>
+            ) : null}
             <dt className="font-semibold text-on-surface">
               {locale === "vi" ? "Luật điều chỉnh" : "Governing law"}
             </dt>
