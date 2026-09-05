@@ -54,10 +54,16 @@ function navigationItems(
   reviewCount: number,
   capability: TeacherWorkspaceCapability,
 ): TeacherSidebarItem[] {
-  if (!capability.canAccess) return [];
+  const canOpenCenter = capability.canAccess || capability.organizations.some(
+    (organization) => ["owner", "admin", "head_teacher", "teacher"].includes(organization.role),
+  );
+  const centerItems: TeacherSidebarItem[] = process.env.CENTER_OPERATIONS_V1 === "true" && canOpenCenter
+    ? [{ key: "center", label: "Center operations", href: "/dashboard/teacher/center", badge: null }]
+    : [];
+  if (!capability.canAccess) return centerItems;
   const badge = (value: number) => (value > 0 ? value : null);
   return [
-    ...(process.env.CENTER_OPERATIONS_V1 === "true" && capability.canAccess ? [{key:"center",label:"Center operations",href:"/dashboard/teacher/center",badge:null}] : []),
+    ...centerItems,
     { key: "calendar", label: "Teaching Calendar", href: "/dashboard/teacher/calendar", badge: null },
     { key: "classes", label: "My Classes", href: "/dashboard/teacher/classes", badge: null },
     { key: "review_queue", label: "Review Queue", href: "/dashboard/teacher/review-queue", badge: badge(reviewCount) },
@@ -110,7 +116,7 @@ export async function loadTeacherSidebarSummary(): Promise<TeacherSidebarSummary
   const capability = await loadTeacherWorkspaceCapability();
   const db = asDb(await createTypedServerClient());
   const [reviewQueue, notificationResult, organizationResult] = await Promise.all([
-    loadTeacherReviewQueue(),
+    capability.canAccess ? loadTeacherReviewQueue() : Promise.resolve({ items: [] }),
     db.from("notification_inbox_items").select("id", { count: "exact", head: true })
       .eq("recipient_id", capability.userId).eq("state", "unread"),
     loadNavigationOrganizations(db, capability.userId),

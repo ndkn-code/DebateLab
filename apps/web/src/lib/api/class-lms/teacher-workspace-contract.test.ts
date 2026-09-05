@@ -75,3 +75,15 @@ const realHeadTeacher = buildTeacherSidebarSummary({
 assert.equal(realHeadTeacher.items.some((item) => item.key === "organization"), true);
 
 console.log("teacher workspace capability/sidebar contracts passed");
+
+const previousCenterFlag = process.env.CENTER_OPERATIONS_V1;
+try {
+  process.env.CENTER_OPERATIONS_V1 = "true";
+  const centerOnly = buildTeacherSidebarSummary({ capability: { ...capability, canAccess: false, classes: [], organizations: [{ id: "own-center", role: "owner", featureEnabled: false, hasIeltsEntitlement: false }] } });
+  assert.deepEqual(centerOnly.items.map((item) => item.key), ["center"]);
+  const learner = buildTeacherSidebarSummary({ capability: { ...capability, canAccess: false, classes: [], organizations: [] } });
+  assert.deepEqual(learner.items, []);
+} finally {
+  if (previousCenterFlag === undefined) delete process.env.CENTER_OPERATIONS_V1;
+  else process.env.CENTER_OPERATIONS_V1 = previousCenterFlag;
+}

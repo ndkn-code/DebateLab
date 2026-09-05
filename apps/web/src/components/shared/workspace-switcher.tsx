@@ -29,6 +29,7 @@ export function WorkspaceSwitcher({
   isAdmin,
   activeSubject,
   userId,
+  teacherEntryHref = "/dashboard/teacher",
   collapsed = false,
   onNavigate,
 }: {
@@ -36,6 +37,7 @@ export function WorkspaceSwitcher({
   isAdmin: boolean;
   activeSubject: Subject;
   userId?: string;
+  teacherEntryHref?: string;
   collapsed?: boolean;
   onNavigate?: () => void;
 }) {
@@ -75,7 +77,9 @@ export function WorkspaceSwitcher({
       } catch {
         /* optional */
       }
-      destination = safeTeacherReturnPath(remembered);
+      destination = remembered
+        ? safeTeacherReturnPath(remembered)
+        : safeTeacherReturnPath(teacherEntryHref);
     }
     // A presentation preference, not a grant of access. Prevents the learner
     // dashboard from immediately redirecting an assigned teacher back to work.

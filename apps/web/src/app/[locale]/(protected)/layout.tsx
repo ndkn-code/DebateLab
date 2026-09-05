@@ -29,7 +29,7 @@ async function getTeacherNavigation(
   try {
     const summary = await loadTeacherSidebarSummary();
     return {
-      canAccess: summary.capability.canAccess,
+      canAccess: summary.capability.canAccess || summary.items.length > 0,
       isAdminPreview: summary.capability.isPlatformAdmin,
       isHeadTeacher: summary.capability.isHeadTeacher,
       hasIeltsEntitlement: summary.capability.hasIeltsEntitlement,

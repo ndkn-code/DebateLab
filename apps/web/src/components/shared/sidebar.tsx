@@ -352,6 +352,11 @@ function NavContent({
       <div className="px-2 pt-2">
         <WorkspaceSwitcher
           canTeach={canUseTeacherWorkspace}
+          teacherEntryHref={
+            teacherNavigation?.items.some((item) => item.key === "calendar")
+              ? "/dashboard/teacher"
+              : teacherNavigation?.items[0]?.href
+          }
           isAdmin={isAdmin}
           activeSubject={currentSubject}
           userId={profile?.id}
