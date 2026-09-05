@@ -307,7 +307,57 @@
       "ielts_assigned": "Đề được giao",
       "ielts_classes": "Lớp học của tôi",
       "ielts_coach": "HLV IELTS",
-      "ielts_profile": "Hiệu suất"
+      "ielts_profile": "Hiệu suất",
+      "learnerWorkspace": "Học viên",
+      "teacherWorkspace": "Giáo viên",
+      "adminWorkspace": "Quản trị hệ thống",
+      "switchWorkspace": "Đổi vai trò",
+      "workspaceRole": "Vai trò",
+      "workspaceLabels": {
+        "learner": "Học viên",
+        "teacher": "Giáo viên",
+        "admin": "Quản trị hệ thống"
+      },
+      "mainNavigation": "Điều hướng chính",
+      "classShortcuts": "Mở nhanh lớp học",
+      "navigationUnavailable": "Chưa tải được danh mục.",
+      "retryNavigation": "Thử lại",
+      "noTeachingAccess": "Bạn chưa có quyền vào khu vực giảng dạy.",
+      "chooseCenter": "Chọn trung tâm",
+      "adminTeachingPreview": "Xem trước quản trị · chưa thuộc trung tâm",
+      "account": "Tài khoản",
+      "credits": "Điểm tín dụng",
+      "expandNavigation": "Mở rộng danh mục",
+      "collapseNavigation": "Thu gọn danh mục",
+      "closeNavigation": "Đóng danh mục",
+      "menu": "Danh mục",
+      "organizationRoles": {
+        "owner": "Chủ trung tâm",
+        "admin": "Quản lý trung tâm",
+        "head_teacher": "Trưởng bộ môn",
+        "teacher": "Giáo viên"
+      },
+      "teacherGroups": {
+        "teaching": "Giảng dạy",
+        "assessment": "Bài tập & chấm điểm",
+        "preparation": "Chuẩn bị bài",
+        "management": "Trung tâm"
+      },
+      "teacherLinks": {
+        "calendar": "Lịch giảng dạy",
+        "classes": "Lớp của tôi",
+        "review_queue": "Bài cần chấm",
+        "assignments": "Bài tập",
+        "gradebook": "Sổ điểm",
+        "attendance": "Điểm danh",
+        "materials": "Tài liệu",
+        "announcements": "Thông báo lớp",
+        "center": "Điều hành trung tâm",
+        "organization": "Tổng quan trung tâm",
+        "people": "Giáo viên & học viên",
+        "curriculum": "Chương trình học",
+        "reports": "Báo cáo"
+      }
     },
     "ielts": {
       "eyebrow": "IELTS",

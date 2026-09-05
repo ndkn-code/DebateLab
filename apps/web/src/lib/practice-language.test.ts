@@ -60,6 +60,21 @@ assert.equal(
   ),
   "/en/practice?topicId=tech-03"
 );
+assert.equal(
+  buildLocaleSwitchPath(
+    "/vi/practice#round-2",
+    new URLSearchParams("language=vi&topicId=tech-03")
+  ),
+  "/practice?topicId=tech-03#round-2"
+);
+assert.equal(
+  buildLocalizedLocaleSwitchHref(
+    "/vi/practice#round-2",
+    "en",
+    new URLSearchParams("topicId=tech-03")
+  ),
+  "/en/practice?topicId=tech-03#round-2"
+);
 
 const viSpeakingPrompt = buildAnalysisPrompt({
   transcript:

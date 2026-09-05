@@ -38,7 +38,7 @@ for (const subject of SUBJECTS) {
   assert.ok(config.labelVi.length > 0);
 }
 assert.equal(SUBJECT_CONFIG.debate.label, "Debate");
-assert.equal(SUBJECT_CONFIG.debate.labelVi, "Debate");
+assert.equal(SUBJECT_CONFIG.debate.labelVi, "Tranh biện");
 assert.equal(SUBJECT_CONFIG.ielts.label, "IELTS");
 assert.equal(SUBJECT_CONFIG.ielts.labelVi, "IELTS");
 

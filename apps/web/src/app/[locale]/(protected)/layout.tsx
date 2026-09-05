@@ -29,7 +29,7 @@ async function getTeacherNavigation(
   try {
     const summary = await loadTeacherSidebarSummary();
     return {
-      canAccess: summary.capability.canAccess,
+      canAccess: summary.capability.canAccess || summary.items.length > 0,
       isAdminPreview: summary.capability.isPlatformAdmin,
       isHeadTeacher: summary.capability.isHeadTeacher,
       hasIeltsEntitlement: summary.capability.hasIeltsEntitlement,
@@ -37,68 +37,24 @@ async function getTeacherNavigation(
       pendingReviewCount:
         summary.pendingReviewCount + summary.pendingHomeworkCount,
       items: summary.items,
+      classes: summary.classes,
+      organizations: summary.organizations,
     };
   } catch {
     if (!isTeacherRoute) return undefined;
     // The teacher route owns its denied/error state. Keeping a path-scoped
     // fallback here prevents the shell from flashing learner navigation.
     return {
-      canAccess: true,
+      canAccess: false,
       isAdminPreview: false,
       isHeadTeacher: false,
       hasIeltsEntitlement: false,
       classCount: 0,
       pendingReviewCount: 0,
-      items: [
-        {
-          key: "calendar",
-          label: "Teaching Calendar",
-          href: "/dashboard/teacher/calendar",
-          badge: null,
-        },
-        {
-          key: "classes",
-          label: "My Classes",
-          href: "/dashboard/teacher/classes",
-          badge: null,
-        },
-        {
-          key: "review_queue",
-          label: "Review Queue",
-          href: "/dashboard/teacher/review-queue",
-          badge: null,
-        },
-        {
-          key: "assignments",
-          label: "Assignments",
-          href: "/dashboard/teacher/assignments",
-          badge: null,
-        },
-        {
-          key: "gradebook",
-          label: "Gradebook",
-          href: "/dashboard/teacher/gradebook",
-          badge: null,
-        },
-        {
-          key: "attendance",
-          label: "Attendance",
-          href: "/dashboard/teacher/attendance",
-          badge: null,
-        },
-        {
-          key: "materials",
-          label: "Materials",
-          href: "/dashboard/teacher/materials",
-          badge: null,
-        },
-        {
-          key: "announcements",
-          label: "Announcements",
-          href: "/dashboard/teacher/announcements",
-          badge: null,
-        },
-      ],
+      items: [],
+      classes: [],
+      organizations: [],
+      loadError: true,
     };
   }
 }

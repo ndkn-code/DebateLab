@@ -29,9 +29,8 @@ export const SUBJECT_CONFIG: Record<Subject, SubjectConfig> = {
   debate: {
     code: "debate",
     label: "Debate",
-    // The VN copy guidelines keep "debate" in English where it reads naturally,
-    // matching the app's existing "Debate Tiếng Việt" usage.
-    labelVi: "Debate",
+    // Product navigation uses the localized teaching vocabulary.
+    labelVi: "Tranh biện",
   },
   ielts: {
     code: "ielts",

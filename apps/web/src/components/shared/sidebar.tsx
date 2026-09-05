@@ -15,7 +15,7 @@ import {
   ChevronLeft,
   Lock,
   Menu,
-  Shield,
+  X,
   Scale,
   Swords,
   Trophy,
@@ -40,6 +40,7 @@ import {
   SheetTrigger,
   SheetContent,
   SheetTitle,
+  SheetClose,
 } from "@/components/ui/sheet";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import posthog from "posthog-js";
@@ -58,6 +59,15 @@ import {
   DashboardSidebarRail,
   type DashboardSidebarNavItem,
 } from "@/components/dashboard/dashboard-sidebar-rail";
+import { WorkspaceSwitcher } from "@/components/shared/workspace-switcher";
+import {
+  TeacherSidebarNavigation,
+  TeacherOrganizationContext,
+} from "@/components/shared/teacher-sidebar-navigation";
+import {
+  getWorkspaceMode,
+  WORKSPACE_MODE_COOKIE,
+} from "@/lib/workspace-navigation";
 import { ModeSwitcher } from "@/components/shared/mode-switcher";
 import { LogoMark } from "@/components/landing/logo-mark";
 import { SupportIssueDialog } from "@/components/support/support-issue-dialog";
@@ -294,24 +304,16 @@ function NavContent({
   teacherNavigation?: TeacherWorkspaceNavigation;
 }) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const router = useRouter();
   const t = useTranslations("dashboard.nav");
   const tc = useTranslations("common");
   const ts = useTranslations("dashboard.home");
   const isAdmin = profile?.role === "admin";
   const isTeacherPersona = pathname.startsWith("/dashboard/teacher");
-  const canUseTeacherWorkspace =
-    Boolean(teacherNavigation?.canAccess) ||
-    isAdmin ||
-    profile?.role === "teacher";
+  const canUseTeacherWorkspace = Boolean(teacherNavigation?.canAccess);
   const canDuel = DUEL_ENABLED || isAdmin;
-  const teacherDemoSuffix =
-    isTeacherPersona && searchParams.get("demo") === "teacher"
-      ? "?demo=teacher"
-      : "";
   const displayName =
-    profile?.display_name || userEmail?.split("@")[0] || "User";
+    profile?.display_name || userEmail?.split("@")[0] || t("account");
   const initials = displayName
     .split(" ")
     .map((n) => n[0])
@@ -347,23 +349,30 @@ function NavContent({
         )}
       </div>
 
-      {!collapsed ? (
-        <div className="px-2 pt-3">
-          <ModeSwitcher
-            variant="sidebar"
-            currentLocale={currentLocale}
-            currentSubject={currentSubject}
-            ieltsAvailable={
-              IELTS_ENABLED ||
-              isAdmin ||
-              Boolean(teacherNavigation?.hasIeltsEntitlement)
-            }
+      <div className="px-2 pt-2">
+        <WorkspaceSwitcher
+          canTeach={canUseTeacherWorkspace}
+          teacherEntryHref={
+            teacherNavigation?.items.some((item) => item.key === "calendar")
+              ? "/dashboard/teacher"
+              : teacherNavigation?.items[0]?.href
+          }
+          isAdmin={isAdmin}
+          activeSubject={currentSubject}
+          userId={profile?.id}
+          collapsed={collapsed}
+          onNavigate={onNavClick}
+        />
+        {isTeacherPersona && !collapsed && (
+          <TeacherOrganizationContext
+            navigation={teacherNavigation}
+            onNavigate={onNavClick}
           />
-        </div>
-      ) : null}
+        )}
+      </div>
 
       {/* Credit Balance */}
-      {profile?.orb_balance !== undefined && (
+      {!isTeacherPersona && profile?.orb_balance !== undefined && (
         <div
           className={cn(
             "mx-3 mt-3 flex items-center gap-2 rounded-xl border border-warning/25 bg-white/[0.08] px-3 py-2 text-sidebar-foreground",
@@ -372,113 +381,23 @@ function NavContent({
         >
           <OrbBalance balance={profile.orb_balance} size="sm" />
           {!collapsed && (
-            <span className="text-xs text-sidebar-muted">Credits</span>
+            <span className="text-xs text-sidebar-muted">{t("credits")}</span>
           )}
         </div>
       )}
 
       {/* Nav Links */}
-      <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3 md:overflow-hidden md:overscroll-none">
-        {isTeacherPersona
-          ? teacherNavigation?.items.map((item) => {
-              const labels =
-                currentLocale === "vi"
-                  ? {
-                      calendar: "Lịch giảng dạy",
-                      classes: "Lớp của tôi",
-                      review_queue: "Hàng đợi chấm bài",
-                      assignments: "Bài tập",
-                      gradebook: "Sổ điểm",
-                      attendance: "Điểm danh",
-                      materials: "Tài liệu",
-                      announcements: "Thông báo",
-                      organization: "Tổ chức",
-                      people: "Nhân sự",
-                      curriculum: "Chương trình học",
-                      reports: "Báo cáo",
-                center: "Điều hành trung tâm",
-                    }
-                  : null;
-              const label = labels?.[item.key] ?? item.label;
-              const isActive =
-                item.key === "calendar"
-                  ? pathname === "/dashboard/teacher" ||
-                    pathname.startsWith(item.href)
-                  : pathname.startsWith(item.href);
-              return (
-                <Link
-                  key={item.key}
-                  href={`${item.href}${teacherDemoSuffix}`}
-                  onClick={onNavClick}
-                  aria-current={isActive ? "page" : undefined}
-                  className={cn(
-                    "flex min-h-8 items-center gap-3 rounded-lg px-2 py-1 text-sm font-medium transition-all",
-                    collapsed && "justify-center px-0",
-                    isActive ? "sidebar-nav-selected" : "sidebar-nav-idle",
-                  )}
-                >
-                  <GraduationCap
-                    className="h-5 w-5 shrink-0"
-                    aria-hidden="true"
-                  />
-                  {!collapsed ? (
-                    <span className="truncate">{label}</span>
-                  ) : null}
-                  {!collapsed && item.badge ? (
-                    <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-error px-1.5 type-caption font-bold text-on-error">
-                      {item.badge}
-                    </span>
-                  ) : null}
-                </Link>
-              );
-            })
-          : null}
-        {canUseTeacherWorkspace ? (
-          <div className="space-y-1" aria-label={t("workspaceModes")}>
-            {isAdmin ? (
-              <Link
-                href="/dashboard/admin/overview"
-                onClick={onNavClick}
-                aria-current={
-                  pathname.startsWith("/dashboard/admin") ? "page" : undefined
-                }
-                className={cn(
-                  "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-all",
-                  collapsed && "justify-center px-0",
-                  pathname.startsWith("/dashboard/admin")
-                    ? "sidebar-nav-selected"
-                    : "sidebar-nav-idle",
-                )}
-                title={collapsed ? t("switchToAdmin") : undefined}
-              >
-                <Shield className="h-5 w-5 shrink-0" />
-                {!collapsed ? (
-                  <span className="truncate">{t("switchToAdmin")}</span>
-                ) : null}
-              </Link>
-            ) : null}
-            <Link
-              href="/dashboard/teacher"
-              onClick={onNavClick}
-              aria-current={
-                pathname.startsWith("/dashboard/teacher") ? "page" : undefined
-              }
-              className={cn(
-                "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-all",
-                collapsed && "justify-center px-0",
-                pathname.startsWith("/dashboard/teacher")
-                  ? "sidebar-nav-selected"
-                  : "sidebar-nav-idle",
-              )}
-              title={collapsed ? t("teacherMode") : undefined}
-            >
-              <GraduationCap className="h-5 w-5 shrink-0" />
-              {!collapsed ? (
-                <span className="truncate">{t("teacherMode")}</span>
-              ) : null}
-            </Link>
-          </div>
-        ) : null}
+      <nav
+        aria-label={t("mainNavigation")}
+        className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto overscroll-contain px-2 py-3"
+      >
+        {isTeacherPersona && (
+          <TeacherSidebarNavigation
+            userId={profile?.id}
+            navigation={teacherNavigation}
+            onNavigate={onNavClick}
+          />
+        )}
         {!isTeacherPersona
           ? navItems.map((item) => {
               const href = item.href;
@@ -553,6 +472,18 @@ function NavContent({
 
       {/* User section */}
       <div className="shrink-0 space-y-1 p-2">
+        {!collapsed && (
+          <ModeSwitcher
+            variant="sidebar"
+            currentLocale={currentLocale}
+            currentSubject={currentSubject}
+            ieltsAvailable={
+              IELTS_ENABLED ||
+              isAdmin ||
+              Boolean(teacherNavigation?.hasIeltsEntitlement)
+            }
+          />
+        )}
         <NotificationCenter
           variant="sidebar"
           snapshot={notificationInbox}
@@ -588,7 +519,7 @@ function NavContent({
                   {displayName}
                 </p>
                 <p className="truncate text-xs text-sidebar-muted/75">
-                  {profile?.role ?? ts("student")}
+                  {t(`workspaceLabels.${getWorkspaceMode(pathname)}`)}
                 </p>
               </div>
             )}
@@ -616,28 +547,6 @@ function NavContent({
               <Settings className="h-4 w-4" />
               {t("settings")}
             </DropdownMenuItem>
-            {canUseTeacherWorkspace && (
-              <DropdownMenuItem
-                onClick={() => {
-                  onNavClick?.();
-                  router.push("/dashboard/teacher");
-                }}
-              >
-                <GraduationCap className="h-4 w-4" />
-                {t("teacherMode")}
-              </DropdownMenuItem>
-            )}
-            {profile?.role === "admin" && (
-              <DropdownMenuItem
-                onClick={() => {
-                  onNavClick?.();
-                  router.push("/dashboard/admin");
-                }}
-              >
-                <Shield className="h-4 w-4" />
-                {t("switchToAdmin")}
-              </DropdownMenuItem>
-            )}
             <DropdownMenuSeparator />
             <DropdownMenuItem variant="destructive" onClick={onSignOut}>
               <LogOut className="h-4 w-4" />
@@ -660,10 +569,12 @@ export function Sidebar({
   teacherNavigation,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentLocale = coerceAppLocale(useLocale());
+  const t = useTranslations("dashboard.nav");
   const tc = useTranslations("common");
   const useDashboardRail = !pathname.startsWith("/dashboard/admin");
   const isTeacherPersona = pathname.startsWith("/dashboard/teacher");
@@ -705,24 +616,7 @@ export function Sidebar({
         href: item.href,
         status: "live" as const,
         badge: item.badge,
-        label:
-          currentLocale === "vi"
-            ? {
-                calendar: "Lịch giảng dạy",
-                classes: "Lớp của tôi",
-                review_queue: "Hàng đợi chấm bài",
-                assignments: "Bài tập",
-                gradebook: "Sổ điểm",
-                attendance: "Điểm danh",
-                materials: "Tài liệu",
-                announcements: "Thông báo",
-                organization: "Tổ chức",
-                people: "Nhân sự",
-                curriculum: "Chương trình học",
-                reports: "Báo cáo",
-                center: "Điều hành trung tâm",
-              }[item.key]
-            : item.label,
+        label: t(`teacherLinks.${item.key}`),
       }))
     : activeSubject === "ielts"
       ? enrollmentVisible(IELTS_DASHBOARD_NAV_ITEMS, isEnrolledIeltsStudent)
@@ -731,6 +625,7 @@ export function Sidebar({
   const handleSignOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();
+    document.cookie = `${WORKSPACE_MODE_COOKIE}=; Max-Age=0; Path=/`;
     resetPracticeClientStateForAuthChange();
     posthog.reset();
     router.push("/");
@@ -777,8 +672,10 @@ export function Sidebar({
           {/* Collapse toggle */}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            aria-label={collapsed ? "Expand navigation" : "Collapse navigation"}
-            title={collapsed ? "Expand navigation" : "Collapse navigation"}
+            aria-label={
+              collapsed ? t("expandNavigation") : t("collapseNavigation")
+            }
+            title={collapsed ? t("expandNavigation") : t("collapseNavigation")}
             className="absolute right-2 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-sidebar-muted/20 bg-white/[0.08] text-sidebar-muted shadow-sm transition-colors hover:bg-white/[0.12] hover:text-sidebar-foreground"
           >
             <ChevronLeft
@@ -796,19 +693,26 @@ export function Sidebar({
         data-thinkfy-v2="mobile-bar"
         className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-sidebar-muted/15 bg-sidebar px-4 text-sidebar-foreground md:hidden"
       >
-        <Sheet>
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
           <SheetTrigger
             aria-label={tc("navigation")}
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-sidebar-muted hover:bg-white/[0.08] hover:text-sidebar-foreground"
+            className="flex h-11 shrink-0 items-center justify-center gap-2 rounded-md px-2 type-label text-on-surface-variant hover:bg-surface-container-low"
           >
             <Menu className="h-5 w-5" />
+            <span>{t("menu")}</span>
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="w-55 border-sidebar-muted/15 bg-sidebar p-0 text-sidebar-foreground"
+            className="w-72 max-w-[calc(100vw-2rem)] border-outline-variant bg-sidebar p-0 text-sidebar-foreground"
             showCloseButton={false}
           >
             <SheetTitle className="sr-only">{tc("navigation")}</SheetTitle>
+            <SheetClose
+              aria-label={t("closeNavigation")}
+              className="absolute right-2 top-2 flex size-10 items-center justify-center rounded-md text-on-surface-variant hover:bg-surface-container-low"
+            >
+              <X className="size-5" aria-hidden="true" />
+            </SheetClose>
             <NavContent
               collapsed={false}
               profile={profile}
@@ -820,43 +724,18 @@ export function Sidebar({
               notificationInbox={notificationInbox}
               notificationOperations={notificationOperations}
               teacherNavigation={effectiveTeacherNavigation}
-              onNavClick={() => {
-                // Sheet auto-closes when navigation happens via link click
-              }}
+              onNavClick={() => setMobileOpen(false)}
             />
           </SheetContent>
         </Sheet>
-        <LogoMark size="icon" markOnly variant="dark" />
-        <ModeSwitcher
-          variant="mobile"
-          currentLocale={currentLocale}
-          currentSubject={activeSubject}
-          ieltsAvailable={
-            IELTS_ENABLED ||
-            isAdmin ||
-            Boolean(effectiveTeacherNavigation?.hasIeltsEntitlement)
-          }
-        />
+        <span className="min-w-0 flex-1 type-label text-on-surface">
+          {t(`workspaceLabels.${getWorkspaceMode(pathname)}`)}
+        </span>
         <ThemeToggle variant="mobile" className="ml-auto" />
         <NotificationCenter
           snapshot={notificationInbox}
           operations={notificationOperations}
         />
-        <div className="shrink-0">
-          <Avatar size="sm">
-            {profile?.avatar_url && (
-              <AvatarImage src={profile.avatar_url} alt="User" />
-            )}
-            <AvatarFallback className="bg-primary-container text-on-primary-container text-xs font-bold">
-              {(profile?.display_name || userEmail || "U")
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
-        </div>
       </div>
     </>
   );

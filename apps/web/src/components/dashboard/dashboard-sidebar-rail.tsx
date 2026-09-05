@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+
 import { motion, useReducedMotion } from "framer-motion";
 import {
   BookOpen,
@@ -16,7 +16,6 @@ import {
   Lock,
   Scale,
   Settings,
-  Shield,
   Sparkles,
   Gift,
   Swords,
@@ -35,6 +34,11 @@ import { ProductIcon } from "@/components/ui/product-icon";
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { LogoMark } from "@/components/landing/logo-mark";
+import { WorkspaceSwitcher } from "@/components/shared/workspace-switcher";
+import {
+  TeacherSidebarNavigation,
+  TeacherOrganizationContext,
+} from "@/components/shared/teacher-sidebar-navigation";
 import { ModeSwitcher } from "@/components/shared/mode-switcher";
 import { cn } from "@/lib/utils";
 import { IELTS_ENABLED } from "@/lib/features";
@@ -147,17 +151,9 @@ export function DashboardSidebarRail({
   const tNav = useTranslations("dashboard.nav");
   const [referralOpen, setReferralOpen] = useState(false);
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const reducedMotion = useReducedMotion();
   const isTeacherPersona = pathname.startsWith("/dashboard/teacher");
-  const canUseTeacherWorkspace =
-    Boolean(teacherNavigation?.canAccess) ||
-    isAdmin ||
-    profile?.role === "teacher";
-  const teacherDemoSuffix =
-    isTeacherPersona && searchParams.get("demo") === "teacher"
-      ? "?demo=teacher"
-      : "";
+  const canUseTeacherWorkspace = Boolean(teacherNavigation?.canAccess);
 
   const isActiveItem = (item: DashboardSidebarNavItem) => {
     if (!item.href || item.status === "coming-soon") {
@@ -220,7 +216,8 @@ export function DashboardSidebarRail({
       item.key === "organization" ||
       item.key === "people" ||
       item.key === "curriculum" ||
-      item.key === "reports" || item.key === "center"
+      item.key === "reports" ||
+      item.key === "center"
     ) {
       return item.key === "calendar"
         ? pathname === "/dashboard/teacher" || pathname.startsWith(item.href)
@@ -255,12 +252,19 @@ export function DashboardSidebarRail({
 
   return (
     <>
-      <div aria-hidden="true" className="hidden h-dvh w-55 shrink-0 md:block" />
+      <div
+        aria-hidden="true"
+        className={cn(
+          "hidden h-dvh shrink-0 md:block",
+          isTeacherPersona ? "w-64" : "w-55",
+        )}
+      />
       <aside
         data-thinkfy-v2="rail"
         className={cn(
-          "fixed inset-y-0 left-0 z-30 hidden h-dvh w-55 shrink-0 overflow-hidden overscroll-none border-r md:flex md:flex-col",
-          "border-sidebar-muted/15 bg-sidebar text-sidebar-foreground",
+          "fixed inset-y-0 left-0 z-30 hidden h-dvh shrink-0 overflow-hidden overscroll-none border-r md:flex md:flex-col",
+          "border-outline-variant bg-sidebar text-sidebar-foreground",
+          isTeacherPersona ? "w-64" : "w-55",
         )}
       >
         <div className="flex h-14 shrink-0 items-center px-4">
@@ -272,106 +276,134 @@ export function DashboardSidebarRail({
           />
         </div>
 
-        <div className="px-2 pt-3">
-          <ModeSwitcher
-            variant="sidebar"
-            currentLocale={currentLocale}
-            currentSubject={activeSubject}
-            ieltsAvailable={
-              IELTS_ENABLED ||
-              isAdmin ||
-              Boolean(teacherNavigation?.hasIeltsEntitlement)
+        <div className="px-2 pt-2">
+          <WorkspaceSwitcher
+            canTeach={canUseTeacherWorkspace}
+            teacherEntryHref={
+              teacherNavigation?.items.some((item) => item.key === "calendar")
+                ? "/dashboard/teacher"
+                : teacherNavigation?.items[0]?.href
             }
+            isAdmin={isAdmin}
+            activeSubject={activeSubject}
+            userId={profile?.id}
           />
+          {isTeacherPersona && (
+            <TeacherOrganizationContext navigation={teacherNavigation} />
+          )}
         </div>
 
-        <nav className="scrollbar-hide flex min-h-0 flex-1 flex-col gap-1 overflow-hidden overscroll-none px-2 py-3">
-          {navItems.map((item) => {
-            const Icon = NAV_ICONS[item.key];
-            const href = item.href;
-            const isUnavailable = item.status === "coming-soon" || !href;
-            const isActive = isActiveItem(item);
-            const label =
-              item.label ??
-              (item.key === "analytics" ? tNav("profile") : tNav(item.key));
+        <nav
+          aria-label={tNav("mainNavigation")}
+          className="scrollbar-hide min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 py-3"
+        >
+          {isTeacherPersona ? (
+            <TeacherSidebarNavigation
+              userId={profile?.id}
+              navigation={teacherNavigation}
+            />
+          ) : (
+            <div className="space-y-1">
+              {navItems.map((item) => {
+                const Icon = NAV_ICONS[item.key];
+                const href = item.href;
+                const isUnavailable = item.status === "coming-soon" || !href;
+                const isActive = isActiveItem(item);
+                const label =
+                  item.label ??
+                  (item.key === "analytics" ? tNav("profile") : tNav(item.key));
 
-            const content = (
-              <>
-                <span className="flex min-w-0 items-center gap-3">
-                  <Icon className="h-5 w-5 shrink-0" />
-                  <span className="truncate">{label}</span>
-                </span>
-                {item.badge ? (
-                  <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-error px-1.5 type-caption font-bold text-on-error">
-                    {item.badge}
-                  </span>
-                ) : null}
-                {isUnavailable ? (
-                  <span
+                const content = (
+                  <>
+                    <span className="flex min-w-0 items-center gap-3">
+                      <Icon className="h-5 w-5 shrink-0" />
+                      <span className="truncate">{label}</span>
+                    </span>
+                    {item.badge ? (
+                      <span className="ml-auto inline-flex min-w-5 items-center justify-center rounded-full bg-error px-1.5 type-caption font-bold text-on-error">
+                        {item.badge}
+                      </span>
+                    ) : null}
+                    {isUnavailable ? (
+                      <span
+                        className={cn(
+                          "type-caption ml-2 inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 font-semibold uppercase",
+                          "bg-sidebar-muted/10 text-sidebar-muted/75",
+                        )}
+                      >
+                        <Lock className="h-3 w-3" />
+                        {t("coming_soon")}
+                      </span>
+                    ) : null}
+                  </>
+                );
+
+                if (isUnavailable) {
+                  return (
+                    <div
+                      key={item.key}
+                      aria-disabled="true"
+                      className={cn(
+                        "flex h-8 cursor-not-allowed items-center justify-between rounded-lg px-2 text-sm font-medium opacity-75",
+                        "text-sidebar-muted/50",
+                      )}
+                    >
+                      {content}
+                    </div>
+                  );
+                }
+
+                return (
+                  <Link
+                    key={item.key}
+                    href={href}
+                    aria-current={isActive ? "page" : undefined}
                     className={cn(
-                      "type-caption ml-2 inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 font-semibold uppercase",
-                      "bg-sidebar-muted/10 text-sidebar-muted/75",
+                      "group relative isolate flex h-8 items-center justify-between rounded-lg px-2 text-sm font-medium transition-all",
+                      isActive
+                        ? "sidebar-nav-selected-motion"
+                        : "sidebar-nav-idle",
                     )}
                   >
-                    <Lock className="h-3 w-3" />
-                    {t("coming_soon")}
-                  </span>
-                ) : null}
-              </>
-            );
-
-            if (isUnavailable) {
-              return (
-                <div
-                  key={item.key}
-                  aria-disabled="true"
-                  className={cn(
-                    "flex h-8 cursor-not-allowed items-center justify-between rounded-lg px-2 text-sm font-medium opacity-75",
-                    "text-sidebar-muted/50",
-                  )}
-                >
-                  {content}
-                </div>
-              );
-            }
-
-            return (
-              <Link
-                key={item.key}
-                href={`${href}${isTeacherPersona ? teacherDemoSuffix : ""}`}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "group relative isolate flex h-8 items-center justify-between rounded-lg px-2 text-sm font-medium transition-all",
-                  isActive ? "sidebar-nav-selected-motion" : "sidebar-nav-idle",
-                )}
-              >
-                {isActive ? (
-                  <motion.span
-                    layoutId="dashboard-sidebar-active"
-                    transition={
-                      reducedMotion
-                        ? { duration: 0 }
-                        : {
-                            type: "spring",
-                            stiffness: 360,
-                            damping: 28,
-                            mass: 0.8,
-                          }
-                    }
-                    className="sidebar-nav-active-marker pointer-events-none absolute inset-0 z-0 rounded-lg"
-                    aria-hidden="true"
-                  />
-                ) : null}
-                <span className="relative z-10 flex min-w-0 flex-1 items-center justify-between">
-                  {content}
-                </span>
-              </Link>
-            );
-          })}
+                    {isActive ? (
+                      <motion.span
+                        layoutId="dashboard-sidebar-active"
+                        transition={
+                          reducedMotion
+                            ? { duration: 0 }
+                            : {
+                                type: "spring",
+                                stiffness: 360,
+                                damping: 28,
+                                mass: 0.8,
+                              }
+                        }
+                        className="sidebar-nav-active-marker pointer-events-none absolute inset-0 z-0 rounded-lg"
+                        aria-hidden="true"
+                      />
+                    ) : null}
+                    <span className="relative z-10 flex min-w-0 flex-1 items-center justify-between">
+                      {content}
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </nav>
 
         <div className="shrink-0 p-2">
           <div className="space-y-1">
+            <ModeSwitcher
+              variant="sidebar"
+              currentLocale={currentLocale}
+              currentSubject={activeSubject}
+              ieltsAvailable={
+                IELTS_ENABLED ||
+                isAdmin ||
+                Boolean(teacherNavigation?.hasIeltsEntitlement)
+              }
+            />
             {!isTeacherPersona ? (
               <button
                 type="button"
@@ -395,59 +427,6 @@ export function DashboardSidebarRail({
                 </span>
                 <ChevronRight className="h-4 w-4" />
               </button>
-            ) : null}
-            {canUseTeacherWorkspace ? (
-              <div className="space-y-1" aria-label={tNav("workspaceModes")}>
-                {isAdmin ? (
-                  <Link
-                    href="/dashboard/admin"
-                    aria-current={
-                      pathname.startsWith("/dashboard/admin")
-                        ? "page"
-                        : undefined
-                    }
-                    className={cn(
-                      "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-                      pathname.startsWith("/dashboard/admin")
-                        ? "sidebar-nav-selected hover:bg-[var(--sidebar-selected-bg)]"
-                        : "sidebar-nav-action",
-                    )}
-                  >
-                    <Shield className="h-5 w-5 shrink-0" aria-hidden="true" />
-                    <span>{tNav("adminShort")}</span>
-                  </Link>
-                ) : null}
-                <Link
-                  href={isTeacherPersona ? "/dashboard" : "/dashboard/teacher"}
-                  aria-current={
-                    pathname.startsWith("/dashboard/teacher")
-                      ? "page"
-                      : undefined
-                  }
-                  className={cn(
-                    "flex h-8 items-center gap-3 rounded-lg px-2 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
-                    pathname.startsWith("/dashboard/teacher")
-                      ? "sidebar-nav-selected hover:bg-[var(--sidebar-selected-bg)]"
-                      : "sidebar-nav-action",
-                  )}
-                >
-                  {isTeacherPersona ? (
-                    <Home className="h-5 w-5 shrink-0" aria-hidden="true" />
-                  ) : (
-                    <GraduationCap
-                      className="h-5 w-5 shrink-0"
-                      aria-hidden="true"
-                    />
-                  )}
-                  <span>
-                    {isTeacherPersona
-                      ? currentLocale === "vi"
-                        ? "Chế độ học viên"
-                        : "Learner mode"
-                      : tNav("teacherMode")}
-                  </span>
-                </Link>
-              </div>
             ) : null}
             <NotificationCenter
               variant="sidebar"

@@ -58,6 +58,18 @@ export type TeacherWorkspaceNavigationItem = {
   badge: number | null;
 };
 
+export type TeacherWorkspaceNavigationClass = {
+  id: string;
+  organizationId: string;
+  title: string;
+};
+
+export type TeacherWorkspaceNavigationOrganization = {
+  id: string;
+  name: string;
+  role: "owner" | "admin" | "head_teacher" | "teacher";
+};
+
 export type TeacherWorkspaceNavigation = {
   canAccess: boolean;
   isAdminPreview: boolean;
@@ -66,6 +78,9 @@ export type TeacherWorkspaceNavigation = {
   classCount: number;
   pendingReviewCount: number;
   items: TeacherWorkspaceNavigationItem[];
+  classes?: TeacherWorkspaceNavigationClass[];
+  organizations?: TeacherWorkspaceNavigationOrganization[];
+  loadError?: boolean;
 };
 
 export interface TeacherWorkspaceClassPresentation {
