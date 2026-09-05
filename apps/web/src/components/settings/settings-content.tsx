@@ -10,7 +10,8 @@ import {
   useTransition,
 } from "react";
 import { useTranslations } from "next-intl";
-import { Link, useRouter } from "@/i18n/navigation";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   BellRing,
   BadgeCheck,
@@ -37,7 +38,10 @@ import {
   type BounceSidebarItem,
 } from "@/components/ui/bounce-sidebar";
 import { DurationControl } from "@/components/shared/duration-control";
-import { ProductPageHeader } from "@/components/shared/product-layout";
+import {
+  PageContainer,
+  ProductPageHeader,
+} from "@/components/shared/product-layout";
 import { ThemeToggle } from "@/components/shared/theme-toggle";
 import { showToast } from "@/components/shared/toast";
 import { InfoHint } from "@/components/settings/info-hint";
@@ -49,7 +53,7 @@ import type {
 } from "@/components/notifications/contracts";
 import {
   claimOrganizationJoinCode,
-  saveSettings,
+  saveSettingsWithFeedback as saveSettings,
 } from "@/app/[locale]/(protected)/settings/actions";
 import { updateLeaderboardPrivacySettings } from "@/app/actions/leaderboards";
 import {
@@ -89,13 +93,16 @@ import {
 
 interface SettingsContentProps {
   profile: Profile | null;
+  settingsDataError?: "profile" | "privacy" | null;
   profilePrivacySettings?: SettingsProfilePrivacy | null;
   userEmail: string;
   currentLocale: SettingsLocale;
   organizationAffiliation?: OrganizationAffiliationSummary | null;
+  organizationAffiliationStatus?: "ready" | "absent" | "unavailable";
   organizationJoinCodesEnabled?: boolean;
   leaderboardPrivacyControlsEnabled?: boolean;
   leaderboardPrivacySettings?: LeaderboardPrivacySettings;
+  leaderboardPrivacySettingsStatus?: "ready" | "absent" | "unavailable";
   notificationPreferences?: NotificationPreferenceView[];
   notificationPreferenceOperations?: Pick<
     NotificationUiOperations,
@@ -400,12 +407,14 @@ async function fileToAvatarDataUrl(file: File) {
 function AvatarPreview(props: {
   avatarUrl: string;
   displayName: string;
+  fallbackLabel: string;
   sizeClassName?: string;
   textClassName?: string;
 }) {
   const {
     avatarUrl,
     displayName,
+    fallbackLabel,
     sizeClassName = "h-20 w-20",
     textClassName = "text-xl",
   } = props;
@@ -422,7 +431,7 @@ function AvatarPreview(props: {
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={avatarUrl}
-          alt={displayName || "Profile avatar"}
+          alt={displayName || fallbackLabel}
           className="h-full w-full object-cover"
         />
       ) : (
@@ -434,21 +443,28 @@ function AvatarPreview(props: {
   );
 }
 
-export function SettingsContent({
+function SettingsContentEditor({
   profile,
+  settingsDataError,
   profilePrivacySettings,
   userEmail,
   currentLocale,
   organizationAffiliation,
+  organizationAffiliationStatus = organizationAffiliation ? "ready" : "absent",
   organizationJoinCodesEnabled = false,
   leaderboardPrivacyControlsEnabled = false,
   leaderboardPrivacySettings,
+  leaderboardPrivacySettingsStatus = leaderboardPrivacySettings
+    ? "ready"
+    : "absent",
   notificationPreferences,
   notificationPreferenceOperations,
   notificationPreferenceReviewRequired = false,
 }: SettingsContentProps) {
   const t = useTranslations("settings");
   const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [isSaving, startSavingTransition] = useTransition();
   const [isOrganizationPending, startOrganizationTransition] = useTransition();
   const [isLeaderboardPrivacyPending, startLeaderboardPrivacyTransition] =
@@ -461,6 +477,13 @@ export function SettingsContent({
     useState<LeaderboardPrivacySettings | null>(
       leaderboardPrivacySettings ?? null,
     );
+
+  useEffect(() => {
+    // A retry may supply the preferences after the editor first mounted without them.
+    if (!leaderboardPrivacy && leaderboardPrivacySettings) {
+      setLeaderboardPrivacy(leaderboardPrivacySettings);
+    }
+  }, [leaderboardPrivacy, leaderboardPrivacySettings]);
 
   const serverSavedDraft = useMemo(
     () =>
@@ -601,70 +624,76 @@ export function SettingsContent({
     () => [
       {
         id: "profile",
-        label: "Profile",
-        group: "Account",
+        label: t("sections.profile"),
+        group: t("sections.group_account"),
         icon: <User className="h-4 w-4" />,
       },
       {
         id: "practice",
-        label: "Practice",
-        group: "Preferences",
+        label: t("sections.practice"),
+        group: t("sections.group_preferences"),
         icon: <Clock3 className="h-4 w-4" />,
       },
       {
         id: "voice",
-        label: "AI Voice",
-        group: "Preferences",
+        label: t("sections.voice"),
+        group: t("sections.group_preferences"),
         icon: <Sparkles className="h-4 w-4" />,
       },
       {
         id: "privacy",
-        label: "Privacy",
-        group: "Profile Safety",
+        label: t("sections.privacy"),
+        group: t("sections.group_safety"),
         icon: <Shield className="h-4 w-4" />,
       },
       {
         id: "discovery",
-        label: "Discovery",
-        group: "Profile Safety",
+        label: t("sections.discovery"),
+        group: t("sections.group_safety"),
         icon: <UserPlus className="h-4 w-4" />,
       },
-      ...(leaderboardPrivacyControlsEnabled && leaderboardPrivacy
+      ...(leaderboardPrivacyControlsEnabled &&
+      (leaderboardPrivacy || leaderboardPrivacySettingsStatus === "unavailable")
         ? [
             {
               id: "leaderboards" as const,
-              label: "Leaderboards",
-              group: "Profile Safety",
+              label: t("sections.leaderboards"),
+              group: t("sections.group_safety"),
               icon: <BadgeCheck className="h-4 w-4" />,
             },
           ]
         : []),
       {
         id: "notifications",
-        label: "Notifications",
-        group: "Experience",
+        label: t("sections.notifications"),
+        group: t("sections.group_experience"),
         icon: <BellRing className="h-4 w-4" />,
       },
       {
         id: "appearance",
-        label: "Appearance",
-        group: "Experience",
+        label: t("sections.appearance"),
+        group: t("sections.group_experience"),
         icon: <Sun className="h-4 w-4" />,
       },
       {
         id: "organization",
-        label: "Organization",
-        group: "Account",
+        label: t("sections.organization"),
+        group: t("sections.group_account"),
         icon: <Building2 className="h-4 w-4" />,
       },
       {
         id: "account",
-        label: "Account Actions",
-        group: "Account",
+        label: t("sections.account"),
+        group: t("sections.group_account"),
         icon: <LogOut className="h-4 w-4" />,
       },
     ],
-    [leaderboardPrivacy, leaderboardPrivacyControlsEnabled],
+    [
+      leaderboardPrivacy,
+      leaderboardPrivacyControlsEnabled,
+      leaderboardPrivacySettingsStatus,
+      t,
+    ],
   );
   const settingsSectionGroups = useMemo(() => {
     const groups: Array<{
@@ -721,7 +750,12 @@ export function SettingsContent({
   }, []);
 
   useEffect(() => {
-    if (!hasHydratedStoredDraft || !userId || typeof window === "undefined") {
+    if (
+      !hasHydratedStoredDraft ||
+      !userId ||
+      settingsDataError ||
+      typeof window === "undefined"
+    ) {
       return;
     }
 
@@ -735,7 +769,13 @@ export function SettingsContent({
       SETTINGS_DRAFT_STORAGE_KEY,
       JSON.stringify(snapshot),
     );
-  }, [draft, effectiveSavedDraft, hasHydratedStoredDraft, userId]);
+  }, [
+    draft,
+    effectiveSavedDraft,
+    hasHydratedStoredDraft,
+    settingsDataError,
+    userId,
+  ]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -890,6 +930,16 @@ export function SettingsContent({
     }));
   }
 
+  function updatePreferredLocale(locale: SettingsLocale) {
+    const practiceLanguage = coercePracticeLanguage(locale);
+    setDraft((current) => ({
+      ...current,
+      preferredLocale: locale,
+      practiceLanguage,
+      ttsVoice: coerceVoiceForLanguage(current.ttsVoice, practiceLanguage),
+    }));
+  }
+
   async function handleAvatarFileChange(
     event: React.ChangeEvent<HTMLInputElement>,
   ) {
@@ -925,16 +975,22 @@ export function SettingsContent({
     startSavingTransition(async () => {
       try {
         const result = await saveSettings(draft);
+        if ("error" in result && result.error) {
+          showToast(t(`toast.${result.error}`), "error");
+          return;
+        }
         setLocalSavedDraft(result.saved);
         setDraft(result.saved);
         notifyAnalyticsConsentChanged();
         router.refresh();
         showToast(t("toast.saved"), "success");
-      } catch (error) {
-        showToast(
-          error instanceof Error ? error.message : t("toast.save_error"),
-          "error",
-        );
+        if (draft.preferredLocale !== currentLocale) {
+          const nextParams = new URLSearchParams(searchParams.toString());
+          const nextPath = `${pathname}${nextParams.toString() ? `?${nextParams.toString()}` : ""}${typeof window !== "undefined" ? window.location.hash : ""}`;
+          router.replace(nextPath, { locale: draft.preferredLocale });
+        }
+      } catch {
+        showToast(t("toast.save_error"), "error");
       }
     });
   }
@@ -946,18 +1002,25 @@ export function SettingsContent({
         if (result.status === "accepted") {
           setOrganizationCode("");
           router.refresh();
-          showToast(result.message, "success");
+          showToast(t("rows.join_accepted"), "success");
           return;
         }
 
-        showToast(result.message, "warning");
-      } catch (error) {
+        const joinMessageKey = {
+          auth_required: "rows.join_auth_required",
+          malformed: "rows.join_malformed",
+          not_found: "rows.join_not_found",
+          expired: "rows.join_expired",
+          revoked: "rows.join_revoked",
+          already_redeemed: "rows.join_already_redeemed",
+          already_in_org: "rows.join_already_in_org",
+        }[result.status];
         showToast(
-          error instanceof Error
-            ? error.message
-            : "Unable to join that organization right now.",
-          "error",
+          joinMessageKey ? t(joinMessageKey) : t("rows.join_not_found"),
+          "warning",
         );
+      } catch {
+        showToast(t("toast.organization_join_error"), "error");
       }
     });
   }
@@ -994,14 +1057,9 @@ export function SettingsContent({
             leaderboardPrivacy.participateInLeaderboards,
         });
         setLeaderboardPrivacy(saved);
-        showToast("Leaderboard privacy updated.", "success");
-      } catch (error) {
-        showToast(
-          error instanceof Error
-            ? error.message
-            : "Unable to update leaderboard privacy.",
-          "error",
-        );
+        showToast(t("toast.leaderboard_saved"), "success");
+      } catch {
+        showToast(t("toast.leaderboard_error"), "error");
       }
     });
   }
@@ -1018,7 +1076,7 @@ export function SettingsContent({
       ref={rootRef}
       className="min-h-full bg-transparent text-on-surface dark:bg-transparent dark:text-on-surface"
     >
-      <div className="mx-auto max-w-[1280px] px-4 py-5 sm:px-6 lg:px-8">
+      <PageContainer size="wide" className="py-5">
         <ProductPageHeader
           title={t("headline")}
           icon={<Settings />}
@@ -1067,7 +1125,7 @@ export function SettingsContent({
           </div>
         </div>
 
-        <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
+        <div className="grid min-w-0 gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
           <aside className="hidden lg:block">
             <nav
               aria-label={t("headline")}
@@ -1088,11 +1146,19 @@ export function SettingsContent({
             </nav>
           </aside>
 
-          <main className="space-y-5 pb-16">
+          <main className="min-w-0 space-y-5 pb-16">
+            {settingsDataError ? (
+              <p
+                role="alert"
+                className="rounded-control border border-warning-container bg-warning-container px-4 py-3 type-body text-on-surface"
+              >
+                {t("rows.settings_unavailable")}
+              </p>
+            ) : null}
             <SectionPanel
               id="profile"
-              title="Profile"
-              description="Control the identity details classmates see across profiles, duels, and leaderboards."
+              title={t("sections.profile")}
+              description={t("sections.profile_description")}
             >
               <div className="px-5 py-5">
                 <div className="mb-5 flex justify-end">
@@ -1101,7 +1167,7 @@ export function SettingsContent({
                     className="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-outline-variant bg-white px-3 text-sm font-semibold text-on-surface transition hover:bg-background dark:border-outline-variant/70 dark:bg-surface-container-lowest dark:text-on-surface"
                   >
                     <Eye className="h-4 w-4 text-primary" />
-                    Preview public profile
+                    {t("rows.preview_profile")}
                   </Link>
                 </div>
                 <div className="grid gap-5 lg:grid-cols-[104px_minmax(0,1fr)]">
@@ -1109,6 +1175,7 @@ export function SettingsContent({
                     <AvatarPreview
                       avatarUrl={draft.avatarUrl}
                       displayName={draft.displayName}
+                      fallbackLabel={t("fields.avatar")}
                       sizeClassName="h-24 w-24"
                       textClassName="text-2xl"
                     />
@@ -1150,7 +1217,7 @@ export function SettingsContent({
                         />
                       </div>
                       <div>
-                        <SettingLabel>Email</SettingLabel>
+                        <SettingLabel>{t("rows.email")}</SettingLabel>
                         <div className="flex h-11 items-center gap-2 rounded-lg border border-outline-variant bg-background px-3 text-sm font-medium text-on-surface-variant dark:border-outline-variant/70 dark:bg-surface-container-lowest">
                           <Mail className="h-4 w-4 shrink-0" />
                           <span className="truncate">{userEmail}</span>
@@ -1209,8 +1276,8 @@ export function SettingsContent({
 
             <SectionPanel
               id="practice"
-              title="Practice"
-              description="Set the defaults and feedback style used when you start a new round."
+              title={t("sections.practice")}
+              description={t("sections.practice_description")}
             >
               <div className="grid gap-4 px-5 py-4 lg:grid-cols-3">
                 <DurationControl
@@ -1256,8 +1323,8 @@ export function SettingsContent({
 
             <SectionPanel
               id="voice"
-              title="AI Voice"
-              description="Choose one voice for rebuttals, coaching playback, and spoken prompts."
+              title={t("sections.voice")}
+              description={t("sections.voice_description")}
             >
               <div className="px-5 py-5">
                 <VoiceSettings
@@ -1270,39 +1337,34 @@ export function SettingsContent({
 
             <SectionPanel
               id="privacy"
-              title="Privacy"
-              description="Choose what parts of your profile can be shown to other authenticated students."
+              title={t("sections.privacy")}
+              description={t("sections.privacy_description")}
             >
               {[
                 {
                   key: "profileVisibility" as const,
-                  title: "Profile shell",
-                  description:
-                    "Your safe profile basics: name, handle, avatar, status, and compact stats.",
+                  title: t("rows.profile_shell"),
+                  description: t("rows.profile_shell_description"),
                 },
                 {
                   key: "analyticsVisibility" as const,
-                  title: "Analytics",
-                  description:
-                    "Aggregate growth stats only. Raw sessions and detailed reviews stay private.",
+                  title: t("rows.analytics"),
+                  description: t("rows.analytics_description"),
                 },
                 {
                   key: "activitiesVisibility" as const,
-                  title: "Activities",
-                  description:
-                    "Safe activity feed items such as practice, duels, courses, and XP moments.",
+                  title: t("rows.activities"),
+                  description: t("rows.activities_description"),
                 },
                 {
                   key: "achievementsVisibility" as const,
-                  title: "Achievements",
-                  description:
-                    "Unlocked badges and featured achievements on your public profile.",
+                  title: t("rows.achievements"),
+                  description: t("rows.achievements_description"),
                 },
                 {
                   key: "organizationVisibility" as const,
-                  title: "Organization",
-                  description:
-                    "Your verified school, club, or class summary when a profile is visible.",
+                  title: t("rows.organization"),
+                  description: t("rows.organization_description"),
                 },
               ].map((item) => (
                 <SettingRow
@@ -1334,15 +1396,15 @@ export function SettingsContent({
 
             <SectionPanel
               id="discovery"
-              title="Discovery"
-              description="Control how classmates can find you and start mutual friend requests."
+              title={t("sections.discovery")}
+              description={t("sections.discovery_description")}
             >
               <SettingRow
-                title="Allow friend requests"
-                description="Other students can request a mutual connection from your profile or friend search."
+                title={t("rows.allow_friend_requests")}
+                description={t("rows.allow_friend_requests_description")}
               >
                 <ToggleControl
-                  label="Allow friend requests"
+                  label={t("rows.allow_friend_requests")}
                   checked={draft.allowConnectionRequests}
                   onCheckedChange={(checked) =>
                     updateDraft("allowConnectionRequests", checked)
@@ -1350,11 +1412,11 @@ export function SettingsContent({
                 />
               </SettingRow>
               <SettingRow
-                title="Search by handle"
-                description="Let authenticated students find you by your exact @handle."
+                title={t("rows.search_by_handle")}
+                description={t("rows.search_by_handle_description")}
               >
                 <ToggleControl
-                  label="Search by handle"
+                  label={t("rows.search_by_handle")}
                   checked={draft.searchableByHandle}
                   onCheckedChange={(checked) =>
                     updateDraft("searchableByHandle", checked)
@@ -1363,15 +1425,37 @@ export function SettingsContent({
               </SettingRow>
             </SectionPanel>
 
-            {leaderboardPrivacyControlsEnabled && leaderboardPrivacy ? (
+            {leaderboardPrivacyControlsEnabled &&
+            leaderboardPrivacySettingsStatus === "unavailable" ? (
               <SectionPanel
                 id="leaderboards"
-                title="Leaderboards"
-                description="Control how you appear in weekly league and organization rankings."
+                title={t("sections.leaderboards")}
+                description={t("sections.leaderboards_description")}
+              >
+                <p
+                  className="px-4 py-4 type-body text-on-surface-variant"
+                  role="status"
+                >
+                  {t("rows.leaderboard_unavailable")}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="ml-2"
+                    onClick={() => router.refresh()}
+                  >
+                    {t("toast.retry")}
+                  </Button>
+                </p>
+              </SectionPanel>
+            ) : leaderboardPrivacyControlsEnabled && leaderboardPrivacy ? (
+              <SectionPanel
+                id="leaderboards"
+                title={t("sections.leaderboards")}
+                description={t("sections.leaderboards_description")}
               >
                 <SettingRow
-                  title="Public display"
-                  description="Choose the identity treatment shown beside leaderboard scores."
+                  title={t("rows.public_display")}
+                  description={t("rows.public_display_description")}
                   align="start"
                 >
                   <Select
@@ -1384,17 +1468,21 @@ export function SettingsContent({
                     }
                     className={SELECT_CLASSNAME}
                   >
-                    <option value="public_name">Show my display name</option>
-                    <option value="initials_only">Show initials only</option>
-                    <option value="hidden">Hide my identity</option>
+                    <option value="public_name">
+                      {t("rows.show_display_name")}
+                    </option>
+                    <option value="initials_only">
+                      {t("rows.show_initials")}
+                    </option>
+                    <option value="hidden">{t("rows.hide_identity")}</option>
                   </Select>
                 </SettingRow>
                 <SettingRow
-                  title="Allow encouragement"
-                  description="Other students can send lightweight kudos that never affect rank."
+                  title={t("rows.allow_encouragement")}
+                  description={t("rows.allow_encouragement_description")}
                 >
                   <ToggleControl
-                    label="Allow encouragement"
+                    label={t("rows.allow_encouragement")}
                     checked={leaderboardPrivacy.allowKudos}
                     onCheckedChange={(checked) =>
                       updateLeaderboardPrivacyDraft({ allowKudos: checked })
@@ -1402,11 +1490,11 @@ export function SettingsContent({
                   />
                 </SettingRow>
                 <SettingRow
-                  title="Show organization"
-                  description="Let leaderboard surfaces connect your rank with your verified organization."
+                  title={t("rows.show_organization")}
+                  description={t("rows.show_organization_description")}
                 >
                   <ToggleControl
-                    label="Show organization"
+                    label={t("rows.show_organization")}
                     checked={leaderboardPrivacy.showOrganization}
                     onCheckedChange={(checked) =>
                       updateLeaderboardPrivacyDraft({
@@ -1416,11 +1504,11 @@ export function SettingsContent({
                   />
                 </SettingRow>
                 <SettingRow
-                  title="Appear on leaderboards"
-                  description="When off, future leaderboard reads use private display treatment where supported."
+                  title={t("rows.appear_on_leaderboards")}
+                  description={t("rows.appear_on_leaderboards_description")}
                 >
                   <ToggleControl
-                    label="Appear on leaderboards"
+                    label={t("rows.appear_on_leaderboards")}
                     checked={leaderboardPrivacy.participateInLeaderboards}
                     onCheckedChange={(checked) =>
                       updateLeaderboardPrivacyDraft({
@@ -1441,7 +1529,7 @@ export function SettingsContent({
                     ) : (
                       <Save className="h-4 w-4" />
                     )}
-                    Save leaderboard privacy
+                    {t("rows.save_leaderboard")}
                   </Button>
                 </div>
               </SectionPanel>
@@ -1449,12 +1537,8 @@ export function SettingsContent({
 
             <SectionPanel
               id="notifications"
-              title={currentLocale === "vi" ? "Thông báo" : "Notifications"}
-              description={
-                currentLocale === "vi"
-                  ? "Chọn cập nhật nào đến với bạn và thời điểm nhận."
-                  : "Choose which updates reach you and when they arrive."
-              }
+              title={t("sections.notifications")}
+              description={t("sections.notifications_description")}
             >
               <NotificationPreferencesPanel
                 locale={currentLocale}
@@ -1468,23 +1552,55 @@ export function SettingsContent({
 
             <SectionPanel
               id="appearance"
-              title="Appearance"
-              description="Keep the interface quiet and readable while the broader visual refresh rolls out."
+              title={t("sections.appearance")}
+              description={t("sections.appearance_description")}
             >
               <SettingRow
-                title="Theme"
-                description="Switch between the light and dark app theme."
+                title={t("rows.theme")}
+                description={t("rows.theme_description")}
               >
                 <ThemeToggle variant="public" />
+              </SettingRow>
+              <SettingRow
+                title={t("rows.app_language")}
+                description={t("rows.app_language_description")}
+                align="start"
+              >
+                <Select
+                  value={draft.preferredLocale}
+                  onChange={(event) =>
+                    updatePreferredLocale(event.target.value as SettingsLocale)
+                  }
+                  className={SELECT_CLASSNAME}
+                  aria-label={t("rows.app_language")}
+                >
+                  <option value="vi">{t("languages.vi")}</option>
+                  <option value="en">{t("languages.en")}</option>
+                </Select>
               </SettingRow>
             </SectionPanel>
 
             <SectionPanel
               id="organization"
-              title="Organization"
-              description="Connect your verified school, club, or training center for rankings and profile display."
+              title={t("sections.organization")}
+              description={t("sections.organization_description")}
             >
-              {organizationAffiliation ? (
+              {organizationAffiliationStatus === "unavailable" ? (
+                <p
+                  className="px-4 py-4 type-body text-on-surface-variant"
+                  role="status"
+                >
+                  {t("rows.organization_unavailable")}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="ml-2"
+                    onClick={() => router.refresh()}
+                  >
+                    {t("toast.retry")}
+                  </Button>
+                </p>
+              ) : organizationAffiliation ? (
                 <div className="grid gap-4 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                   <div className="flex min-w-0 items-center gap-3">
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-outline-variant bg-background text-primary">
@@ -1511,7 +1627,7 @@ export function SettingsContent({
                   <div className="flex flex-wrap gap-2 sm:justify-end">
                     <span className="inline-flex items-center gap-1 rounded-full bg-surface-container px-2.5 py-1 text-xs font-semibold text-success">
                       <BadgeCheck className="h-3.5 w-3.5" />
-                      Verified
+                      {t("rows.verified")}
                     </span>
                     <span className="rounded-full border border-outline-variant px-2.5 py-1 text-xs font-semibold capitalize text-on-surface-variant">
                       {organizationAffiliation.role}
@@ -1521,17 +1637,17 @@ export function SettingsContent({
               ) : (
                 <>
                   <SettingRow
-                    title="Status"
-                    description="You are not connected to a verified organization yet."
+                    title={t("rows.status")}
+                    description={t("rows.not_connected")}
                   >
                     <span className="inline-flex rounded-full border border-outline-variant px-2.5 py-1 text-xs font-semibold text-on-surface-variant">
-                      Not verified
+                      {t("rows.not_verified")}
                     </span>
                   </SettingRow>
                   {organizationJoinCodesEnabled ? (
                     <SettingRow
-                      title="Organization code"
-                      description="Enter a code from your school, club, or coach."
+                      title={t("rows.organization_code")}
+                      description={t("rows.organization_code_description")}
                       align="start"
                     >
                       <div className="grid w-full gap-3">
@@ -1565,7 +1681,7 @@ export function SettingsContent({
                           ) : (
                             <UserPlus className="h-4 w-4" />
                           )}
-                          Join organization
+                          {t("rows.join_organization")}
                         </Button>
                       </div>
                     </SettingRow>
@@ -1576,8 +1692,8 @@ export function SettingsContent({
 
             <SectionPanel
               id="account"
-              title="Account Actions"
-              description="Session-level actions for this device."
+              title={t("sections.account")}
+              description={t("sections.account_description")}
             >
               <div className="grid gap-4 px-5 py-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                 <div className="flex min-w-0 items-start gap-3">
@@ -1605,7 +1721,34 @@ export function SettingsContent({
             </SectionPanel>
           </main>
         </div>
-      </div>
+      </PageContainer>
     </div>
   );
+}
+
+export function SettingsContent(props: SettingsContentProps) {
+  const t = useTranslations("settings");
+  const router = useRouter();
+
+  if (props.settingsDataError) {
+    return (
+      <PageContainer size="focused" className="py-10">
+        <div
+          role="alert"
+          className="space-y-3 rounded-control border border-warning-container bg-warning-container p-5 text-on-surface"
+        >
+          <p className="type-body">{t("rows.settings_unavailable")}</p>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.refresh()}
+          >
+            {t("toast.retry")}
+          </Button>
+        </div>
+      </PageContainer>
+    );
+  }
+
+  return <SettingsContentEditor {...props} settingsDataError={null} />;
 }

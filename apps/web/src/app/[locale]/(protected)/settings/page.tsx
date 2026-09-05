@@ -13,8 +13,7 @@ import {
   LEADERBOARD_PRIVACY_CONTROLS_ENABLED,
   ORGANIZATION_JOIN_CODES_ENABLED,
 } from "@/lib/features";
-import { getUserOrganizationAffiliation } from "@/lib/organizations/membership";
-import { getLeaderboardPrivacySettings } from "@/lib/leaderboards/social-trust-server";
+import { readSettingsOptionalData } from "@/lib/settings/optional-reads";
 
 export const metadata = {
   title: "Settings",
@@ -33,35 +32,42 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
 
   if (!user) redirect("/auth/login");
 
-  const [
-    { data: profile },
-    { data: profilePrivacySettings },
-    organizationAffiliation,
-    leaderboardPrivacySettings,
-    cookieStore,
-  ] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select(
-        "id, display_name, avatar_url, handle, profile_status, preferences, orb_balance, referral_code, referred_by",
-      )
-      .eq("id", user!.id)
-      .single(),
-    supabase
-      .from("profile_privacy_settings")
-      .select(
-        "profile_visibility, analytics_visibility, activities_visibility, achievements_visibility, organization_visibility, allow_connection_requests, searchable_by_handle, friend_code_discovery_enabled",
-      )
-      .eq("user_id", user!.id)
-      .maybeSingle(),
-    getUserOrganizationAffiliation(supabase, user!.id),
-    getLeaderboardPrivacySettings({
-      supabase,
-      userId: user!.id,
-      isStudent: true,
-    }),
-    cookies(),
-  ]);
+  const [profileRead, profilePrivacyRead, optionalData, cookieStore] =
+    await Promise.all([
+      supabase
+        .from("profiles")
+        .select(
+          "id, display_name, avatar_url, handle, profile_status, preferences, orb_balance, referral_code, referred_by",
+        )
+        .eq("id", user!.id)
+        .single(),
+      supabase
+        .from("profile_privacy_settings")
+        .select(
+          "profile_visibility, analytics_visibility, activities_visibility, achievements_visibility, organization_visibility, allow_connection_requests, searchable_by_handle, friend_code_discovery_enabled",
+        )
+        .eq("user_id", user!.id)
+        .maybeSingle(),
+      readSettingsOptionalData({
+        supabase,
+        userId: user.id,
+        // Affiliation remains visible even when claiming join codes is disabled.
+        includeOrganization: true,
+        includeLeaderboard: LEADERBOARD_PRIVACY_CONTROLS_ENABLED,
+      }),
+      cookies(),
+    ]);
+
+  const settingsDataError = profileRead.error
+    ? "profile"
+    : profilePrivacyRead.error
+      ? "privacy"
+      : !profileRead.data
+        ? "profile"
+        : null;
+
+  const { data: profile } = profileRead;
+  const { data: profilePrivacySettings } = profilePrivacyRead;
 
   const profileWithConsent = profile
     ? {
@@ -78,15 +84,24 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
   return (
     <SettingsContent
       profile={profileWithConsent as Profile | null}
+      settingsDataError={settingsDataError}
       profilePrivacySettings={
         profilePrivacySettings as SettingsProfilePrivacy | null
       }
       userEmail={user!.email ?? ""}
       currentLocale={locale as SettingsLocale}
-      organizationAffiliation={organizationAffiliation}
+      organizationAffiliation={optionalData.organizationAffiliation.data}
+      organizationAffiliationStatus={
+        optionalData.organizationAffiliation.status
+      }
       organizationJoinCodesEnabled={ORGANIZATION_JOIN_CODES_ENABLED}
       leaderboardPrivacyControlsEnabled={LEADERBOARD_PRIVACY_CONTROLS_ENABLED}
-      leaderboardPrivacySettings={leaderboardPrivacySettings}
+      leaderboardPrivacySettings={
+        optionalData.leaderboardPrivacySettings.data ?? undefined
+      }
+      leaderboardPrivacySettingsStatus={
+        optionalData.leaderboardPrivacySettings.status
+      }
     />
   );
 }

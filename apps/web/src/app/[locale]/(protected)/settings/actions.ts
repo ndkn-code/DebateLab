@@ -477,15 +477,20 @@ async function rebuildDailyStats(input: {
   }
 }
 
-export async function saveSettings(input: SettingsDraft) {
-  const draft = sanitizeDraft(input);
+export async function saveSettingsWithFeedback(input: SettingsDraft) {
+  let draft: SettingsDraft;
+  try {
+    draft = sanitizeDraft(input);
+  } catch {
+    return { error: "invalid_handle" as const };
+  }
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    throw new Error("Not authenticated");
+    return { error: "not_authenticated" as const };
   }
 
   const { data: profile, error: profileError } = await supabase
@@ -494,8 +499,8 @@ export async function saveSettings(input: SettingsDraft) {
     .eq("id", user!.id)
     .single();
 
-  if (profileError) {
-    throw new Error(profileError.message);
+  if (profileError || !profile) {
+    return { error: "save_failed" as const };
   }
 
   const preferences = draftToPreferences(
@@ -516,9 +521,9 @@ export async function saveSettings(input: SettingsDraft) {
 
   if (error) {
     if ((error as { code?: string }).code === "23505") {
-      throw new Error("That handle is already taken.");
+      return { error: "handle_taken" as const };
     }
-    throw new Error(error.message);
+    return { error: "save_failed" as const };
   }
 
   const { error: privacyError } = await supabase
@@ -540,7 +545,7 @@ export async function saveSettings(input: SettingsDraft) {
     );
 
   if (privacyError) {
-    throw new Error(privacyError.message);
+    return { error: "save_failed" as const };
   }
 
   const cookieStore = await cookies();
@@ -583,6 +588,19 @@ export async function saveSettings(input: SettingsDraft) {
       currentLocale: draft.preferredLocale,
     }),
   };
+}
+
+// Preserve the existing success-only contract for other settings consumers.
+export async function saveSettings(input: SettingsDraft) {
+  const result = await saveSettingsWithFeedback(input);
+  if (result.error) {
+    throw new Error(
+      input.preferredLocale === "vi"
+        ? "Không thể lưu cài đặt. Vui lòng thử lại."
+        : "Could not save settings. Please try again.",
+    );
+  }
+  return { saved: result.saved };
 }
 
 export async function saveDebateModePreference(
