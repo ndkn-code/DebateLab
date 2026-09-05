@@ -1,5 +1,6 @@
 import "server-only";
 
+import { withTeacherWorkspaceDeadline } from "@/lib/teacher-workspace/loading-policy";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createTypedAdminClient } from "@/lib/supabase/admin";
 import { createTypedServerClient } from "@/lib/supabase/server";
@@ -20,42 +21,59 @@ function asDb(client: unknown) {
 }
 
 /** One batched read model for ordinary homework plus current IELTS writing/speaking work. */
-export async function loadTeacherReviewQueue(params: {
+type TeacherReviewQueueParams = {
   status?: TeacherReviewQueueStatus;
   classId?: string;
   now?: string | Date;
-} = {}): Promise<TeacherReviewQueue> {
+};
+
+export async function loadTeacherReviewQueue(params: TeacherReviewQueueParams = {}): Promise<TeacherReviewQueue> {
+  // Also bounds the existing protected-shell badge caller. A timeout rejects;
+  // it must never be reported as a successfully empty review queue.
+  const controller = new AbortController();
+  try {
+    return await withTeacherWorkspaceDeadline(() => loadReviewQueue(params, controller.signal), 5_000);
+  } finally {
+    controller.abort();
+  }
+}
+
+async function loadReviewQueue(params: TeacherReviewQueueParams, signal: AbortSignal): Promise<TeacherReviewQueue> {
   const session = await createTypedServerClient();
   const db = asDb(session);
   await requireClassManagerDashboard(session);
+  signal.throwIfAborted();
   const capability = await loadTeacherWorkspaceCapability();
-  const classes = capability.classes.map((row) => ({ id: row.id, club_id: row.organizationId, title: row.title, program_type: row.programType }));
+  signal.throwIfAborted();
+  if (params.classId && !capability.classes.some(row => row.id === params.classId)) throw new Error("Forbidden");
+  const classes = capability.classes.filter(row => !params.classId || row.id === params.classId).map((row) => ({ id: row.id, club_id: row.organizationId, title: row.title, program_type: row.programType }));
   const classIds = classes.map((row) => row.id);
   const classById = new Map(classes.map((row) => [row.id, row]));
   if (classIds.length === 0) return { items: [], total: 0, counts: { needs_review: 0, returned: 0, draft: 0 }, classes: [] };
 
-  const { data: assignments, error: assignmentError } = await db.from("club_assignments").select("id, club_id, class_id, title, assignment_type, due_at, status").in("class_id", classIds).neq("status", "archived");
+  const { data: assignments, error: assignmentError } = await db.from("club_assignments").select("id, club_id, class_id, title, assignment_type, due_at, status").in("class_id", classIds).neq("status", "archived").abortSignal(signal);
   if (assignmentError) throw new Error(`loadTeacherReviewQueue assignments: ${assignmentError.message}`);
   const assignmentRows = (assignments ?? []) as Raw[];
   const assignmentIds = assignmentRows.map((row) => String(row.id));
   if (assignmentIds.length === 0) return { items: [], total: 0, counts: { needs_review: 0, returned: 0, draft: 0 }, classes: classes.map((row) => ({ id: row.id, clubId: row.club_id, title: row.title, programType: row.program_type ?? "debate" })) };
   const [submissionsResult, attemptsResult] = await Promise.all([
-    db.from("club_assignment_submissions").select("id, assignment_id, club_id, class_id, user_id, submission_state, grade_status, submitted_at, created_at, updated_at").in("assignment_id", assignmentIds).eq("submission_state", "submitted").not("submitted_at", "is", null).order("submitted_at", { ascending: true }),
-    db.from("ielts_attempts").select("id, assignment_id, user_id, club_id, class_id, submitted_at, status").in("assignment_id", assignmentIds).not("submitted_at", "is", null),
+    db.from("club_assignment_submissions").select("id, assignment_id, club_id, class_id, user_id, submission_state, grade_status, submitted_at, created_at, updated_at").in("assignment_id", assignmentIds).eq("submission_state", "submitted").not("submitted_at", "is", null).order("submitted_at", { ascending: true }).abortSignal(signal),
+    db.from("ielts_attempts").select("id, assignment_id, user_id, club_id, class_id, submitted_at, status").in("assignment_id", assignmentIds).not("submitted_at", "is", null).abortSignal(signal),
   ]);
   if (submissionsResult.error || attemptsResult.error) throw new Error(`loadTeacherReviewQueue submissions: ${submissionsResult.error?.message ?? attemptsResult.error?.message}`);
   const submissions = (submissionsResult.data ?? []) as Raw[];
   const attempts = (attemptsResult.data ?? []) as Raw[];
   const attemptIds = attempts.map((row) => String(row.id));
   const [writingResult, speakingResult, reviewsResult] = await Promise.all([
-    attemptIds.length ? db.from("writing_responses").select("id, attempt_id, user_id, task_number, revision, status, updated_at, created_at").in("attempt_id", attemptIds).in("status", ["scored", "overridden"]) : Promise.resolve({ data: [], error: null }),
-    attemptIds.length ? db.from("speaking_responses").select("id, attempt_id, user_id, part_number, revision, status, updated_at, created_at").in("attempt_id", attemptIds).in("status", ["scored", "overridden"]) : Promise.resolve({ data: [], error: null }),
-    attemptIds.length ? db.from("ielts_teacher_reviews").select("id, writing_response_id, speaking_response_id, revision, status, updated_at").in("attempt_id", attemptIds) : Promise.resolve({ data: [], error: null }),
+    attemptIds.length ? db.from("writing_responses").select("id, attempt_id, user_id, task_number, revision, status, updated_at, created_at").in("attempt_id", attemptIds).in("status", ["scored", "overridden"]).abortSignal(signal) : Promise.resolve({ data: [], error: null }),
+    attemptIds.length ? db.from("speaking_responses").select("id, attempt_id, user_id, part_number, revision, status, updated_at, created_at").in("attempt_id", attemptIds).in("status", ["scored", "overridden"]).abortSignal(signal) : Promise.resolve({ data: [], error: null }),
+    attemptIds.length ? db.from("ielts_teacher_reviews").select("id, writing_response_id, speaking_response_id, revision, status, updated_at").in("attempt_id", attemptIds).abortSignal(signal) : Promise.resolve({ data: [], error: null }),
   ]);
   if (writingResult.error || speakingResult.error || reviewsResult.error) throw new Error(`loadTeacherReviewQueue IELTS: ${writingResult.error?.message ?? speakingResult.error?.message ?? reviewsResult.error?.message}`);
   const profileIds = [...new Set([...submissions, ...attempts].map((row) => String(row.user_id)))];
+  signal.throwIfAborted();
   const admin = createTypedAdminClient() as unknown as SupabaseClient;
-  const { data: profiles, error: profilesError } = profileIds.length ? await admin.from("profiles").select("id, display_name, email").in("id", profileIds) : { data: [], error: null };
+  const { data: profiles, error: profilesError } = profileIds.length ? await admin.from("profiles").select("id, display_name, email").in("id", profileIds).abortSignal(signal) : { data: [], error: null };
   if (profilesError) throw new Error(`loadTeacherReviewQueue profiles: ${profilesError.message}`);
   const profileMap = new Map((profiles ?? []).map((row) => [row.id, row.display_name?.trim() || row.email?.split("@")[0] || "Student"]));
   const assignmentMap = new Map(assignmentRows.map((row) => [String(row.id), row]));

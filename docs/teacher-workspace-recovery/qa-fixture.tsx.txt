@@ -1,0 +1,24 @@
+import Link from "next/link";
+import { cookies } from "next/headers";
+import { notFound } from "next/navigation";
+import { TeacherWorkspaceScreen } from "@/components/teacher-workspace/TeacherWorkspaceScreen";
+import { buildTeacherWorkspaceDemoPresentation, type TeacherWorkspaceSurface } from "@/lib/teacher-workspace/presentation";
+import { loadTeacherWorkspacePresentation } from "@/lib/teacher-workspace/server-presentation";
+
+export default async function RecoveryQA({params, searchParams}: {params: Promise<{locale:string}>; searchParams: Promise<Record<string,string>>}) {
+  if (process.env.NODE_ENV !== "development") notFound();
+  const {locale} = await params;
+  const query = await searchParams;
+  const recovered = (await cookies()).get("qa-review-success")?.value === "1";
+  const surface = (query.surface ?? "calendar") as TeacherWorkspaceSurface;
+  const demo = buildTeacherWorkspaceDemoPresentation({locale, surface, range: {startDate:"2026-08-31",endDate:"2026-09-06",view:"week",timezone:"America/New_York"}});
+  const data = await loadTeacherWorkspacePresentation({locale, surface, classId:query.classId, eventId:query.eventId, tab:query.tab}, {
+    capability: async () => ({userId:"qa-teacher", profileRole:"teacher", isPlatformAdmin:false, canAccess:query.fixture !== "denied", shouldAutoEnter:true, isHeadTeacher:false, hasIeltsEntitlement:true, organizations:[], classes:demo.classes.map(item => ({...item,featureEnabled:true}))}),
+    calendar: async () => {if(query.fixture === "calendar-error") throw new Error("QA calendar timeout");return demo.calendar;},
+    details: async events => Object.fromEntries(events.map(event => [event.id,demo.eventDetails[event.id]])),
+    reviews: async () => {if(query.fixture !== "success" && !recovered) throw new Error("QA review timeout");return {items:[],total:0,counts:{needs_review:0,returned:0,draft:0},classes:[]};},
+    assignments:async()=>demo.assignments,
+    resources:async()=>[],announcements:async()=>[],gradebook:async()=>({rows:[]}),
+  });
+  return <><nav className="flex flex-wrap gap-4 p-4 type-label">{["en","vi"].flatMap(lang => ["classes","calendar","review-queue"].map(section => <Link key={lang+section} prefetch={false} href={`/${lang}/teacher-recovery-qa?surface=${section}&fixture=${section === "calendar" ? "calendar-error" : "failure"}`}>{lang} {section}</Link>))}</nav><p className="type-label p-4">Permission-scoped local fixture · a2bb worktree · no student writes</p><TeacherWorkspaceScreen data={data} classId={query.classId}/></>;
+}

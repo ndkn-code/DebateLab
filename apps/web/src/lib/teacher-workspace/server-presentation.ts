@@ -22,6 +22,10 @@ import {
   listClassResources,
   listClassAnnouncements,
 } from "@/app/actions/class-lms";
+import {
+  teacherWorkspaceLoadPlan,
+  withTeacherWorkspaceDeadline,
+} from "./loading-policy";
 import { isTeacherWorkspaceAccessBoundaryError } from "./errors";
 import {
   buildTeacherWorkspaceDemoPresentation,
@@ -43,28 +47,6 @@ function emptyCalendar(
     },
     events: [],
     classes: [],
-  };
-}
-
-function fallbackDetail(
-  event: TeacherCalendarEvent,
-): TeacherEventDetailPresentation {
-  return {
-    eventId: event.id,
-    actionUrls: {},
-    roster: [],
-    rosterCount: 0,
-    lessonNotes: null,
-    materials: [],
-    homework: [],
-    attendance: {
-      sessionId: null,
-      present: 0,
-      late: 0,
-      absent: 0,
-      recorded: 0,
-    },
-    announcements: [],
   };
 }
 
@@ -101,36 +83,6 @@ function normalizeContentStatus(
   if (value === "published") return "published";
   if (value === "scheduled") return "scheduled";
   return "draft";
-}
-
-function buildContractCollections(
-  classes: TeacherWorkspacePresentation["classes"],
-  events: TeacherCalendarEvent[],
-  eventDetails: Record<string, TeacherEventDetailPresentation>,
-) {
-  const announcements = new Map<
-    string,
-    TeacherWorkspacePresentation["announcements"][number]
-  >();
-  for (const [eventId, detail] of Object.entries(eventDetails)) {
-    const event = events.find((item) => item.id === eventId);
-    if (!event) continue;
-    const classTitle =
-      classes.find((item) => item.id === event.classId)?.title ??
-      event.classTitle;
-    for (const announcement of detail.announcements) {
-      announcements.set(`${event.classId}:${announcement.id}`, {
-        id: announcement.id,
-        classId: event.classId,
-        title: announcement.title,
-        classTitle,
-        body: announcement.body,
-        status: normalizeContentStatus("published"),
-        publishAt: announcement.publishedAt,
-      });
-    }
-  }
-  return { announcements: [...announcements.values()] };
 }
 
 function normalizeAssignmentStatus(
@@ -177,6 +129,22 @@ async function loadClassAssignments(
     throw new Error(
       `teacher workspace assignment submissions: ${submissionError.message}`,
     );
+  // Missing work is roster-based, never derived from an unloaded calendar detail.
+  const { data: members, error: memberError } = await client
+    .from("class_memberships")
+    .select("class_id")
+    .in("class_id", classIds)
+    .eq("member_role", "student")
+    .eq("status", "active");
+  if (memberError)
+    throw new Error(
+      `teacher workspace assignment roster: ${memberError.message}`,
+    );
+  const rosterCounts = new Map<string, number>();
+  for (const member of members ?? []) {
+    const id = String(member.class_id);
+    rosterCounts.set(id, (rosterCounts.get(id) ?? 0) + 1);
+  }
   const counts = new Map<string, { submitted: number; reviewed: number }>();
   for (const row of (submissionRows ?? []) as SubmissionCountRow[]) {
     if (row.submission_state !== "submitted") continue;
@@ -205,7 +173,10 @@ async function loadClassAssignments(
         updatedAt: (row.updated_at as string | null) ?? null,
         submitted: tally.submitted,
         reviewed: tally.reviewed,
-        missing: Math.max(0, classItem.studentCount - tally.submitted),
+        missing: Math.max(
+          0,
+          (rosterCounts.get(classId) ?? 0) - tally.submitted,
+        ),
       },
     ];
   });
@@ -258,33 +229,23 @@ function buildAttendanceRegister(
   };
 }
 
-async function loadDetails(events: TeacherCalendarEvent[]) {
-  const selected = events.slice(0, 16);
-  const settled = await Promise.allSettled(
-    selected.map((event) =>
-      loadTeacherCalendarEventDetail({
+async function loadDetails(
+  events: TeacherCalendarEvent[],
+): Promise<TeacherWorkspacePresentation["eventDetails"]> {
+  // A failed detail must never become an empty roster or attendance register.
+  const details = await Promise.all(
+    events.slice(0, 16).map(async (event) => {
+      const detail = await loadTeacherCalendarEventDetail({
         eventId: event.id,
         date: event.date,
         timezone: event.timezone,
-      }),
-    ),
-  );
-  return Object.fromEntries(
-    selected.map((event, index) => {
-      const result = settled[index];
-      if (result.status !== "fulfilled")
-        return [event.id, fallbackDetail(event)];
-      const detail = result.value;
+      });
       return [
         event.id,
         {
           eventId: event.id,
           actionUrls: detail.actionUrls,
-          roster: detail.roster.map((student) => ({
-            id: student.id,
-            name: student.name,
-            status: student.status,
-          })),
+          roster: detail.roster,
           rosterCount: detail.rosterCount,
           lessonNotes: detail.lessonNotes,
           materials: detail.materials,
@@ -295,13 +256,7 @@ async function loadDetails(events: TeacherCalendarEvent[]) {
             submissions: assignment.submissionCount,
             reviews: assignment.reviewCount,
           })),
-          attendance: {
-            sessionId: detail.attendance.sessionId,
-            present: detail.attendance.present,
-            late: detail.attendance.late,
-            absent: detail.attendance.absent,
-            recorded: detail.attendance.recorded,
-          },
+          attendance: detail.attendance,
           announcements: detail.announcements.map((announcement) => ({
             id: announcement.id,
             title: announcement.title,
@@ -309,21 +264,57 @@ async function loadDetails(events: TeacherCalendarEvent[]) {
             publishedAt: announcement.publishAt,
           })),
         } satisfies TeacherEventDetailPresentation,
-      ];
+      ] as const;
     }),
+  );
+  return Object.fromEntries(details);
+}
+
+async function loadClassGradebook(
+  item: TeacherWorkspacePresentation["classes"][number],
+): Promise<Pick<Awaited<ReturnType<typeof loadIeltsClassGradebook>>, "rows">> {
+  const client = await createTypedServerClient();
+  const manager = await requireClassManager(client, item.id);
+  if (manager.clubId !== item.organizationId) throw new Error("Forbidden");
+  // The trusted profile reader is created only after class/organization ownership validation.
+  return loadIeltsClassGradebook(
+    client,
+    {
+      classId: manager.classId,
+      clubId: manager.clubId,
+      limit: 100,
+    },
+    createTypedAdminClient(),
   );
 }
 
-export async function loadTeacherWorkspacePresentation(input: {
-  locale: string;
-  surface: TeacherWorkspaceSurface;
-  view?: TeacherCalendarView;
-  anchorDate?: string;
-  classId?: string;
-  programType?: string;
-  status?: TeacherCalendarStatus;
-  demo?: string;
-}): Promise<TeacherWorkspacePresentation> {
+const productionLoaders = {
+  capability: loadTeacherWorkspaceCapability,
+  calendar: loadTeacherCalendarRange,
+  reviews: loadTeacherReviewQueue,
+  details: loadDetails,
+  assignments: loadClassAssignments,
+  resources: listClassResources,
+  announcements: listClassAnnouncements,
+  gradebook: loadClassGradebook,
+};
+
+export async function loadTeacherWorkspacePresentation(
+  input: {
+    locale: string;
+    surface: TeacherWorkspaceSurface;
+    view?: TeacherCalendarView;
+    anchorDate?: string;
+    classId?: string;
+    programType?: string;
+    status?: TeacherCalendarStatus;
+    demo?: string;
+    eventId?: string;
+    tab?: string;
+  },
+  loaders = productionLoaders,
+  timeoutMs = 5_000,
+): Promise<TeacherWorkspacePresentation> {
   if (isExplicitTeacherWorkspaceDemo(input.demo)) {
     return buildTeacherWorkspaceDemoPresentation({
       locale: input.locale,
@@ -366,7 +357,10 @@ export async function loadTeacherWorkspacePresentation(input: {
   } satisfies TeacherWorkspacePresentation;
 
   try {
-    const capability = await loadTeacherWorkspaceCapability();
+    const capability = await withTeacherWorkspaceDeadline(
+      loaders.capability,
+      timeoutMs,
+    );
     if (!capability.canAccess) return { ...fallback, state: "denied" };
     if (
       new Set(["organization", "people", "curriculum", "reports"]).has(
@@ -377,36 +371,204 @@ export async function loadTeacherWorkspacePresentation(input: {
       return { ...fallback, state: "denied" };
     }
 
-    const [calendar, reviewQueue] = await Promise.all([
-      loadTeacherCalendarRange({
-        view: input.view,
-        anchorDate: input.anchorDate,
-        classId: input.classId,
-        programType:
-          input.programType === "ielts" ||
-          input.programType === "debate" ||
-          input.programType === "public_speaking"
-            ? input.programType
-            : undefined,
-        statuses: input.status ? [input.status] : undefined,
-      }),
-      loadTeacherReviewQueue({
-        classId: input.classId,
-        status: "all",
-      }),
-    ]);
-    const eventDetails = await loadDetails(calendar.events);
-    const classColors = new Map(
-      calendar.classes.map((item) => [item.id, item.colorToken]),
+    if (
+      input.classId &&
+      !capability.classes.some((item) => item.id === input.classId)
+    ) {
+      return { ...fallback, state: "denied" };
+    }
+    const classTabSurface = input.tab;
+    const tabSurfaces = [
+      "assignments",
+      "gradebook",
+      "attendance",
+      "materials",
+      "announcements",
+    ];
+    const plan = teacherWorkspaceLoadPlan(
+      input.surface === "class-detail" &&
+        tabSurfaces.includes(classTabSurface ?? "")
+        ? (classTabSurface as TeacherWorkspaceSurface)
+        : input.surface,
     );
-    const classes = capability.classes.map((item) => {
+    const deadline = Date.now() + timeoutMs;
+    const dataStatus: NonNullable<TeacherWorkspacePresentation["dataStatus"]> =
+      {};
+    async function source<T>(
+      key: keyof typeof dataStatus,
+      enabled: boolean,
+      load: () => Promise<T>,
+      empty: T,
+    ): Promise<T> {
+      dataStatus[key] = "not_requested";
+      if (!enabled) return empty;
+      try {
+        const value = await withTeacherWorkspaceDeadline(
+          load,
+          Math.max(0, deadline - Date.now()),
+        );
+        dataStatus[key] = "ready";
+        return value;
+      } catch (error) {
+        // Never recover a permission boundary by presenting previously authorized data.
+        if (isTeacherWorkspaceAccessBoundaryError(error)) throw error;
+        dataStatus[key] = "unavailable";
+        console.error(`teacher workspace ${key} unavailable`, error);
+        return empty;
+      }
+    }
+    const classes: TeacherWorkspacePresentation["classes"] = capability.classes
+      .filter((item) => !input.classId || item.id === input.classId)
+      .map((item) => ({
+        ...item,
+        colorToken: "blue",
+        studentCount: 0,
+        nextLessonAt: null,
+        room: null,
+        completion: 0,
+        attendanceRate: 0,
+        pendingReviews: 0,
+        metricsStatus: "not_requested",
+        reviewsStatus: "not_requested",
+        calendarStatus: "not_requested",
+      }));
+    const calendarInput = {
+      view: input.view,
+      anchorDate: input.anchorDate,
+      classId: input.classId,
+      programType:
+        input.programType === "ielts" ||
+        input.programType === "debate" ||
+        input.programType === "public_speaking"
+          ? input.programType
+          : undefined,
+      statuses: input.status ? [input.status] : undefined,
+    } satisfies Parameters<typeof loadTeacherCalendarRange>[0];
+    const authorizedIds = new Set(classes.map((item) => item.id));
+    const calendarPromise = source(
+      "calendar",
+      plan.calendar,
+      () => loaders.calendar(calendarInput),
+      emptyCalendar(input.view),
+    );
+    const detailsPromise = calendarPromise.then((calendar) =>
+      source(
+        "details",
+        plan.details || Boolean(input.eventId && input.surface === "calendar"),
+        async () => {
+          if (dataStatus.calendar !== "ready")
+            throw new Error("Calendar unavailable");
+          const authorizedEvents = calendar.events.filter((event) =>
+            authorizedIds.has(event.classId),
+          );
+          const selected =
+            input.surface === "calendar"
+              ? authorizedEvents.filter((event) => event.id === input.eventId)
+              : authorizedEvents;
+          if (input.eventId && input.surface === "calendar" && !selected.length)
+            throw new Error("Forbidden");
+          return loaders.details(selected);
+        },
+        {} as TeacherWorkspacePresentation["eventDetails"],
+      ),
+    );
+    const [
+      calendar,
+      eventDetails,
+      reviewQueue,
+      assignments,
+      contentResources,
+      contentAnnouncements,
+      gradebooks,
+    ] = await Promise.all([
+      calendarPromise,
+      detailsPromise,
+      source(
+        "reviews",
+        plan.reviews,
+        () => loaders.reviews({ classId: input.classId, status: "all" }),
+        {
+          items: [],
+          total: 0,
+          counts: { needs_review: 0, returned: 0, draft: 0 },
+          classes: [],
+        },
+      ),
+      source(
+        "assignments",
+        plan.assignments,
+        () => loaders.assignments(classes),
+        [],
+      ),
+      source(
+        "materials",
+        plan.materials,
+        () =>
+          Promise.all(
+            classes.map(async (item) => ({
+              classId: item.id,
+              items: await loaders.resources(item.id),
+            })),
+          ),
+        [],
+      ),
+      source(
+        "announcements",
+        plan.announcements,
+        () =>
+          Promise.all(
+            classes.map(async (item) => ({
+              classId: item.id,
+              items: await loaders.announcements(item.id),
+            })),
+          ),
+        [],
+      ),
+      source(
+        "gradebook",
+        plan.gradebook,
+        () =>
+          Promise.all(
+            classes
+              .filter((item) => item.programType === "ielts")
+              .map((item) => loaders.gradebook(item)),
+          ),
+        [],
+      ),
+    ]);
+    // Recheck returned scopes even though each production loader enforces RLS/ownership.
+    calendar.classes = calendar.classes.filter((item) =>
+      authorizedIds.has(item.id),
+    );
+    calendar.events = calendar.events.filter((item) =>
+      authorizedIds.has(item.classId),
+    );
+    const eventIds = new Set(calendar.events.map((item) => item.id));
+    for (const eventId of Object.keys(eventDetails))
+      if (!eventIds.has(eventId)) delete eventDetails[eventId];
+    for (const item of classes) {
       const classEvents = calendar.events.filter(
         (event) => event.classId === item.id,
       );
       const details = classEvents
         .map((event) => eventDetails[event.id])
         .filter(Boolean);
-      const rosterCount = Math.max(
+      item.calendarStatus = dataStatus.calendar;
+      item.reviewsStatus = dataStatus.reviews;
+      item.metricsStatus =
+        dataStatus.details === "ready" && details.length
+          ? "ready"
+          : dataStatus.details === "unavailable"
+            ? "unavailable"
+            : "not_requested";
+      item.colorToken =
+        calendar.classes.find((row) => row.id === item.id)?.colorToken ??
+        "blue";
+      item.nextLessonAt =
+        classEvents.find((event) => event.status === "scheduled")?.startsAt ??
+        null;
+      item.room = classEvents.find((event) => event.room)?.room ?? null;
+      item.studentCount = Math.max(
         0,
         ...details.map((detail) => detail.rosterCount),
       );
@@ -419,196 +581,117 @@ export async function loadTeacherWorkspacePresentation(input: {
           sum + detail.attendance.present + detail.attendance.late,
         0,
       );
-      const assignmentCount = details.reduce(
-        (sum, detail) => sum + detail.homework.length,
-        0,
-      );
-      const submitted = details.reduce(
-        (sum, detail) =>
-          sum +
-          detail.homework.reduce(
-            (total, assignment) => total + assignment.submissions,
-            0,
-          ),
-        0,
-      );
-      return {
-        id: item.id,
-        organizationId: item.organizationId,
-        title: item.title,
-        programType: item.programType,
-        colorToken: classColors.get(item.id) ?? "blue",
-        studentCount: rosterCount,
-        nextLessonAt:
-          classEvents.find((event) => event.status === "scheduled")?.startsAt ??
-          null,
-        room: classEvents.find((event) => event.room)?.room ?? null,
-        completion:
-          assignmentCount && rosterCount
-            ? Math.min(
-                100,
-                Math.round((submitted / (assignmentCount * rosterCount)) * 100),
-              )
-            : 0,
-        attendanceRate: recorded ? Math.round((attended / recorded) * 100) : 0,
-        pendingReviews: reviewQueue.items.filter(
-          (review) => review.classId === item.id,
-        ).length,
-        isAssigned: item.isAssigned,
-        isLeadTeacher: item.isLeadTeacher,
-      };
-    });
-
-    const collections = buildContractCollections(
-      classes,
-      calendar.events,
-      eventDetails,
-    );
-    const assignmentsResult = await Promise.allSettled([
-      loadClassAssignments(classes),
-    ]);
-    const assignments =
-      assignmentsResult[0].status === "fulfilled"
-        ? assignmentsResult[0].value
-        : [];
-    if (assignmentsResult[0].status === "rejected") {
-      console.error(
-        "teacher workspace assignments failed",
-        assignmentsResult[0].reason,
-      );
+      item.attendanceRate = recorded
+        ? Math.round((attended / recorded) * 100)
+        : 0;
+      const homework = details.flatMap((detail) => detail.homework);
+      item.completion =
+        homework.length && item.studentCount
+          ? Math.min(
+              100,
+              Math.round(
+                (homework.reduce((sum, row) => sum + row.submissions, 0) /
+                  (homework.length * item.studentCount)) *
+                  100,
+              ),
+            )
+          : 0;
+      item.pendingReviews = reviewQueue.items.filter(
+        (review) =>
+          review.classId === item.id && review.status === "needs_review",
+      ).length;
     }
-    const content = await Promise.allSettled(
-      capability.classes.map(async (item) => {
-        const [resources, announcements] = await Promise.all([
-          listClassResources(item.id),
-          listClassAnnouncements(item.id),
-        ]);
-        return { classId: item.id, resources, announcements };
-      }),
-    );
-    const materials: TeacherWorkspacePresentation["materials"] = [];
-    const loadedAnnouncements = new Map(
-      collections.announcements.map((announcement) => [
-        `${announcement.classId}:${announcement.id}`,
-        announcement,
-      ]),
-    );
-    for (const result of content) {
-      if (result.status !== "fulfilled") continue;
-      const classTitle =
-        classes.find((item) => item.id === result.value.classId)?.title ??
-        "Class";
-      for (const resource of result.value.resources) {
-        materials.push({
+    const materials: TeacherWorkspacePresentation["materials"] =
+      contentResources.flatMap((result) =>
+        result.items.map((resource) => ({
           id: resource.id,
-          classId: result.value.classId,
+          classId: result.classId,
           title: resource.title,
-          classTitle,
+          classTitle: classes.find((item) => item.id === result.classId)!.title,
           kind: resource.kind === "link" ? "link" : "document",
           status: resource.status === "published" ? "published" : "draft",
           updatedAt: resource.updatedAt,
-        });
-      }
-      for (const announcement of result.value.announcements) {
-        loadedAnnouncements.set(`${result.value.classId}:${announcement.id}`, {
-          id: announcement.id,
-          classId: result.value.classId,
-          title: announcement.title,
-          classTitle,
-          body: announcement.body,
-          status:
-            announcement.status === "published"
-              ? "published"
-              : announcement.status === "draft"
-                ? "draft"
-                : "scheduled",
-          publishAt: announcement.publishAt,
-        });
-      }
-    }
-    const gradebook = {
-      students: [] as TeacherWorkspacePresentation["gradebook"]["students"],
-      assessments:
-        [] as TeacherWorkspacePresentation["gradebook"]["assessments"],
-      scores: {} as TeacherWorkspacePresentation["gradebook"]["scores"],
-    };
-    const ieltsClasses = capability.classes.filter(
-      (item) => item.programType === "ielts",
-    );
-    if (ieltsClasses.length) {
-      const client = await createTypedServerClient();
-      const gradebooks = await Promise.allSettled(
-        ieltsClasses.map(async (item) => {
-          const manager = await requireClassManager(client, item.id);
-          if (manager.clubId !== item.organizationId) throw new Error("Forbidden");
-          // Profile identities are owner-only under RLS; create the trusted reader
-          // only after checking this class and its organization for the viewer.
-          return loadIeltsClassGradebook(client, {
-            classId: manager.classId,
-            clubId: manager.clubId,
-            limit: 100,
-          }, createTypedAdminClient());
-        }),
+        })),
       );
-      for (const result of gradebooks) {
-        if (result.status !== "fulfilled") continue;
-        for (const row of result.value.rows) {
+    const announcements: TeacherWorkspacePresentation["announcements"] =
+      contentAnnouncements.flatMap((result) =>
+        result.items.map((announcement) => ({
+          id: announcement.id,
+          classId: result.classId,
+          title: announcement.title,
+          classTitle: classes.find((item) => item.id === result.classId)!.title,
+          body: announcement.body,
+          status: normalizeContentStatus(announcement.status),
+          publishAt: announcement.publishAt,
+        })),
+      );
+    const gradebook: TeacherWorkspacePresentation["gradebook"] = {
+      students: [],
+      assessments: [],
+      scores: {},
+    };
+    for (const result of gradebooks) {
+      for (const row of result.rows) {
+        if (!gradebook.students.some((student) => student.id === row.userId))
+          gradebook.students.push({ id: row.userId, name: row.displayName });
+        gradebook.scores[row.userId] ??= {};
+        for (const assignment of row.assignments) {
           if (
-            !gradebook.students.some((student) => student.id === row.userId)
-          ) {
-            gradebook.students.push({ id: row.userId, name: row.displayName });
-          }
-          gradebook.scores[row.userId] ??= {};
-          for (const assignment of row.assignments) {
-            if (
-              !gradebook.assessments.some(
-                (item) => item.id === assignment.assignmentId,
-              )
-            ) {
-              gradebook.assessments.push({
-                id: assignment.assignmentId,
-                title: assignment.title,
-                maxScore: assignment.homework.scoreMax ?? 9,
-              });
-            }
-            gradebook.scores[row.userId][assignment.assignmentId] =
-              assignment.score.overall ??
-              (assignment.homework.submitted ? "draft" : "missing");
-          }
+            !gradebook.assessments.some(
+              (item) => item.id === assignment.assignmentId,
+            )
+          )
+            gradebook.assessments.push({
+              id: assignment.assignmentId,
+              title: assignment.title,
+              maxScore: assignment.homework.scoreMax ?? 9,
+            });
+          gradebook.scores[row.userId][assignment.assignmentId] =
+            assignment.score.overall ??
+            (assignment.homework.submitted ? "draft" : "missing");
         }
       }
     }
 
     return {
       ...fallback,
-      state: classes.length || capability.isPlatformAdmin ? "ready" : "empty",
+      dataStatus,
+      state: Object.values(dataStatus).includes("unavailable")
+        ? "partial"
+        : classes.length || capability.isPlatformAdmin
+          ? "ready"
+          : "empty",
       isAdminPreview: capability.isPlatformAdmin,
       isHeadTeacher: capability.isHeadTeacher,
       hasIeltsEntitlement: capability.hasIeltsEntitlement,
       classes,
       calendar,
       eventDetails,
-      reviews: reviewQueue.items.map((item) => ({
-        key: item.key,
-        kind: item.kind,
-        responseId: item.responseId,
-        submissionId: item.submissionId,
-        submissionUpdatedAt: item.submissionUpdatedAt,
-        programType: item.programType,
-        classId: item.classId,
-        classTitle: item.classTitle,
-        studentName: item.studentName,
-        assignmentTitle: item.assignmentTitle,
-        submittedAt: item.submittedAt,
-        dueAt: item.dueAt,
-        ageDays: item.ageDays,
-        status: item.status,
-        scoreSource: item.scoreSource,
-        attemptLabel:
-          item.revision == null ? "Submission" : `Revision ${item.revision}`,
-      })),
-      assignments,
-      announcements: [...loadedAnnouncements.values()],
+      reviews: reviewQueue.items
+        .filter((item) => authorizedIds.has(item.classId))
+        .map((item) => ({
+          key: item.key,
+          kind: item.kind,
+          responseId: item.responseId,
+          submissionId: item.submissionId,
+          submissionUpdatedAt: item.submissionUpdatedAt,
+          programType: item.programType,
+          classId: item.classId,
+          classTitle: item.classTitle,
+          studentName: item.studentName,
+          assignmentTitle: item.assignmentTitle,
+          submittedAt: item.submittedAt,
+          dueAt: item.dueAt,
+          ageDays: item.ageDays,
+          status: item.status,
+          scoreSource: item.scoreSource,
+          attemptLabel:
+            item.revision == null ? "Submission" : `Revision ${item.revision}`,
+        })),
+      assignments: assignments.filter((item) =>
+        authorizedIds.has(item.classId),
+      ),
+      announcements,
       materials,
       gradebook,
       attendance: buildAttendanceRegister(

@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  useTransition,
   type CSSProperties,
   type FormEvent,
   type KeyboardEvent as ReactKeyboardEvent,
@@ -1098,9 +1099,13 @@ function EventDrawer({
   onClose,
   onDemoChange,
   onLiveAction,
+  detailPending,
+  onRetryDetail,
 }: {
   event: TeacherCalendarEvent | null;
   detail: TeacherEventDetailPresentation | undefined;
+  detailPending: boolean;
+  onRetryDetail: () => void;
   locale: string;
   source: TeacherWorkspacePresentation["source"];
   onClose: () => void;
@@ -1374,193 +1379,231 @@ function EventDrawer({
                 </form>
               ) : null}
 
-              <section
-                className="mt-5 border-t border-outline-variant pt-4"
-                aria-labelledby="drawer-roster"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <h3
-                    id="drawer-roster"
-                    className="flex items-center gap-2 type-body font-semibold text-on-surface"
-                  >
-                    <Users className="size-4 text-primary" aria-hidden="true" />
-                    {vi ? "Danh sách lớp" : "Roster"}
-                  </h3>
-                  <span className="type-caption font-semibold text-on-surface-variant">
-                    {detail?.rosterCount ?? 0} {vi ? "học viên" : "learners"}
-                  </span>
-                </div>
-                {detail?.roster.length ? (
-                  <ul className="mt-2 divide-y divide-outline-variant">
-                    {detail.roster.map((student) => (
-                      <li
-                        key={student.id}
-                        className="flex items-center justify-between gap-3 py-2 type-body-sm"
-                      >
-                        <span className="font-medium text-on-surface">
-                          {student.name}
-                        </span>
-                        <span className="type-caption font-semibold text-on-surface-variant">
-                          {attendanceLabel(student.status, vi)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-2 type-body-sm text-on-surface-variant">
-                    {vi
-                      ? "Chi tiết tên học viên không có trong hợp đồng hiện tại."
-                      : "The current contract exposes roster count only."}
-                  </p>
-                )}
-              </section>
-
-              <section
-                className="mt-5 border-t border-outline-variant pt-4"
-                aria-labelledby="drawer-attendance"
-              >
-                <h3
-                  id="drawer-attendance"
-                  className="type-body font-semibold text-on-surface"
+              {!detail ? (
+                <div
+                  className="mt-5 rounded-control border border-outline-variant bg-surface-container-low p-4"
+                  role="status"
                 >
-                  {vi ? "Tóm tắt điểm danh" : "Attendance summary"}
-                </h3>
-                <div className="mt-2 grid grid-cols-4 gap-2">
-                  {(["present", "late", "absent", "recorded"] as const).map(
-                    (key) => (
-                      <div
-                        key={key}
-                        className="rounded-lg bg-surface-container-low p-2 text-center"
-                      >
-                        <p className="type-body font-semibold tabular-nums text-on-surface">
-                          {detail?.attendance[key] ?? 0}
-                        </p>
-                        <p className="type-caption capitalize text-on-surface-variant">
-                          {attendanceLabel(key, vi)}
-                        </p>
-                      </div>
-                    ),
-                  )}
-                </div>
-              </section>
-
-              <section
-                className="mt-5 border-t border-outline-variant pt-4"
-                aria-labelledby="drawer-materials"
-              >
-                <h3
-                  id="drawer-materials"
-                  className="type-body font-semibold text-on-surface"
-                >
-                  {vi ? "Tài liệu" : "Materials"}
-                </h3>
-                {detail?.materials.length ? (
-                  <ul className="mt-2 grid gap-2">
-                    {detail.materials.map((material) => (
-                      <li
-                        key={material.id}
-                        className="flex items-center justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2"
-                      >
-                        <span className="type-body-sm font-medium text-on-surface">
-                          {material.title}
-                        </span>
-                        <span className="type-caption text-on-surface-variant">
-                          {material.required
-                            ? vi
-                              ? "Bắt buộc"
-                              : "Required"
-                            : materialKindLabel(material.kind, vi)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-2 type-body-sm text-on-surface-variant">
-                    {vi ? "Chưa có tài liệu." : "No materials attached."}
+                  <p className="type-body-sm text-on-surface">
+                    {detailPending
+                      ? vi
+                        ? "Đang tải thông tin buổi học…"
+                        : "Loading lesson details…"
+                      : vi
+                        ? "Chưa tải được danh sách lớp và tài liệu. Bạn vẫn có thể mở lớp hoặc dùng lịch."
+                        : "Roster and lesson materials could not be loaded. You can still open the class or use the calendar."}
                   </p>
-                )}
-              </section>
-
-              <section
-                className="mt-5 border-t border-outline-variant pt-4"
-                aria-labelledby="drawer-homework"
-              >
-                <div className="flex items-center gap-2">
-                  <ClipboardList
-                    className="size-4 text-primary"
-                    aria-hidden="true"
-                  />
-                  <h3
-                    id="drawer-homework"
-                    className="type-body font-semibold text-on-surface"
+                  <Button
+                    className="mt-3"
+                    variant="outline"
+                    disabled={detailPending}
+                    onClick={onRetryDetail}
                   >
-                    {vi ? "Bài tập và chấm bài" : "Homework and review"}
-                  </h3>
+                    {detailPending
+                      ? vi
+                        ? "Đang tải…"
+                        : "Loading…"
+                      : vi
+                        ? "Thử lại"
+                        : "Try again"}
+                  </Button>
                 </div>
-                {detail?.homework.length ? (
-                  <ul className="mt-2 grid gap-2">
-                    {detail.homework.map((homework) => (
-                      <li
-                        key={homework.id}
-                        className="rounded-lg bg-surface-container-low px-3 py-2"
-                      >
-                        <p className="type-label font-semibold text-on-surface">
-                          {homework.title}
-                        </p>
-                        <p className="mt-0.5 type-caption text-on-surface-variant">
-                          {homework.submissions} {vi ? "bài nộp" : "submitted"}{" "}
-                          · {homework.reviews} {vi ? "cần chấm" : "to review"}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-2 type-body-sm text-on-surface-variant">
-                    {vi ? "Chưa có bài tập." : "No homework attached."}
-                  </p>
-                )}
-              </section>
-
-              <section
-                className="mt-5 border-t border-outline-variant pt-4"
-                aria-labelledby="drawer-announcements"
-              >
-                <div className="flex items-center gap-2">
-                  <Megaphone
-                    className="size-4 text-primary"
-                    aria-hidden="true"
-                  />
-                  <h3
-                    id="drawer-announcements"
-                    className="type-body font-semibold text-on-surface"
+              ) : (
+                <>
+                  <section
+                    className="mt-5 border-t border-outline-variant pt-4"
+                    aria-labelledby="drawer-roster"
                   >
-                    {vi ? "Thông báo" : "Announcements"}
-                  </h3>
-                </div>
-                {detail?.announcements.length ? (
-                  <ul className="mt-2 grid gap-2">
-                    {detail.announcements.map((announcement) => (
-                      <li
-                        key={announcement.id}
-                        className="rounded-lg bg-surface-container-low px-3 py-2"
+                    <div className="flex items-center justify-between gap-3">
+                      <h3
+                        id="drawer-roster"
+                        className="flex items-center gap-2 type-body font-semibold text-on-surface"
                       >
-                        <p className="type-label font-semibold text-on-surface">
-                          {announcement.title}
-                        </p>
-                        <p className="mt-1 type-body-sm text-on-surface-variant">
-                          {announcement.body}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="mt-2 type-body-sm text-on-surface-variant">
-                    {vi
-                      ? "Chưa có thông báo."
-                      : "No announcements for this lesson."}
-                  </p>
-                )}
-              </section>
+                        <Users
+                          className="size-4 text-primary"
+                          aria-hidden="true"
+                        />
+                        {vi ? "Danh sách lớp" : "Roster"}
+                      </h3>
+                      <span className="type-caption font-semibold text-on-surface-variant">
+                        {detail?.rosterCount ?? 0}{" "}
+                        {vi ? "học viên" : "learners"}
+                      </span>
+                    </div>
+                    {detail?.roster.length ? (
+                      <ul className="mt-2 divide-y divide-outline-variant">
+                        {detail.roster.map((student) => (
+                          <li
+                            key={student.id}
+                            className="flex items-center justify-between gap-3 py-2 type-body-sm"
+                          >
+                            <span className="font-medium text-on-surface">
+                              {student.name}
+                            </span>
+                            <span className="type-caption font-semibold text-on-surface-variant">
+                              {attendanceLabel(student.status, vi)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 type-body-sm text-on-surface-variant">
+                        {vi
+                          ? "Chi tiết tên học viên không có trong hợp đồng hiện tại."
+                          : "The current contract exposes roster count only."}
+                      </p>
+                    )}
+                  </section>
+
+                  <section
+                    className="mt-5 border-t border-outline-variant pt-4"
+                    aria-labelledby="drawer-attendance"
+                  >
+                    <h3
+                      id="drawer-attendance"
+                      className="type-body font-semibold text-on-surface"
+                    >
+                      {vi ? "Tóm tắt điểm danh" : "Attendance summary"}
+                    </h3>
+                    <div className="mt-2 grid grid-cols-4 gap-2">
+                      {(["present", "late", "absent", "recorded"] as const).map(
+                        (key) => (
+                          <div
+                            key={key}
+                            className="rounded-lg bg-surface-container-low p-2 text-center"
+                          >
+                            <p className="type-body font-semibold tabular-nums text-on-surface">
+                              {detail?.attendance[key] ?? 0}
+                            </p>
+                            <p className="type-caption capitalize text-on-surface-variant">
+                              {attendanceLabel(key, vi)}
+                            </p>
+                          </div>
+                        ),
+                      )}
+                    </div>
+                  </section>
+
+                  <section
+                    className="mt-5 border-t border-outline-variant pt-4"
+                    aria-labelledby="drawer-materials"
+                  >
+                    <h3
+                      id="drawer-materials"
+                      className="type-body font-semibold text-on-surface"
+                    >
+                      {vi ? "Tài liệu" : "Materials"}
+                    </h3>
+                    {detail?.materials.length ? (
+                      <ul className="mt-2 grid gap-2">
+                        {detail.materials.map((material) => (
+                          <li
+                            key={material.id}
+                            className="flex items-center justify-between gap-3 rounded-lg bg-surface-container-low px-3 py-2"
+                          >
+                            <span className="type-body-sm font-medium text-on-surface">
+                              {material.title}
+                            </span>
+                            <span className="type-caption text-on-surface-variant">
+                              {material.required
+                                ? vi
+                                  ? "Bắt buộc"
+                                  : "Required"
+                                : materialKindLabel(material.kind, vi)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 type-body-sm text-on-surface-variant">
+                        {vi ? "Chưa có tài liệu." : "No materials attached."}
+                      </p>
+                    )}
+                  </section>
+
+                  <section
+                    className="mt-5 border-t border-outline-variant pt-4"
+                    aria-labelledby="drawer-homework"
+                  >
+                    <div className="flex items-center gap-2">
+                      <ClipboardList
+                        className="size-4 text-primary"
+                        aria-hidden="true"
+                      />
+                      <h3
+                        id="drawer-homework"
+                        className="type-body font-semibold text-on-surface"
+                      >
+                        {vi ? "Bài tập và chấm bài" : "Homework and review"}
+                      </h3>
+                    </div>
+                    {detail?.homework.length ? (
+                      <ul className="mt-2 grid gap-2">
+                        {detail.homework.map((homework) => (
+                          <li
+                            key={homework.id}
+                            className="rounded-lg bg-surface-container-low px-3 py-2"
+                          >
+                            <p className="type-label font-semibold text-on-surface">
+                              {homework.title}
+                            </p>
+                            <p className="mt-0.5 type-caption text-on-surface-variant">
+                              {homework.submissions}{" "}
+                              {vi ? "bài nộp" : "submitted"} ·{" "}
+                              {homework.reviews} {vi ? "cần chấm" : "to review"}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 type-body-sm text-on-surface-variant">
+                        {vi ? "Chưa có bài tập." : "No homework attached."}
+                      </p>
+                    )}
+                  </section>
+
+                  <section
+                    className="mt-5 border-t border-outline-variant pt-4"
+                    aria-labelledby="drawer-announcements"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Megaphone
+                        className="size-4 text-primary"
+                        aria-hidden="true"
+                      />
+                      <h3
+                        id="drawer-announcements"
+                        className="type-body font-semibold text-on-surface"
+                      >
+                        {vi ? "Thông báo" : "Announcements"}
+                      </h3>
+                    </div>
+                    {detail?.announcements.length ? (
+                      <ul className="mt-2 grid gap-2">
+                        {detail.announcements.map((announcement) => (
+                          <li
+                            key={announcement.id}
+                            className="rounded-lg bg-surface-container-low px-3 py-2"
+                          >
+                            <p className="type-label font-semibold text-on-surface">
+                              {announcement.title}
+                            </p>
+                            <p className="mt-1 type-body-sm text-on-surface-variant">
+                              {announcement.body}
+                            </p>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="mt-2 type-body-sm text-on-surface-variant">
+                        {vi
+                          ? "Chưa có thông báo."
+                          : "No announcements for this lesson."}
+                      </p>
+                    )}
+                  </section>
+                </>
+              )}
               {actionMessage ? (
                 <p
                   className="mt-4 rounded-lg bg-surface-container-high px-3 py-2 type-caption text-on-surface"
@@ -1831,7 +1874,10 @@ export function TeacherCalendar({
   const initialView = data.calendar.range.view;
   const initialAnchor =
     searchParams.get("date") ?? data.calendar.range.startDate;
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(
+    searchParams.get("eventId"),
+  );
+  const [detailPending, startDetailTransition] = useTransition();
   const lastEventTriggerRef = useRef<HTMLButtonElement | null>(null);
   const [overrides, setOverrides] = useState<
     Record<string, Partial<TeacherCalendarEvent>>
@@ -1930,6 +1976,8 @@ export function TeacherCalendar({
       if (value) params.set(key, value);
       else params.delete(key);
     }
+    params.delete("eventId");
+    setSelectedEventId(null);
     router.push(`${pathname}?${params.toString()}`);
   }
 
@@ -1987,10 +2035,25 @@ export function TeacherCalendar({
   ) {
     lastEventTriggerRef.current = trigger;
     setSelectedEventId(event.id);
+    if (data.source !== "explicit_demo") {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("eventId", event.id);
+      startDetailTransition(() =>
+        router.replace(`${pathname}?${params.toString()}`, { scroll: false }),
+      );
+    }
   }
 
   function closeEvent() {
     setSelectedEventId(null);
+    // Closing a drawer needs no server load; subsequent navigation uses this URL.
+    const params = new URLSearchParams(window.location.search);
+    params.delete("eventId");
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}?${params.toString()}`,
+    );
     window.setTimeout(() => lastEventTriggerRef.current?.focus(), 500);
   }
 
@@ -2320,6 +2383,8 @@ export function TeacherCalendar({
         event={selectedEvent}
         detail={selectedEvent ? data.eventDetails[selectedEvent.id] : undefined}
         locale={data.locale}
+        detailPending={detailPending}
+        onRetryDetail={() => startDetailTransition(() => router.refresh())}
         source={data.source}
         onClose={closeEvent}
         onLiveAction={runLiveAction}
