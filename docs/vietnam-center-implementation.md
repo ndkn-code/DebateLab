@@ -30,8 +30,9 @@ Shared, financial, and external effects produce exact proposals requiring confir
 Conversation history is organization and actor scoped. No new Vercel runtime entrypoints
 are required.
 
-Material ingestion is selected-file only, capped at 20 MB, uploaded to the existing
-`lms-material-ingest` path, and queued as an LMS draft with unknown rights. It is never
+Material ingestion is selected-file only and capped at 20 MB. MIME and hash validation
+precede immutable storage in `lms-material-originals`; only finalized originals are
+queued through the existing LMS worker as drafts with unknown rights. It is never
 published automatically. Sheet imports are staged for reviewed duplicate resolution and
 the existing B3 commit transaction; they do not mutate the roster during synchronization.
 The analytics export helper is not exposed by this release.
@@ -50,7 +51,7 @@ refunds therefore require manual operator recovery.
 - `apps/web/src/app/actions/admin-clubs.ts`: extends the approved server-action entrypoint.
 - `services/center-operations`: Cloud Run runtime, provider adapters, encrypted OAuth,
   Calendar projection, payment reconciliation, delivery leases, and activation job.
-- `supabase/migrations/20260905*`: ten ordered, transactional migrations for the ledger,
+- `supabase/migrations/20260905*`: ordered, transactional migrations for the ledger,
   outbox, permissions, provider state, teacher conversations, and guardian links.
 
 ## Provider references
@@ -64,10 +65,12 @@ contracts. Recheck provider requirements during account activation.
 
 ## Verification and rollout status
 
-Implemented on `codex/vietnam-center-integrations`, based on `478ca83f`.
-Local verification includes:
+Implemented on `codex/vietnam-center-integrations`. Production activation and live
+acceptance evidence are tracked in
+[`activation.md`](../services/center-operations/deploy/activation.md).
+Verification includes:
 
-- All ten migrations applied in order to a fresh, isolated database based on the
+- The initial ten migrations applied in order to a fresh, isolated database based on the
   repository's existing schema; 94 pgTAP assertions plus OAuth contract checks pass.
 - 14 application tests and 44 service tests pass, covering permission/risk decisions,
   duplicate imports, callbacks, payment IDs, token rotation, retry behavior, and sync failures.
@@ -81,9 +84,22 @@ Local verification includes:
   horizontal document overflow or runtime error overlays. The final changed integration
   and chat panels passed another 32 checks. Preview fixtures are removed from the branch.
 
-These checks do not substitute for live provider acceptance testing. No production
-migration, deployment, external message, payment, OAuth grant, or provider activation was
-performed. OA and merchant onboarding, Google OAuth consent, cloud identity/configuration,
-and approved template/recipient setup remain activation tasks described in the runbook.
-The feature flag defaults to off. Guardian progress currently includes classes, trials,
-and attendance; analytic Sheet export and product refund screens remain outside this release.
+Production center migrations and cloud infrastructure are deployed; the center flag is
+enabled on `thinkfy.net`. Native browser acceptance passed in the isolated Thinkfy Center
+Pilot QA organization, including teacher chat, confirmed/cancelled actions and 112 final
+layout checks across both locales and themes. Google consent was completed for
+`jknguyen.wor@gmail.com` with only `calendar.app.created` and `drive.file`; live Calendar push/pull, reviewed Sheets import, Picker selection and Drive processing/
+revocation acceptance passed. Detailed evidence is in the activation checkpoint. No external message or real payment
+was sent during QA.
+
+Zalo OA, approved templates/recipient consent and merchant onboarding remain external
+activation dependencies. Google remains in Testing with the pilot account as its sole
+test user. Guardian progress currently includes classes, trials and attendance. Analytic
+Sheet export, refund screens, no-show rebooking automation and richer post-payment
+welcome/study-plan automation remain follow-up scope; the existing adapters or lifecycle
+states alone do not mean those product workflows are shipped.
+
+Vercel Git integration currently deploys `main` automatically. A main merge briefly
+replaced the manually promoted combined center/mail release with a build lacking this
+feature; the combined release was restored. Keep release code in `main`, and verify the
+canonical deployment/source after every merge or promotion.

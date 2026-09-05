@@ -3,9 +3,9 @@
 Updated 2026-09-05 UTC (2026-09-04 America/New_York).
 User authorized Google OAuth and cloud configuration. Cloud CLI authenticated access
 and browser sign-in were verified. Google OAuth and cloud configuration are provisioned.
-The twelve center migrations are applied and the application is live on `thinkfy.net`.
-Native application acceptance tests passed; Google data consent and provider round trips
-remain separate user-dependent steps.
+Fourteen center migrations are applied and the application is live on `thinkfy.net`.
+Google consent and live Calendar/Sheets/Picker acceptance passed for the pilot account.
+This file records release evidence; verify the current canonical deployment after each merge.
 
 ## Created and verified
 
@@ -51,13 +51,14 @@ remain separate user-dependent steps.
   Actual initial consent requests only the first two; the existing-calendar option
   explicitly requests the additional scopes. No restricted Drive scopes were added.
 - Testing allows only listed test users. Broader rollout requires the appropriate
-  Google publishing/verification work. No center-owned Google data grant exists yet.
+  Google publishing/verification work. The pilot grant was completed on 2026-09-05 with
+  exactly `calendar.app.created` and `drive.file`; existing-calendar access was not requested.
 
 ## Deployed infrastructure
 
 - Cloud Run: `thinkfy-center-operations`, `asia-southeast1` (Singapore).
 - Origin: `https://thinkfy-center-operations-1038392416565.asia-southeast1.run.app`.
-- Ready revision: `thinkfy-center-operations-00002-67c`, serving 100% of traffic.
+- Ready revision: `thinkfy-center-operations-00004-9lv`, serving 100% of traffic.
 - Runtime configuration is captured in `cloudrun.production.yaml`; secrets are references.
   `CENTER_CALLBACK_ORIGIN` is the gateway origin below, not the temporary bootstrap origin.
 - Callback gateway: `thinkfy-center-callbacks`, `asia-northeast1` (Tokyo).
@@ -76,10 +77,11 @@ remain separate user-dependent steps.
   `CENTER_OPERATIONS_SERVICE_URL` = Run origin; `CENTER_OPERATIONS_V1=true`.
   Readback confirmed existing WIF project number `1038392416565`, pool/provider `vercel`,
   and service account `debatelab-vercel-publisher@thinkfy-debatelab-prod.iam.gserviceaccount.com`.
-  Promoted source `455c446a` to production after candidate acceptance checks.
-  Deployment `dpl_Ear4Du5PPqUiM7v6KUtre5JgbLQk` is READY and owns `thinkfy.net`:
-  `https://debate-obp59z81v-ndknwork-1412s-projects.vercel.app`.
-  Saved rollback deployment: `dpl_C39iqxCGiRwTLcfFJLBDBfuuhFCd`.
+  Accepted web candidate `ba17e453`, deployment `dpl_BEFfHgzwGkZh4SqkqeNWqDaucYY2`:
+  `https://debate-9nu39bfuz-ndknwork-1412s-projects.vercel.app`.
+  It was promoted after runtime QA and preserves the mail release. The final `main`
+  deployment following PR #43 supersedes this acceptance candidate.
+  The combined center/mail rollback candidate is `dpl_7Givue7HXqVy4sbJGTXAdSdoSfXC`.
   Existing PDF import/compliance flags remain disabled.
 
 ## Verification and remaining release steps
@@ -103,7 +105,7 @@ remain separate user-dependent steps.
 
 ## Application/database acceptance checkpoint
 
-- Applied all twelve `20260905` migrations through the project-scoped Supabase MCP.
+- Applied all fourteen `20260905` migrations through the project-scoped Supabase MCP.
   Canonical version and name checks match every release filename. All 27 center tables
   in `public` and `private` have RLS enabled. Private OAuth intents, refresh leases and
   credentials retain service-only access.
@@ -138,7 +140,59 @@ remain separate user-dependent steps.
   the exact gateway callback and only `calendar.app.created` plus `drive.file`.
 - The user selected `jknguyen.wor@gmail.com` for the pilot. Acceptance records are in
   the isolated **Thinkfy Center Pilot QA** center, not an existing operational center.
-- Google data consent and actual Calendar/Sheets/Drive round trips remain pending.
-  Zalo OA and merchant activation remain pending. ZBS policies remain disabled.
-- Draft PR: `https://github.com/ndkn-code/DebateLab/pull/43`. Keep subsequent production
-  deployments on this release lineage until the feature is merged into `main`.
+- Google OAuth consent succeeded and the authenticated Picker action returns scoped access.
+  Calendar/Sheets/Picker acceptance is detailed below. Zalo OA and merchant activation
+  remain pending; ZBS policies remain disabled.
+- Release PR: `https://github.com/ndkn-code/DebateLab/pull/43`. Vercel Git integration
+  automatically deploys `main`; all future main releases must contain these center changes.
+
+
+## Live Google acceptance and fixes
+
+- Pilot account: `jknguyen.wor@gmail.com`; isolated organization **Thinkfy Center Pilot QA**.
+  Google credentials remain encrypted in the private vault. No token values enter this log.
+- A modern PostgREST JSON-claim incompatibility rejected Google resource RPCs after consent.
+  Migration `20260905111000` uses `auth.role()` in seven guards, retaining ownership checks
+  and service-only grants. Ten new rollback assertions cover service success, authenticated
+  denial, non-owner denial and Calendar authority.
+- Commit `ba17e453` permits the exact `https://docs.google.com` Picker frame, sends required
+  Calendar watch type `web_hook`, and uses collision-resistant, Google-valid event IDs.
+  Picker opened in canonical production and returned **Thinkfy Pilot QA Roster**.
+- Thinkfy created a secondary calendar. A newly booked trial appeared in Google; changing
+  its time in Google updated the Thinkfy trial and projection. A Google-created lesson
+  projected into Thinkfy, then a Thinkfy reschedule updated the same Google event using an
+  ETag and `sendUpdates=none`. Authenticated push callbacks returned HTTP 204.
+- A Sheet with duplicate rows staged without changing the roster; its review blocked both
+  duplicates. Correcting the source created a new stage. Preview plus explicit confirmation
+  imported exactly one synthetic student and marked that stage applied. No invitations sent.
+- Drive QA exposed a missing original-storage finalization step. Commit `71dad102` validates
+  file signatures/hash/size and writes immutable `lms-material-originals` objects before
+  queueing. Migration `20260905112000` records original path and detected MIME and refuses
+  unfinished inputs; six new SQL assertions passed. The worker now releases leases on
+  missing originals and acknowledges already failed versions; two worker regressions passed.
+- Cloud Build `275d3b7f-eb7e-40aa-84e3-7405de61ed10` produced center image
+  `sha256:eed64aafa819522c4d45cec31aa18f36f63f03b3c5a7c78b4110491e0a5846f6`, deployed as
+  `thinkfy-center-operations-00004-9lv`, 100% traffic.
+- Cloud Build `6b8e9787-648e-40a8-94d8-725d77667bb4` produced LMS worker image
+  `sha256:cdf6905065c783b9a7e956a08ddda17a37ced5f182b98630a7f76f34d3e80236`, deployed as
+  `debatelab-lms-material-worker-00005-s2d`, 100% traffic. Parser fixes from `b8252365`
+  are retained; question-import flags were not enabled.
+- Post-fix tests: 49 center service tests, 32 LMS worker tests, five CSP tests and 16 added
+  rollback SQL assertions passed. Design audit/tests, lint, web typecheck and CI gates pass.
+  The first malformed synthetic Drive version was marked rejected before testing a new
+  source revision; no operational center data was repaired or removed.
+- An unrelated main merge briefly replaced the combined center/mail deployment with a build
+  lacking center files. The combined release was restored. `AGENTS.md` now documents the
+  observed automatic main deployment behavior and canonical source verification requirement.
+
+- Corrected Drive source revision reached `processing_status=ready`, with an original
+  object, detected MIME, readable native document and one preview rendition. Re-syncing
+  unchanged bytes reused the same version. Trashing the synthetic source then caused
+  `binding.state=revoked`, `source.status=revoked`, and an archived material. No failed
+  center event remained. The pilot Google connection, Calendar and Sheet remain connected.
+- Connected-state integration QA passed 16 checks: EN/VI, verified light/dark state, and
+  all four required viewports. Reduced-motion emulation was used for settled theme captures.
+- All nine SQL suites passed against the fully migrated `thinkfy_center_verify` database:
+  110 pgTAP assertions plus the OAuth contract block. An earlier broad rerun against the
+  obsolete `thinkfy_center_test` database failed missing ACLs; that stale database is not
+  release evidence. The complete verification database passed without weakening grants/tests.

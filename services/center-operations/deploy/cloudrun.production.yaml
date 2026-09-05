@@ -15,7 +15,7 @@ spec:
       containerConcurrency: 20
       timeoutSeconds: 300
       containers:
-        - image: asia-southeast1-docker.pkg.dev/thinkfy-debatelab-prod/debatelab-workers/center-operations@sha256:e8111f4eab4d857f6fab2ced580d1e72a25dc69574cb01b7f4d4b1f7d6a8b0de
+        - image: asia-southeast1-docker.pkg.dev/thinkfy-debatelab-prod/debatelab-workers/center-operations@sha256:eed64aafa819522c4d45cec31aa18f36f63f03b3c5a7c78b4110491e0a5846f6
           resources:
             limits: { cpu: '1', memory: 512Mi }
           env:

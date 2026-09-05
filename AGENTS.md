@@ -159,8 +159,12 @@ splice the result into `apps/web/src/types/supabase.ts` rather than running the 
 **Supabase MCP:** use the project-scoped `supabase-debatelab` server, not an account-level
 cloud one.
 
-**Deploying is manual.** Production is thinkfy.net via `npx vercel --prod`. Pushing to `main`
-does **not** deploy. Never assume a merge shipped.
+**Verify production after every release.** Vercel Git integration currently deploys `main`
+to thinkfy.net automatically (verified 2026-09-05); a merge can replace a manually promoted
+candidate. Keep released features in `main` before subsequent merges. For a controlled
+candidate use `npx vercel --prod --skip-domain`, verify it, then promote it. Always read
+back the canonical deployment ID and source commit; never assume a merge or promotion
+still owns production.
 
 **IELTS is admin-gated.** Access is flag-OR-admin via `apps/web/src/lib/ielts/access.ts`, so
 deploying IELTS work does not make it public. Do not "fix" the gate.
