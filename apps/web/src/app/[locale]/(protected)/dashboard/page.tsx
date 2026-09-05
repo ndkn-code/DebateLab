@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { WORKSPACE_MODE_COOKIE, shouldAutoEnterTeacherWorkspace as shouldEnterTeacher } from "@/lib/workspace-navigation";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getDashboardData } from "@/lib/api/dashboard";
@@ -51,7 +52,7 @@ async function DashboardPayload() {
     } catch {
       // Dashboard remains usable when the optional workspace projection fails.
     }
-    if (shouldAutoEnterTeacherWorkspace) redirect("/dashboard/teacher");
+    if (shouldEnterTeacher(shouldAutoEnterTeacherWorkspace, cookieStore.get(WORKSPACE_MODE_COOKIE)?.value)) redirect("/dashboard/teacher");
   }
 
   const displayName =

@@ -44,6 +44,13 @@ export type TeacherWorkspaceCapability = {
   classes: TeacherWorkspaceClass[];
 };
 
+export function resolveTeacherWorkspaceOrganizationRole(
+  organizationRoles: ReadonlyMap<string | null, OrganizationRole>,
+  organizationId: string,
+): OrganizationRole {
+  return organizationRoles.get(organizationId) ?? "student";
+}
+
 function asDb(client: Awaited<ReturnType<typeof createTypedServerClient>>): TeacherWorkspaceDb {
   return client as unknown as TeacherWorkspaceDb;
 }
@@ -167,15 +174,15 @@ export async function loadTeacherWorkspaceCapability(): Promise<TeacherWorkspace
   }
 
   workspaceClasses.sort((left, right) => left.title.localeCompare(right.title) || left.id.localeCompare(right.id));
-  const outputOrganizationIds = isPlatformAdmin
-    ? [...new Set([...organizationIds, ...workspaceClasses.map((item) => item.organizationId)])]
-    : organizationIds;
+  // Platform admin access to classes is synthetic and must not become a
+  // synthetic organization membership in downstream navigation.
+  const outputOrganizationIds = organizationIds;
   const organizations = outputOrganizationIds.map((id) => {
     const organizationFlag = firstFlag(flagRows, id, null, TEACHER_WORKSPACE_FEATURE_KEY);
     const organizationClasses = workspaceClasses.filter((item) => item.organizationId === id);
     return {
       id,
-      role: isPlatformAdmin ? "admin" : organizationRoles.get(id) ?? "student",
+      role: resolveTeacherWorkspaceOrganizationRole(organizationRoles, id),
       featureEnabled: Boolean(organizationFlag?.enabled) || organizationClasses.length > 0,
       hasIeltsEntitlement: organizationClasses.some((item) => item.programType === "ielts"),
     } satisfies TeacherWorkspaceOrganization;

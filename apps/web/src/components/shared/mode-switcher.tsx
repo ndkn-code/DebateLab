@@ -96,7 +96,7 @@ export function ModeSwitcher({
     }
 
     startTransition(() => {
-      void (async () => {
+      return (async () => {
         try {
           await saveSubjectPreference(nextSubject);
           // Land on the subject's primary surface: the IELTS learner home for
@@ -116,7 +116,7 @@ export function ModeSwitcher({
     }
 
     startTransition(() => {
-      void (async () => {
+      return (async () => {
         try {
           await saveDebateModePreference(nextLocale);
           const nextPath = buildLocaleSwitchPath(
@@ -139,24 +139,27 @@ export function ModeSwitcher({
     <DropdownMenu>
       <DropdownMenuTrigger
         aria-label={t("mode_switcher")}
+        disabled={isPending}
         className={cn(
-          "group flex min-w-0 items-center justify-between gap-2 rounded-lg border text-left font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-sidebar-muted/35",
+          "group flex min-w-0 items-center justify-between gap-2 rounded-control border text-left type-label outline-none transition-colors focus-visible:ring-2 focus-visible:ring-primary",
           isSidebar
-            ? "h-10 w-full border-white/10 bg-white/[0.08] px-3 text-sm text-sidebar-foreground hover:bg-white/[0.12]"
-            : "h-10 flex-1 border-white/10 bg-white/[0.08] px-2.5 type-caption text-sidebar-foreground hover:bg-white/[0.12]",
+            ? "min-h-12 w-full border-sidebar-muted bg-sidebar-soft px-3 text-sidebar-foreground hover:bg-surface-container"
+            : "min-h-12 min-w-0 flex-1 border-sidebar-muted bg-sidebar-soft px-2.5 text-sidebar-foreground hover:bg-surface-container",
         )}
       >
         <span className="flex min-w-0 items-center gap-2">
           <GraduationCap
-            className={cn(
-              "shrink-0 text-sidebar-muted",
-              isSidebar ? "h-4.5 w-4.5" : "h-4 w-4",
-            )}
+            className={cn("shrink-0 text-sidebar-muted", "size-4")}
           />
-          <span className="min-w-0 truncate">
-            {isPending
-              ? t("switching_mode")
-              : `${subjectLabel} · ${resolvedLocale.toUpperCase()}`}
+          <span className="min-w-0">
+            <span className="block type-label">
+              {isPending ? t("switching_mode") : LOCALE_LABELS[resolvedLocale]}
+            </span>
+            {subjects.length > 1 && (
+              <span className="block type-caption text-on-surface-variant">
+                {t("subject")}: {subjectLabel}
+              </span>
+            )}
           </span>
         </span>
         {isPending ? (
@@ -167,12 +170,12 @@ export function ModeSwitcher({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         sideOffset={8}
-        className="w-(--anchor-width) min-w-[210px] rounded-xl border border-outline-variant bg-white p-1.5 text-on-surface shadow-token-card"
+        className="w-(--anchor-width) min-w-52 rounded-lg border border-outline-variant bg-surface p-1.5 text-on-surface shadow-token-card"
       >
         {subjects.length > 1 ? (
           <>
             <DropdownMenuGroup>
-              <DropdownMenuLabel className="px-3 pb-1 pt-1.5 type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
+              <DropdownMenuLabel className="px-3 pb-1 pt-1.5 type-caption font-semibold uppercase text-on-surface-variant">
                 {t("subject")}
               </DropdownMenuLabel>
               {subjects.map((subject) => {
@@ -181,9 +184,10 @@ export function ModeSwitcher({
                 return (
                   <DropdownMenuItem
                     key={subject}
+                    disabled={isPending}
                     onClick={() => handleSelectSubject(subject)}
                     className={cn(
-                      "flex h-10 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 text-sm font-semibold focus:bg-primary/[0.08]",
+                      "flex h-10 cursor-pointer items-center justify-between gap-3 rounded-control px-3 type-label font-semibold focus:bg-primary-container",
                       isSelected
                         ? "bg-surface-container-low text-on-surface"
                         : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",
@@ -203,7 +207,7 @@ export function ModeSwitcher({
         ) : null}
 
         <DropdownMenuGroup>
-          <DropdownMenuLabel className="px-3 pb-1 pt-1.5 type-caption font-semibold uppercase tracking-wide text-on-surface-variant">
+          <DropdownMenuLabel className="px-3 pb-1 pt-1.5 type-caption font-semibold uppercase text-on-surface-variant">
             {t("language")}
           </DropdownMenuLabel>
           {LOCALE_OPTIONS.map((locale) => {
@@ -212,9 +216,10 @@ export function ModeSwitcher({
             return (
               <DropdownMenuItem
                 key={locale}
+                disabled={isPending}
                 onClick={() => handleSelectLocale(locale)}
                 className={cn(
-                  "flex h-10 cursor-pointer items-center justify-between gap-3 rounded-lg px-3 text-sm font-semibold focus:bg-primary/[0.08]",
+                  "flex h-10 cursor-pointer items-center justify-between gap-3 rounded-control px-3 type-label font-semibold focus:bg-primary-container",
                   isSelected
                     ? "bg-surface-container-low text-on-surface"
                     : "text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface",

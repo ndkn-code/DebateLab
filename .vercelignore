@@ -18,3 +18,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .DS_Store
+
+# Local verification and workspace secrets
+**/.env*
+output/
+apps/web/AGENTS.md
+apps/web/CLAUDE.md

@@ -15,26 +15,32 @@ export function stripAppLocalePrefix(pathname: string) {
 
 export function buildLocaleSwitchPath(
   pathname: string,
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
 ) {
   const nextParams = new URLSearchParams(searchParams.toString());
   nextParams.delete("language");
 
-  const pathWithoutLocale = stripAppLocalePrefix(pathname);
+  const hashIndex = pathname.indexOf("#");
+  const hash = hashIndex >= 0 ? pathname.slice(hashIndex) : "";
+  const pathnameWithoutHash =
+    hashIndex >= 0 ? pathname.slice(0, hashIndex) : pathname;
+  const pathWithoutLocale = stripAppLocalePrefix(pathnameWithoutHash);
   const pathSuffix = nextParams.toString() ? `?${nextParams.toString()}` : "";
 
-  return `${pathWithoutLocale}${pathSuffix}`;
+  return `${pathWithoutLocale}${pathSuffix}${hash}`;
 }
 
 export function buildLocalizedLocaleSwitchHref(
   pathname: string,
   nextLocale: AppLocale,
-  searchParams: URLSearchParams
+  searchParams: URLSearchParams,
 ) {
   const nextPath = buildLocaleSwitchPath(pathname, searchParams);
-  const [pathOnly, query = ""] = nextPath.split("?", 2);
-  const localizedPath =
-    pathOnly === "/" ? `/${nextLocale}` : `/${nextLocale}${pathOnly}`;
-
-  return query ? `${localizedPath}?${query}` : localizedPath;
+  const suffix =
+    nextPath === "/"
+      ? ""
+      : /^\/[?#]/.test(nextPath)
+        ? nextPath.slice(1)
+        : nextPath;
+  return `/${nextLocale}${suffix}`;
 }

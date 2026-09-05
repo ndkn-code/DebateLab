@@ -307,7 +307,57 @@
       "ielts_assigned": "Assigned",
       "ielts_classes": "My classes",
       "ielts_coach": "IELTS Coach",
-      "ielts_profile": "Performance"
+      "ielts_profile": "Performance",
+      "learnerWorkspace": "Learner",
+      "teacherWorkspace": "Teacher",
+      "adminWorkspace": "Platform admin",
+      "switchWorkspace": "Switch role",
+      "workspaceRole": "Role",
+      "workspaceLabels": {
+        "learner": "Learner",
+        "teacher": "Teacher",
+        "admin": "Platform admin"
+      },
+      "mainNavigation": "Main navigation",
+      "classShortcuts": "Class shortcuts",
+      "navigationUnavailable": "Navigation could not load.",
+      "retryNavigation": "Try again",
+      "noTeachingAccess": "No teaching workspace access.",
+      "chooseCenter": "Choose a center",
+      "adminTeachingPreview": "Platform admin preview · no center membership",
+      "account": "Account",
+      "credits": "Credits",
+      "expandNavigation": "Expand navigation",
+      "collapseNavigation": "Collapse navigation",
+      "closeNavigation": "Close navigation",
+      "menu": "Menu",
+      "organizationRoles": {
+        "owner": "Center owner",
+        "admin": "Center manager",
+        "head_teacher": "Head teacher",
+        "teacher": "Teacher"
+      },
+      "teacherGroups": {
+        "teaching": "Teaching",
+        "assessment": "Assignments & grading",
+        "preparation": "Preparation",
+        "management": "Center"
+      },
+      "teacherLinks": {
+        "calendar": "Teaching calendar",
+        "classes": "My classes",
+        "review_queue": "Work to review",
+        "assignments": "Assignments",
+        "gradebook": "Gradebook",
+        "attendance": "Attendance",
+        "materials": "Materials",
+        "announcements": "Class announcements",
+        "center": "Center operations",
+        "organization": "Center overview",
+        "people": "Teachers & students",
+        "curriculum": "Curriculum",
+        "reports": "Reports"
+      }
     },
     "ielts": {
       "eyebrow": "IELTS",

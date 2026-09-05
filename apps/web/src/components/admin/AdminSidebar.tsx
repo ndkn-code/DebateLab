@@ -1,10 +1,9 @@
 "use client";
 
 import { usePathname } from "@/i18n/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   AlertCircle,
-  ArrowLeft,
   BarChart3,
   BookOpen,
   BookOpenText,
@@ -26,11 +25,13 @@ import {
   Shield,
   Swords,
   Users,
+  XIcon,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { useAdminStore } from "@/lib/stores/adminStore";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetTitle,
   SheetTrigger,
@@ -38,6 +39,11 @@ import {
 import { Link } from "@/i18n/navigation";
 import { motion, useReducedMotion } from "framer-motion";
 import { ORGANIZATIONS_V1 } from "@/lib/features";
+import { WorkspaceSwitcher } from "@/components/shared/workspace-switcher";
+import { ModeSwitcher } from "@/components/shared/mode-switcher";
+import { ThemeToggle } from "@/components/shared/theme-toggle";
+import { coerceAppLocale } from "@/lib/locale-switch";
+import type { Subject } from "@/lib/subject";
 
 const ADMIN_NAV = [
   {
@@ -125,13 +131,21 @@ const ADMIN_GROUPS = [
 function NavLinks({
   activeMarkerId,
   onNavClick,
+  activeSubject,
+  userId,
 }: {
   activeMarkerId: string;
   onNavClick?: () => void;
+  activeSubject: Subject;
+  userId: string;
 }) {
   const pathname = usePathname();
   const t = useTranslations("admin");
   const reducedMotion = useReducedMotion();
+  const locale = coerceAppLocale(useLocale());
+  const activeHref = ADMIN_NAV.filter((item) =>
+    pathname.startsWith(item.href),
+  ).sort((left, right) => right.href.length - left.href.length)[0]?.href;
 
   return (
     <div className="flex h-full min-h-0 flex-col">
@@ -140,9 +154,19 @@ function NavLinks({
         <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-primary text-primary-foreground">
           <Shield className="h-4 w-4" aria-hidden="true" />
         </div>
-        <span className="truncate text-base font-semibold text-sidebar-foreground">
+        <span className="truncate type-title text-sidebar-foreground">
           {t("title")}
         </span>
+      </div>
+
+      <div className="px-3 pt-2">
+        <WorkspaceSwitcher
+          canTeach
+          isAdmin
+          activeSubject={activeSubject}
+          userId={userId}
+          onNavigate={onNavClick}
+        />
       </div>
 
       {/* Nav */}
@@ -156,15 +180,16 @@ function NavLinks({
               {t(`groups.${group.key}`)}
             </p>
             {group.items.map((item) => {
-              const isActive = pathname.startsWith(item.href);
+              const isActive = item.href === activeHref;
               const Icon = item.icon;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
                   onClick={onNavClick}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
-                    "type-label relative isolate flex min-h-9 items-center gap-3 rounded-control px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px",
+                    "type-label relative isolate flex min-h-9 items-center gap-3 rounded-control px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:translate-y-px",
                     isActive
                       ? "sidebar-nav-selected-motion"
                       : "sidebar-nav-idle",
@@ -201,38 +226,39 @@ function NavLinks({
         ))}
       </nav>
 
-      {/* Workspace switches */}
-      <div className="shrink-0 space-y-1 border-t border-outline-variant p-3">
-        <Link
-          href="/dashboard/teacher"
-          onClick={onNavClick}
-          className="sidebar-nav-action type-label flex min-h-9 items-center gap-3 rounded-control px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
-        >
-          <GraduationCap className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span className="truncate">{t("teacherMode")}</span>
-        </Link>
-        <Link
-          href="/dashboard"
-          onClick={onNavClick}
-          className="sidebar-nav-action type-label flex min-h-9 items-center gap-3 rounded-control px-3 transition-[background-color,color,transform] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
-        >
-          <ArrowLeft className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span className="truncate">{t("backToDashboard")}</span>
-        </Link>
+      <div className="shrink-0 space-y-2 border-t border-outline-variant p-3">
+        <ModeSwitcher
+          variant="sidebar"
+          currentLocale={locale}
+          currentSubject={activeSubject}
+          ieltsAvailable
+        />
+        <ThemeToggle />
       </div>
     </div>
   );
 }
 
-export function AdminSidebar() {
+export function AdminSidebar({
+  activeSubject,
+  userId,
+}: {
+  activeSubject: Subject;
+  userId: string;
+}) {
   const { sidebarOpen, setSidebarOpen } = useAdminStore();
   const t = useTranslations("admin");
+  const navT = useTranslations("dashboard.nav");
 
   return (
     <>
       {/* Desktop sidebar */}
       <aside className="hidden h-full w-60 shrink-0 flex-col overflow-hidden border-r border-outline-variant bg-sidebar text-sidebar-foreground lg:flex">
-        <NavLinks activeMarkerId="admin-sidebar-active-desktop" />
+        <NavLinks
+          activeMarkerId="admin-sidebar-active-desktop"
+          activeSubject={activeSubject}
+          userId={userId}
+        />
       </aside>
 
       {/* Mobile top bar + sheet */}
@@ -240,26 +266,35 @@ export function AdminSidebar() {
         <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
           <SheetTrigger
             aria-label={t("title")}
-            className="flex h-11 w-11 items-center justify-center rounded-control text-sidebar-muted transition-colors hover:bg-[var(--sidebar-hover-bg)] hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="flex h-11 items-center gap-2 rounded-control px-3 type-label text-sidebar-muted transition-colors hover:bg-surface-container hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <Menu className="h-5 w-5" aria-hidden="true" />
+            <Menu className="size-5" aria-hidden="true" />
+            <span>{navT("menu")}</span>
           </SheetTrigger>
           <SheetContent
             side="left"
             className="w-60 border-outline-variant bg-sidebar p-0 text-sidebar-foreground"
             showCloseButton={false}
           >
-            <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
+            <SheetTitle className="sr-only">{t("title")}</SheetTitle>
+            <SheetClose
+              aria-label={navT("closeNavigation")}
+              className="absolute right-3 top-3 z-10 flex size-8 items-center justify-center rounded-control text-sidebar-muted transition-colors hover:bg-surface-container hover:text-sidebar-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <XIcon className="size-4" aria-hidden="true" />
+            </SheetClose>
             <NavLinks
               activeMarkerId="admin-sidebar-active-mobile"
               onNavClick={() => setSidebarOpen(false)}
+              activeSubject={activeSubject}
+              userId={userId}
             />
           </SheetContent>
         </Sheet>
         <div className="flex items-center gap-2">
-          <Shield className="h-4 w-4 text-sidebar-muted" aria-hidden="true" />
-          <span className="text-base font-semibold tracking-tight text-sidebar-foreground">
-            Admin
+          <Shield className="size-4 text-sidebar-muted" aria-hidden="true" />
+          <span className="type-title text-sidebar-foreground">
+            {t("title")}
           </span>
         </div>
       </div>

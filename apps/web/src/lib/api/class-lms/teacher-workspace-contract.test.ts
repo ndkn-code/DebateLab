@@ -3,6 +3,7 @@ import {
   resolveTeacherWorkspaceClassFeature,
   TEACHER_WORKSPACE_FEATURE_KEY,
   loadTeacherWorkspaceCapability,
+  resolveTeacherWorkspaceOrganizationRole,
   type TeacherWorkspaceCapability,
 } from "./teacher-workspace-capability";
 import { buildTeacherSidebarSummary } from "./teacher-workspace-sidebar";
@@ -36,5 +37,41 @@ assert.equal(summary.items.find((item) => item.key === "review_queue")?.badge, 5
 assert.equal(summary.items.find((item) => item.key === "calendar")?.href, "/dashboard/teacher/calendar");
 assert.equal(summary.items.map((item) => String(item.key)).includes("duel"), false);
 assert.equal(typeof loadTeacherWorkspaceCapability, "function");
+assert.equal(
+  resolveTeacherWorkspaceOrganizationRole(
+    new Map([["org-a", "head_teacher"]]),
+    "org-a",
+  ),
+  "head_teacher",
+);
+assert.deepEqual(summary.classes, [
+  { id: "class-1", organizationId: "org-a", title: "IELTS Foundation" },
+  { id: "class-2", organizationId: "org-a", title: "Debate Beginners" },
+]);
+assert.deepEqual(summary.organizations, []);
+
+const denied = buildTeacherSidebarSummary({
+  capability: { ...capability, canAccess: false, classes: [] },
+});
+assert.deepEqual(denied.items, []);
+
+const adminWithoutMembership = buildTeacherSidebarSummary({
+  capability: { ...capability, isPlatformAdmin: true, profileRole: "admin", organizations: [] },
+});
+assert.equal(adminWithoutMembership.organizations.length, 0);
+assert.equal(adminWithoutMembership.items.some((item) => item.key === "organization"), false);
+
+const assignedTeacher = buildTeacherSidebarSummary({
+  capability: { ...capability, isPlatformAdmin: false, isHeadTeacher: false },
+  organizations: [{ id: "org-a", name: "Thinkfy Academy", role: "teacher" }],
+});
+assert.deepEqual(assignedTeacher.organizations, [{ id: "org-a", name: "Thinkfy Academy", role: "teacher" }]);
+assert.equal(assignedTeacher.items.some((item) => item.key === "organization"), false);
+
+const realHeadTeacher = buildTeacherSidebarSummary({
+  capability: { ...capability, isHeadTeacher: true },
+  organizations: [{ id: "org-a", name: "Thinkfy Academy", role: "head_teacher" }],
+});
+assert.equal(realHeadTeacher.items.some((item) => item.key === "organization"), true);
 
 console.log("teacher workspace capability/sidebar contracts passed");
