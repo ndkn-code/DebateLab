@@ -1,0 +1,38 @@
+import { headers, cookies } from "next/headers";
+import { notFound } from "next/navigation";
+import { createDashboardFixtureClient } from "@/lib/api/__fixtures__/dashboard";
+import { DashboardContent } from "@/components/dashboard/dashboard-content";
+import { getDashboardData } from "@/lib/api/dashboard";
+
+// Temporary localhost-only QA: actual loader + components, synthetic evidence.
+const USER_ID = "00000000-0000-0000-0000-000000000073";
+export default async function Page({ searchParams }: { searchParams: Promise<{ scenario?: string }> }) {
+  const host = (await headers()).get("host") ?? "";
+  if (process.env.NODE_ENV !== "development" || !/^(localhost|127\.0\.0\.1):3073$/.test(host)) notFound();
+  const query = await searchParams;
+  const cookieStore = await cookies();
+  if (cookieStore.get("qa_home_delay")?.value === "1") await new Promise((resolve) => setTimeout(resolve, 1000));
+  const scenario = cookieStore.get("qa_home_scenario")?.value ?? query.scenario ?? "empty";
+  const preferences = await fetch("http://127.0.0.1:3074/fixture/preferences", {cache: "no-store"}).then((response) => response.json());
+  const now = new Date("2026-09-05T12:00:00Z");
+  const profile = {id: USER_ID, display_name: "Minh Nguyễn", role: "student", level: 3, xp: 230, orb_balance: 1250, preferences, streak_current: 2, streak_longest: 4, streak_last_active_date: "2026-09-05", total_sessions_completed: scenario === "empty" ? 0 : 2, total_practice_minutes: scenario === "empty" ? 0 : 20};
+  if (scenario === "empty") Object.assign(profile, {level: 1, xp: 0, streak_current: 0, streak_longest: 0, streak_last_active_date: null});
+  const sessions = scenario === "empty" ? [] : [{id: "fixture-speaking-73", topic_title: "QA: Explain a school activity / Giới thiệu hoạt động ở trường", mode: "solo", side: "pro", feedback: {practiceTrack: "speaking"}, total_score: null, overall_band: null, duration_seconds: 600, created_at: "2026-09-05T10:00:00Z"}];
+  const stats = scenario === "empty" ? [] : [{date: "2026-09-05", sessions_completed: 2, minutes_studied: 20, xp_earned: 50}];
+  const payload = {profile, enrollments: [], recent_sessions: sessions, scored_sessions: [], stats};
+  const unavailable = scenario === "unavailable";
+  const partial = scenario === "partial";
+  const {client} = createDashboardFixtureClient({
+    sources: {profile, enrollments: [], recentSessions: sessions, scoredSessions: [], stats, activityLog: []},
+    rpc: {data: unavailable || partial ? null : payload, error: unavailable || partial ? {message: "Mocked RPC outage"} : null},
+    failures: unavailable ? ["profile", "enrollments", "recentSessions", "scoredSessions", "stats", "activityLog"] : partial ? ["stats", "activityLog"] : [],
+  });
+  const data = await getDashboardData(USER_ID, client, {now, timezone: "UTC"});
+  return <div className="flex h-dvh overflow-hidden bg-background" data-qa-tree="a535-learner-home-trust">
+    <aside aria-label="QA shell spacer, shared navigation excluded" className="hidden w-55 shrink-0 border-r border-outline-variant lg:block" />
+    <main className="min-w-0 flex-1 overflow-y-auto">
+      <p className="type-caption bg-surface-container-low p-2 text-on-surface-variant" data-testid="qa-evidence">LOCAL QA · a535 · mocked {scenario} evidence · real dashboard loader and components</p>
+      <DashboardContent data={data} displayName="Minh Nguyễn" greetingKey="greeting_morning" userId={USER_ID} showWelcome={preferences.first_dashboard_visit === true} />
+    </main>
+  </div>;
+}

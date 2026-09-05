@@ -33,16 +33,16 @@ function SummaryItem({
           {icon}
         </span>
         <div className="min-w-0">
-          <span className="type-caption block truncate font-medium text-on-surface-variant">
+          <span className="type-caption block font-medium text-on-surface-variant">
             {label}
           </span>
-          <p className="type-title mt-0.5 truncate font-semibold tabular-nums text-on-surface">
+          <p className="type-title mt-0.5 font-semibold tabular-nums text-on-surface">
             {value}
           </p>
         </div>
       </div>
       {detail ? (
-        <p className="type-caption mt-1.5 truncate pl-10 text-on-surface-variant">
+        <p className="type-caption mt-1.5 pl-10 text-on-surface-variant">
           {detail}
         </p>
       ) : null}
@@ -54,36 +54,62 @@ export function DashboardPrimarySummary({
   weeklySessions,
   weeklyGoal,
   overallScore,
+  activityAvailable = true,
+  activityPartial = false,
+  goalsAvailable = true,
+  skillsAvailable = true,
 }: {
+  activityAvailable?: boolean;
+  activityPartial?: boolean;
+  goalsAvailable?: boolean;
+  skillsAvailable?: boolean;
   weeklySessions: number;
   weeklyGoal: DashboardGoalSummary;
   overallScore: number | null;
 }) {
   const t = useTranslations("dashboard.home");
-  const masteryValue =
-    overallScore == null ? "—" : `${Math.round(overallScore)}/100`;
-  const paceValue = weeklyGoal.metGoal
-    ? t("summary_on_track")
-    : t("summary_minutes_left", { count: weeklyGoal.remainingMinutes });
+  const masteryValue = !skillsAvailable
+    ? t("progress_unavailable")
+    : overallScore == null
+      ? t("progress_not_measured")
+      : `${Math.round(overallScore)}/100`;
+  const paceValue = !goalsAvailable
+    ? t("progress_unavailable")
+    : weeklyGoal.metGoal
+      ? t("summary_on_track")
+      : t("summary_minutes_left", { count: weeklyGoal.remainingMinutes });
 
   return (
     <section
       aria-labelledby="dashboard-primary-summary-heading"
-      className="rounded-xl border border-outline-variant bg-surface/80 px-3 shadow-none dark:border-outline-variant/70 sm:px-4"
+      className="rounded-xl border border-outline-variant bg-surface px-3 shadow-none  sm:px-4"
     >
       <h2 id="dashboard-primary-summary-heading" className="sr-only">
         {t("progress_title")}
       </h2>
-      <div className="flex divide-x divide-outline-variant/70 max-sm:flex-col max-sm:divide-x-0 max-sm:divide-y">
+      <div className="flex divide-x divide-outline-variant max-sm:flex-col max-sm:divide-x-0 max-sm:divide-y">
         <SummaryItem
           icon={<CheckCircle2 className="h-5 w-5" />}
           label={t("summary_done")}
-          value={t("summary_sessions", { count: weeklySessions })}
+          value={
+            activityAvailable
+              ? t(
+                  activityPartial
+                    ? "summary_sessions_partial"
+                    : "summary_sessions",
+                  { count: weeklySessions },
+                )
+              : t("progress_unavailable")
+          }
           tone="success"
-          detail={t("weekly_goal_progress", {
-            practiced: weeklyGoal.practicedMinutes,
-            goal: weeklyGoal.goalMinutes,
-          })}
+          detail={
+            goalsAvailable
+              ? t("weekly_goal_progress", {
+                  practiced: weeklyGoal.practicedMinutes,
+                  goal: weeklyGoal.goalMinutes,
+                })
+              : undefined
+          }
         />
         <SummaryItem
           icon={<Target className="h-5 w-5" />}

@@ -1,0 +1,11 @@
+// Temporary local mock transport. Removed with the QA page; never deployed.
+import { NextRequest, NextResponse } from "next/server";
+async function proxy(request: NextRequest) {
+  if (process.env.NODE_ENV !== "development" || !/^(127\.0\.0\.1|localhost):3073$/.test(request.headers.get("host") ?? "")) return new NextResponse(null, {status: 404});
+  const url = new URL("http://127.0.0.1:3074/rest/v1/profiles");
+  url.search = request.nextUrl.search;
+  const response = await fetch(url, {method: request.method, body: request.method === "PATCH" ? await request.text() : undefined, headers: {"Content-Type": "application/json"}, cache: "no-store"});
+  return new NextResponse(await response.text(), {status: response.status, headers: {"Content-Type": "application/json"}});
+}
+export const GET = proxy;
+export const PATCH = proxy;

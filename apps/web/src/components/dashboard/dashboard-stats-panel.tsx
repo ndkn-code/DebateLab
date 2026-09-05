@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
+import { NotificationCenter } from "@/components/notifications/notification-center";
 import { ReferralCreditsDialog } from "@/components/shared/referral-credits-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,7 +14,7 @@ import {
   PopoverTitle,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { BellRing, Check, Sparkles, Zap } from "@/components/ui/icons";
+import { Check, Sparkles, Zap } from "@/components/ui/icons";
 import { Stat } from "@/components/ui/typography";
 import { cn } from "@/lib/utils";
 import type { DailyStatEntry, DashboardHomeData } from "@/lib/api/dashboard";
@@ -27,6 +28,9 @@ interface DashboardStatsPanelProps {
   weeklyStats: DailyStatEntry[];
   referralCode: string | null;
   inviteReward: number;
+  profileAvailable?: boolean;
+  streakAvailable?: boolean;
+  activityAvailable?: boolean;
 }
 
 export function DashboardStatsPanel({
@@ -34,59 +38,75 @@ export function DashboardStatsPanel({
   weeklyStats,
   referralCode,
   inviteReward,
+  profileAvailable = true,
+  streakAvailable = true,
+  activityAvailable = true,
 }: DashboardStatsPanelProps) {
   const t = useTranslations("dashboard.home");
+  const locale = useLocale();
   const [referralOpen, setReferralOpen] = useState(false);
-  const streakCount = formatDashboardNumber(topBar.currentStreak);
-  const creditsCount = formatDashboardNumber(topBar.orbBalance);
+  const streakCount = formatDashboardNumber(topBar.currentStreak, locale);
+  const creditsCount = formatDashboardNumber(topBar.orbBalance, locale);
 
   return (
     <div
       data-testid="dashboard-stats-panel"
       className="flex flex-wrap items-center justify-end gap-1.5"
     >
-      <button
-        type="button"
-        aria-label="Notifications"
-        className="relative inline-flex h-8 w-8 items-center justify-center rounded-lg border border-outline-variant/70 bg-surface/70 text-on-surface-variant transition-colors hover:bg-surface-container-low focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
-      >
-        <BellRing className="h-4 w-4" aria-hidden="true" />
-        {topBar.pendingNotifications > 0 ? (
-          <span
-            className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-surface"
-            aria-hidden="true"
-          />
-        ) : null}
-      </button>
+      <NotificationCenter
+        variant="icon"
+        className="size-8 rounded-lg border border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface focus-visible:ring-ring"
+      />
       <StatCounter
-        ariaLabel={t("stats.streak_aria")}
+        ariaLabel={
+          streakAvailable
+            ? t("stats.streak_aria")
+            : `${t("stats.streak_aria")}: ${t("progress_unavailable")}`
+        }
         dataTestId="dashboard-stats-streak"
         iconSrc={STREAK_ICON_SRC}
         iconClassName={cn(
           "h-6 w-6",
           topBar.currentStreak === 0 && "opacity-40 grayscale",
         )}
-        value={streakCount}
+        value={streakAvailable ? streakCount : "—"}
       >
-        <StreakPopover
-          currentStreak={topBar.currentStreak}
-          weeklyStats={weeklyStats}
-          formattedStreak={streakCount}
-        />
+        {streakAvailable ? (
+          <StreakPopover
+            currentStreak={topBar.currentStreak}
+            weeklyStats={weeklyStats}
+            formattedStreak={streakCount}
+            activityAvailable={activityAvailable}
+          />
+        ) : (
+          <p className="type-body-sm p-4 text-on-surface-variant">
+            {t("progress_unavailable")}
+          </p>
+        )}
       </StatCounter>
 
       <StatCounter
-        ariaLabel={t("stats.credits_aria")}
+        ariaLabel={
+          profileAvailable
+            ? t("stats.credits_aria")
+            : `${t("stats.credits_aria")}: ${t("progress_unavailable")}`
+        }
         dataTestId="dashboard-stats-credits"
         iconSrc={CREDIT_ICON_SRC}
         iconClassName="h-6 w-6"
-        value={creditsCount}
+        value={profileAvailable ? creditsCount : "—"}
       >
-        <CreditsPopover
-          formattedBalance={creditsCount}
-          referralCode={referralCode}
-          onReferralOpen={() => setReferralOpen(true)}
-        />
+        {profileAvailable ? (
+          <CreditsPopover
+            formattedBalance={creditsCount}
+            referralCode={referralCode}
+            onReferralOpen={() => setReferralOpen(true)}
+          />
+        ) : (
+          <p className="type-body-sm p-4 text-on-surface-variant">
+            {t("progress_unavailable")}
+          </p>
+        )}
       </StatCounter>
 
       <ReferralCreditsDialog
@@ -165,7 +185,7 @@ export function StatCounter({
         onMouseLeave={scheduleClose}
         onPointerLeave={scheduleClose}
         onPointerMove={openPopover}
-        className="group inline-flex h-8 min-w-0 items-center gap-1 rounded-lg border border-outline-variant/70 bg-surface/70 px-1.5 pr-2 text-left transition-colors outline-none hover:bg-surface-container-low focus-visible:ring-3 focus-visible:ring-ring/50 data-open:bg-surface-container-low"
+        className="group inline-flex h-8 min-w-0 items-center gap-1 rounded-lg border border-outline-variant bg-surface px-1.5 pr-2 text-left transition-colors outline-none hover:bg-surface-container-low focus-visible:ring-3 focus-visible:ring-ring data-open:bg-surface-container-low"
       >
         <Image
           src={iconSrc}
@@ -202,10 +222,12 @@ function StreakPopover({
   currentStreak,
   weeklyStats,
   formattedStreak,
+  activityAvailable,
 }: {
   currentStreak: number;
   weeklyStats: DailyStatEntry[];
   formattedStreak: string;
+  activityAvailable: boolean;
 }) {
   const t = useTranslations("dashboard.home");
   const description =
@@ -233,44 +255,50 @@ function StreakPopover({
           </PopoverDescription>
         </div>
 
-        <div className="relative mt-5 rounded-[1.35rem] bg-surface-container-lowest/90 p-4 shadow-token-card">
+        <div className="relative mt-5 rounded-[1.35rem] bg-surface-container-lowest p-4 shadow-token-card">
           <p className="type-eyebrow mb-3 text-on-surface-variant">
             {t("stats.weekly_rhythm")}
           </p>
-          <div className="grid grid-cols-7 gap-1.5">
-            {DAY_KEYS.map((dayKey, index) => {
-              const entry = weeklyStats[index];
-              const isActive = Boolean(
-                entry &&
-                (entry.practice_minutes > 0 || entry.sessions_completed > 0),
-              );
+          {activityAvailable ? (
+            <div className="grid grid-cols-7 gap-1.5">
+              {DAY_KEYS.map((dayKey, index) => {
+                const entry = weeklyStats[index];
+                const isActive = Boolean(
+                  entry &&
+                  (entry.practice_minutes > 0 || entry.sessions_completed > 0),
+                );
 
-              return (
-                <div
-                  key={dayKey}
-                  className="flex min-w-0 flex-col items-center gap-1.5"
-                >
-                  <span
-                    className={cn(
-                      "flex h-8 w-8 items-center justify-center rounded-full text-xs transition-colors",
-                      isActive
-                        ? "bg-reward text-on-reward shadow-token-card"
-                        : "bg-outline-variant/30 text-on-surface-variant",
-                    )}
+                return (
+                  <div
+                    key={dayKey}
+                    className="flex min-w-0 flex-col items-center gap-1.5"
                   >
-                    {isActive ? (
-                      <Check className="h-4 w-4" />
-                    ) : (
-                      <Zap className="h-4 w-4 opacity-45" />
-                    )}
-                  </span>
-                  <span className="type-caption truncate font-bold text-on-surface-variant">
-                    {t(`days_labels.${dayKey}`)}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+                    <span
+                      className={cn(
+                        "flex h-8 w-8 items-center justify-center rounded-full text-xs transition-colors",
+                        isActive
+                          ? "bg-reward text-on-reward shadow-token-card"
+                          : "bg-outline-variant text-on-surface-variant",
+                      )}
+                    >
+                      {isActive ? (
+                        <Check className="h-4 w-4" />
+                      ) : (
+                        <Zap className="h-4 w-4 opacity-45" />
+                      )}
+                    </span>
+                    <span className="type-caption truncate font-bold text-on-surface-variant">
+                      {t(`days_labels.${dayKey}`)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="type-body-sm text-on-surface-variant">
+              {t("progress_unavailable")}
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -314,6 +342,7 @@ export function CreditsPopover({
       <Button
         type="button"
         disabled={!referralCode}
+        variant="outline"
         data-testid="dashboard-stats-get-credits"
         onClick={onReferralOpen}
         className="mt-5 h-11 w-full gap-2 rounded-2xl"
@@ -325,6 +354,6 @@ export function CreditsPopover({
   );
 }
 
-export function formatDashboardNumber(value: number) {
-  return value.toLocaleString("en-US");
+export function formatDashboardNumber(value: number, locale = "en") {
+  return value.toLocaleString(locale);
 }

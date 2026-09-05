@@ -29,7 +29,7 @@ function CardShell({
   return (
     <section
       data-testid={testId}
-      className="flex min-w-0 flex-col rounded-xl border border-outline-variant bg-surface p-4 shadow-none dark:border-outline-variant/70"
+      className="flex min-w-0 flex-col rounded-xl border border-outline-variant bg-surface p-4 shadow-none dark:border-outline-variant"
     >
       <div className="flex items-center justify-between gap-3">
         <h2 className="type-title inline-flex items-center gap-2 font-semibold text-on-surface">
@@ -43,9 +43,17 @@ function CardShell({
   );
 }
 
-export function NextMovesCard({ items }: { items: DashboardTodayPlanItem[] }) {
+export function NextMovesCard({
+  items,
+  primaryHref,
+}: {
+  items: DashboardTodayPlanItem[];
+  primaryHref?: string;
+}) {
   const t = useTranslations("dashboard.home");
-  const nextItems = items.slice(0, 2);
+  const nextItems = items
+    .filter((item) => !primaryHref || item.href !== primaryHref)
+    .slice(0, 2);
 
   return (
     <CardShell
@@ -53,7 +61,7 @@ export function NextMovesCard({ items }: { items: DashboardTodayPlanItem[] }) {
       icon={<Sparkles className="h-[18px] w-[18px]" />}
       testId="dashboard-next-move"
     >
-      <div role="list" className="relative divide-y divide-outline-variant/70">
+      <div role="list" className="relative divide-y divide-outline-variant">
         <span
           aria-hidden="true"
           className="pointer-events-none absolute bottom-8 left-3 top-8 border-l border-dashed border-outline-variant"
@@ -82,10 +90,10 @@ export function NextMovesCard({ items }: { items: DashboardTodayPlanItem[] }) {
                   {String(index + 1).padStart(2, "0")}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="type-body-sm block truncate font-semibold text-on-surface">
+                  <span className="type-body-sm block font-semibold text-on-surface">
                     {getPlanTitle(item, t)}
                   </span>
-                  <span className="type-caption mt-0.5 block truncate text-on-surface-variant">
+                  <span className="type-caption mt-0.5 block text-on-surface-variant">
                     {t("next_move_meta", {
                       duration: item.durationMinutes,
                       context,
@@ -111,8 +119,10 @@ function scoreTone(score: number | null | undefined) {
 
 export function RecentActivityCard({
   items,
+  available = true,
 }: {
   items: DashboardRecentItem[];
+  available?: boolean;
 }) {
   const t = useTranslations("dashboard.home");
   return (
@@ -129,7 +139,16 @@ export function RecentActivityCard({
       }
       testId="dashboard-recent-activity"
     >
-      {items.length === 0 ? (
+      {!available ? (
+        <div className="flex flex-1 flex-col items-center justify-center gap-2 py-6 text-center">
+          <p className="type-body-sm font-semibold text-on-surface">
+            {t("recent_practice_unavailable")}
+          </p>
+          <p className="type-caption max-w-[30ch] text-on-surface-variant">
+            {t("recent_practice_unavailable_detail")}
+          </p>
+        </div>
+      ) : items.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-3 py-4 text-center">
           <Image
             src="/brand/thinkfy/thinkfy-mascot-wave.png"
@@ -141,22 +160,16 @@ export function RecentActivityCard({
             sizes="80px"
           />
           <p className="type-body-sm font-extrabold text-on-surface">
-            {t("first_debate")}
+            {t("recent_practice_empty_title")}
           </p>
           <p className="type-caption max-w-[24ch] text-on-surface-variant">
-            {t("practice_get_feedback")}
+            {t("recent_practice_empty_detail")}
           </p>
-          <Link
-            href="/practice"
-            className="btn-3d-primary type-body-sm mt-1 inline-flex h-11 items-center rounded-xl bg-primary px-5 font-extrabold text-on-primary hover:bg-primary-dim"
-          >
-            {t("start_new_practice")}
-          </Link>
         </div>
       ) : (
         <div
           role="list"
-          className="overflow-hidden rounded-lg border border-outline-variant dark:border-outline-variant/60"
+          className="overflow-hidden rounded-lg border border-outline-variant dark:border-outline-variant"
         >
           {items.slice(0, 5).map((item, index) => {
             const row = (
@@ -164,17 +177,17 @@ export function RecentActivityCard({
                 className={cn(
                   "group flex min-h-10 items-center gap-3 px-3 py-1.5 transition-colors hover:bg-surface-container-low",
                   index < Math.min(items.length, 5) - 1 &&
-                    "border-b border-outline-variant dark:border-outline-variant/60",
+                    "border-b border-outline-variant dark:border-outline-variant",
                 )}
               >
-                <span className="min-w-0 flex-1 truncate">
-                  <span className="type-body-sm block truncate font-medium text-on-surface">
+                <span className="min-w-0 flex-1">
+                  <span className="type-body-sm block font-medium text-on-surface">
                     {item.title}
                   </span>
                 </span>
                 <span
                   className={cn(
-                    "type-caption flex h-6 min-w-8 shrink-0 items-center justify-center rounded-[6px] px-2 font-semibold tabular-nums",
+                    "type-caption flex h-6 min-w-8 shrink-0 items-center justify-center rounded-sm px-2 font-semibold tabular-nums",
                     scoreTone(item.scoreOutOf100),
                   )}
                 >

@@ -1,7 +1,5 @@
 import type { useTranslations } from "next-intl";
-import type {
-  DashboardRecommendedDrill,
-} from "@/lib/api/dashboard";
+import type { DashboardRecommendedDrill } from "@/lib/api/dashboard";
 
 type Translator = ReturnType<typeof useTranslations>;
 
@@ -24,7 +22,10 @@ function getHour(now: Date, timezone?: string | null) {
   }
 }
 
-export function getTimeGreetingKey(now = new Date(), timezone?: string | null): string {
+export function getTimeGreetingKey(
+  now = new Date(),
+  timezone?: string | null,
+): string {
   const hour = getHour(now, timezone);
   if (hour < 12) return "greeting_morning";
   if (hour < 17) return "greeting_afternoon";
@@ -33,7 +34,7 @@ export function getTimeGreetingKey(now = new Date(), timezone?: string | null): 
 
 export function getPlanTrackLabel(
   track: DashboardRecommendedDrill["track"],
-  t: Translator
+  t: Translator,
 ) {
   if (track === "speaking") return t("track_speaking");
   return t("track_debate");
@@ -88,7 +89,7 @@ export function getPlanReason(item: DashboardRecommendedDrill, t: Translator) {
 
 export function getPlanDescription(
   item: DashboardRecommendedDrill,
-  t: Translator
+  t: Translator,
 ) {
   switch (item.key) {
     case "continue-course":
@@ -118,7 +119,7 @@ export function getPlanDescription(
 
 export function getPlanCtaLabel(
   item: DashboardRecommendedDrill,
-  t: Translator
+  t: Translator,
 ) {
   switch (item.ctaKey) {
     case "continue":

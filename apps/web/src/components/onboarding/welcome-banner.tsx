@@ -1,10 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Sparkles, Mic, ArrowRight } from "@/components/ui/icons";
-import { Link } from "@/i18n/navigation";
-import { Button } from "@/components/ui/button";
+import { X, Sparkles } from "@/components/ui/icons";
 import { createClient } from "@/lib/supabase/client";
 import { useTranslations } from "next-intl";
 
@@ -21,22 +19,6 @@ export function WelcomeBanner({
 }: WelcomeBannerProps) {
   const [visible, setVisible] = useState(show);
   const t = useTranslations("dashboard.home");
-
-  // Fire confetti on first render
-  useEffect(() => {
-    if (show) {
-      const timer = setTimeout(async () => {
-        const confetti = (await import("canvas-confetti")).default;
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.3 },
-          colors: ["#00B8D9", "#8BE8F7", "#0788A0", "#FFD166", "#00B8D9"],
-        });
-      }, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [show]);
 
   const handleDismiss = async () => {
     setVisible(false);
@@ -64,37 +46,32 @@ export function WelcomeBanner({
           animate={{ opacity: 1, y: 0, height: "auto" }}
           exit={{ opacity: 0, y: -20, height: 0 }}
           transition={{ duration: 0.3 }}
-          className="mb-6 overflow-hidden"
+          className="mb-4 overflow-hidden"
         >
-          <div className="relative rounded-2xl border border-outline-variant/20 bg-gradient-to-r from-background via-primary-container to-background p-6">
+          <div className="relative rounded-lg border border-outline-variant bg-surface-container-low px-4 py-3">
             {/* Dismiss */}
             <button
               onClick={handleDismiss}
               type="button"
-              aria-label="Dismiss welcome message"
-              className="absolute right-3 top-3 rounded-lg p-1 text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
+              aria-label={t("dismiss_welcome")}
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-control p-1.5 text-on-surface-variant hover:bg-surface-container hover:text-on-surface"
             >
               <X className="h-4 w-4" />
             </button>
 
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/15">
-                <Sparkles className="h-6 w-6 text-primary" />
+            <div className="flex items-center gap-3 pr-8">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control bg-primary-container">
+                <Sparkles className="h-4 w-4 text-primary" />
               </div>
 
               <div className="flex-1">
-                <h3 className="text-lg font-bold text-on-surface">
+                <h3 className="type-body-sm font-semibold text-on-surface">
                   {t("welcome_banner", { name: displayName })}
                 </h3>
+                <p className="type-caption mt-0.5 text-on-surface-variant">
+                  {t("welcome_banner_subtitle")}
+                </p>
               </div>
-
-              <Link href="/practice" className="shrink-0">
-                <Button className="gap-2 rounded-xl bg-primary text-on-primary hover:bg-primary-dim">
-                  <Mic className="h-4 w-4" />
-                  {t("start_practice")}
-                  <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
             </div>
           </div>
         </motion.div>

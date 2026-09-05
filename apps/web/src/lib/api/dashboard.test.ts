@@ -14,6 +14,8 @@ import {
   buildSessionDerivedStats,
   buildStreakActivityEventsFromSessions,
   buildWeeklyGoalSummary,
+  buildDashboardPlan,
+  getUnderusedTrack,
   selectDashboardImprovementSkill,
 } from "./dashboard";
 import { computeEffectiveStreakState, dateKeyInTimezone } from "@/lib/streaks/model";
@@ -369,5 +371,64 @@ assert.deepEqual(DASHBOARD_SKILL_ORDER, [
   "evidence",
   "delivery",
 ]);
+
+{
+  const session = (track: PracticeTrack, id: string) => ({
+    id,
+    topic_title: id,
+    category: null,
+    topic_difficulty: null,
+    side: "pro",
+    mode: "solo",
+    ai_difficulty: null,
+    feedback: feedback({ track }),
+    total_score: 80,
+    overall_band: "Competent",
+    duration_seconds: 60,
+    created_at: daysAgo(1),
+  });
+
+  assert.equal(getUnderusedTrack([]), null);
+  assert.equal(
+    getUnderusedTrack([{ ...session("debate", "unknown"), feedback: null }]),
+    null,
+  );
+  assert.equal(getUnderusedTrack([session("speaking", "s1")]), "debate");
+  assert.equal(getUnderusedTrack([session("debate", "d1")]), "speaking");
+  assert.equal(
+    getUnderusedTrack([session("speaking", "s1"), session("debate", "d1")]),
+    null,
+  );
+
+  const starter = buildDashboardPlan(
+    snapshot({}),
+    [],
+    null,
+    goal(0),
+    [],
+  );
+  assert.equal(starter.recommendedDrill.key, "start-speaking");
+  assert.equal(
+    buildDashboardPlan(
+      snapshot({}),
+      [session("speaking", "s1"), session("debate", "d1")],
+      null,
+      goal(0),
+      [],
+    ).recommendedDrill.key,
+    "review-feedback",
+  );
+  assert.equal(
+    buildDashboardPlan(
+      snapshot({}),
+      [],
+      null,
+      goal(0),
+      [],
+      { recentSessions: "unavailable", scoredSessions: "unavailable" },
+    ).recommendedDrill.key,
+    "start-speaking",
+  );
+}
 
 console.info("dashboard data tests passed");

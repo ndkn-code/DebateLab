@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import { motion, useReducedMotion } from "framer-motion";
 import { useTranslations } from "next-intl";
 import { ArrowRight, Clock3, Star, Target } from "@/components/ui/icons";
 import { Link } from "@/i18n/navigation";
+import { Button } from "@/components/ui/button";
 import type { DashboardRecommendedDrill } from "@/lib/api/dashboard";
 import {
   getPlanCtaLabel,
@@ -37,14 +37,14 @@ function HeroMetric({
   icon: React.ReactNode;
 }) {
   return (
-    <div className="min-w-0 border-l border-outline-variant/70 pl-3 first:border-l-0 first:pl-0 dark:border-outline-variant/60">
+    <div className="min-w-[8rem] flex-1 border-l border-outline-variant pl-3 first:border-l-0 first:pl-0 dark:border-outline-variant">
       <div className="flex items-center gap-1.5 text-on-surface-variant">
         <span aria-hidden="true" className="text-primary">
           {icon}
         </span>
-        <span className="type-caption truncate font-medium">{label}</span>
+        <span className="type-caption font-medium">{label}</span>
       </div>
-      <p className="type-label mt-1 truncate font-semibold tabular-nums text-on-surface">
+      <p className="type-label mt-1 font-semibold tabular-nums text-on-surface">
         {value}
       </p>
     </div>
@@ -57,7 +57,6 @@ export function DailyFocusHero({
   drill: DashboardRecommendedDrill;
 }) {
   const t = useTranslations("dashboard.home");
-  const reduceMotion = useReducedMotion();
   const illustration =
     DRILL_ILLUSTRATIONS[drill.key] ?? DRILL_ILLUSTRATIONS["start-debate"];
 
@@ -75,7 +74,7 @@ export function DailyFocusHero({
     <section
       data-testid="dashboard-open-canvas"
       aria-labelledby="dashboard-daily-focus-title"
-      className="relative overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none dark:border-outline-variant/70"
+      className="relative overflow-hidden rounded-xl border border-outline-variant bg-surface shadow-none dark:border-outline-variant"
     >
       <div className="relative grid min-h-[224px] items-center gap-3 p-4 sm:p-5 xl:grid-cols-[minmax(0,1fr)_180px] xl:gap-2">
         <div className="relative z-10 min-w-0">
@@ -85,17 +84,18 @@ export function DailyFocusHero({
           </span>
 
           <h1
+            id="dashboard-daily-focus-title"
             data-testid="dashboard-daily-focus-title"
             className="type-heading-lg mt-2 max-w-[25ch] font-semibold text-on-surface"
           >
             {getPlanTitle(drill, t)}
           </h1>
 
-          <p className="type-body-sm mt-1 line-clamp-1 max-w-[48ch] text-on-surface-variant">
+          <p className="type-body-sm mt-1 max-w-[48ch] text-on-surface-variant">
             {getPlanDescription(drill, t)}
           </p>
 
-          <div className="mt-2.5 grid max-w-[48ch] grid-cols-3 gap-2">
+          <div className="mt-2.5 flex max-w-[48ch] flex-wrap gap-3">
             <HeroMetric
               icon={<Clock3 className="h-3.5 w-3.5" />}
               label={t("recommended_detail_time")}
@@ -122,23 +122,19 @@ export function DailyFocusHero({
                 label={t("summary_mastery")}
                 value={scoreValue}
               />
-            ) : (
-              <HeroMetric
-                icon={<Star className="h-3.5 w-3.5" />}
-                label={t("summary_mastery")}
-                value="—"
-              />
-            )}
+            ) : null}
           </div>
 
-          <Link
-            href={drill.href}
+          <Button
+            nativeButton={false}
+            variant="primary"
+            render={<Link href={drill.href} />}
             data-testid="dashboard-recommended-cta"
-            className="type-label mt-3 inline-flex h-8 min-w-[140px] items-center justify-center gap-2 rounded-control bg-primary px-4 font-medium text-on-primary transition-[background-color,transform] hover:bg-primary-dim active:translate-y-px focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-primary/40"
+            className="type-label mt-3 min-w-[140px] font-medium"
           >
             {getPlanCtaLabel(drill, t)}
             <ArrowRight aria-hidden="true" className="h-4 w-4" />
-          </Link>
+          </Button>
         </div>
 
         {/* Illustration slot */}
@@ -146,15 +142,7 @@ export function DailyFocusHero({
           data-testid="dashboard-recommended-illustration"
           className="relative mx-auto hidden h-[180px] w-[180px] items-center justify-center xl:flex"
         >
-          <motion.div
-            animate={reduceMotion ? undefined : { y: [0, -8, 0] }}
-            transition={
-              reduceMotion
-                ? undefined
-                : { duration: 4.2, repeat: Infinity, ease: "easeInOut" }
-            }
-            className="relative"
-          >
+          <div className="relative">
             <Image
               src={illustration.src}
               alt={illustration.alt}
@@ -165,20 +153,7 @@ export function DailyFocusHero({
               className="h-auto w-[164px] object-contain drop-shadow-token-card"
               sizes="164px"
             />
-          </motion.div>
-          {/* sparkles */}
-          <span
-            aria-hidden="true"
-            className="absolute right-4 top-6 text-reward"
-          >
-            <Star className="h-4 w-4 fill-current" />
-          </span>
-          <span
-            aria-hidden="true"
-            className="absolute bottom-10 left-2 text-reward/70"
-          >
-            <Star className="h-3 w-3 fill-current" />
-          </span>
+          </div>
         </div>
       </div>
     </section>

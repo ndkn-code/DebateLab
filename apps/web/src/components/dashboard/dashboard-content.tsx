@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { PageTransition } from "@/components/shared/page-motion";
@@ -8,6 +8,8 @@ import {
   PageContainer,
   ProductPageShell,
 } from "@/components/shared/product-layout";
+import { Button } from "@/components/ui/button";
+import { getHomeDataState, retainHomeData } from "./home-data-state";
 import { WelcomeBanner } from "@/components/onboarding/welcome-banner";
 import { DashboardStatsPanel } from "@/components/dashboard/dashboard-stats-panel";
 import { DailyFocusHero } from "@/components/dashboard/daily-focus-hero";
@@ -69,7 +71,7 @@ function useDashboardTimezoneCookie() {
 }
 
 export function DashboardContent({
-  data,
+  data: incomingData,
   displayName,
   greetingKey,
   userId,
@@ -79,6 +81,28 @@ export function DashboardContent({
   useDashboardTimezoneCookie();
 
   const t = useTranslations("dashboard.home");
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [snapshot, setSnapshot] = useState({
+    input: incomingData,
+    userId,
+    data: incomingData,
+    retained: false,
+  });
+  let current = snapshot;
+  if (snapshot.input !== incomingData || snapshot.userId !== userId) {
+    current = {
+      input: incomingData,
+      userId,
+      ...(snapshot.userId === userId
+        ? retainHomeData(snapshot.data, incomingData)
+        : { data: incomingData, retained: false }),
+    };
+    setSnapshot(current);
+  }
+  const data = current.data;
+  const state = getHomeDataState(data);
+  const retryable = getHomeDataState(incomingData).retryable;
   const checkpoint =
     data.recommendedDrill.skillKey ?? data.skillSnapshot.weakestSkill;
   const weeklySessions = data.hero.weeklyStats.reduce(
@@ -87,35 +111,42 @@ export function DashboardContent({
   );
 
   return (
-    <PageTransition data-dashboard-home className="min-h-full bg-transparent">
+    <PageTransition
+      data-dashboard-home
+      data-progress-freshness={current.retained ? "last-known" : "current"}
+      aria-describedby={current.retained ? "dashboard-data-status" : undefined}
+      className="min-h-full bg-transparent"
+    >
       <ProductPageShell className="overflow-x-hidden bg-transparent">
         <PageContainer
           size="data"
           className="flex flex-col py-5 pb-24 lg:px-6 lg:py-6 lg:pb-28"
         >
-          <div
-            className="mb-4 h-1 overflow-hidden rounded-full bg-outline-variant/30"
-            aria-label={t("daily_focus")}
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={Math.min(
-              100,
-              Math.max(0, data.hero.todayGoal.progressPercent),
-            )}
-          >
+          {state.goals ? (
             <div
-              className="h-full rounded-full bg-primary transition-[width] duration-300"
-              style={{
-                width: `${Math.min(100, Math.max(0, data.hero.todayGoal.progressPercent))}%`,
-              }}
-            />
-          </div>
+              className="mb-4 h-1 overflow-hidden rounded-full bg-outline-variant"
+              aria-label={t("daily_focus")}
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.min(
+                100,
+                Math.max(0, data.hero.todayGoal.progressPercent),
+              )}
+            >
+              <div
+                className="h-full rounded-full bg-primary transition-[width] duration-300"
+                style={{
+                  width: `${Math.min(100, Math.max(0, data.hero.todayGoal.progressPercent))}%`,
+                }}
+              />
+            </div>
+          ) : null}
           <div className="flex flex-wrap items-end justify-between gap-4 px-4 text-on-surface">
             <div className="min-w-0">
               <p className="type-heading-lg font-medium text-on-surface">
                 {t(greetingKey)},{" "}
-                <span className="whitespace-nowrap">
+                <span className="break-words">
                   {displayName} <span aria-hidden="true">👋</span>
                 </span>
               </p>
@@ -125,6 +156,9 @@ export function DashboardContent({
             </div>
 
             <DashboardStatsPanel
+              profileAvailable={state.profile}
+              streakAvailable={state.streak}
+              activityAvailable={state.activity && !state.activityPartial}
               topBar={data.topBar}
               weeklyStats={data.hero.weeklyStats}
               referralCode={data.sidebarCards.referralCode}
@@ -133,7 +167,46 @@ export function DashboardContent({
           </div>
 
           {showWelcome ? (
-            <WelcomeBanner displayName={displayName} userId={userId} show />
+            <WelcomeBanner
+              key={userId}
+              displayName={displayName}
+              userId={userId}
+              show
+            />
+          ) : null}
+
+          {retryable ? (
+            <section
+              aria-label={t("data_unavailable_title")}
+              className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-control border border-outline-variant bg-surface-container-low p-4"
+              data-testid="dashboard-data-notice"
+            >
+              <div
+                id="dashboard-data-status"
+                className="min-w-0 flex-1"
+                role="status"
+              >
+                <p className="type-label text-on-surface">
+                  {t("data_unavailable_title")}
+                </p>
+                <p className="type-body-sm mt-1 text-on-surface-variant">
+                  {t(
+                    current.retained
+                      ? "progress_saved"
+                      : "data_unavailable_body",
+                  )}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                onClick={() => startTransition(() => router.refresh())}
+                disabled={isPending}
+                aria-busy={isPending}
+                data-testid="dashboard-retry"
+              >
+                {t(isPending ? "retrying_progress" : "retry_progress")}
+              </Button>
+            </section>
           ) : null}
 
           <div className="grid items-start gap-4 pt-3 xl:grid-cols-[minmax(0,1fr)_312px]">
@@ -142,12 +215,17 @@ export function DashboardContent({
               <DailyFocusHero drill={data.recommendedDrill} />
 
               <DashboardPrimarySummary
+                activityAvailable={state.activity}
+                activityPartial={state.activityPartial}
+                goalsAvailable={state.goals}
+                skillsAvailable={state.skills}
                 weeklySessions={weeklySessions}
                 weeklyGoal={data.hero.weeklyGoal}
                 overallScore={data.skillSnapshot.overallScore}
               />
 
               <TrainingPath
+                available={state.skills}
                 metrics={data.skillSnapshot.metrics}
                 checkpoint={checkpoint}
               />
@@ -159,10 +237,17 @@ export function DashboardContent({
 
           <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(300px,1fr)]">
             <div>
-              <RecentActivityCard items={data.recentActivity} />
+              <RecentActivityCard
+                items={data.recentActivity}
+                available={state.history}
+              />
             </div>
             <div>
-              <NextMovesCard items={data.todayPlanItems} />
+              <NextMovesCard
+                items={data.todayPlanItems.filter(
+                  (item) => item.href !== data.recommendedDrill.href,
+                )}
+              />
             </div>
           </div>
         </PageContainer>
