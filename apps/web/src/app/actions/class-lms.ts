@@ -1,5 +1,11 @@
 "use server";
 
+import { readClassGradebook, readClassGradebookEvidence } from "@/lib/api/class-lms/class-gradebook-repository";
+import type { ClassGradebookData, ClassGradebookEvidence } from "@/lib/teacher-workspace/class-gradebook-model";
+import { readReusableClassMaterials, reuseClassMaterial } from "@/lib/api/class-lms/material-reuse-repository";
+import type { MaterialPage, ManagerMaterialRow } from "@/lib/api/class-lms/materials-repository";
+import { materialReuseErrorMessage } from "@/lib/teacher-workspace/material-reuse-model";
+
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
@@ -495,4 +501,26 @@ export async function publishTeacherWorkspaceAnnouncement(input: {
   return teacherWorkspaceWrite(locale, () =>
     publishTeacherAnnouncement({ ...payload, publishAt: null }),
   );
+}
+
+export async function loadClassGradebook(input: { classId: string; locale: string }): Promise<TeacherWorkspaceWriteResult<ClassGradebookData>> {
+  try { return { ok: true, data: await readClassGradebook(input.classId) }; }
+  catch (error) { return teacherWorkspaceWriteFailure(error, input.locale); }
+}
+
+export async function loadClassGradebookEvidence(input: { classId: string; assignmentId: string; submissionId: string; locale: string }): Promise<TeacherWorkspaceWriteResult<ClassGradebookEvidence>> {
+  const { locale, ...target } = input;
+  try { return { ok: true, data: await readClassGradebookEvidence(target) }; }
+  catch (error) { return teacherWorkspaceWriteFailure(error, locale); }
+}
+
+export async function loadReusableClassMaterials(input: { classId: string; locale: string; cursor?: string | null }): Promise<TeacherWorkspaceWriteResult<MaterialPage<ManagerMaterialRow>>> {
+  try { return { ok: true, data: await readReusableClassMaterials(input.classId, input.cursor) }; }
+  catch { return { ok: false, failure: "unknown", message: input.locale === "vi" ? "Chưa tải được thư viện. Hãy kiểm tra quyền truy cập và thử lại." : "Could not load the library. Check your access and try again." }; }
+}
+
+export async function publishReusableClassMaterial(input: { classId: string; materialId: string; versionId: string; locale: string; idempotencyKey: string }): Promise<TeacherWorkspaceWriteResult<{ placementId: string; status: "published"; alreadyPublished: boolean }>> {
+  const { locale, ...command } = input;
+  try { return { ok: true, data: await reuseClassMaterial(command) }; }
+  catch (error) { return { ok: false, failure: "unknown", message: materialReuseErrorMessage(error, locale) }; }
 }

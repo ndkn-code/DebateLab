@@ -167,6 +167,7 @@ export interface TeacherAssignmentPresentation {
 }
 
 export interface TeacherMaterialPresentation {
+  learnerHref?: string;
   id: string;
   classId: string;
   title: string;

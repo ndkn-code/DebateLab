@@ -1,0 +1,162 @@
+[
+  {
+    "locale": "en",
+    "width": 1280,
+    "height": 720,
+    "doc": 1280,
+    "client": 1280,
+    "theme": "scroll-smooth light",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "en",
+    "width": 1440,
+    "height": 900,
+    "doc": 1440,
+    "client": 1440,
+    "theme": "scroll-smooth light",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "en",
+    "width": 768,
+    "height": 1024,
+    "doc": 768,
+    "client": 768,
+    "theme": "scroll-smooth light",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "en",
+    "width": 390,
+    "height": 844,
+    "doc": 390,
+    "client": 390,
+    "theme": "scroll-smooth light",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "en",
+    "width": 1280,
+    "height": 720,
+    "doc": 1280,
+    "client": 1280,
+    "theme": "scroll-smooth dark",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "en",
+    "width": 1440,
+    "height": 900,
+    "doc": 1440,
+    "client": 1440,
+    "theme": "scroll-smooth dark",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "en",
+    "width": 768,
+    "height": 1024,
+    "doc": 768,
+    "client": 768,
+    "theme": "scroll-smooth dark",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "en",
+    "width": 390,
+    "height": 844,
+    "doc": 390,
+    "client": 390,
+    "theme": "scroll-smooth dark",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "vi",
+    "width": 1280,
+    "height": 720,
+    "doc": 1280,
+    "client": 1280,
+    "theme": "scroll-smooth light",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "vi",
+    "width": 1440,
+    "height": 900,
+    "doc": 1440,
+    "client": 1440,
+    "theme": "scroll-smooth light",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "vi",
+    "width": 768,
+    "height": 1024,
+    "doc": 768,
+    "client": 768,
+    "theme": "scroll-smooth light",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "vi",
+    "width": 390,
+    "height": 844,
+    "doc": 390,
+    "client": 390,
+    "theme": "scroll-smooth light",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "vi",
+    "width": 1280,
+    "height": 720,
+    "doc": 1280,
+    "client": 1280,
+    "theme": "scroll-smooth dark",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "vi",
+    "width": 1440,
+    "height": 900,
+    "doc": 1440,
+    "client": 1440,
+    "theme": "scroll-smooth dark",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "vi",
+    "width": 768,
+    "height": 1024,
+    "doc": 768,
+    "client": 768,
+    "theme": "scroll-smooth dark",
+    "options": 1,
+    "confirmation": true
+  },
+  {
+    "locale": "vi",
+    "width": 390,
+    "height": 844,
+    "doc": 390,
+    "client": 390,
+    "theme": "scroll-smooth dark",
+    "options": 1,
+    "confirmation": true
+  }
+]
