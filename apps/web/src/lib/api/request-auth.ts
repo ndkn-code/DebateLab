@@ -8,6 +8,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient as createCookieClient } from "@/lib/supabase/server";
 import { boundedAuthFetch } from "@/lib/protected-shell/deadline";
 import { verifyIdentity } from "@/lib/protected-shell/identity";
+import { withServerRequestBudget } from "@/lib/supabase/request-budget";
 
 export type RequestAuthSource = "bearer" | "cookie";
 
@@ -113,13 +114,18 @@ export async function requireRequestAuth(
     };
   }
 
-  const supabase = (await createCookieClient({ fetch: boundedAuthFetch(3_000) })) as SupabaseClient;
-  const identity = await verifyIdentity(() => supabase.auth.getUser());
+  const identity = await withServerRequestBudget(async () => {
+    const authClient = await createCookieClient();
+    return verifyIdentity(() => authClient.auth.getUser());
+  }, 4_000).catch(() => ({ status: "unavailable" as const }));
   if (identity.status === "unavailable") {
     return { ok: false, errorResponse: authUnavailableJson(), authSource: null };
   }
   if (identity.status === "authenticated") {
     const user = identity.user;
+    // The auth budget is now closed. A separate client preserves ordinary
+    // handler query budgets and observes any completed refresh cookies.
+    const supabase = (await createCookieClient()) as SupabaseClient;
     return {
       ok: true,
       supabase,
