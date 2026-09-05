@@ -1259,3 +1259,25 @@ export async function exportPostMockReportAction(raw: unknown) {
     );
   });
 }
+
+// Class invitations reuse this approved Server Action entrypoint. Persistence
+// and permissions live in the dedicated class-join service and atomic RPCs.
+export async function manageClassJoinInvitation(raw: unknown) {
+  const { manageInvitation } = await import("@/lib/class-join/service");
+  return manageInvitation(raw);
+}
+
+export async function previewClassJoin(raw: unknown) {
+  const { previewInvitation } = await import("@/lib/class-join/service");
+  return previewInvitation(raw);
+}
+
+export async function claimClassJoin(raw: unknown) {
+  const { claimInvitation } = await import("@/lib/class-join/service");
+  const result = await claimInvitation(raw);
+  if ((result.status === "joined" || result.status === "already_joined") && result.classId) {
+    revalidatePath("/[locale]/dashboard/my-classes/[classId]", "page");
+    revalidatePath("/[locale]/ielts/classes", "page");
+  }
+  return result;
+}
