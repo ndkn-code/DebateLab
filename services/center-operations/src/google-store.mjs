@@ -1,4 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { validateMaterialBytes } from './material-validation.mjs';
 
 export function createGoogleStore({ db, binding, actorId }) {
   if (!db || !binding?.id || !actorId) throw new TypeError('db, binding, and actorId are required');
@@ -22,11 +23,13 @@ export function createGoogleStore({ db, binding, actorId }) {
       const existing = await db.from('center_drive_sources').select('material_id,version_id,content_hash').eq('binding_id',binding.id).eq('club_id',binding.club_id).maybeSingle();
       if(existing.error) throw existing.error;
       if(existing.data?.content_hash === version) return {materialId:existing.data.material_id,versionId:existing.data.version_id};
-      const materialId = existing.data?.material_id ?? randomUUID(); const versionId = randomUUID(); const path = `${binding.club_id}/${materialId}/${versionId}/${versionId}/google-${fileId}`;
-      const upload = await db.storage.from('lms-material-ingest').upload(path, bytes, { contentType: metadata.mimeType ?? 'application/octet-stream', upsert: false });
+      const materialId = existing.data?.material_id ?? randomUUID(); const versionId = randomUUID();
+      const validated = validateMaterialBytes(bytes, metadata.mimeType, version);
+      const path = `${binding.club_id}/${materialId}/${versionId}/google-${fileId}`;
+      const upload = await db.storage.from('lms-material-originals').upload(path, validated.bytes, { contentType: validated.detectedMime, upsert: false });
       if (upload.error) throw upload.error;
-      const { data, error } = await db.rpc('center_queue_google_material', { p_binding_id: binding.id, p_actor_id: actorId, p_file_id: fileId, p_version: version, p_metadata: metadata, p_storage_path: path, p_size_bytes: bytes.byteLength });
-      if (error || data?.versionId !== versionId) await db.storage.from('lms-material-ingest').remove([path]);
+      const { data, error } = await db.rpc('center_queue_google_material', { p_binding_id: binding.id, p_actor_id: actorId, p_file_id: fileId, p_version: version, p_metadata: { ...metadata, storageBucket: 'lms-material-originals', detectedMimeType: validated.detectedMime }, p_storage_path: path, p_size_bytes: validated.bytes.byteLength });
+      if (error || data?.versionId !== versionId) await db.storage.from('lms-material-originals').remove([path]);
       if (error) throw error;
       return data;
     },
