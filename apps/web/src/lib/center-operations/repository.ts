@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createTypedServerClient } from "@/lib/supabase/server";
-import { generateText } from "@/lib/ai/core";
+import { generateStructured } from "@/lib/ai/core";
 import {
   centerCommandSchema,
   type CenterSnapshot,
@@ -12,6 +12,7 @@ import {
 import {
   planTeacherTurn,
   teacherActionSchema,
+  teacherPlanSchema,
   type TeacherContext,
 } from "./teacher-agent";
 
@@ -211,7 +212,7 @@ export async function sendTeacherTurn(
     message,
     context,
     generate: async ({ system, prompt }) => {
-      const generated = await generateText({
+      const generated = await generateStructured({
         task: "teacher_operations",
         messages: [
           { role: "system", content: system },
@@ -224,8 +225,12 @@ export async function sendTeacherTurn(
           sourceRoute: "dashboard/teacher/center",
           outputType: "teacher_plan",
         },
+        prompt,
+        schema: teacherPlanSchema,
+        repairInstruction:
+          "Return exactly the teacher plan JSON shape, including source citations as {id,label} objects.",
       });
-      return generated.text;
+      return JSON.stringify(generated.output);
     },
   });
   if (!planned.ok) throw new Error(planned.error);

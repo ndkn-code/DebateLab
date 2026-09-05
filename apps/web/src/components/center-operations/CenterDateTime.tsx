@@ -87,7 +87,9 @@ export function CenterDateTime({
             />
           }
         >
-          {current.date || label}
+          {current.date
+            ? `${current.date}${dateOnly ? "" : ` · ${current.time}`}`
+            : label}
         </PopoverTrigger>
         <PopoverContent className="grid min-w-[19rem] gap-3 p-3">
           <div className="flex items-center justify-between">
@@ -147,7 +149,7 @@ export function CenterDateTime({
           </div>
           {!dateOnly && (
             <Input
-              aria-label={`${label} time`}
+              aria-label={`${label} ${locale === "vi" ? "giờ" : "time"}`}
               type="time"
               value={current.time}
               onChange={(event) => commit(current.date, event.target.value)}

@@ -122,7 +122,7 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
       return {
         candidates: [{ provider: "groq", model: process.env.GROQ_TEACHER_OPERATIONS_MODEL || groqModel() }],
         attemptTimeoutMs: 35_000,
-        schemaRepairAttempts: 0,
+        schemaRepairAttempts: 1,
         maxOutputTokens: 6_000,
         temperature: 0.1,
         criticality: "critical",

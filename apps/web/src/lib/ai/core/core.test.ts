@@ -8,6 +8,7 @@ import {
 } from "./index";
 import { extractJsonObject } from "./json";
 import { recordGeminiKeySuccess } from "@/lib/gemini/key-pool";
+import { teacherPlanSchema } from "@/lib/center-operations/teacher-agent";
 
 const originalFetch = globalThis.fetch;
 const originalGeminiKey = process.env.GEMINI_API_KEY;
@@ -186,6 +187,34 @@ async function run() {
   assert.ok(
     structured.attempts.some((attempt) => attempt.status === "success"),
   );
+
+  calls = 0;
+  globalThis.fetch = (async () => {
+    calls += 1;
+    const body =
+      calls === 1
+        ? '{"answer":"Draft","actions":[{"kind":"note.create","studentRecordId":"11111111-1111-4111-8111-111111111111","body":"Follow up","extra":"reject"}],"sources":[{"id":"roster-1","label":"Roster","extra":"reject"}]}'
+        : '{"answer":"Repaired","actions":[{"kind":"note.create","studentRecordId":"11111111-1111-4111-8111-111111111111","body":"Follow up"}],"sources":[{"id":"roster-1","label":"Roster"}]}';
+    return new Response(
+      JSON.stringify({
+        choices: [{ finish_reason: "stop", message: { content: body } }],
+        usage: {},
+      }),
+      { status: 200 },
+    );
+  }) as typeof fetch;
+  const teacherPlan = await generateStructured({
+    task: "teacher_operations",
+    prompt: "return the teacher plan JSON",
+    schema: teacherPlanSchema,
+    context: {
+      task: "teacher_operations",
+      sourceRoute: "core-test",
+      outputType: "teacher_plan",
+    },
+  });
+  assert.equal(teacherPlan.output.answer, "Repaired");
+  assert.equal(calls, 2);
 
   calls = 0;
   globalThis.fetch = (async () => {
