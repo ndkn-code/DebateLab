@@ -28,7 +28,7 @@ export async function middleware(request: NextRequest) {
 
   // The path header lets the protected shell preserve the intended return URL
   // without trusting a client-provided query parameter.
-  if (!skipIntl) requestHeaders.set("x-thinkfy-pathname", pathname);
+  if (!skipIntl) requestHeaders.set("x-thinkfy-pathname", `${pathname}${request.nextUrl.search}`);
 
   // Derive the forwarded request exactly once. A request body can be adopted
   // by only one derived Request: a second `new NextRequest(request, …)` on a

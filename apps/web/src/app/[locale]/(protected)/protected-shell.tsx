@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
+import { useLocale } from "next-intl";
+import { Button } from "@/components/ui/button";
 import { useReducedMotion } from "framer-motion";
 import { Sidebar } from "@/components/shared/sidebar";
 import { GlobalOverlays } from "@/components/shared/global-overlays";
@@ -20,7 +22,7 @@ import type {
   NotificationInboxSnapshot,
   NotificationUiOperations,
 } from "@/components/notifications/contracts";
-import type { TeacherWorkspaceNavigation } from "@/lib/teacher-workspace/presentation";
+import type { ShellTeacherNavigation as TeacherWorkspaceNavigation } from "@/lib/api/class-lms/teacher-workspace-sidebar";
 
 interface ProtectedShellProps {
   children: React.ReactNode;
@@ -40,6 +42,7 @@ interface ProtectedShellProps {
     "listInbox" | "markRead" | "markAllRead" | "muteObject"
   >;
   teacherNavigation?: TeacherWorkspaceNavigation;
+  shellDataUnavailable?: boolean;
 }
 
 function useViewportScrollLock() {
@@ -173,10 +176,12 @@ export function ProtectedShell({
   notificationInbox,
   notificationOperations,
   teacherNavigation,
+  shellDataUnavailable = false,
 }: ProtectedShellProps) {
   useViewportScrollLock();
   const mainScrollRef = useScrollBoundaryLock<HTMLElement>();
   const pathname = usePathname();
+  const locale = useLocale();
   const router = useRouter();
   const detectedReducedMotion = useReducedMotion() ?? false;
   const prefersReducedMotion =
@@ -280,6 +285,14 @@ export function ProtectedShell({
           style={{ WebkitOverflowScrolling: "auto" }}
         >
           <MaintenanceBanner />
+          {shellDataUnavailable ? (
+            <div role="status" className="flex flex-wrap items-center gap-3 border-b border-outline-variant px-4 py-2 type-body text-on-surface-variant">
+              <span>{locale === "vi" ? "Một số mục điều hướng tạm thời chưa tải được." : "Some navigation details are temporarily unavailable."}</span>
+              <Button variant="ghost" onClick={() => window.location.reload()}>
+                {locale === "vi" ? "Thử lại" : "Retry"}
+              </Button>
+            </div>
+          ) : null}
           {children}
         </main>
       </div>

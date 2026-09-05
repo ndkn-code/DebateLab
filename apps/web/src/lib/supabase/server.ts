@@ -2,20 +2,25 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "@/types/supabase";
 import { getSupabaseCookieOptions } from "./cookie-options";
+import { currentRequestBudget, budgetedFetch } from "./request-budget";
 
-export async function createClient() {
+export async function createClient(options?: { fetch?: typeof fetch }) {
   const cookieStore = await cookies();
+  const budget = currentRequestBudget();
+  const fetcher = budget ? budgetedFetch(budget, options?.fetch) : options?.fetch;
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookieOptions: getSupabaseCookieOptions(),
+      ...(fetcher ? { global: { fetch: fetcher } } : {}),
       cookies: {
         getAll() {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
+          if (budget?.aborted) return;
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, getSupabaseCookieOptions(options))
@@ -37,19 +42,23 @@ export async function createClient() {
  * retained for existing call-sites pending lazy migration
  * (see docs/ielts/data-access.md).
  */
-export async function createTypedServerClient() {
+export async function createTypedServerClient(options?: { fetch?: typeof fetch }) {
   const cookieStore = await cookies();
+  const budget = currentRequestBudget();
+  const fetcher = budget ? budgetedFetch(budget, options?.fetch) : options?.fetch;
 
   return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookieOptions: getSupabaseCookieOptions(),
+      ...(fetcher ? { global: { fetch: fetcher } } : {}),
       cookies: {
         getAll() {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
+          if (budget?.aborted) return;
           try {
             cookiesToSet.forEach(({ name, value, options }) =>
               cookieStore.set(name, value, getSupabaseCookieOptions(options))

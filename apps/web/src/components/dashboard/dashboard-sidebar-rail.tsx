@@ -50,7 +50,7 @@ import type {
   NotificationInboxSnapshot,
   NotificationUiOperations,
 } from "@/components/notifications/contracts";
-import type { TeacherWorkspaceNavigation } from "@/lib/teacher-workspace/presentation";
+import type { ShellTeacherNavigation as TeacherWorkspaceNavigation } from "@/lib/api/class-lms/teacher-workspace-sidebar";
 
 export type DashboardSidebarNavItem = Omit<DashboardNavItem, "key"> & {
   key:

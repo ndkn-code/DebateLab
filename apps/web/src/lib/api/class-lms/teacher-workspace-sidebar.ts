@@ -2,6 +2,7 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createTypedServerClient } from "@/lib/supabase/server";
+import type { TeacherWorkspaceNavigation } from "@/lib/teacher-workspace/presentation";
 import {
   loadTeacherWorkspaceCapability,
   type TeacherWorkspaceCapability,
@@ -39,12 +40,16 @@ export type TeacherSidebarSummary = {
   items: TeacherSidebarItem[];
 };
 
+export type ShellTeacherNavigation = Omit<TeacherWorkspaceNavigation, "pendingReviewCount"> & {
+  pendingReviewCount: number | null;
+};
+
 function asDb(client: Awaited<ReturnType<typeof createTypedServerClient>>): TeacherWorkspaceDb {
   return client as unknown as TeacherWorkspaceDb;
 }
 
-function navigationItems(reviewCount: number, isHeadTeacher: boolean): TeacherSidebarItem[] {
-  const badge = (value: number) => (value > 0 ? value : null);
+function navigationItems(reviewCount: number | null, isHeadTeacher: boolean): TeacherSidebarItem[] {
+  const badge = (value: number | null) => (value !== null && value > 0 ? value : null);
   return [
     ...(process.env.CENTER_OPERATIONS_V1 === "true" ? [{key:"center",label:"Center operations",href:"/dashboard/teacher/center",badge:null}] : []),
     { key: "calendar", label: "Teaching Calendar", href: "/dashboard/teacher/calendar", badge: null },
@@ -64,6 +69,27 @@ function navigationItems(reviewCount: number, isHeadTeacher: boolean): TeacherSi
         ]
       : []),
   ] as TeacherSidebarItem[];
+}
+
+/**
+ * Returns the shell navigation projection without optional review and
+ * notification reads. The capability loader remains the authoritative access
+ * and entitlement check; unavailable counts stay unknown instead of becoming
+ * misleading zeroes.
+ */
+export async function loadTeacherShellNavigation(
+  loadCapability: () => Promise<TeacherWorkspaceCapability> = loadTeacherWorkspaceCapability,
+): Promise<ShellTeacherNavigation> {
+  const capability = await loadCapability();
+  return {
+    canAccess: capability.canAccess,
+    isAdminPreview: capability.isPlatformAdmin,
+    isHeadTeacher: capability.isHeadTeacher,
+    hasIeltsEntitlement: capability.hasIeltsEntitlement,
+    classCount: capability.classes.length,
+    pendingReviewCount: null,
+    items: navigationItems(null, capability.isHeadTeacher),
+  };
 }
 
 /**
