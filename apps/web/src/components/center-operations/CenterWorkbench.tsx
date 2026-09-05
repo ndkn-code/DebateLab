@@ -453,7 +453,12 @@ export function CenterWorkbench({
                 value={form.endAt ?? ""}
                 onChange={(value) => update("endAt", value)}
               />
-              <Button className="md:col-span-4" type="submit" disabled={busy}>
+              <Button
+                className="md:col-span-4"
+                type="submit"
+                variant={rebookTrialId ? "outline" : "primary"}
+                disabled={busy}
+              >
                 {t.bookTrial}
               </Button>
             </form>

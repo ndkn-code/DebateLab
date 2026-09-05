@@ -216,3 +216,18 @@ This file records release evidence; verify the current canonical deployment afte
   `CENTER_GOOGLE_EXISTING_CALENDARS_ENABLED=true`, unset/disabled until scope approval.
   The server rejects attempts while disabled and the UI omits that optional action.
   The normal app-created calendar and selected-file flows are unchanged.
+
+- Reconnected the pilot on 2026-09-05 after publishing. The callback returned to Thinkfy
+  and the connection readback is `connected` with exactly the two default scopes.
+
+## Rebooking acceptance checkpoint
+
+- Migration `20260905120000_center_trial_rebooking.sql` applied through the scoped MCP;
+  live public types regenerated for `center_trials.rebook_of`. No historical ledger
+  entries were replayed. Existing Cloud Run revisions remain unchanged.
+- The missed trial and student are locked for rebooking. New bookings and rebookings
+  share a student lock and reject overlapping times, while nonoverlapping trials remain
+  permitted. One direct replacement per missed trial is enforced by a unique index.
+- Ten local rollback suites pass: 137 pgTAP assertions plus the OAuth contract block,
+  including 27 new behavioral rebooking assertions. App tests: 20 passed; service: 49 passed.
+  Design audit/tests, lint (12 existing warnings), typecheck and architecture gates pass.
