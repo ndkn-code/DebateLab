@@ -139,3 +139,12 @@ state when the RPC migration is absent. The production IELTS gate remains unchan
 This task did not enable Fast or change global speed/model settings. Standard speed
 was inherited from the source task's user-confirmed configuration; this task did not
 independently introspect a runtime service-tier field.
+
+## Root CI reconciliation — September 5
+
+Hosted CI found that the intentionally private claims ledger had RLS and revoked
+browser privileges but no explicit policy. Added an explicit `using (false) with
+check (false)` policy for anon/authenticated, following the existing server-only
+ledger precedent. No privileges or RPC behavior were broadened. Root reran
+`npm run ci:checks` and the disposable PostgreSQL integration/security/race harness;
+both pass. Hosted CI for the repair commit must still be checked before acceptance.

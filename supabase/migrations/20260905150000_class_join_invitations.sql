@@ -46,6 +46,10 @@ create policy "Class managers view join invitations"
 
 -- Claims are replay evidence, never a client-readable roster or ledger.
 revoke all on public.class_join_invitation_claims from anon, authenticated;
+-- Make the intentional browser-role denial explicit for policy auditing.
+create policy class_join_invitation_claims_deny_browser
+  on public.class_join_invitation_claims for all to anon, authenticated
+  using (false) with check (false);
 
 create or replace function public.manage_class_join_invitation(
   p_class_id uuid,
