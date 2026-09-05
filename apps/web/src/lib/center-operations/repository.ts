@@ -84,6 +84,21 @@ function commandInput(
       (item) => item.id === input.admissionId,
     );
     if (row) input.expectedRevision = row.revision;
+  } else if (kind === "trial.rebook") {
+    const row = snapshot.trials.find((item) => item.id === input.priorTrialId);
+    if (!row) throw new Error("Cannot rebook a trial outside the snapshot.");
+    if (row.status !== "no_show")
+      throw new Error("Only no-show trials can be rebooked.");
+    if (snapshot.trials.some((item) => item.rebook_of === row.id))
+      throw new Error("This no-show trial already has a replacement.");
+    if (
+      !snapshot.students.some(
+        (student) => student.id === row.student_record_id,
+      ) ||
+      !snapshot.classes.some((item) => item.id === row.class_id)
+    )
+      throw new Error("The trial identity is missing from the snapshot.");
+    input.expectedRevision = row.revision;
   }
   return input;
 }
@@ -118,7 +133,33 @@ export function normalizeTeacherActions(
                   (item) => item.id === candidate.scheduleId,
                 )?.updated_at,
               }
-            : candidate;
+            : candidate.kind === "trial.rebook"
+              ? (() => {
+                  const row = snapshot.trials.find(
+                    (item) => item.id === candidate.priorTrialId,
+                  );
+                  if (!row)
+                    throw new Error(
+                      "Cannot rebook a trial outside the snapshot.",
+                    );
+                  if (row.status !== "no_show")
+                    throw new Error("Only no-show trials can be rebooked.");
+                  if (snapshot.trials.some((item) => item.rebook_of === row.id))
+                    throw new Error(
+                      "This no-show trial already has a replacement.",
+                    );
+                  if (
+                    !snapshot.students.some(
+                      (student) => student.id === row.student_record_id,
+                    ) ||
+                    !snapshot.classes.some((item) => item.id === row.class_id)
+                  )
+                    throw new Error(
+                      "The trial identity is missing from the snapshot.",
+                    );
+                  return { ...candidate, expectedRevision: row.revision };
+                })()
+              : candidate;
     const parsed = centerCommandSchema.safeParse(withRevision);
     if (!parsed.success) throw new Error("Invalid teacher command.");
     const automatic =
@@ -173,7 +214,15 @@ export async function sendTeacherTurn(
       name: student.name,
       classIds: student.classIds,
     })),
-    trials: snapshot.trials,
+    trials: snapshot.trials.map((trial) => ({
+      id: trial.id,
+      studentRecordId: trial.student_record_id,
+      classId: trial.class_id,
+      startsAt: trial.starts_at,
+      endsAt: trial.ends_at,
+      status: trial.status,
+      rebookOf: trial.rebook_of,
+    })),
     admissions: snapshot.admissions,
     schedules: snapshot.schedules ?? [],
     sources: [

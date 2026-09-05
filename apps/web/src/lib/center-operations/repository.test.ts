@@ -33,6 +33,7 @@ const snapshot: CenterSnapshot = {
       timezone: "Asia/Ho_Chi_Minh",
       status: "booked",
       assessment: null,
+      rebook_of: null,
       revision: 4,
     },
   ],
@@ -111,4 +112,102 @@ test("rejects invalid or unsupported dynamic commands before any RPC boundary", 
       ),
     /Invalid teacher command/,
   );
+});
+
+test("hydrates an eligible rebook with the missed trial revision", () => {
+  const noShow = {
+    ...snapshot.trials[0],
+    status: "no_show" as const,
+    revision: 9,
+  };
+  const actions = normalizeTeacherActions(
+    [
+      {
+        kind: "trial.rebook",
+        priorTrialId: trialId,
+        startAt: "2026-09-10T10:00:00+00:00",
+        endAt: "2026-09-10T11:00:00+00:00",
+      },
+    ],
+    { ...snapshot, trials: [noShow] },
+  );
+  assert.deepEqual(actions[0], {
+    kind: "trial.rebook",
+    input: {
+      priorTrialId: trialId,
+      startAt: "2026-09-10T10:00:00+00:00",
+      endAt: "2026-09-10T11:00:00+00:00",
+      expectedRevision: 9,
+    },
+    requiresConfirmation: true,
+  });
+});
+
+test("rejects rebooking an attended or already replaced trial", () => {
+  for (const trial of [
+    { ...snapshot.trials[0], status: "attended" as const },
+  ]) {
+    assert.throws(
+      () =>
+        normalizeTeacherActions(
+          [
+            {
+              kind: "trial.rebook",
+              priorTrialId: trialId,
+              startAt: "2026-09-10T10:00:00+00:00",
+              endAt: "2026-09-10T11:00:00+00:00",
+            },
+          ],
+          { ...snapshot, trials: [trial] },
+        ),
+      /trial|replacement/i,
+    );
+  }
+  assert.throws(
+    () =>
+      normalizeTeacherActions(
+        [
+          {
+            kind: "trial.rebook",
+            priorTrialId: trialId,
+            startAt: "2026-09-10T10:00:00+00:00",
+            endAt: "2026-09-10T11:00:00+00:00",
+          },
+        ],
+        {
+          ...snapshot,
+          trials: [
+            { ...snapshot.trials[0], status: "no_show" },
+            {
+              ...snapshot.trials[0],
+              id: classId,
+              rebook_of: trialId,
+              status: "no_show",
+            },
+          ],
+        },
+      ),
+    /replacement/i,
+  );
+});
+
+test("allows a no-show replacement only when it has no child replacement", () => {
+  const replacement = {
+    ...snapshot.trials[0],
+    id: classId,
+    rebook_of: trialId,
+    status: "no_show" as const,
+  };
+  const actions = normalizeTeacherActions(
+    [
+      {
+        kind: "trial.rebook",
+        priorTrialId: classId,
+        startAt: "2026-09-10T10:00:00+00:00",
+        endAt: "2026-09-10T11:00:00+00:00",
+      },
+    ],
+    { ...snapshot, trials: [snapshot.trials[0], replacement] },
+  );
+  assert.equal(actions[0]?.requiresConfirmation, true);
 });

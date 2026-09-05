@@ -38,7 +38,7 @@ This file records release evidence; verify the current canonical deployment afte
 
 ## OAuth configuration
 
-- Google Auth Platform app: **Thinkfy Center Integrations**, External / Testing.
+- Google Auth Platform app: **Thinkfy**, External / In production (updated 2026-09-05).
 - Support/developer contact and sole test user: `jknguyen.wor@gmail.com`.
 - Web client: **Thinkfy Center Integrations — Production**.
 - Client ID: `1038392416565-homl6he6ritj09ilis395h3h8p5d4sap.apps.googleusercontent.com`.
@@ -196,3 +196,23 @@ This file records release evidence; verify the current canonical deployment afte
   110 pgTAP assertions plus the OAuth contract block. An earlier broad rerun against the
   obsolete `thinkfy_center_test` database failed missing ACLs; that stale database is not
   release evidence. The complete verification database passed without weakening grants/tests.
+
+## Public Google OAuth follow-up (2026-09-05)
+
+- Changed publishing status from Testing to In production and verified readback.
+  Testing grants expire after seven days; production publishing removes that testing
+  restriction for new grants. See [Google audience guidance](https://support.google.com/cloud/answer/15549945).
+- Google initially rejected branding because “Thinkfy Center Integrations” did not match
+  the homepage. Changed the consent-screen name to **Thinkfy**, saved it, reran the
+  automated branding check, and published the verified branding. Verification Center
+  confirms the branding is verified and shown to users.
+- Live consent now says **Thinkfy** and links to the existing privacy/terms pages.
+  The default request remains exactly `calendar.app.created` + `drive.file`, with S256 PKCE.
+- Google lists `calendar.app.created`, `calendar.calendarlist.readonly`, and `drive.file`
+  as non-sensitive. `calendar.events` remains sensitive and unverified. Its review requires
+  a scope justification and a YouTube demonstration; neither a review submission nor
+  approval is claimed here.
+- Public app access to the optional existing-calendar consent is gated by server-only
+  `CENTER_GOOGLE_EXISTING_CALENDARS_ENABLED=true`, unset/disabled until scope approval.
+  The server rejects attempts while disabled and the UI omits that optional action.
+  The normal app-created calendar and selected-file flows are unchanged.

@@ -35,6 +35,15 @@ export const centerCommandSchema = z.discriminatedUnion("kind", [
     .strict(),
   z
     .object({
+      kind: z.literal("trial.rebook"),
+      priorTrialId: uuid,
+      startAt: datetime,
+      endAt: datetime,
+      expectedRevision: revision,
+    })
+    .strict(),
+  z
+    .object({
       kind: z.literal("trial.status"),
       trialId: uuid,
       status: z.enum(["attended", "no_show", "cancelled"]),
@@ -159,6 +168,7 @@ export type CenterTrial = {
     weaknesses: string;
     recommendation: string;
   } | null;
+  rebook_of: string | null;
   revision: number;
 };
 export type CenterSnapshot = {

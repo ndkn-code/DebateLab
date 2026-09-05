@@ -27,12 +27,20 @@ import { CenterSheetReview } from "./CenterSheetReview";
 import { CenterIntegrations } from "./CenterIntegrations";
 import { CenterDateTime } from "./CenterDateTime";
 
-type Props = { initial: CenterSnapshot; locale: "en" | "vi" };
+type Props = {
+  initial: CenterSnapshot;
+  locale: "en" | "vi";
+  existingCalendarsEnabled?: boolean;
+};
 type Form = Record<string, string>;
 const initialForm: Form = {};
 const iso = (value: string) => value.trim();
 
-export function CenterWorkbench({ initial, locale }: Props) {
+export function CenterWorkbench({
+  initial,
+  locale,
+  existingCalendarsEnabled = false,
+}: Props) {
   const t = centerCopy[locale];
   const dateTime = (value: string) =>
     new Intl.DateTimeFormat(locale === "vi" ? "vi-VN" : "en-GB", {
@@ -61,6 +69,7 @@ export function CenterWorkbench({ initial, locale }: Props) {
     token?: string;
     expiresAt: string;
   } | null>(null);
+  const [rebookTrialId, setRebookTrialId] = useState<string | null>(null);
 
   const update = (key: string, value: string) =>
     setForm((old) => ({ ...old, [key]: value }));
@@ -466,6 +475,28 @@ export function CenterWorkbench({ initial, locale }: Props) {
                       {className(trial.class_id)} · {dateTime(trial.starts_at)}{" "}
                       → {dateTime(trial.ends_at)}
                     </p>
+                    {trial.rebook_of && (
+                      <p className="type-caption text-on-surface-variant">
+                        {t.rebookedFrom}{" "}
+                        {dateTime(
+                          snapshot.trials.find(
+                            (item) => item.id === trial.rebook_of,
+                          )?.starts_at ?? trial.starts_at,
+                        )}
+                      </p>
+                    )}
+                    {snapshot.trials.some(
+                      (child) => child.rebook_of === trial.id,
+                    ) && (
+                      <p className="type-caption text-on-surface-variant">
+                        {t.rebookedFor}{" "}
+                        {dateTime(
+                          snapshot.trials.find(
+                            (child) => child.rebook_of === trial.id,
+                          )?.starts_at ?? trial.starts_at,
+                        )}
+                      </p>
+                    )}
                   </div>
                   <span className="type-label text-primary">
                     {statusLabel(trial.status, t)}
@@ -492,7 +523,85 @@ export function CenterWorkbench({ initial, locale }: Props) {
                       </Button>
                     ),
                   )}
+                  {snapshot.canManage &&
+                    trial.status === "no_show" &&
+                    !snapshot.trials.some(
+                      (child) => child.rebook_of === trial.id,
+                    ) && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={busy}
+                        onClick={() => {
+                          setRebookTrialId(
+                            rebookTrialId === trial.id ? null : trial.id,
+                          );
+                          update(`${trial.id}:rebookStart`, "");
+                          update(`${trial.id}:rebookEnd`, "");
+                        }}
+                      >
+                        {t.rebook}
+                      </Button>
+                    )}
                 </div>
+                {rebookTrialId === trial.id &&
+                  snapshot.canManage &&
+                  trial.status === "no_show" &&
+                  !snapshot.trials.some(
+                    (child) => child.rebook_of === trial.id,
+                  ) && (
+                    <form
+                      className="mt-3 grid gap-2 border-t border-border pt-3 md:grid-cols-3"
+                      onSubmit={async (event) => {
+                        event.preventDefault();
+                        const startAt = form[`${trial.id}:rebookStart`];
+                        const endAt = form[`${trial.id}:rebookEnd`];
+                        if (!startAt || !endAt) return;
+                        const result = await run({
+                          kind: "trial.rebook",
+                          priorTrialId: trial.id,
+                          startAt,
+                          endAt,
+                          expectedRevision: trial.revision,
+                        });
+                        if (result.ok) setRebookTrialId(null);
+                      }}
+                    >
+                      <p className="md:col-span-3 type-caption text-on-surface-variant">
+                        {t.rebookReview}{" "}
+                        {snapshot.students.find(
+                          (item) => item.id === trial.student_record_id,
+                        )?.name ?? "—"}{" "}
+                        · {className(trial.class_id)}.
+                      </p>
+                      <CenterDateTime
+                        locale={locale}
+                        label={t.start}
+                        value={form[`${trial.id}:rebookStart`] ?? ""}
+                        onChange={(value) =>
+                          update(`${trial.id}:rebookStart`, value)
+                        }
+                      />
+                      <CenterDateTime
+                        locale={locale}
+                        label={t.end}
+                        value={form[`${trial.id}:rebookEnd`] ?? ""}
+                        onChange={(value) =>
+                          update(`${trial.id}:rebookEnd`, value)
+                        }
+                      />
+                      <Button
+                        type="submit"
+                        disabled={
+                          busy ||
+                          !form[`${trial.id}:rebookStart`] ||
+                          !form[`${trial.id}:rebookEnd`]
+                        }
+                      >
+                        {t.rebookConfirm}
+                      </Button>
+                    </form>
+                  )}
                 {trial.status === "attended" && (
                   <form
                     className="mt-3 grid gap-2 md:grid-cols-2"
@@ -734,6 +843,7 @@ export function CenterWorkbench({ initial, locale }: Props) {
         </TabsContent>
         <TabsContent value="integrations" className="space-y-3 pt-4">
           <CenterIntegrations
+            existingCalendarsEnabled={existingCalendarsEnabled}
             clubId={clubId}
             snapshot={snapshot}
             locale={locale}
@@ -961,10 +1071,11 @@ function Proposal({
   return (
     <section className="min-w-0 rounded-2xl border border-border bg-surface p-3">
       <h3 className="type-title text-on-surface">
-        {copy.proposal} · {proposalOperationLabel(proposal.kind, copy)} · {statusLabel(status, copy)}
+        {copy.proposal} · {proposalOperationLabel(proposal.kind, copy)} ·{" "}
+        {statusLabel(status, copy)}
       </h3>
       <p className="type-caption text-on-surface-variant">
-        {proposalTarget(proposal, snapshot)}
+        {proposalTarget(proposal, snapshot, copy)}
       </p>
       <dl className="mt-2 space-y-1">
         {Object.entries(proposal.input).map(([key, value]) => (
@@ -1004,6 +1115,7 @@ const proposalFieldKeys: Record<string, keyof typeof centerCopy.en> = {
   studentRecordId: "name",
   classId: "class",
   trialId: "trial",
+  priorTrialId: "trial",
   admissionId: "admission",
   scheduleId: "schedule",
   startAt: "start",
@@ -1038,6 +1150,7 @@ function proposalOperationLabel(
 ): string {
   const labels: Record<string, keyof typeof centerCopy.en> = {
     "trial.book": "bookTrial",
+    "trial.rebook": "rebook",
     "trial.evaluate": "evaluate",
     "admission.stage": "stage",
     "offer.create": "offer",
@@ -1062,10 +1175,15 @@ function formatProposalValue(
 ): string {
   const locale = copy === centerCopy.vi ? "vi-VN" : "en-GB";
   if (Array.isArray(value))
-    return value.map((item) => formatProposalValue(item, key, copy, snapshot)).join(", ");
+    return value
+      .map((item) => formatProposalValue(item, key, copy, snapshot))
+      .join(", ");
   if (value && typeof value === "object")
     return Object.entries(value)
-      .map(([childKey, childValue]) => `${proposalFieldLabel(childKey, copy)}: ${formatProposalValue(childValue, childKey, copy, snapshot)}`)
+      .map(
+        ([childKey, childValue]) =>
+          `${proposalFieldLabel(childKey, copy)}: ${formatProposalValue(childValue, childKey, copy, snapshot)}`,
+      )
       .join(", ");
   if (typeof value === "number") return value.toLocaleString(locale);
   if (typeof value !== "string") return String(value);
@@ -1078,10 +1196,19 @@ function formatProposalValue(
     if (trial)
       return `${snapshot.students.find((item) => item.id === trial.student_record_id)?.name ?? copy.trial} · ${formatProposalValue(trial.starts_at, "startAt", copy, snapshot)}`;
   }
+  if (key === "priorTrialId") {
+    const trial = snapshot.trials.find((item) => item.id === value);
+    if (trial)
+      return `${copy.trial} · ${snapshot.students.find((item) => item.id === trial.student_record_id)?.name ?? "—"} · ${classNameForProposal(trial.class_id, snapshot)} · ${formatProposalValue(trial.starts_at, "startAt", copy, snapshot)}`;
+  }
   if (key === "admissionId") {
     const admission = snapshot.admissions.find((item) => item.id === value);
     if (admission)
-      return snapshot.students.find((item) => item.id === admission.student_record_id)?.name ?? copy.admission;
+      return (
+        snapshot.students.find(
+          (item) => item.id === admission.student_record_id,
+        )?.name ?? copy.admission
+      );
   }
   if (key === "scheduleId") {
     const schedule = snapshot.schedules.find((item) => item.id === value);
@@ -1089,7 +1216,10 @@ function formatProposalValue(
       return `${schedule.title} · ${formatProposalValue(schedule.starts_at, "startAt", copy, snapshot)}`;
   }
   if (key === "stage") return copy[value] ?? value;
-  const enumKey = key === "draftType" || key === "templateKey" ? proposalEnumKeys[value] : undefined;
+  const enumKey =
+    key === "draftType" || key === "templateKey"
+      ? proposalEnumKeys[value]
+      : undefined;
   if (enumKey) return copy[enumKey];
   if (key === "startAt" || key === "endAt" || key === "expectedUpdatedAt") {
     const date = new Date(value);
@@ -1120,6 +1250,7 @@ function sourceText(id: string, snapshot: CenterSnapshot): string {
 function proposalTarget(
   proposal: TeacherProposal,
   snapshot: CenterSnapshot,
+  copy: typeof centerCopy.en,
 ): string {
   const input = proposal.input;
   const student =
@@ -1127,11 +1258,33 @@ function proposalTarget(
       ? snapshot.students.find((item) => item.id === input.studentRecordId)
           ?.name
       : undefined;
+  const priorTrial =
+    typeof input.priorTrialId === "string"
+      ? snapshot.trials.find((item) => item.id === input.priorTrialId)
+      : undefined;
   const cls =
     typeof input.classId === "string"
       ? snapshot.classes.find((item) => item.id === input.classId)?.name
       : undefined;
-  return [student, cls].filter(Boolean).join(" · ") || "";
+  return (
+    [
+      student ??
+        (priorTrial
+          ? snapshot.students.find(
+              (item) => item.id === priorTrial.student_record_id,
+            )?.name
+          : undefined),
+      cls ??
+        (priorTrial
+          ? classNameForProposal(priorTrial.class_id, snapshot)
+          : undefined),
+    ]
+      .filter(Boolean)
+      .join(" · ") || (priorTrial ? `${copy.trial} ${priorTrial.id}` : "")
+  );
+}
+function classNameForProposal(id: string, snapshot: CenterSnapshot) {
+  return snapshot.classes.find((item) => item.id === id)?.name ?? "—";
 }
 function statusLabel(value: string, copy: typeof centerCopy.en): string {
   const labels: Record<string, string> = {
