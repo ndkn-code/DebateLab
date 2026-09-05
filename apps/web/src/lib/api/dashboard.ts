@@ -6,6 +6,7 @@ import {
   type DashboardSkillKey,
   DailyStatEntry,
   DashboardCourseContinuation,
+  DashboardDataAvailability,
   DashboardGoalSummary,
   DashboardHomeData,
   DashboardNavItem,
@@ -37,6 +38,8 @@ import {
 export type {
   DailyStatEntry,
   DashboardCourseContinuation,
+  DashboardDataAvailability,
+  DashboardSourceAvailability,
   DashboardGoalSummary,
   DashboardHomeData,
   EnrollmentWithCourse,
@@ -105,6 +108,50 @@ type DashboardRpcPayload = {
   stats?: unknown;
 };
 
+function isDashboardSource(value: unknown, key: keyof DashboardRpcPayload) {
+  if (key === "profile") {
+    return (
+      isRecord(value) &&
+      typeof value.id === "string" &&
+      [value.level, value.xp, value.orb_balance].every(
+        (entry) => typeof entry === "number" && Number.isFinite(entry),
+      )
+    );
+  }
+  if (!Array.isArray(value)) return false;
+  const nonnegative = (entry: unknown) =>
+    typeof entry === "number" && Number.isFinite(entry) && entry >= 0;
+  return value.every((row) => {
+    if (!isRecord(row)) return false;
+    if (key === "stats") {
+      return (
+        typeof row.date === "string" &&
+        /^\d{4}-\d{2}-\d{2}$/.test(row.date) &&
+        [row.sessions_completed, row.minutes_studied, row.xp_earned].every(
+          nonnegative,
+        )
+      );
+    }
+    if (key === "enrollments") {
+      return (
+        typeof row.id === "string" &&
+        typeof row.course_id === "string" &&
+        typeof row.status === "string" &&
+        nonnegative(row.progress_percent ?? row.progress_pct)
+      );
+    }
+    return (
+      typeof row.id === "string" &&
+      typeof row.topic_title === "string" &&
+      typeof row.created_at === "string" &&
+      Number.isFinite(Date.parse(row.created_at)) &&
+      nonnegative(row.duration_seconds) &&
+      (row.total_score === null || nonnegative(row.total_score)) &&
+      (row.feedback == null || isRecord(row.feedback))
+    );
+  });
+}
+
 type DashboardDataOptions = {
   timezone?: string | null;
   now?: Date;
@@ -129,12 +176,44 @@ function asArray(value: unknown) {
   return Array.isArray(value) ? value : [];
 }
 
+type DashboardSourceResult = { data: unknown; error: unknown };
+
+async function settleDashboardQuery(
+  read: () => PromiseLike<DashboardSourceResult>,
+): Promise<DashboardSourceResult> {
+  try {
+    const result = await read();
+    return result.error ? { data: null, error: result.error } : result;
+  } catch {
+    return { data: null, error: { message: "dashboard source unavailable" } };
+  }
+}
+
 async function getDashboardPayloadFromRpc(
   supabase: SupabaseClient,
 ): Promise<DashboardRpcPayload | null> {
-  const { data, error } = await supabase.rpc("get_dashboard_payload");
-  if (error || !isRecord(data)) return null;
-  return data as DashboardRpcPayload;
+  const { data, error } = await settleDashboardQuery(() =>
+    supabase.rpc("get_dashboard_payload"),
+  );
+  return !error && isRecord(data) ? (data as DashboardRpcPayload) : null;
+}
+
+async function readDashboardSource(
+  payload: DashboardRpcPayload | null,
+  key: keyof DashboardRpcPayload,
+  fallback: () => PromiseLike<DashboardSourceResult>,
+): Promise<DashboardSourceResult> {
+  // A broken sibling must not discard an otherwise usable RPC projection.
+  if (isDashboardSource(payload?.[key], key)) {
+    return { data: payload?.[key], error: null };
+  }
+  const result = await settleDashboardQuery(fallback);
+  return !result.error && isDashboardSource(result.data, key)
+    ? result
+    : {
+        data: null,
+        error: result.error ?? { message: "dashboard source invalid" },
+      };
 }
 
 function getDateFormatter(timezone = DEFAULT_STREAK_TIMEZONE) {
@@ -714,16 +793,22 @@ function buildRecentActivity(
   });
 }
 
-function getUnderusedTrack(recentSessions: SessionScoreRow[]): PracticeTrack {
+export function getUnderusedTrack(
+  recentSessions: SessionScoreRow[],
+): PracticeTrack | null {
   const practiceCounts = recentSessions.reduce(
     (summary, session) => {
-      const practiceTrack = getPracticeTrack(session.feedback);
+      const practiceTrack = session.feedback?.practiceTrack;
+      if (practiceTrack !== "speaking" && practiceTrack !== "debate") {
+        return summary;
+      }
       summary[practiceTrack] += 1;
       return summary;
     },
     { speaking: 0, debate: 0 },
   );
 
+  if (practiceCounts.speaking === practiceCounts.debate) return null;
   return practiceCounts.speaking < practiceCounts.debate
     ? "speaking"
     : "debate";
@@ -802,8 +887,9 @@ function buildReviewPlanItem(
 
 function buildUnderusedPlanItem(
   recentSessions: SessionScoreRow[],
-): DashboardTodayPlanItem {
+): DashboardTodayPlanItem | null {
   const track = getUnderusedTrack(recentSessions);
+  if (!track) return null;
 
   return {
     id: `underused-${track}`,
@@ -842,27 +928,48 @@ function buildCoachPlanItem(): DashboardTodayPlanItem {
   };
 }
 
-function buildDashboardPlan(
+export function buildDashboardPlan(
   skillSnapshot: DashboardSkillSnapshot,
   recentSessions: SessionScoreRow[],
   courseContinuation: DashboardCourseContinuation | null,
   weeklyGoal: DashboardGoalSummary,
   scoredSessions: DashboardImprovementSession[],
+  availability: Pick<
+    DashboardDataAvailability,
+    "recentSessions" | "scoredSessions"
+  > = {
+    recentSessions: "available",
+    scoredSessions: "available",
+  },
 ): {
   recommendedDrill: DashboardRecommendedDrill;
   todayPlanItems: DashboardTodayPlanItem[];
 } {
-  const improvementSkillPlan = buildImprovementSkillPlanItem(
-    skillSnapshot,
-    scoredSessions,
-    weeklyGoal,
-  );
+  // Adapted from Lumist features/ai-tutor/utils/today-plan-state.ts:66–132
+  // (73875b1267cb3a6e36a82af2cd1469285a57e9e1); see design evidence.
+  // Its today-plan selector keeps scheduling state explicit before choosing
+  // an action. Here source availability plays that role: an unavailable history
+  // query must never be interpreted as an empty history or a weakness signal.
+  const improvementSkillPlan =
+    availability.scoredSessions === "available"
+      ? buildImprovementSkillPlanItem(skillSnapshot, scoredSessions, weeklyGoal)
+      : null;
   const coursePlan = buildCoursePlanItem(courseContinuation);
-  const reviewPlan = buildReviewPlanItem(recentSessions);
-  const underusedPlan = buildUnderusedPlanItem(recentSessions);
+  const reviewPlan =
+    availability.recentSessions === "available"
+      ? buildReviewPlanItem(recentSessions)
+      : null;
+  const underusedPlan =
+    availability.recentSessions === "available"
+      ? buildUnderusedPlanItem(recentSessions)
+      : null;
 
   const recommendedDrill =
-    improvementSkillPlan ?? coursePlan ?? reviewPlan ?? underusedPlan;
+    improvementSkillPlan ??
+    coursePlan ??
+    reviewPlan ??
+    underusedPlan ??
+    buildStarterPlanItem("speaking");
 
   const candidateItems = [
     coursePlan,
@@ -908,63 +1015,84 @@ export async function getDashboardData(
   const skillSnapshotStartIso = skillSnapshotStartDate.toISOString();
 
   const rpcPayload = await getDashboardPayloadFromRpc(supabase);
-  const fallbackPayload = rpcPayload
-    ? null
-    : await Promise.all([
-        supabase
-          .from("profiles")
-          .select(
-            "id, display_name, avatar_url, handle, profile_status, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences, orb_balance, referral_code",
-          )
-          .eq("id", userId)
-          .single(),
-
-        supabase
-          .from("enrollments")
-          .select("*, courses(title, category, thumbnail_url)")
-          .eq("user_id", userId)
-          .eq("status", "active"),
-
-        supabase
-          .from("debate_sessions")
-          .select(
-            "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at",
-          )
-          .eq("user_id", userId)
-          .order("created_at", { ascending: false })
-          .limit(8),
-
-        supabase
-          .from("debate_sessions")
-          .select(
-            "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at",
-          )
-          .eq("user_id", userId)
-          .not("total_score", "is", null)
-          .gte("created_at", skillSnapshotStartIso)
-          .order("created_at", { ascending: false }),
-
-        supabase
-          .from("daily_stats")
-          .select("date, sessions_completed, minutes_studied, xp_earned")
-          .eq("user_id", userId)
-          .gte("date", trailing14Dates[0])
-          .lte("date", trailing14Dates[trailing14Dates.length - 1])
-          .order("date"),
-      ]);
-  const streakActivitiesRes = await supabase
-    .from("activity_log")
-    .select("activity_type, reference_type, created_at")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(500);
-
-  const profile = (rpcPayload?.profile ??
-    fallbackPayload?.[0].data) as Profile | null;
+  const [
+    profileRes,
+    enrollmentsRes,
+    recentSessionsRes,
+    scoredSessionsRes,
+    statsRes,
+    streakActivitiesRes,
+  ] = await Promise.all([
+    readDashboardSource(rpcPayload, "profile", () =>
+      supabase
+        .from("profiles")
+        .select(
+          "id, display_name, avatar_url, handle, profile_status, role, streak_current, streak_longest, streak_last_active_date, total_practice_minutes, total_sessions_completed, xp, level, onboarding_completed, preferences, orb_balance, referral_code",
+        )
+        .eq("id", userId)
+        .single(),
+    ),
+    readDashboardSource(rpcPayload, "enrollments", () =>
+      supabase
+        .from("enrollments")
+        .select("*, courses(title, category, thumbnail_url)")
+        .eq("user_id", userId)
+        .eq("status", "active"),
+    ),
+    readDashboardSource(rpcPayload, "recent_sessions", () =>
+      supabase
+        .from("debate_sessions")
+        .select(
+          "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at",
+        )
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(8),
+    ),
+    readDashboardSource(rpcPayload, "scored_sessions", () =>
+      supabase
+        .from("debate_sessions")
+        .select(
+          "id, topic_title, category:topic_category, topic_difficulty, side, mode, ai_difficulty, feedback, total_score, overall_band, duration_seconds, created_at",
+        )
+        .eq("user_id", userId)
+        .not("total_score", "is", null)
+        .gte("created_at", skillSnapshotStartIso)
+        .order("created_at", { ascending: false }),
+    ),
+    readDashboardSource(rpcPayload, "stats", () =>
+      supabase
+        .from("daily_stats")
+        .select("date, sessions_completed, minutes_studied, xp_earned")
+        .eq("user_id", userId)
+        .gte("date", trailing14Dates[0])
+        .lte("date", trailing14Dates[trailing14Dates.length - 1])
+        .order("date"),
+    ),
+    settleDashboardQuery(() =>
+      supabase
+        .from("activity_log")
+        .select("activity_type, reference_type, created_at")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(500),
+    ),
+  ]);
+  const availability: DashboardDataAvailability = {
+    profile: profileRes.error ? "unavailable" : "available",
+    enrollments: enrollmentsRes.error ? "unavailable" : "available",
+    recentSessions: recentSessionsRes.error ? "unavailable" : "available",
+    scoredSessions: scoredSessionsRes.error ? "unavailable" : "available",
+    stats: statsRes.error ? "unavailable" : "available",
+    activityLog:
+      streakActivitiesRes.error || !Array.isArray(streakActivitiesRes.data)
+        ? "unavailable"
+        : "available",
+    recommendation: "starter",
+  };
+  const profile = profileRes.data as Profile | null;
   const isAdmin = profile?.role === "admin";
-  const enrollmentRows = rpcPayload
-    ? asArray(rpcPayload.enrollments)
-    : (fallbackPayload?.[1].data ?? []);
+  const enrollmentRows = asArray(enrollmentsRes.data);
   const enrollments: EnrollmentRow[] = (
     enrollmentRows as Array<{
       id: string;
@@ -1012,25 +1140,18 @@ export async function getDashboardData(
         right.progress_pct - left.progress_pct ||
         (left.courses?.title ?? "").localeCompare(right.courses?.title ?? ""),
     );
-  const recentSessions = (
-    rpcPayload
-      ? asArray(rpcPayload.recent_sessions)
-      : (fallbackPayload?.[2].data ?? [])
-  ) as SessionScoreRow[];
-  const scoredSessions = (
-    rpcPayload
-      ? asArray(rpcPayload.scored_sessions)
-      : (fallbackPayload?.[3].data ?? [])
-  ) as SessionScoreRow[];
+  const recentSessions = asArray(recentSessionsRes.data) as SessionScoreRow[];
+  const scoredSessions = asArray(scoredSessionsRes.data) as SessionScoreRow[];
   const sessionActivityEvents = buildStreakActivityEventsFromSessions([
     ...recentSessions,
     ...scoredSessions,
   ]);
-  const loggedStreakActivities = streakActivitiesRes.error
-    ? []
-    : ((streakActivitiesRes.data ?? []) as StreakActivityEvent[]);
+  const loggedStreakActivities =
+    availability.activityLog === "unavailable"
+      ? []
+      : ((streakActivitiesRes.data ?? []) as StreakActivityEvent[]);
   const streakActivities =
-    !streakActivitiesRes.error || sessionActivityEvents.length > 0
+    availability.activityLog === "available" || sessionActivityEvents.length > 0
       ? [...loggedStreakActivities, ...sessionActivityEvents]
       : undefined;
   const effectiveStreak = computeEffectiveStreakState({
@@ -1050,9 +1171,7 @@ export async function getDashboardData(
     });
   }
 
-  const statRows = rpcPayload
-    ? asArray(rpcPayload.stats)
-    : (fallbackPayload?.[4].data ?? []);
+  const statRows = asArray(statsRes.data);
   for (const stat of statRows as Array<{
     date: string;
     sessions_completed: number;
@@ -1074,6 +1193,12 @@ export async function getDashboardData(
       timezone,
     ),
   );
+  if (availability.stats === "unavailable") {
+    const hasDerivedActivity = Array.from(statsByDate.values()).some(
+      (entry) => entry.sessions_completed > 0 || entry.practice_minutes > 0,
+    );
+    if (hasDerivedActivity) availability.stats = "partial";
+  }
 
   const weeklyStats = weekDates.map((date) => {
     return (
@@ -1185,9 +1310,28 @@ export async function getDashboardData(
     courseContinuation,
     weeklyGoal,
     scoredSessions,
+    availability,
   );
+  availability.recommendation =
+    (recommendedDrill.key === "continue-course" ||
+      recommendedDrill.key === "underused-track" ||
+      recommendedDrill.key === "weakest-skill" ||
+      recommendedDrill.key === "review-feedback") &&
+    ((recommendedDrill.key === "continue-course" &&
+      availability.enrollments === "available") ||
+      (recommendedDrill.key === "weakest-skill" &&
+        availability.scoredSessions === "available") ||
+      (recommendedDrill.key !== "weakest-skill" &&
+        recommendedDrill.key !== "continue-course" &&
+        availability.recentSessions === "available"))
+      ? "personalized"
+      : availability.recentSessions === "unavailable" ||
+          availability.scoredSessions === "unavailable"
+        ? "unavailable"
+        : "starter";
 
   return {
+    availability,
     profile,
     nav,
     topBar: {

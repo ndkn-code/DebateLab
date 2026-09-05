@@ -208,7 +208,20 @@ export interface DashboardCourseContinuation {
   href: string;
 }
 
+export type DashboardSourceAvailability = "available" | "partial" | "unavailable";
+
+export interface DashboardDataAvailability {
+  profile: DashboardSourceAvailability;
+  enrollments: DashboardSourceAvailability;
+  recentSessions: DashboardSourceAvailability;
+  scoredSessions: DashboardSourceAvailability;
+  stats: DashboardSourceAvailability;
+  activityLog: DashboardSourceAvailability;
+  recommendation: "personalized" | "starter" | "unavailable";
+}
+
 export interface DashboardHomeData {
+  availability: DashboardDataAvailability;
   profile: DashboardProfileSummary | null;
   nav: DashboardNavItem[];
   topBar: {

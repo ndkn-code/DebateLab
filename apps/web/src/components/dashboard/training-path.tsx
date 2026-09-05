@@ -38,7 +38,7 @@ function getNodeState(metric: DashboardSkillMetric | null): NodeState {
 const NODE_STYLES: Record<NodeState, { circle: string; chip: string }> = {
   empty: {
     circle:
-      "border border-outline-variant bg-surface-container-low text-on-surface-variant/70",
+      "border border-outline-variant bg-surface-container-low text-on-surface-variant",
     chip: "bg-surface-container text-on-surface-variant",
   },
   strong: {
@@ -70,9 +70,11 @@ function getSkillHref(key: DashboardSkillKey) {
 export function TrainingPath({
   metrics,
   checkpoint,
+  available = true,
 }: {
   metrics: DashboardSkillMetric[];
   checkpoint: DashboardSkillKey | null;
+  available?: boolean;
 }) {
   const t = useTranslations("dashboard.home");
   const reduceMotion = useReducedMotion();
@@ -80,13 +82,13 @@ export function TrainingPath({
     () => new Map(metrics.map((metric) => [metric.key, metric])),
     [metrics],
   );
-  const activeKey = checkpoint ?? DASHBOARD_SKILL_ORDER[0];
+  const activeKey = available ? checkpoint : null;
 
   return (
     <section
       data-testid="dashboard-training-map"
       aria-labelledby="dashboard-training-map-heading"
-      className="rounded-xl border border-outline-variant bg-surface px-4 py-3 shadow-none dark:border-outline-variant/70"
+      className="rounded-xl border border-outline-variant bg-surface px-4 py-3 shadow-none "
     >
       <div className="flex items-center justify-between">
         <h2
@@ -97,6 +99,11 @@ export function TrainingPath({
         </h2>
       </div>
 
+      {!available || metrics.every((metric) => metric.coverage <= 0) ? (
+        <p className="type-body-sm mt-2 text-on-surface-variant">
+          {t(available ? "progress_not_measured_body" : "progress_unavailable")}
+        </p>
+      ) : null}
       <div className="relative mt-3 overflow-hidden pb-0.5">
         <div
           aria-hidden="true"
@@ -107,7 +114,7 @@ export function TrainingPath({
           className="relative grid grid-cols-5 items-start gap-0 px-1"
         >
           {DASHBOARD_SKILL_ORDER.map((key, index) => {
-            const metric = metricsByKey.get(key) ?? null;
+            const metric = available ? (metricsByKey.get(key) ?? null) : null;
             const Icon = SCORE_ICONS[key];
             const state = getNodeState(metric);
             const styles = NODE_STYLES[state];
@@ -133,14 +140,13 @@ export function TrainingPath({
                 }
                 className={cn(
                   "relative z-10 flex min-w-0 justify-center transition-opacity",
-                  highlighted ? "opacity-100" : "opacity-55 grayscale",
                 )}
               >
                 <Link
                   href={getSkillHref(key)}
                   aria-current={highlighted ? "step" : undefined}
-                  aria-label={`${skillLabel}: ${score}`}
-                  className="group flex min-w-0 max-w-full flex-col items-center rounded-lg p-1 text-center outline-none transition-colors hover:bg-primary-container/40 focus-visible:ring-3 focus-visible:ring-primary/40"
+                  aria-label={`${skillLabel}: ${!available ? t("progress_unavailable") : state === "empty" ? t("progress_not_measured") : score}`}
+                  className="group flex min-w-0 max-w-full flex-col items-center rounded-lg p-1 text-center outline-none transition-colors hover:bg-primary-container focus-visible:ring-3 focus-visible:ring-primary"
                 >
                   <span
                     className={cn(
@@ -152,7 +158,7 @@ export function TrainingPath({
                           : state === "mid"
                             ? "bg-primary text-primary"
                             : "bg-warning text-warning",
-                      highlighted && "ring-4 ring-primary/15",
+                      highlighted && "ring-4 ring-primary-container",
                     )}
                     style={
                       metric && metric.coverage > 0
@@ -166,7 +172,7 @@ export function TrainingPath({
                       <Icon aria-hidden="true" className="h-[18px] w-[18px]" />
                     </span>
                   </span>
-                  <span className="type-caption mt-1 max-w-full truncate font-semibold text-on-surface">
+                  <span className="type-caption mt-1 max-w-full break-words font-semibold text-on-surface">
                     {skillLabel}
                   </span>
                   <span

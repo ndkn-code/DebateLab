@@ -11,6 +11,7 @@ import {
   Target,
   Zap,
 } from "@/components/ui/icons";
+import { getHomeDataState } from "./home-data-state";
 import { cn } from "@/lib/utils";
 import type { DashboardHomeData } from "@/lib/api/dashboard";
 import type {
@@ -32,7 +33,7 @@ function RailCard({
     <div
       data-testid={testId}
       className={cn(
-        "rounded-xl border border-outline-variant bg-surface p-3.5 shadow-none dark:border-outline-variant/70",
+        "rounded-xl border border-outline-variant bg-surface p-3.5 shadow-none ",
         className,
       )}
     >
@@ -102,7 +103,7 @@ function SignalRow({
           {value}
         </p>
         {detail ? (
-          <p className="type-caption mt-0.5 truncate text-on-surface-variant">
+          <p className="type-caption mt-0.5 text-on-surface-variant">
             {detail}
           </p>
         ) : null}
@@ -118,7 +119,9 @@ function ReadinessCard({
   topBar,
   todayGoal,
   weeklyStats,
+  state,
 }: {
+  state: ReturnType<typeof getHomeDataState>;
   topBar: DashboardHomeData["topBar"];
   todayGoal: DashboardGoalSummary;
   weeklyStats: DailyStatEntry[];
@@ -139,9 +142,15 @@ function ReadinessCard({
   const activeDays = recentDays.filter(
     (entry) => entry.practice_minutes > 0 || entry.sessions_completed > 0,
   ).length;
-  const goalValue = `${todayGoal.practicedMinutes} / ${todayGoal.goalMinutes} ${t("min")}`;
-  const levelValue = t("level", { level: topBar.level });
-  const streakValue = `${topBar.currentStreak} ${t("days")}`;
+  const goalValue = !state.goals
+    ? t("progress_unavailable")
+    : `${todayGoal.practicedMinutes} / ${todayGoal.goalMinutes} ${t("min")}`;
+  const levelValue = state.profile
+    ? t("level", { level: topBar.level })
+    : t("progress_unavailable");
+  const streakValue = !state.streak
+    ? t("progress_unavailable")
+    : `${topBar.currentStreak} ${t("days")}`;
 
   return (
     <RailCard testId="dashboard-level-card" className="p-3">
@@ -155,40 +164,42 @@ function ReadinessCard({
           label={t("today_goal_title")}
           value={goalValue}
         >
-          <div className="mt-1 flex items-center gap-2">
-            <div
-              className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-container-high"
-              role="progressbar"
-              aria-valuemin={0}
-              aria-valuemax={todayGoalMax}
-              aria-valuenow={clampProgressValue(
-                todayGoal.practicedMinutes,
-                todayGoalMax,
-              )}
-              aria-label={t("today_goal_subtitle")}
-            >
-              <motion.div
-                initial={reduceMotion ? false : { width: 0 }}
-                whileInView={{ width: `${goalProgress}%` }}
-                viewport={{ once: true }}
-                transition={
-                  reduceMotion
-                    ? { duration: 0 }
-                    : { duration: 0.8, ease: EASE_OUT, delay: 0.15 }
-                }
-                className={cn(
-                  "h-full rounded-full",
-                  todayGoal.metGoal ? "bg-success" : "bg-primary",
+          {state.goals ? (
+            <div className="mt-1 flex items-center gap-2">
+              <div
+                className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-surface-container-high"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={todayGoalMax}
+                aria-valuenow={clampProgressValue(
+                  todayGoal.practicedMinutes,
+                  todayGoalMax,
                 )}
-              />
+                aria-label={t("today_goal_subtitle")}
+              >
+                <motion.div
+                  initial={reduceMotion ? false : { width: 0 }}
+                  whileInView={{ width: `${goalProgress}%` }}
+                  viewport={{ once: true }}
+                  transition={
+                    reduceMotion
+                      ? { duration: 0 }
+                      : { duration: 0.8, ease: EASE_OUT, delay: 0.15 }
+                  }
+                  className={cn(
+                    "h-full rounded-full",
+                    todayGoal.metGoal ? "bg-success" : "bg-primary",
+                  )}
+                />
+              </div>
+              <span className="type-caption shrink-0 font-semibold tabular-nums text-on-surface-variant">
+                {goalProgress}%
+              </span>
             </div>
-            <span className="type-caption shrink-0 font-semibold tabular-nums text-on-surface-variant">
-              {goalProgress}%
-            </span>
-          </div>
+          ) : null}
         </SignalRow>
 
-        <div className="border-t border-outline-variant/60" />
+        <div className="border-t border-outline-variant" />
 
         <SignalRow
           icon={
@@ -198,34 +209,40 @@ function ReadinessCard({
           }
           label={t("topbar_level")}
           value={levelValue}
-          detail={`${topBar.xpCurrent} / ${topBar.xpGoal} XP`}
+          detail={
+            state.profile
+              ? `${topBar.xpCurrent} / ${topBar.xpGoal} XP`
+              : undefined
+          }
         >
-          <div
-            className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-container-high"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={xpGoalMax}
-            aria-valuenow={clampProgressValue(topBar.xpCurrent, xpGoalMax)}
-            aria-label={t("stats.level_progress", {
-              current: topBar.xpCurrent,
-              goal: topBar.xpGoal,
-            })}
-          >
-            <motion.div
-              initial={reduceMotion ? false : { width: 0 }}
-              whileInView={{ width: `${levelProgress}%` }}
-              viewport={{ once: true }}
-              transition={
-                reduceMotion
-                  ? { duration: 0 }
-                  : { duration: 0.8, ease: EASE_OUT, delay: 0.2 }
-              }
-              className="h-full rounded-full bg-reward"
-            />
-          </div>
+          {state.profile ? (
+            <div
+              className="mt-1 h-1.5 overflow-hidden rounded-full bg-surface-container-high"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={xpGoalMax}
+              aria-valuenow={clampProgressValue(topBar.xpCurrent, xpGoalMax)}
+              aria-label={t("stats.level_progress", {
+                current: topBar.xpCurrent,
+                goal: topBar.xpGoal,
+              })}
+            >
+              <motion.div
+                initial={reduceMotion ? false : { width: 0 }}
+                whileInView={{ width: `${levelProgress}%` }}
+                viewport={{ once: true }}
+                transition={
+                  reduceMotion
+                    ? { duration: 0 }
+                    : { duration: 0.8, ease: EASE_OUT, delay: 0.2 }
+                }
+                className="h-full rounded-full bg-reward"
+              />
+            </div>
+          ) : null}
         </SignalRow>
 
-        <div className="border-t border-outline-variant/60" />
+        <div className="border-t border-outline-variant" />
 
         <SignalRow
           icon={
@@ -236,25 +253,27 @@ function ReadinessCard({
           label={t("streak_title")}
           value={streakValue}
         >
-          <div
-            className="mt-1.5 flex items-center gap-1.5"
-            aria-label={t("active_days_this_week", { count: activeDays })}
-          >
-            {recentDays.map((entry) => {
-              const active =
-                entry.practice_minutes > 0 || entry.sessions_completed > 0;
-              return (
-                <span
-                  key={entry.date}
-                  aria-hidden="true"
-                  className={cn(
-                    "h-2.5 w-2.5 rounded-full",
-                    active ? "bg-success" : "bg-surface-container-high",
-                  )}
-                />
-              );
-            })}
-          </div>
+          {state.activity && !state.activityPartial ? (
+            <div
+              className="mt-1.5 flex items-center gap-1.5"
+              aria-label={t("active_days_this_week", { count: activeDays })}
+            >
+              {recentDays.map((entry) => {
+                const active =
+                  entry.practice_minutes > 0 || entry.sessions_completed > 0;
+                return (
+                  <span
+                    key={entry.date}
+                    aria-hidden="true"
+                    className={cn(
+                      "h-2.5 w-2.5 rounded-full",
+                      active ? "bg-success" : "bg-surface-container-high",
+                    )}
+                  />
+                );
+              })}
+            </div>
+          ) : null}
         </SignalRow>
       </div>
     </RailCard>
@@ -293,7 +312,7 @@ function QuestRow({ quest, index }: { quest: Quest; index: number }) {
         {done ? <CheckCircle2 className="h-5 w-5" /> : quest.icon}
       </span>
       <div className="min-w-0 flex-1">
-        <p className="type-body-sm truncate font-extrabold text-on-surface">
+        <p className="type-body-sm font-extrabold text-on-surface">
           {quest.label}
         </p>
         <div
@@ -392,6 +411,7 @@ function DailyQuestsCard({
 // --- Rail ----------------------------------------------------------------
 
 export function QuestRail({ data }: { data: DashboardHomeData }) {
+  const state = getHomeDataState(data);
   const t = useTranslations("dashboard.home");
 
   return (
@@ -400,15 +420,18 @@ export function QuestRail({ data }: { data: DashboardHomeData }) {
       className="flex flex-col gap-3 xl:sticky xl:top-5"
     >
       <ReadinessCard
+        state={state}
         topBar={data.topBar}
         todayGoal={data.hero.todayGoal}
         weeklyStats={data.hero.weeklyStats}
       />
-      <DailyQuestsCard
-        todayDate={data.hero.todayDate}
-        todayGoal={data.hero.todayGoal}
-        weeklyStats={data.hero.weeklyStats}
-      />
+      {state.goals ? (
+        <DailyQuestsCard
+          todayDate={data.hero.todayDate}
+          todayGoal={data.hero.todayGoal}
+          weeklyStats={data.hero.weeklyStats}
+        />
+      ) : null}
     </aside>
   );
 }
