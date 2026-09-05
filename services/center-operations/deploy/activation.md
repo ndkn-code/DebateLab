@@ -38,7 +38,7 @@ This file records release evidence; verify the current canonical deployment afte
 
 ## OAuth configuration
 
-- Google Auth Platform app: **Thinkfy Center Integrations**, External / Testing.
+- Google Auth Platform app: **Thinkfy**, External / In production (updated 2026-09-05).
 - Support/developer contact and sole test user: `jknguyen.wor@gmail.com`.
 - Web client: **Thinkfy Center Integrations — Production**.
 - Client ID: `1038392416565-homl6he6ritj09ilis395h3h8p5d4sap.apps.googleusercontent.com`.
@@ -196,3 +196,57 @@ This file records release evidence; verify the current canonical deployment afte
   110 pgTAP assertions plus the OAuth contract block. An earlier broad rerun against the
   obsolete `thinkfy_center_test` database failed missing ACLs; that stale database is not
   release evidence. The complete verification database passed without weakening grants/tests.
+
+## Public Google OAuth follow-up (2026-09-05)
+
+- Changed publishing status from Testing to In production and verified readback.
+  Testing grants expire after seven days; production publishing removes that testing
+  restriction for new grants. See [Google audience guidance](https://support.google.com/cloud/answer/15549945).
+- Google initially rejected branding because “Thinkfy Center Integrations” did not match
+  the homepage. Changed the consent-screen name to **Thinkfy**, saved it, reran the
+  automated branding check, and published the verified branding. Verification Center
+  confirms the branding is verified and shown to users.
+- Live consent now says **Thinkfy** and links to the existing privacy/terms pages.
+  The default request remains exactly `calendar.app.created` + `drive.file`, with S256 PKCE.
+- Google lists `calendar.app.created`, `calendar.calendarlist.readonly`, and `drive.file`
+  as non-sensitive. `calendar.events` remains sensitive and unverified. Its review requires
+  a scope justification and a YouTube demonstration; neither a review submission nor
+  approval is claimed here.
+- Public app access to the optional existing-calendar consent is gated by server-only
+  `CENTER_GOOGLE_EXISTING_CALENDARS_ENABLED=true`, unset/disabled until scope approval.
+  The server rejects attempts while disabled and the UI omits that optional action.
+  The normal app-created calendar and selected-file flows are unchanged.
+
+- Reconnected the pilot on 2026-09-05 after publishing. The callback returned to Thinkfy
+  and the connection readback is `connected` with exactly the two default scopes.
+
+## Rebooking acceptance checkpoint
+
+- Migration `20260905120000_center_trial_rebooking.sql` applied through the scoped MCP;
+  live public types regenerated for `center_trials.rebook_of`. No historical ledger
+  entries were replayed. Existing Cloud Run revisions remain unchanged.
+- The missed trial and student are locked for rebooking. New bookings and rebookings
+  share a student lock and reject overlapping times, while nonoverlapping trials remain
+  permitted. One direct replacement per missed trial is enforced by a unique index.
+- Ten local rollback suites pass: 137 pgTAP assertions plus the OAuth contract block,
+  including 27 new behavioral rebooking assertions. App tests: 20 passed; service: 49 passed.
+  Design audit/tests, lint (12 existing warnings), typecheck and architecture gates pass.
+
+- Live acceptance ran against private production-target candidate
+  `dpl_uuv2w5X1d2tya8a7gMw6SNaVLSrf`, source `17315adcc55f3ad8b706545133dd4c25da00b9ed`.
+  The workbench rejected equal start/end times and preserved the form; a corrected
+  submission created one linked replacement and retained the original no-show history.
+- The teacher assistant prepared a rebooking proposal, cancellation produced no booking,
+  and a new explicitly confirmed proposal completed with exactly one replacement.
+- Google API readback confirmed both replacement events: September 11 and 12, 2026,
+  09:00–10:00 `Asia/Ho_Chi_Minh`. Both `trial.booked` jobs completed on their first attempt.
+  All fixtures belong to Thinkfy Center Pilot QA; no invitations or external messages sent.
+- Trials form/history passed 16 layout checks: EN/VI, verified light/dark state, and
+  1280×720, 1440×900, 768×1024, 390×844. Empty replacement times keep confirmation disabled.
+  Desktop/mobile captures were inspected for labels, wrapping and control placement.
+- Production readback confirms one canonical migration entry and zero center tables
+  without RLS. CLI candidate builds require explicit `VERCEL_GIT_COMMIT_SHA` in both
+  build and runtime environments for Grafana source-map finalization; failed attempts
+  were not promoted. Main Git deployments supply this source metadata automatically.
+- Connected Google integrations passed another 16 locale/theme/viewport checks. The optional
+  existing-calendar consent control is absent while default Calendar/Sheets/Drive controls remain.

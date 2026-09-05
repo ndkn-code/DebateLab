@@ -44,6 +44,7 @@ type PickerBuilder = {
   build: () => { setVisible: (visible: boolean) => void };
 };
 type Props = {
+  existingCalendarsEnabled?: boolean;
   clubId: string;
   snapshot: CenterSnapshot;
   locale: "en" | "vi";
@@ -121,6 +122,7 @@ export function CenterIntegrations({
   snapshot,
   locale,
   onRefresh,
+  existingCalendarsEnabled = false,
 }: Props) {
   const t = copy[locale];
   const statusText = (status: string) =>
@@ -368,25 +370,30 @@ export function CenterIntegrations({
       </div>
       {googleConnected && snapshot.canManageFinance && (
         <>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busy}
-              onClick={async () => {
-                setBusy(true);
-                const result = await startCenterGoogleConnection(clubId, true);
-                setBusy(false);
-                if (result.ok) window.location.assign(result.data.url);
-                else setError(result.error);
-              }}
-            >
-              {t.consent}
-            </Button>
-            <span className="type-caption text-on-surface-variant">
-              {t.consentNote}
-            </span>
-          </div>
+          {existingCalendarsEnabled && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={async () => {
+                  setBusy(true);
+                  const result = await startCenterGoogleConnection(
+                    clubId,
+                    true,
+                  );
+                  setBusy(false);
+                  if (result.ok) window.location.assign(result.data.url);
+                  else setError(result.error);
+                }}
+              >
+                {t.consent}
+              </Button>
+              <span className="type-caption text-on-surface-variant">
+                {t.consentNote}
+              </span>
+            </div>
+          )}
           <div className="grid gap-3 rounded-2xl border border-border bg-surface p-3 md:grid-cols-2">
             <div className="grid gap-1.5">
               <Label>

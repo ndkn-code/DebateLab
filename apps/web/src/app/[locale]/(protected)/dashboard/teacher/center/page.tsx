@@ -58,6 +58,9 @@ export default async function CenterOperationsPage({
       )}
       {selected ? (
         <CenterWorkbench
+          existingCalendarsEnabled={
+            process.env.CENTER_GOOGLE_EXISTING_CALENDARS_ENABLED === "true"
+          }
           initial={await loadCenterSnapshot(selected)}
           locale={vi ? "vi" : "en"}
         />

@@ -84,6 +84,13 @@ export async function startGoogleConnection(
   clubId: string,
   existingCalendars = false,
 ): Promise<{ url: string }> {
+  if (
+    existingCalendars &&
+    process.env.CENTER_GOOGLE_EXISTING_CALENDARS_ENABLED !== "true"
+  )
+    throw new Error(
+      "Existing-calendar access is awaiting Google verification. Connect with a Thinkfy-created calendar instead.",
+    );
   const result = await callCenterService<{ url: string }>(
     "/oauth/google/start",
     clubId,

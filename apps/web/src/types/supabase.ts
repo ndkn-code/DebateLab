@@ -4028,6 +4028,7 @@ export type Database = {
           created_at: string
           ends_at: string
           id: string
+          rebook_of: string | null
           revision: number
           starts_at: string
           status: string
@@ -4042,6 +4043,7 @@ export type Database = {
           created_at?: string
           ends_at: string
           id?: string
+          rebook_of?: string | null
           revision?: number
           starts_at: string
           status?: string
@@ -4056,6 +4058,7 @@ export type Database = {
           created_at?: string
           ends_at?: string
           id?: string
+          rebook_of?: string | null
           revision?: number
           starts_at?: string
           status?: string
@@ -4090,6 +4093,13 @@ export type Database = {
             columns: ["club_id"]
             isOneToOne: false
             referencedRelation: "clubs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "center_trials_rebook_of_fkey"
+            columns: ["rebook_of"]
+            isOneToOne: false
+            referencedRelation: "center_trials"
             referencedColumns: ["id"]
           },
           {

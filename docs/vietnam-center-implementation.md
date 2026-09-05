@@ -93,8 +93,9 @@ revocation acceptance passed. Detailed evidence is in the activation checkpoint.
 was sent during QA.
 
 Zalo OA, approved templates/recipient consent and merchant onboarding remain external
-activation dependencies. Google remains in Testing with the pilot account as its sole
-test user. Guardian progress currently includes classes, trials and attendance. Analytic
+activation dependencies. Google OAuth is now In production with verified, published Thinkfy branding. The optional
+existing-calendar permission still awaits sensitive-scope verification and is gated off
+until `CENTER_GOOGLE_EXISTING_CALENDARS_ENABLED=true`. Guardian progress currently includes classes, trials and attendance. Analytic
 Sheet export, refund screens, no-show rebooking automation and richer post-payment
 welcome/study-plan automation remain follow-up scope; the existing adapters or lifecycle
 states alone do not mean those product workflows are shipped.
@@ -103,3 +104,16 @@ Vercel Git integration currently deploys `main` automatically. A main merge brie
 replaced the manually promoted combined center/mail release with a build lacking this
 feature; the combined release was restored. Keep release code in `main`, and verify the
 canonical deployment/source after every merge or promotion.
+
+## Teacher-assisted rebooking
+
+A missed trial can be rebooked from Trials or through a confirmed teacher-chat proposal.
+The new booking retains the original student/class and links back with `rebook_of`; the
+original no-show remains in history. Each missed trial has at most one direct replacement.
+A replacement that is later missed may itself be rebooked. Commands recheck permissions,
+revision, future time bounds and overlapping booked trials; retries reuse their receipt.
+The existing `trial.booked` event handles Calendar sync and approved confirmation policies.
+
+This closes the teacher-assisted workflow. Automatic Zalo outreach, a customer-facing
+availability picker and inbound rebooking replies still require a separate scheduling
+and approved-template flow; current schedules alone are not a guarantee of availability.

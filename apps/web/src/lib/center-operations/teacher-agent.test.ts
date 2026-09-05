@@ -17,7 +17,17 @@ const context: TeacherContext = {
   sources: [
     { id: "roster-1", label: "Roster", text: "An attends Tuesday Debate." },
   ],
-  trials: [{ id: studentId }],
+  trials: [
+    {
+      id: studentId,
+      studentRecordId: studentId,
+      classId,
+      startsAt: "2026-09-03T10:00:00+00:00",
+      endsAt: "2026-09-03T11:00:00+00:00",
+      status: "no_show",
+      rebookOf: null,
+    },
+  ],
   admissions: [{ id: studentId }],
   schedules: [{ id: studentId }],
   timezone: "Asia/Ho_Chi_Minh",
@@ -231,4 +241,56 @@ test("action schema rejects extra keys directly", () => {
     teacherActionSchema.safeParse({ ...note, command: "send" }).success,
     false,
   );
+});
+
+test("rebook requires the exact eligible no-show context and confirms risk", async () => {
+  const result = await planTeacherTurn({
+    message: "Rebook An",
+    context,
+    generate: async () =>
+      plan([
+        {
+          kind: "trial.rebook",
+          priorTrialId: studentId,
+          startAt: "2026-09-10T10:00:00-04:00",
+          endAt: "2026-09-10T11:00:00-04:00",
+        },
+      ]),
+  });
+  assert.equal(result.ok, true);
+  if (result.ok) assert.equal(actionRisk(result.plan.actions[0]), "confirm");
+  const stale = await planTeacherTurn({
+    message: "Rebook An",
+    context: {
+      ...context,
+      trials: [{ ...context.trials![0], status: "attended" }],
+    },
+    generate: async () =>
+      plan([
+        {
+          kind: "trial.rebook",
+          priorTrialId: studentId,
+          startAt: "2026-09-10T10:00:00+00:00",
+          endAt: "2026-09-10T11:00:00+00:00",
+        },
+      ]),
+  });
+  assert.equal(stale.ok, false);
+});
+
+test("compares rebook instants rather than timestamp text", async () => {
+  const result = await planTeacherTurn({
+    message: "Rebook",
+    context,
+    generate: async () =>
+      plan([
+        {
+          kind: "trial.rebook",
+          priorTrialId: studentId,
+          startAt: "2026-09-10T10:00:00+07:00",
+          endAt: "2026-09-10T02:00:00Z",
+        },
+      ]),
+  });
+  assert.equal(result.ok, false);
 });
