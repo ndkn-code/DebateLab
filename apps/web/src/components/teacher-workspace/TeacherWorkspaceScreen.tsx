@@ -17,7 +17,7 @@ import {
   Users,
   X,
 } from "@/components/ui/icons";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import {
   Sheet,
   SheetContent,
@@ -56,6 +56,8 @@ import { TeacherCalendar } from "./TeacherCalendar";
 import { QuestionImportWorkbench } from "./question-import/QuestionImportWorkbench";
 import { LMS_QUESTION_IMPORT_ENABLED } from "@/lib/features";
 import { Select } from "@/components/ui/select";
+import { ClassGradebook } from "./ClassGradebook";
+import { MaterialReusePanel } from "./MaterialReusePanel";
 
 type CoreTeacherSurface = Exclude<
   TeacherWorkspaceSurface,
@@ -870,7 +872,7 @@ function AssignmentsSurface({ data }: { data: TeacherWorkspacePresentation }) {
         locale={data.locale}
         action={
           <Button
-            disabled={!isDemo}
+            variant="primary"
             onClick={() => setComposerOpen((open) => !open)}
           >
             <FileText />
@@ -990,178 +992,17 @@ function AssignmentsSurface({ data }: { data: TeacherWorkspacePresentation }) {
 
 function GradebookSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const vi = data.locale === "vi";
-  const isDemo = data.source === "explicit_demo";
-  const [scores, setScores] = useState(data.gradebook.scores);
-  const [selectedCell, setSelectedCell] = useState<{
-    studentId: string;
-    assessmentId: string;
-  } | null>(null);
-  const [scoreInput, setScoreInput] = useState("");
-  const selectedStudent = data.gradebook.students.find(
-    (item) => item.id === selectedCell?.studentId,
-  );
-  const selectedAssessment = data.gradebook.assessments.find(
-    (item) => item.id === selectedCell?.assessmentId,
-  );
-  const numericScore = Number(scoreInput);
-  const scoreValid =
-    scoreInput !== "" &&
-    Number.isFinite(numericScore) &&
-    numericScore >= 0 &&
-    numericScore <= (selectedAssessment?.maxScore ?? 100);
-  if (!data.gradebook.students.length || !data.gradebook.assessments.length) {
-    return (
-      <>
-        <SurfaceHeader surface="gradebook" locale={data.locale} />
-        <div
-          className="mt-3 rounded-control border border-outline-variant bg-surface px-5 py-10 text-center"
-          role="status"
-        >
-          <h2 className="type-body font-semibold text-on-surface">
-            {vi ? "Chưa có dữ liệu sổ điểm" : "No gradebook data yet"}
-          </h2>
-          <p className="mt-1 type-body-sm text-on-surface-variant">
-            {vi
-              ? "Các bài đánh giá và học viên của lớp này sẽ xuất hiện tại đây."
-              : "Assessments and learners for this class will appear here."}
-          </p>
-        </div>
-      </>
-    );
-  }
-  return (
-    <>
-      <SurfaceHeader surface="gradebook" locale={data.locale} />
-      <div
-        className="mt-3 overflow-auto rounded-control border border-outline-variant bg-surface"
-        data-gradebook-scroller
-      >
-        <table className="min-w-[56rem] border-separate border-spacing-0 text-left">
-          <thead>
-            <tr className="bg-surface-container-low type-caption uppercase tracking-wide text-on-surface-variant">
-              <th className="sticky left-0 top-0 z-20 min-w-48 border-b border-r border-outline-variant bg-surface-container-low px-3 py-3">
-                {vi ? "Học viên" : "Learner"}
-              </th>
-              {data.gradebook.assessments.map((assessment) => (
-                <th
-                  key={assessment.id}
-                  className="sticky top-0 z-10 min-w-36 border-b border-outline-variant bg-surface-container-low px-3 py-3"
-                >
-                  {assessment.title}
-                  <span className="block font-normal normal-case">
-                    /{assessment.maxScore}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {data.gradebook.students.map((student) => (
-              <tr key={student.id} className="hover:bg-surface-container-low">
-                <th className="sticky left-0 z-10 border-b border-r border-outline-variant bg-surface px-3 py-3 type-label font-semibold text-on-surface">
-                  {student.name}
-                </th>
-                {data.gradebook.assessments.map((assessment) => {
-                  const score = scores[student.id]?.[assessment.id];
-                  return (
-                    <td
-                      key={assessment.id}
-                      className="border-b border-outline-variant px-3 py-3"
-                    >
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSelectedCell({
-                            studentId: student.id,
-                            assessmentId: assessment.id,
-                          });
-                          setScoreInput(
-                            typeof score === "number" ? String(score) : "",
-                          );
-                        }}
-                        aria-label={`${student.name}, ${assessment.title}: ${typeof score === "number" ? score : (score ?? "missing")}`}
-                        className="min-h-8 min-w-20 rounded-lg border border-outline-variant px-2 type-body-sm font-semibold tabular-nums text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                      >
-                        {typeof score === "number" ? (
-                          `${score}/${assessment.maxScore}`
-                        ) : (
-                          <StatusPill
-                            value={score ?? "missing"}
-                            locale={data.locale}
-                          />
-                        )}
-                      </button>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <Sheet
-        open={Boolean(selectedCell)}
-        onOpenChange={(open) => {
-          if (!open) setSelectedCell(null);
-        }}
-      >
-        <SheetContent
-          side="right"
-          className="data-[side=right]:w-full data-[side=right]:sm:max-w-sm bg-surface"
-        >
-          <SheetHeader>
-            <SheetTitle>{vi ? "Cập nhật điểm" : "Grade evidence"}</SheetTitle>
-            <SheetDescription>
-              {selectedStudent?.name} · {selectedAssessment?.title}
-            </SheetDescription>
-          </SheetHeader>
-          <div className="grid gap-4 px-4 pb-4">
-            <div className="rounded-control border border-outline-variant bg-surface-container-low p-4 type-body-sm text-on-surface-variant">
-              {vi
-                ? "Mở bài nộp và rubric liên quan trước khi công bố điểm."
-                : "Review the linked submission and rubric evidence before publishing a score."}
-            </div>
-            <label className="grid gap-1 type-label font-semibold text-on-surface">
-              {vi ? "Điểm" : "Score"}
-              <input
-                type="number"
-                min={0}
-                max={selectedAssessment?.maxScore ?? 100}
-                value={scoreInput}
-                onChange={(event) => setScoreInput(event.target.value)}
-                className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm font-normal"
-              />
-            </label>
-            <Button
-              disabled={!isDemo || !selectedCell || !scoreValid}
-              onClick={() => {
-                if (!selectedCell) return;
-                const numeric = Number(scoreInput);
-                if (!scoreValid) return;
-                setScores((current) => ({
-                  ...current,
-                  [selectedCell.studentId]: {
-                    ...(current[selectedCell.studentId] ?? {}),
-                    [selectedCell.assessmentId]: numeric,
-                  },
-                }));
-                setSelectedCell(null);
-              }}
-            >
-              {vi ? "Lưu điểm bản xem trước" : "Save preview score"}
-            </Button>
-            {!isDemo ? (
-              <p className="type-caption text-on-surface-variant">
-                {vi
-                  ? "Chỉ đọc cho đến khi hợp đồng ghi sổ điểm được bàn giao."
-                  : "Read-only until the gradebook write contract is available."}
-              </p>
-            ) : null}
-          </div>
-        </SheetContent>
-      </Sheet>
-    </>
-  );
+  const [classId, setClassId] = useState(data.classes[0]?.id ?? "");
+  return <>
+    {data.classes.length > 1 ? <label className="mb-3 grid gap-1 type-label text-on-surface">
+      {vi ? "Lớp học" : "Class"}
+      <Select value={classId} onChange={(event) => setClassId(event.target.value)}>
+        {data.classes.map((item) => <option key={item.id} value={item.id}>{item.title}</option>)}
+      </Select>
+    </label> : null}
+    {data.classes.find((item) => item.id === classId)?.programType === "ielts" ? <Link href={`/dashboard/classes/${classId}`} className="mb-3 inline-block type-label text-primary">{vi ? "Mở bảng chấm kỹ năng IELTS" : "Open IELTS skills review"}</Link> : null}
+    {classId ? <ClassGradebook key={classId} classId={classId} locale={data.locale} demo={data.source === "explicit_demo"} /> : <p role="status" className="type-body text-on-surface-variant">{vi ? "Chưa có lớp học." : "No classes yet."}</p>}
+  </>;
 }
 
 /**
@@ -1360,14 +1201,14 @@ function AttendanceSurface({ data }: { data: TeacherWorkspacePresentation }) {
   );
 }
 
-function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
+function MaterialsSurface({ data, destinations = data.classes }: { data: TeacherWorkspacePresentation; destinations?: TeacherWorkspacePresentation["classes"] }) {
   const vi = data.locale === "vi";
   const isDemo = data.source === "explicit_demo";
   const [query, setQuery] = useState("");
   const importOrganizations = Array.from(new Set(data.classes.filter((item) => item.programType === "ielts").map((item) => item.organizationId)));
   const [importOrganization, setImportOrganization] = useState(importOrganizations.length === 1 ? importOrganizations[0] : "");
   const [composerOpen, setComposerOpen] = useState(false);
-  const [materials, setMaterials] = useState(data.materials);
+  const materials = data.materials;
   const [selected, setSelected] = useState<
     TeacherWorkspacePresentation["materials"][number] | null
   >(null);
@@ -1383,7 +1224,7 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
         locale={data.locale}
         action={
           <Button
-            disabled={!isDemo}
+            variant={composerOpen ? "outline" : "primary"}
             onClick={() => setComposerOpen((open) => !open)}
           >
             <BookOpenText />
@@ -1391,74 +1232,7 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
           </Button>
         }
       />
-      {composerOpen ? (
-        <form
-          className="mt-3 grid gap-3 rounded-control border border-outline-variant bg-primary-container p-4 sm:grid-cols-2"
-          onSubmit={(event: FormEvent<HTMLFormElement>) => {
-            event.preventDefault();
-            const form = new FormData(event.currentTarget);
-            const classId = String(form.get("classId") ?? data.classes[0]?.id);
-            const classItem = data.classes.find((item) => item.id === classId);
-            setMaterials((current) => [
-              {
-                id: `preview-material-${current.length + 1}`,
-                classId,
-                title: String(form.get("title") ?? "Material"),
-                classTitle: classItem?.title ?? "Class",
-                kind: String(
-                  form.get("kind") ?? "document",
-                ) as TeacherWorkspacePresentation["materials"][number]["kind"],
-                status: "draft",
-                updatedAt: "2026-08-31T16:00:00.000Z",
-              },
-              ...current,
-            ]);
-            setComposerOpen(false);
-          }}
-        >
-          <input
-            name="title"
-            required
-            aria-label={vi ? "Tên tài liệu" : "Material title"}
-            placeholder={vi ? "Tên tài liệu" : "Material title"}
-            className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm"
-          />
-          <select
-            name="classId"
-            aria-label={vi ? "Chọn lớp" : "Choose class"}
-            className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm"
-          >
-            {data.classes.map((item) => (
-              <option key={item.id} value={item.id}>
-                {item.title}
-              </option>
-            ))}
-          </select>
-          <select
-            name="kind"
-            aria-label={vi ? "Loại tài liệu" : "Material type"}
-            className="h-9 rounded-control border border-outline-variant bg-surface px-3 type-body-sm"
-          >
-            {(["document", "video", "link", "worksheet"] as const).map(
-              (kind) => (
-                <option key={kind} value={kind}>
-                  {kind}
-                </option>
-              ),
-            )}
-          </select>
-          <div className="flex justify-end gap-2 sm:col-span-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setComposerOpen(false)}
-            >
-              {vi ? "Hủy" : "Cancel"}
-            </Button>
-            <Button type="submit">{vi ? "Thêm bản nháp" : "Add draft"}</Button>
-          </div>
-        </form>
-      ) : null}
+      {composerOpen ? <MaterialReusePanel locale={data.locale} classes={destinations} defaultClassId={data.classes[0]?.id} demo={isDemo} /> : null}
       {LMS_QUESTION_IMPORT_ENABLED && !isDemo && importOrganizations.length > 1 ? (
         <div className="my-3 min-w-0">
           <label htmlFor="question-import-organization" className="type-label text-on-surface">
@@ -1507,13 +1281,13 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
             </div>
             <div className="flex items-center gap-2">
               <StatusPill value={item.status} locale={data.locale} />
-              <Button
+              {item.learnerHref ? <Link className={buttonVariants({ variant: "outline", size: "sm" })} href={item.learnerHref}>{vi ? "Mở" : "Open"}</Link> : <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setSelected(item)}
               >
                 {vi ? "Mở" : "Open"}
-              </Button>
+              </Button>}
             </div>
           </article>
         ))}
@@ -1867,7 +1641,14 @@ function ClassDetailSurface({
               aria-selected={tab === item}
               aria-controls={`class-panel-${classItem.id}`}
               tabIndex={tab === item ? 0 : -1}
-              onClick={() => setTab(item)}
+              onClick={() => {
+                setTab(item);
+                if (item === "gradebook" || item === "materials") {
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("tab", item);
+                  window.history.replaceState(null, "", url);
+                }
+              }}
               onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => {
                 let nextIndex: number | null = null;
                 if (event.key === "ArrowRight")
@@ -1941,7 +1722,7 @@ function ClassDetailSurface({
         ) : null}
         {tab === "gradebook" ? <GradebookSurface data={scopedData} /> : null}
         {tab === "attendance" ? <AttendanceSurface data={scopedData} /> : null}
-        {tab === "materials" ? <MaterialsSurface data={scopedData} /> : null}
+        {tab === "materials" ? <MaterialsSurface data={scopedData} destinations={data.classes} /> : null}
         {tab === "announcements" ? (
           <AnnouncementsSurface data={scopedData} />
         ) : null}

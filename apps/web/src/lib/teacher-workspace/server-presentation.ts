@@ -1,4 +1,6 @@
 import "server-only";
+import { SHARED_LMS_MATERIALS_V1 } from "@/lib/features";
+import { listManagerMaterials } from "@/lib/api/class-lms/materials-repository";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
@@ -479,11 +481,12 @@ export async function loadTeacherWorkspacePresentation(input: {
     }
     const content = await Promise.allSettled(
       capability.classes.map(async (item) => {
-        const [resources, announcements] = await Promise.all([
+        const [resources, announcements, sharedMaterials] = await Promise.all([
           listClassResources(item.id),
           listClassAnnouncements(item.id),
+          SHARED_LMS_MATERIALS_V1 ? listManagerMaterials({ classId: item.id, limit: 100 }).catch(() => ({ rows: [], nextCursor: null })) : Promise.resolve({ rows: [], nextCursor: null }),
         ]);
-        return { classId: item.id, resources, announcements };
+        return { classId: item.id, resources, announcements, sharedMaterials };
       }),
     );
     const materials: TeacherWorkspacePresentation["materials"] = [];
@@ -508,6 +511,11 @@ export async function loadTeacherWorkspacePresentation(input: {
           status: resource.status === "published" ? "published" : "draft",
           updatedAt: resource.updatedAt,
         });
+      }
+      for (const material of result.value.sharedMaterials.rows) {
+        for (const placement of material.placements.filter((item) => item.targetType === "class" && item.targetId === result.value.classId && item.status === "published")) {
+          materials.push({ id: placement.id, classId: result.value.classId, title: material.title, classTitle, kind: "document", status: "published", updatedAt: material.updatedAt, learnerHref: `/dashboard/materials?classId=${result.value.classId}` });
+        }
       }
       for (const announcement of result.value.announcements) {
         loadedAnnouncements.set(`${result.value.classId}:${announcement.id}`, {
