@@ -95,5 +95,6 @@ export function legalOperatorDetails() {
       "Governing law pending legal review",
     privacyEmail:
       process.env.NEXT_PUBLIC_PRIVACY_EMAIL?.trim() || "support@thinkfy.net",
+    copyrightEmail: process.env.NEXT_PUBLIC_COPYRIGHT_EMAIL?.trim() || null,
   };
 }

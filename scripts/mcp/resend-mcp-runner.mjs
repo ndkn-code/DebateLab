@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, "../..");
 const envPath = resolve(projectRoot, ".env.local");
+const webEnvPath = resolve(projectRoot, "apps/web/.env.local");
 
 function parseEnvFile(path) {
   if (!existsSync(path)) {
@@ -46,7 +47,10 @@ function parseEnvFile(path) {
     }, {});
 }
 
-const fileEnv = parseEnvFile(envPath);
+const fileEnv = {
+  ...parseEnvFile(webEnvPath),
+  ...parseEnvFile(envPath),
+};
 const runtimeEnv = {
   ...process.env,
   ...fileEnv,
@@ -54,7 +58,7 @@ const runtimeEnv = {
 
 if (!runtimeEnv.RESEND_API_KEY) {
   console.error(
-    "Missing RESEND_API_KEY. Add it to .env.local or export it before starting Codex.",
+    "Missing RESEND_API_KEY. Add it to .env.local, apps/web/.env.local, or export it before starting Codex.",
   );
   process.exit(1);
 }
