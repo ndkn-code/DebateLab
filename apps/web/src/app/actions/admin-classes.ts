@@ -1259,3 +1259,25 @@ export async function exportPostMockReportAction(raw: unknown) {
     );
   });
 }
+
+// Curriculum reuse uses this existing action entrypoint and a single atomic RPC.
+export async function listClassReuseSources() {
+  const { listReuseSources } = await import("@/lib/class-curriculum-reuse/repository");
+  return listReuseSources();
+}
+
+export async function previewClassCurriculumReuse(sourceClassId: string, dates?: unknown) {
+  const { previewReuse } = await import("@/lib/class-curriculum-reuse/repository");
+  return previewReuse(sourceClassId, dates);
+}
+
+export async function createClassFromCurriculum(input: unknown) {
+  const { commitReuse } = await import("@/lib/class-curriculum-reuse/repository");
+  const result = await commitReuse(input);
+  if (result.ok) {
+    revalidatePath("/dashboard/admin/classes");
+    revalidatePath(`/dashboard/admin/classes/${result.data.classId}`);
+    revalidatePath("/dashboard/teacher");
+  }
+  return result;
+}

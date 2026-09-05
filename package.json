@@ -131,7 +131,8 @@
     "test:class-analytics": "npm run test:class-analytics -w @thinkfy/web",
     "test:middleware": "npm run test:middleware -w @thinkfy/web",
     "test:lms-question-import": "npm run test:lms-question-import -w @thinkfy/web && npm test --prefix services/lms-material-worker",
-    "test:center-operations": "npm run test:center-operations -w @thinkfy/web && npm test --prefix services/center-operations"
+    "test:center-operations": "npm run test:center-operations -w @thinkfy/web && npm test --prefix services/center-operations",
+    "test:class-curriculum-reuse": "npm run test:class-curriculum-reuse -w @thinkfy/web"
   },
   "overrides": {
     "uuid": "14.0.0",

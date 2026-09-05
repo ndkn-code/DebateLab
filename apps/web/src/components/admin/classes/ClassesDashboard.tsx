@@ -18,6 +18,7 @@ import {
   Users,
 } from "@/components/ui/icons";
 import { Link, useRouter } from "@/i18n/navigation";
+import { ReuseClassEntry } from "./ReuseClassEntry";
 import { createClass } from "@/app/actions/admin-classes";
 import {
   FadeInItem,
@@ -290,6 +291,8 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
           </h1>
         </div>
         {!isSchedulesView && (
+          <div className="flex flex-wrap items-start gap-2">
+          <ReuseClassEntry />
           <button
             onClick={() => setCreateOpen(true)}
             className="inline-flex h-8 items-center justify-center gap-2 rounded-control bg-primary px-3 text-sm font-medium text-on-primary shadow-none transition-all duration-150 hover:bg-primary-dim focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:translate-y-px"
@@ -297,6 +300,7 @@ export function ClassesDashboard({ data, schedulesData }: Props) {
             <Plus className="h-4 w-4" />
             {t("newClass")}
           </button>
+          </div>
         )}
       </div>
 
