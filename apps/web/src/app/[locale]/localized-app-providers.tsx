@@ -11,6 +11,8 @@ import { WebVitalsReporter } from "@/components/shared/web-vitals-reporter";
 import { AppThemeProvider } from "@/components/shared/theme-provider";
 import { ANALYTICS_COOKIE_NAME, isAnalyticsEnabled } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
+import { withServerRequestBudget } from "@/lib/supabase/request-budget";
+import { isPublicPathname } from "@/lib/supabase/request-policy";
 import {
   APP_THEME_COOKIE_NAME,
   APP_THEME_STORAGE_KEY,
@@ -29,27 +31,33 @@ async function resolveInitialTheme(): Promise<AppTheme> {
     "light",
   );
 
+  // Display preferences cannot make public access depend on authentication.
+  // Existing browser preferences win; remote restoration is best-effort only.
+  const requestPath = (await headers()).get("x-thinkfy-pathname")?.split("?")[0] ?? "/";
+  if (cookieStore.has(APP_THEME_COOKIE_NAME) || isPublicPathname(requestPath)) return cookieTheme;
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    return await withServerRequestBudget(async () => {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (!user) {
-      return cookieTheme;
-    }
+      if (!user) {
+        return cookieTheme;
+      }
 
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("preferences")
-      .eq("id", user.id)
-      .single();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("preferences")
+        .eq("id", user.id)
+        .single();
 
-    return coerceAppTheme(
-      (profile?.preferences as Record<string, unknown> | null | undefined)
-        ?.theme,
-      cookieTheme,
-    );
+      return coerceAppTheme(
+        (profile?.preferences as Record<string, unknown> | null | undefined)
+          ?.theme,
+        cookieTheme,
+      );
+    }, 200);
   } catch {
     return cookieTheme;
   }

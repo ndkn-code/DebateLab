@@ -9,6 +9,10 @@ const ALLOWED_REDIRECT_PREFIXES = [
   "/history",
   "/join/club",
   "/ielts",
+  "/leaderboards",
+  "/resources",
+  "/organizations",
+  "/debates",
 ] as const;
 
 export function isAllowedAuthRedirect(path: string): boolean {

@@ -71,7 +71,7 @@ import type {
   NotificationInboxSnapshot,
   NotificationUiOperations,
 } from "@/components/notifications/contracts";
-import type { TeacherWorkspaceNavigation } from "@/lib/teacher-workspace/presentation";
+import type { ShellTeacherNavigation as TeacherWorkspaceNavigation } from "@/lib/api/class-lms/teacher-workspace-sidebar";
 
 type SidebarNavItem = {
   href?: string;
@@ -122,7 +122,7 @@ function withExplicitTeacherDemoNavigation(
     isHeadTeacher: true,
     hasIeltsEntitlement: true,
     classCount: Math.max(3, navigation.classCount),
-    pendingReviewCount: Math.max(12, navigation.pendingReviewCount),
+    pendingReviewCount: Math.max(12, navigation.pendingReviewCount ?? 0),
     items: [
       ...navigation.items.map((item) =>
         item.key === "review_queue"

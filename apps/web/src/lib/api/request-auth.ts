@@ -6,6 +6,9 @@ import {
 import { NextResponse, type NextRequest } from "next/server";
 
 import { createClient as createCookieClient } from "@/lib/supabase/server";
+import { boundedAuthFetch } from "@/lib/protected-shell/deadline";
+import { verifyIdentity } from "@/lib/protected-shell/identity";
+import { withServerRequestBudget } from "@/lib/supabase/request-budget";
 
 export type RequestAuthSource = "bearer" | "cookie";
 
@@ -43,6 +46,7 @@ function createBearerClient(accessToken: string) {
       persistSession: false,
     },
     global: {
+      fetch: boundedAuthFetch(3_000),
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -60,6 +64,13 @@ function readBearerToken(request: NextRequest) {
   }
 
   return { present: true as const, token };
+}
+
+export function authUnavailableJson() {
+  return NextResponse.json(
+    { error: "auth_unavailable", message: "Access could not be verified. Please try again shortly." },
+    { status: 503, headers: { "Cache-Control": "private, no-store", "Retry-After": "30" } },
+  );
 }
 
 export function unauthorizedJson(message = "Unauthorized") {
@@ -85,18 +96,15 @@ export async function requireRequestAuth(
     }
 
     const supabase = createBearerClient(bearer.token);
-    const {
-      data: { user },
-      error,
-    } = await supabase.auth.getUser();
-
-    if (error || !user) {
+    const identity = await verifyIdentity(() => supabase.auth.getUser(bearer.token!));
+    if (identity.status !== "authenticated") {
       return {
         ok: false,
-        errorResponse: unauthorizedJson(),
+        errorResponse: identity.status === "unavailable" ? authUnavailableJson() : unauthorizedJson(),
         authSource: null,
       };
     }
+    const user = identity.user;
 
     return {
       ok: true,
@@ -106,12 +114,18 @@ export async function requireRequestAuth(
     };
   }
 
-  const supabase = (await createCookieClient()) as SupabaseClient;
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (user) {
+  const identity = await withServerRequestBudget(async () => {
+    const authClient = await createCookieClient();
+    return verifyIdentity(() => authClient.auth.getUser());
+  }, 4_000).catch(() => ({ status: "unavailable" as const }));
+  if (identity.status === "unavailable") {
+    return { ok: false, errorResponse: authUnavailableJson(), authSource: null };
+  }
+  if (identity.status === "authenticated") {
+    const user = identity.user;
+    // The auth budget is now closed. A separate client preserves ordinary
+    // handler query budgets and observes any completed refresh cookies.
+    const supabase = (await createCookieClient()) as SupabaseClient;
     return {
       ok: true,
       supabase,

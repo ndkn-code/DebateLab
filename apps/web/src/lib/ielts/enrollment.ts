@@ -19,7 +19,8 @@ async function hasActiveClassEnrollment(
     .eq("status", "active")
     .limit(100);
 
-  if (error || !data?.length) return false;
+  if (error) throw error;
+  if (!data?.length) return false;
 
   const classIds = data.map((row) => row.class_id).filter(Boolean);
   const { data: ieltsClasses, error: classError } = await supabase
@@ -29,7 +30,7 @@ async function hasActiveClassEnrollment(
     .eq("program_type", "ielts")
     .neq("status", "archived")
     .limit(1);
-  if (classError) return false;
+  if (classError) throw classError;
   return Boolean(
     ieltsClasses?.some((row) => isEligibleIeltsClass(row.program_type, row.status)),
   );
@@ -49,8 +50,19 @@ export async function isEnrolledStudent(
 
   try {
     const supabase = client ?? (await createTypedServerClient());
-    return hasActiveClassEnrollment(supabase, userId);
+    return await hasActiveClassEnrollment(supabase, userId);
   } catch {
     return false;
+  }
+}
+
+/** The shell must distinguish unavailable enrollment navigation from not enrolled. */
+export async function loadIeltsEnrollmentState(userId: string, client?: IeltsEnrollmentClient): Promise<
+  { status: "available"; enrolled: boolean } | { status: "unavailable" }
+> {
+  try {
+    return { status: "available", enrolled: await hasActiveClassEnrollment(client ?? await createTypedServerClient(), userId) };
+  } catch {
+    return { status: "unavailable" };
   }
 }
