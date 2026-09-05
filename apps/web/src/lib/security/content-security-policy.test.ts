@@ -72,3 +72,15 @@ test("Sonner's exact runtime stylesheet matches the CSP hash", () => {
   const hash = createHash("sha256").update(css).digest("base64");
   assert.equal(`'sha256-${hash}'`, SONNER_STYLE_SHA256);
 });
+
+
+test("allows the Google Picker frame without broad Google or wildcard frame access", () => {
+  const policy = buildContentSecurityPolicy({ nonce: "picker-nonce" });
+  const frames = policy.split("; ").find((value) => value.startsWith("frame-src "))!.split(" ").slice(1);
+  assert.ok(frames.includes("https://docs.google.com"));
+  assert.ok(!frames.includes("https://*.google.com"));
+  assert.ok(!frames.includes("https:"));
+  assert.ok(!frames.includes("*"));
+  assert.match(policy, /frame-ancestors 'none'/);
+  assert.match(policy, /object-src 'none'/);
+});

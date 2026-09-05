@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 const CALENDAR_ORIGIN = 'https://www.googleapis.com/calendar/v3';
 const SHEETS_ORIGIN = 'https://sheets.googleapis.com/v4';
 const DRIVE_ORIGIN = 'https://www.googleapis.com/drive/v3';
@@ -76,7 +78,7 @@ export function createGoogleProvider({ accessToken, fetchFn = globalThis.fetch, 
     }),
     listEvents: (calendarId, { syncToken, pageToken } = {}) => request(`${CALENDAR_ORIGIN}/calendars/${encoded(calendarId)}/events`, { query: { syncToken, pageToken } }),
     listOccurrences: (calendarId, { timeMin, timeMax, pageToken } = {}) => request(`${CALENDAR_ORIGIN}/calendars/${encoded(calendarId)}/events`, { query: { singleEvents: true, showDeleted: true, maxResults: 2500, timeMin, timeMax, pageToken } }),
-    watchEvents: (calendarId, { id, token, address, expiration } = {}) => request(`${CALENDAR_ORIGIN}/calendars/${encoded(calendarId)}/events/watch`, { method: 'POST', body: { id, token, address, expiration } }),
+    watchEvents: (calendarId, { id, token, address, expiration } = {}) => request(`${CALENDAR_ORIGIN}/calendars/${encoded(calendarId)}/events/watch`, { method: 'POST', body: { id, type: 'web_hook', token, address, expiration } }),
     stopChannel: ({ id, resourceId }) => request(`${CALENDAR_ORIGIN}/channels/stop`, { method: 'POST', body: { id, resourceId } }),
     freeBusy: ({ timeMin, timeMax, calendarIds = [] }) => request(`${CALENDAR_ORIGIN}/freeBusy`, { method: 'POST', body: { timeMin, timeMax, items: calendarIds.map((id) => ({ id })) } }),
     readSheet: (spreadsheetId, range) => request(`${SHEETS_ORIGIN}/spreadsheets/${encoded(spreadsheetId)}/values/${encoded(range)}`, { query: { valueRenderOption: 'UNFORMATTED_VALUE' } }),
@@ -92,9 +94,7 @@ export function createGoogleProvider({ accessToken, fetchFn = globalThis.fetch, 
 }
 
 export function deterministicEventId(idempotencyKey) {
-  let hash = 2166136261;
-  for (const byte of new TextEncoder().encode(String(idempotencyKey))) { hash ^= byte; hash = Math.imul(hash, 16777619); }
-  return `thinkfy-${(hash >>> 0).toString(16).padStart(8, '0')}`;
+  return createHash('sha256').update(String(idempotencyKey)).digest('hex');
 }
 
 export function buildGoogleAuthorizationUrl({ clientId, redirectUri, state, scopes, codeChallenge }) {

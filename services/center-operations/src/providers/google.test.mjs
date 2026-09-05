@@ -24,7 +24,22 @@ test('calendar requests encode identifiers, use bearer auth, and deterministic e
   assert.match(call.url, /calendars\/team%2Fa\/events\?sendUpdates=none$/);
   assert.equal(call.options.headers.Authorization, 'Bearer token');
   assert.equal(JSON.parse(call.options.body).id, deterministicEventId('signup:42'));
-  assert.match(JSON.parse(call.options.body).id, /^thinkfy-[0-9a-f]{8}$/);
+  assert.match(JSON.parse(call.options.body).id, /^[0-9a-f]{64}$/);
+  const watchMock = mockFetch([{ body: { resourceId: 'resource' } }]);
+  const watchProvider = createGoogleProvider({ accessToken: 'token', fetchFn: watchMock.fetchFn });
+  await watchProvider.watchEvents('team/a', { id: 'channel', token: 'opaque', address: 'https://example.test/callback', expiration: '2099-01-01T00:00:00Z' });
+  const watchBody = JSON.parse(watchMock.calls[0].options.body);
+  assert.equal(watchBody.type, 'web_hook');
+  assert.equal(watchBody.id, 'channel');
+  assert.equal(watchBody.address, 'https://example.test/callback');
+});
+
+test('event ids are stable, full length, and collision-resistant', () => {
+  const first = deterministicEventId('signup:42');
+  assert.equal(first, deterministicEventId('signup:42'));
+  assert.equal(first.length, 64);
+  assert.match(first, /^[0-9a-f]+$/);
+  assert.notEqual(first, deterministicEventId('signup:43'));
 });
 
 test('maps reconnect, sync reset, and etag conflicts without retrying mutations', async () => {
