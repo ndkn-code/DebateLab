@@ -140,26 +140,12 @@ export function SpeakingPhase({
   };
 
   function getErrorMessage(error: string): string {
-    switch (error) {
-      case "not-allowed":
-        return "Microphone access denied. Please enable it in your browser settings and reload.";
-      case "audio-capture":
-        return "No microphone detected. Please connect a microphone and reload.";
-      case "network":
-        return "Speech recognition requires an internet connection. Check your network.";
-      case "reconnecting":
-        return "Reconnecting speech recognition...";
-      case "token-unauthorized":
-        return "Please sign in again to start speech recognition.";
-      case "token-rate-limited":
-        return "Speech recognition is reconnecting too often. Please wait a moment and try again.";
-      case "token-service-misconfigured":
-        return "Speech recognition is not configured correctly. Please contact support.";
-      case "token-service":
-        return "Speech recognition is temporarily unavailable. Please try again later.";
-      default:
-        return "Speech recognition error. Attempting to recover...";
-    }
+    if (error === "not-allowed") return t("session.mic_enable_steps");
+    if (error === "audio-capture") return t("session.connect_microphone");
+    if (error === "network") return t("session.stt_network");
+    if (error === "reconnecting") return t("session.transcription_reconnecting");
+    if (error === "token-unauthorized") return t("session.stt_signin");
+    return isRecording ? t("session.stt_retry") : t("session.transcription_unavailable");
   }
 
   return (
@@ -219,21 +205,21 @@ export function SpeakingPhase({
           <div className="mt-3 flex flex-col items-center gap-2">
             <motion.div
               role="status"
-              aria-label={isRecording ? "Microphone is recording" : isPaused ? "Recording is paused" : "Microphone is off"}
+              aria-label={isRecording ? t("recording") : isPaused ? t("session.paused") : t("session.not_recording")}
               className={cn(
                 "relative flex h-14 w-14 items-center justify-center rounded-full",
                 isRecording
                   ? "bg-error-container"
                   : isPaused
-                    ? "bg-warning/15"
+                    ? "bg-warning-container"
                     : "bg-surface-container-high"
               )}
               animate={
                 isRecording
                   ? {
                       boxShadow: [
-                        "0 0 0 0px rgba(255,75,75,0.26)",
-                        "0 0 0 16px rgba(255,75,75,0)",
+                        "0 0 0 0px var(--color-error-container)",
+                        "0 0 0 16px transparent",
                       ],
                     }
                   : {}
@@ -319,7 +305,7 @@ export function SpeakingPhase({
         <Button
           onClick={() => setShowEndConfirm(true)}
           disabled={isFinalizing}
-          aria-label="End speech early"
+          aria-label={t("session.end_speech")}
           className="h-11 min-w-[172px] gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-on-primary shadow-none hover:bg-primary-dim"
         >
           <Square className="h-4 w-4" />

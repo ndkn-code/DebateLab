@@ -88,6 +88,7 @@ export function PracticeTimerDial({
   tone?: "blue" | "red";
   size?: "sm" | "md" | "lg" | "xl";
 }) {
+  const t = useTranslations("dashboard.practice");
   const svgNumber = (value: number) => Number(value.toFixed(4));
   const radius = 118;
   const circumference = svgNumber(2 * Math.PI * radius);
@@ -101,7 +102,7 @@ export function PracticeTimerDial({
     <div
       role="timer"
       aria-live="polite"
-      aria-label={`${formatPracticeTime(timeLeft)} remaining`}
+      aria-label={t("session.timer_remaining", { time: formatPracticeTime(timeLeft) })}
       className={cn(
         "relative mx-auto flex items-center justify-center",
         size === "xl"
@@ -191,12 +192,12 @@ export function QuickNotesEditor({
   const plainTextLength = useMemo(() => richNotesToPlainText(value).length, [value]);
   const isOverLimit = plainTextLength > MAX_NOTES_LENGTH;
   const toolbarItems = [
-    { icon: Bold, label: "Bold", action: "bold" },
-    { icon: Italic, label: "Italic", action: "italic" },
-    { icon: Underline, label: "Underline", action: "underline" },
-    { icon: List, label: "Bulleted list", action: "bullet" },
-    { icon: ListOrdered, label: "Numbered list", action: "numbered" },
-    { icon: LinkIcon, label: "Link", action: "link" },
+    { icon: Bold, label: t("session.notes_bold"), action: "bold" },
+    { icon: Italic, label: t("session.notes_italic"), action: "italic" },
+    { icon: Underline, label: t("session.notes_underline"), action: "underline" },
+    { icon: List, label: t("session.notes_bullet"), action: "bullet" },
+    { icon: ListOrdered, label: t("session.notes_numbered"), action: "numbered" },
+    { icon: LinkIcon, label: t("session.notes_link"), action: "link" },
   ] as const;
 
   useEffect(() => {
@@ -250,7 +251,7 @@ export function QuickNotesEditor({
     editor.focus();
 
     if (action === "link") {
-      const url = window.prompt("Paste a link URL", "https://");
+      const url = window.prompt(t("session.notes_link_prompt"), "https://");
       if (!url) return;
       const safeUrl = /^(https?:|mailto:)/i.test(url) ? url : `https://${url}`;
       document.execCommand("createLink", false, safeUrl);
@@ -313,7 +314,7 @@ export function QuickNotesEditor({
           </span>
           <button
             type="button"
-            aria-label="Expand notes"
+            aria-label={t("session.notes_expand")}
             className="flex h-8 w-8 items-center justify-center rounded-md border border-outline-variant/70 bg-surface text-primary transition-colors hover:bg-primary-container"
           >
             <Expand className="h-4 w-4" />

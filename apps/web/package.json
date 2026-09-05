@@ -50,7 +50,7 @@
     "test:student-read-model-rpcs": "tsx src/lib/api/student-read-model-rpc.test.ts",
     "test:practice-feedback-plan": "tsx src/lib/practice-feedback-plan.test.ts",
     "test:practice-analysis": "tsx src/lib/practice-analysis/practice-analysis.test.ts && tsx src/lib/practice-analysis/retry-guard.test.ts && node --import tsx --test src/lib/practice-analysis/transaction-security.test.ts",
-    "test:practice-session-resilience": "tsx src/lib/practice-session-drafts.test.ts && tsx src/lib/results/debate-session-row.test.ts",
+    "test:practice-session-resilience": "tsx src/lib/practice-session-drafts.test.ts && tsx src/lib/results/debate-session-row.test.ts && tsx --test src/lib/practice-microphone-request.test.ts src/lib/practice-recording-start.test.ts src/lib/practice-session-recovery.test.ts src/lib/audio/audio-recorder-controller.test.ts",
     "test:practice-judge-reliability": "tsx src/lib/ai/provider-selection.test.ts && tsx src/lib/practice-feedback-errors.test.ts && tsx src/lib/practice-client-state.test.ts",
     "test:stt": "NODE_OPTIONS='--conditions=react-server' tsx src/lib/stt/stt.test.ts && NODE_OPTIONS='--conditions=react-server' tsx src/lib/stt/transcription.test.ts && NODE_OPTIONS='--conditions=react-server' tsx --test src/lib/stt/live-finalization.test.ts src/lib/stt/gemini-live-contract.test.ts src/lib/stt/gemini-live-access.test.ts src/lib/stt/gemini-live-token.test.ts src/app/api/deepgram-token/route.test.ts src/lib/audio/media-recorder-stop.test.ts",
     "test:feedback-annotations": "tsx src/lib/feedback/annotations.test.ts",

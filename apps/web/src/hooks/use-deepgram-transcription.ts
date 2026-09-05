@@ -130,6 +130,7 @@ export function useDeepgramTranscription(
   );
 
   const wsRef = useRef<WebSocket | null>(null);
+  const connectionGenerationRef = useRef(0);
   const audioContextRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
@@ -219,6 +220,8 @@ export function useDeepgramTranscription(
   const connectWebSocket = useCallback(
     async (micStream: MediaStream) => {
       const debugId = debugIdRef.current;
+      const generation = ++connectionGenerationRef.current;
+      const isCurrent = () => generation === connectionGenerationRef.current;
       logSpeechDebug(debugId, "deepgram_token_fetch_started");
 
       // Fetch API key from our server endpoint
@@ -260,6 +263,7 @@ export function useDeepgramTranscription(
         apiKey = data.key;
         authScheme = data.authScheme === "token" ? "token" : "bearer";
       } catch (err) {
+        if (!isCurrent() || !shouldBeListeningRef.current) return;
         const tokenError = err as DeepgramTokenError;
         logSpeechDebug(debugId, "deepgram_token_fetch_failed", {
           message: tokenError.message ?? String(err),
@@ -271,6 +275,7 @@ export function useDeepgramTranscription(
         return;
       }
 
+      if (!isCurrent() || !shouldBeListeningRef.current) return;
       let audioContext: AudioContext;
       try {
         audioContext = new AudioContext({ sampleRate: 16000 });
@@ -315,6 +320,7 @@ export function useDeepgramTranscription(
       });
 
       ws.onopen = () => {
+        if (!isCurrent() || !shouldBeListeningRef.current) { ws.close(); return; }
         reconnectCountRef.current = 0;
         setError(null);
         logSpeechDebug(debugId, "deepgram_socket_opened", {
@@ -360,6 +366,7 @@ export function useDeepgramTranscription(
       };
 
       ws.onmessage = (event) => {
+        if (!isCurrent()) return;
         try {
           const data = JSON.parse(event.data as string) as DeepgramMessage;
 
@@ -430,6 +437,7 @@ export function useDeepgramTranscription(
       };
 
       ws.onerror = () => {
+        if (!isCurrent()) return;
         logSpeechDebug(debugId, "deepgram_socket_error", {
           readyState: ws.readyState,
         });
@@ -437,6 +445,7 @@ export function useDeepgramTranscription(
       };
 
       ws.onclose = (event) => {
+        if (!isCurrent()) return;
         logSpeechDebug(debugId, "deepgram_socket_closed", {
           code: event.code,
           reason: event.reason,
@@ -507,6 +516,7 @@ export function useDeepgramTranscription(
   );
 
   const pauseListening = useCallback(() => {
+    connectionGenerationRef.current += 1;
     logSpeechDebug(debugIdRef.current, "speech_stop_requested", {
       hasReceivedSpeech: hasReceivedSpeechRef.current,
       hasReceivedInterim: hasReceivedInterimRef.current,
@@ -531,6 +541,7 @@ export function useDeepgramTranscription(
     streamRef.current = null;
     setIsListening(false);
     setInterimTranscript("");
+    return pausedTranscript;
   }, [clearSilenceTimer, closeWebSocket, closeAudioProcessing]);
 
   const finalizeListening = useCallback(async (): Promise<FinalizedSpeech> => {
@@ -601,10 +612,10 @@ export function useDeepgramTranscription(
     return result;
   }, [clearSilenceTimer, closeAudioProcessing, closeWebSocket]);
 
-  const resetTranscript = useCallback(() => {
-    transcriptRef.current = "";
+  const resetTranscript = useCallback((initialTranscript = "") => {
+    transcriptRef.current = initialTranscript;
     interimTranscriptRef.current = "";
-    setTranscript("");
+    setTranscript(initialTranscript);
     setInterimTranscript("");
     hasDetectedAudioRef.current = false;
     hasReceivedSpeechRef.current = false;
@@ -615,6 +626,7 @@ export function useDeepgramTranscription(
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      connectionGenerationRef.current += 1;
       shouldBeListeningRef.current = false;
       if (reconnectTimerRef.current) {
         clearTimeout(reconnectTimerRef.current);

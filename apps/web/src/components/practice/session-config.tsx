@@ -1,5 +1,7 @@
 "use client";
 
+import { canResumePracticeSession } from "@/lib/practice-session-recovery";
+
 import type { ElementType, ReactNode } from "react";
 import { useId, useState } from "react";
 import Image from "next/image";
@@ -272,6 +274,7 @@ export function SessionConfig({
   const [showBeginTransition, setShowBeginTransition] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
   const {
+    selectedTopic,
     side,
     practiceTrack,
     mode,
@@ -289,6 +292,8 @@ export function SessionConfig({
     setTopic,
     startSession,
   } = useSessionStore();
+
+  const canResumeSession = canResumePracticeSession(selectedTopic, topic, useSessionStore.getState().currentPhase);
 
   const orbCost = practiceTrack === "debate" ? 200 : 100;
   const motionBrief = getDisplayMotionBrief(
@@ -355,6 +360,13 @@ export function SessionConfig({
     window.setTimeout(() => {
       router.push("/practice/session");
     }, 700);
+  };
+
+  const handleResume = () => {
+    // This action only exists for an active session already in the client store.
+    // Do not put auth or draft network work between recovery and navigation.
+    if (!canResumeSession) return;
+    router.push("/practice/session");
   };
 
   return (
@@ -539,6 +551,22 @@ export function SessionConfig({
           </div>
         ) : null}
 
+        {canResumeSession ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-t border-outline-variant bg-surface-container-low px-4 py-3 sm:px-5 lg:px-6">
+            <Text variant="caption" className="text-on-surface-variant">
+              {t("resume_session_description")}
+            </Text>
+            <Button
+              variant="primary"
+              onClick={handleResume}
+              disabled={showBeginTransition}
+              className="h-8 shrink-0 rounded-control type-label font-semibold"
+            >
+              {t("resume_session")}
+            </Button>
+          </div>
+        ) : null}
+
         <div className="flex shrink-0 items-center justify-between gap-3 border-t border-outline-variant bg-surface px-4 py-3 sm:px-5 lg:px-6">
           <div
             className="flex items-center gap-2"
@@ -568,13 +596,14 @@ export function SessionConfig({
           </div>
 
           <Button
+            variant={canResumeSession ? "outline" : "primary"}
             onClick={handleBegin}
             disabled={isDeducting || showBeginTransition}
             className="h-8 flex-1 rounded-control type-body font-bold sm:max-w-[230px]"
           >
             {isDeducting || showBeginTransition
               ? t("starting")
-              : t("begin_session")}
+              : t(canResumeSession ? "begin_new_session" : "begin_session")}
             <ArrowRight className="ml-1.5 h-[18px] w-[18px] transition-transform group-hover/button:translate-x-0.5" />
           </Button>
         </div>
