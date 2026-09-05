@@ -1,3 +1,6 @@
+import { ReuseClassEntry } from "@/components/admin/classes/ReuseClassEntry";
+import { PageContainer } from "@/components/shared/product-layout";
+import { listReuseSources } from "@/lib/class-curriculum-reuse/repository";
 import { TeacherWorkspaceScreen } from "@/components/teacher-workspace/TeacherWorkspaceScreen";
 import {
   isTeacherCalendarView,
@@ -44,5 +47,16 @@ export async function TeacherWorkspaceRoute({
         : undefined,
     demo: first(query.demo),
   });
-  return <TeacherWorkspaceScreen data={data} classId={classId} />;
+  const reuse =
+    surface === "classes" && !classId ? await listReuseSources() : null;
+  return (
+    <>
+      {reuse?.ok && reuse.data.length > 0 && (
+        <PageContainer size="data" className="pb-0">
+          <ReuseClassEntry initialSources={reuse.data} />
+        </PageContainer>
+      )}
+      <TeacherWorkspaceScreen data={data} classId={classId} />
+    </>
+  );
 }
