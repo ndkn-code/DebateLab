@@ -1,0 +1,7 @@
+Migration parsed and applied to isolated PostgreSQL engine.
+Read-only summary, durable history and conversation index passed.
+Stopped run rejects late completion before message/proposal write.
+Early stop and same-key retry with stale lease rejection passed.
+Scoped QA internal note, cancel/confirm and duplicate confirmation passed with mocked external effects.
+Failed draft explicit retry is idempotent; shared assessment requires review; stop after answer blocks subsequent mutation.
+Revoked membership checks passed.

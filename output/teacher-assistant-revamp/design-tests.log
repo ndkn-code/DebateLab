@@ -1,0 +1,7 @@
+
+> thinkfy@0.1.0 test:design-system
+> tsx scripts/design-system-tokens.test.ts
+
+Design-system token tests passed.
+(node:8237) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)

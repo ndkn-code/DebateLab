@@ -173,6 +173,7 @@ export type CenterTrial = {
 };
 export type CenterSnapshot = {
   organizationId: string;
+  organizationName?: string;
   actorId: string;
   canManage: boolean;
   canManageFinance: boolean;
@@ -277,6 +278,21 @@ export type TeacherTurn = {
   sources: { id: string; label: string; text?: string }[];
   proposals: TeacherProposal[];
 };
+export type TeacherRun = {
+  requestKey: string;
+  conversationId: string;
+  status: "running" | "completed" | "failed" | "stopped";
+  stage: string;
+  startedAt: string;
+  updatedAt: string;
+  errorCode?: string | null;
+};
+export type TeacherConversationSummary = {
+  id: string;
+  title: string;
+  updatedAt: string;
+  status?: string;
+};
 export type TeacherHistory = {
   conversationId: string;
   messages: {
@@ -286,6 +302,7 @@ export type TeacherHistory = {
     metadata: Record<string, unknown>;
   }[];
   proposals: TeacherProposal[];
+  run?: TeacherRun | null;
 };
 
 export type CenterGuardianProgress = {

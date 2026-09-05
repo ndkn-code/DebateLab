@@ -196,7 +196,7 @@ test("risk is computed independently for every action and money never auto execu
         recommendation: "Practice",
       },
     }),
-    "automatic",
+    "confirm",
   );
   assert.equal(
     actionRisk({
@@ -293,4 +293,26 @@ test("compares rebook instants rather than timestamp text", async () => {
       ]),
   });
   assert.equal(result.ok, false);
+});
+
+test("lesson and homework drafts remain scoped and use the selected interface language", async () => {
+  for (const draftType of ["lesson", "homework"] as const) {
+    const action = {
+      kind: "draft.create",
+      classId,
+      title: "Bài học QA",
+      body: "Luyện phản biện ngắn.",
+      draftType,
+    };
+    const result = await planTeacherTurn({
+      message: `Draft ${draftType}`,
+      context: { ...context, locale: "vi" },
+      generate: async ({ system }) => {
+        assert.match(system, /Answer in Vietnamese/);
+        return plan([action]);
+      },
+    });
+    assert.equal(result.ok, true);
+    if (result.ok) assert.deepEqual(result.plan.actions, [action]);
+  }
 });

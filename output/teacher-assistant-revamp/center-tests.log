@@ -1,0 +1,118 @@
+
+> thinkfy@0.1.0 test:center-operations
+> npm run test:center-operations -w @thinkfy/web && npm test --prefix services/center-operations
+
+
+> @thinkfy/web@0.1.0 test:center-operations
+> node --conditions=react-server --import tsx --test src/lib/center-operations/*.test.ts
+
+(node:7626) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ normalizes validated teacher actions with confirmation semantics and revisions (3.027333ms)
+✔ rejects invalid or unsupported dynamic commands before any RPC boundary (0.65975ms)
+✔ hydrates an eligible rebook with the missed trial revision (0.748541ms)
+✔ rejects rebooking an attended or already replaced trial (0.128375ms)
+✔ allows a no-show replacement only when it has no child replacement (0.066583ms)
+(node:7627) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ maps shuffled Vietnamese headings, excludes the header, and normalizes student and guardian phones (4.114708ms)
+✔ manual mapping feeds the same B3 validation and blocks both duplicate identities (0.366083ms)
+✔ duplicate source headings preserve the first value and report the unreadable second column (0.171042ms)
+✔ rejects missing headers and does not invent a student from a header-only sheet (0.2465ms)
+(node:7628) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ accepts a scoped plan and does not execute actions (2.418375ms)
+✔ rejects hostile retrieved instructions, invented sources, unknown tools, and extra keys (0.474708ms)
+✔ rejects out of scope classes and keeps read only turns action free (0.609375ms)
+✔ allows a lead with no enrolled classes to book a trial or create an offer (0.422584ms)
+✔ rejects invented trial, admission, and schedule targets (0.57425ms)
+✔ risk is computed independently for every action and money never auto executes (0.066125ms)
+✔ summaries include exact target and localized fields (0.122125ms)
+✔ action schema rejects extra keys directly (0.06225ms)
+✔ rebook requires the exact eligible no-show context and confirms risk (0.232084ms)
+✔ compares rebook instants rather than timestamp text (0.096125ms)
+✔ lesson and homework drafts remain scoped and use the selected interface language (0.279584ms)
+(node:7629) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ draft/retry storage is isolated by actor and organization (0.553792ms)
+✔ failed request is recovered from durable user message with same idempotency key (0.103708ms)
+✔ teacher-facing errors hide database/provider internals in both locales (0.311375ms)
+✔ starter prompts use assigned class names and never raw identifiers (0.094667ms)
+(node:7630) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ bounds a run and persists a timeout failure (6.250667ms)
+✔ a stopped lease cannot complete or mutate after a checkpoint (0.49025ms)
+✔ successful runs checkpoint stages and complete once (0.153459ms)
+✔ late work cannot cross a checkpoint after timeout even if persistence is unavailable (6.124834ms)
+(node:7631) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+✔ unverified existing-calendar requests stop before the cloud or auth boundary (0.679709ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 417.429417
+
+> @thinkfy/center-operations@0.1.0 test
+> node --test src/*.test.mjs src/providers/*.test.mjs
+
+✔ seeds the exact COUNT recurrence and leaves native schedules intact when occurrence fetch fails (7.750875ms)
+✔ projects all pages before retiring recurring originals, preserves one-off IDs, and skips projected schedules (2.046125ms)
+✔ a later page failure never projects a partial occurrence window or cancels originals (0.162542ms)
+✔ a stale etag refreshes projection and raises the exact conflict without a Google write (0.222958ms)
+✔ an already-applied command refreshes projection without a second Google write (0.09275ms)
+✔ validates bytes, uploads immutable originals, and queues with provenance (3.226917ms)
+✔ rejects mismatched MIME and hash before upload (0.481542ms)
+✔ cleans the original when queueing fails or loses the idempotency race (0.439584ms)
+✔ unchanged versions remain idempotent without downloading or uploading (0.762792ms)
+✔ stores every calendar page before advancing the cursor (6.993792ms)
+✔ aborts a failed page without advancing cursor (0.235875ms)
+✔ 410 preserves projection until the replacement full sync completes (0.130792ms)
+✔ 412 marks conflict and never writes an optimistic projection (0.111292ms)
+✔ unavailable files are revoked and de-indexed (0.13525ms)
+✔ sheet sync reads only its explicit range and stages rows (0.092417ms)
+✔ delivery reserves each recipient and records unknown provider outcomes without resend (6.329291ms)
+✔ webhook fails closed without configured verification (0.261042ms)
+✔ approved delivery records a provider message and policy deferrals remain retryable (0.146458ms)
+✔ a mixed successful and capped delivery stays deferred and resumes without resending completed recipients (0.828833ms)
+✔ start persists only a hash and callback is single use through RPC (24.728792ms)
+✔ rejects missing granted scopes and never stores credentials (0.422958ms)
+✔ marks reconnect on invalid grant and does not leak token data (0.280042ms)
+✔ calendar requests encode identifiers, use bearer auth, and deterministic event ids (26.645375ms)
+✔ event ids are stable, full length, and collision-resistant (0.223ms)
+✔ maps reconnect, sync reset, and etag conflicts without retrying mutations (0.943875ms)
+✔ preserves pagination tokens and uses Sheets render/input safety options (0.758208ms)
+✔ freeBusy sends calendar ids only and does not request personal details (1.04875ms)
+✔ authorization URL carries offline PKCE parameters (0.284375ms)
+✔ order IDs are deterministic and sandbox origin is fixed (14.270916ms)
+✔ callback verifies before parsing and rejects tamper (0.535625ms)
+✔ invalid amounts are rejected (0.180708ms)
+✔ signed numeric transaction IDs are normalized without losing safe integer precision (0.115167ms)
+✔ even correctly signed unsafe or fractional numeric transaction IDs are rejected (0.138583ms)
+✔ eligibility requires connection, approval, consent, eligibility, and a future expiry (2.201708ms)
+✔ sends to the documented endpoint and enforces one recipient (0.9585ms)
+✔ disconnected eligibility is denied without a fake send (0.062625ms)
+✔ one failed merchant query does not prevent another center notification job from being processed (5.799667ms)
+✔ ZBS webhook rejects a different OA even with a correct signature and records the verified connection tenant (0.708166ms)
+✔ health and OAuth start authenticate the user (20.760041ms)
+✔ callback redirects contain no provider error details and task envelope is decoded (7.951209ms)
+✔ oversize request is rejected (2.363917ms)
+✔ Google push accepts an empty body and forwards only watch headers before returning 204 (2.096167ms)
+✔ an empty Google push is not acknowledged when watch verification fails (2.007833ms)
+✔ uses only configured key and binds canonical context as AAD (37.017958ms)
+✔ does not include plaintext in KMS errors and bounds input (0.356417ms)
+✔ metadata helper uses the fixed Google metadata endpoint and header (0.168041ms)
+✔ a concurrent caller cannot reuse the single-use refresh token and the rotated token is persisted (38.734417ms)
+✔ an uncertain refresh marks reconnect and never repeats the consumed token request (0.230417ms)
+✔ OA verification binds raw bytes, app, OA, and timestamp (1.098959ms)
+ℹ tests 49
+ℹ suites 0
+ℹ pass 49
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 172.984459

@@ -3,9 +3,9 @@
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { loadCenterSnapshot, executeCenterCommand, sendTeacherTurn, decideTeacherProposal } from "@/lib/center-operations/repository";
+import { loadCenterSnapshot, executeCenterCommand, sendTeacherTurn, decideTeacherProposal, listTeacherConversations, getTeacherRun, stopTeacherRun } from "@/lib/center-operations/repository";
 import { startGoogleConnection, callCenterService } from "@/lib/center-operations/transport";
-import type { CenterResult, CenterSnapshot, CommandReceipt, TeacherTurn, TeacherHistory } from "@/lib/center-operations/contracts";
+import type { CenterResult, CenterSnapshot, CommandReceipt, TeacherTurn, TeacherHistory, TeacherConversationSummary, TeacherRun } from "@/lib/center-operations/contracts";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   normalizeClubRecipients,
@@ -68,8 +68,17 @@ export async function executeCenterOperation(clubId: string, command: unknown, i
     return result;
   });
 }
-export async function sendCenterTeacherMessage(clubId: string, message: string, conversationId?: string, requestKey?: string): Promise<CenterResult<TeacherTurn>> {
-  return centerResult(() => sendTeacherTurn(clubId, message, conversationId, requestKey));
+export async function sendCenterTeacherMessage(clubId: string, message: string, conversationId?: string, requestKey?: string, locale: "en" | "vi" = "en"): Promise<CenterResult<TeacherTurn>> {
+  return centerResult(() => sendTeacherTurn(clubId, message, conversationId, requestKey, locale));
+}
+export async function listCenterTeacherConversations(clubId: string): Promise<CenterResult<TeacherConversationSummary[]>> {
+  return centerResult(() => listTeacherConversations(clubId));
+}
+export async function getCenterTeacherRun(clubId: string, requestKey: string): Promise<CenterResult<TeacherRun | null>> {
+  return centerResult(() => getTeacherRun(clubId, requestKey));
+}
+export async function stopCenterTeacherRun(clubId: string, requestKey: string): Promise<CenterResult<null>> {
+  return centerResult(() => stopTeacherRun(clubId, requestKey));
 }
 export async function decideCenterTeacherProposal(clubId: string, proposalId: string, decision: "confirm" | "cancel"): Promise<CenterResult<CommandReceipt | null>> {
   return centerResult(() => decideTeacherProposal(clubId, proposalId, decision));
@@ -1172,7 +1181,13 @@ export async function loadCenterTeacherHistory(clubId: string, conversationId: s
     const db = await createClient();
     const {data,error} = await db.rpc("center_chat_history",{p_club_id:clubId,p_conversation_id:conversationId});
     if(error) throw new Error(error.message);
-    return data as unknown as TeacherHistory;
+    const history = data as unknown as TeacherHistory;
+    const latestRequestKey = [...(history.messages ?? [])]
+      .reverse()
+      .map((message) => message.metadata?.requestKey)
+      .find((value): value is string => typeof value === "string");
+    if (latestRequestKey) history.run = await getTeacherRun(clubId, latestRequestKey);
+    return history;
   });
 }
 

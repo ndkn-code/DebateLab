@@ -1,0 +1,34 @@
+
+> thinkfy@0.1.0 test:ai-coach
+> npm run test:ai-coach -w @thinkfy/web
+
+
+> @thinkfy/web@0.1.0 test:ai-coach
+> tsx src/lib/coach/intent.test.ts && tsx src/lib/coach/metadata.test.ts && tsx src/lib/coach/visualization.test.ts && tsx src/lib/gemini/key-pool.test.ts
+
+ok - routes normal chat to fast general coach
+ok - routes Trường Teen debate help to corpus prep helper
+ok - routes wording requests to phrase bank corpus
+ok - routes review requests to deep review
+ok - routes visual requests to visual explainer
+ok - routes Vietnamese visual requests with debate terms to visual explainer
+(node:3818) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ok - prunes screenshot-like duplicate generic diagnosis and next steps
+ok - keeps a concrete timed drill
+ok - visual explainer messages hide normal cards
+ok - keeps one concrete next move but trims additional normal cards
+(node:3823) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ok - accepts a safe visual explainer spec
+ok - rejects unknown templates and unsafe HTML-like text
+ok - rejects unknown keys
+ok - extracts fenced JSON planner output
+(node:3871) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+ok - classifies Gemini rate limit, high demand, and access errors
+ok - skips a cooling-down Gemini key slot
+ok - throws when every Gemini key slot is cooling down
+ok - rotates to the next key on retryable Gemini failure
+(node:3875) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)

@@ -1,0 +1,41 @@
+
+> thinkfy@0.1.0 lint
+> npm run lint:web
+
+
+> thinkfy@0.1.0 lint:web
+> npm run lint -w @thinkfy/web
+
+
+> @thinkfy/web@0.1.0 lint
+> eslint
+
+[BABEL] Note: The code generator has deoptimised the styling of /Users/jacknguyen/.codex/worktrees/7a8b/DebateLab/apps/web/src/types/supabase.ts as it exceeds the max of 500KB.
+
+/Users/jacknguyen/.codex/worktrees/7a8b/DebateLab/apps/web/src/components/admin/courses/CourseTable.tsx
+  19:19  warning  'setCourses' is assigned a value but never used      @typescript-eslint/no-unused-vars
+  23:10  warning  'selectedIds' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  23:23  warning  'setSelectedIds' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/jacknguyen/.codex/worktrees/7a8b/DebateLab/apps/web/src/components/admin/courses/ModuleItem.tsx
+  19:45  warning  'courseId' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/jacknguyen/.codex/worktrees/7a8b/DebateLab/apps/web/src/components/admin/courses/StudentAssignment.tsx
+  22:9   warning  'router' is assigned a value but never used     @typescript-eslint/no-unused-vars
+  26:10  warning  'searching' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/jacknguyen/.codex/worktrees/7a8b/DebateLab/apps/web/src/components/admin/courses/builders/FillBlankBuilder.tsx
+  3:10  warning  'useEffect' is defined but never used  @typescript-eslint/no-unused-vars
+  3:21  warning  'useMemo' is defined but never used    @typescript-eslint/no-unused-vars
+
+/Users/jacknguyen/.codex/worktrees/7a8b/DebateLab/apps/web/src/components/onboarding/path-reveal-step.tsx
+  72:7  warning  Do not use `window.location.href` to navigate to internal Next.js pages. Use `redirect()` in the render phase, or `useRouter().push()` in Client Components' event handlers instead. See: https://nextjs.org/docs/messages/no-location-assign-relative-destination  @next/next/no-location-assign-relative-destination
+
+/Users/jacknguyen/.codex/worktrees/7a8b/DebateLab/apps/web/src/components/profile/profile-analytics-tab.tsx
+  51:6  warning  'PracticeMinutesInsight' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/jacknguyen/.codex/worktrees/7a8b/DebateLab/apps/web/src/lib/services/analyticsService.ts
+   5:18  warning  'error' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  33:18  warning  'error' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+✖ 12 problems (0 errors, 12 warnings)

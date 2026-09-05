@@ -1,0 +1,28 @@
+
+> thinkfy@0.1.0 ci:checks
+> tsx scripts/ci/run-checks.ts
+
+
+──── RLS coverage ────
+RLS coverage: all public tables enable RLS and have at least one policy.
+(node:7848) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+──── No inline supabase in pages/components ────
+Inline Supabase query ban: no new inline queries in pages/components.
+(node:7851) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+──── Typed score columns (no untyped Json) ────
+Typed score columns: no untyped Json score/band columns found.
+(node:7853) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+──── No new Vercel Function entrypoints ────
+No-new-Vercel-Functions gate: passed (11 approved deletion(s) allowed).
+(node:7855) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+
+ci:checks: all checks passed.
+(node:7845) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
