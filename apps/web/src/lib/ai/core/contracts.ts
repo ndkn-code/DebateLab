@@ -8,6 +8,7 @@ export const AI_TASKS = [
   "ielts_writing_adjudication",
   "stt_transcript_repair",
   "coach_chat",
+  "teacher_operations",
   "coach_metadata",
   "ielts_coach_chat",
   "ielts_coach_metadata",

@@ -1,0 +1,34 @@
+# Template: replace PROJECT_ID, PROJECT_NUMBER, REGION, TAG and HTTPS origins.
+# IAM must remain authenticated: do not grant allUsers roles/run.invoker.
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: thinkfy-center-operations
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/minScale: '0'
+        autoscaling.knative.dev/maxScale: '3'
+    spec:
+      serviceAccountName: center-operations@PROJECT_ID.iam.gserviceaccount.com
+      containerConcurrency: 20
+      timeoutSeconds: 300
+      containers:
+        - image: REGION-docker.pkg.dev/PROJECT_ID/thinkfy/center-operations:TAG
+          resources:
+            limits: { cpu: '1', memory: 512Mi }
+          env:
+            - { name: SUPABASE_URL, value: 'https://SUPABASE_PROJECT.supabase.co' }
+            - name: SUPABASE_SERVICE_ROLE_KEY
+              valueFrom: { secretKeyRef: { name: supabase-service-role-key, key: latest } }
+            - { name: CENTER_KMS_KEY_NAME, value: 'projects/PROJECT_ID/locations/REGION/keyRings/thinkfy/cryptoKeys/center-providers' }
+            - { name: THINKFY_APP_ORIGIN, value: 'https://thinkfy.net' }
+            - { name: CENTER_CALLBACK_ORIGIN, value: 'https://GATEWAY_HOST' }
+            - { name: GOOGLE_CLIENT_ID, value: 'OAUTH_CLIENT_ID.apps.googleusercontent.com' }
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom: { secretKeyRef: { name: google-client-secret, key: latest } }
+            - { name: GCP_PROJECT_ID, value: 'PROJECT_ID' }
+            - { name: GCP_PUBSUB_TOPIC, value: 'lms-material-processing' }
+            - { name: GOOGLE_PICKER_APP_ID, value: 'PROJECT_NUMBER' }
+            - { name: GOOGLE_PICKER_API_KEY, value: 'BROWSER_RESTRICTED_PICKER_KEY' }
