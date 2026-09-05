@@ -116,3 +116,45 @@ test("rejects an extraction that has no valid taxonomy candidates", () => {
   assert.throws(() => questionCandidates({ markdown: '{"questions":[]}' }), /EMPTY_OR_INVALID/);
   assert.throws(() => questionCandidates({ items: [{ question_type: "invented_type", prompt: "x" }] }), /INVALID_QUESTION_CANDIDATE/);
 });
+
+test("accepts JSON code items mixed with original markdown and deduplicates representations", () => {
+  const result = questionCandidates({
+    items: [{ type: "code", language: "json", value: JSON.stringify({ questions: [{ question_type: "mcq_single", prompt: "Choose one" }] }) }],
+    markdown: "Original passage text\n\n```json\n{\"questions\":[{\"question_type\":\"mcq_single\",\"prompt\":\"Choose one\"},{\"question_type\":\"short_answer\",\"prompt\":\"Write one word\"}]}\n```",
+  });
+  assert.deepEqual(result.map((item) => item.prompt), ["Choose one", "Write one word"]);
+});
+
+test("combines valid JSON envelopes from multiple markdown blocks and pages", () => {
+  const result = questionCandidates({
+    markdown: [
+      "Page one\n```json\n{\"questions\":[{\"question_type\":\"mcq_single\",\"prompt\":\"Page one\"}]}\n```",
+      "Page two\n```json\n{\"questions\":[{\"question_type\":\"writing_task2_essay\",\"prompt\":\"Page two\"}]}\n```",
+    ].join("\n\n"),
+  });
+  assert.deepEqual(result.map((item) => item.prompt), ["Page one", "Page two"]);
+});
+
+test("fails closed for malformed or invalid JSON question blocks", () => {
+  assert.throws(() => questionCandidates({ markdown: '```json\n{"questions":[{"question_type":"mcq_single"}]}\n```' }), /INVALID_QUESTION_CANDIDATE/);
+  assert.throws(() => questionCandidates({ items: [{ type: "code", language: "json", value: "{\\\"questions\\\":[}" }] }), /INVALID_QUESTION_CANDIDATE/);
+  assert.throws(() => questionCandidates({ markdown: "```json\n{\"questions\":[{\"question_type\":\"invented_type\",\"prompt\":\"x\"}]}\n```" }), /INVALID_QUESTION_CANDIDATE/);
+});
+
+test("preserves repeated prompts with different answers and page evidence", () => {
+  const questions = [
+    { question_type: "mcq_single", prompt: "Choose the correct answer.", options: ["Monday", "Thursday"], answer: "B", page: 1 },
+    { question_type: "mcq_single", prompt: "Choose the correct answer.", options: ["Blue", "Green"], answer: "A", page: 2 },
+  ];
+  const envelope = JSON.stringify({ questions });
+  const markdown = ["Original source text", "```json", envelope, "```"].join("\n");
+  assert.deepEqual(questionCandidates({ items: [{ type: "code", language: "json", value: envelope }], markdown }), questions);
+  assert.deepEqual(questionCandidates({ markdown }), questions);
+});
+
+test("rejects invalid direct JSON and a malformed later extraction block", () => {
+  assert.throws(() => questionCandidates({ markdown: '{"questions":[{"question_type":"invented_type","prompt":"x"}]}' }), /INVALID_QUESTION_CANDIDATE/);
+  const valid = JSON.stringify({ questions: [{ question_type: "short_answer", prompt: "Name it." }] });
+  assert.throws(() => questionCandidates({ markdown: ["```json", valid, "```", "```json", '{"questions": [}', "```"].join("\n") }), /INVALID_QUESTION_CANDIDATE/);
+  assert.throws(() => questionCandidates({ markdown: ["```json", valid, "```", "```json", '{"questions": ['].join("\n") }), /INVALID_QUESTION_CANDIDATE/);
+});
