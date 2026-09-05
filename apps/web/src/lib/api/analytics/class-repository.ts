@@ -8,6 +8,7 @@ import type {
   PeriodAttendance,
   ClassAnalytics,
 } from "@/lib/analytics/contracts";
+import type { IeltsGradebookSnapshot } from "@/lib/api/ielts/gradebook-repository";
 import {
   centreTimezone,
   createTypedServerClient,
@@ -16,22 +17,53 @@ import {
 import { readChunkedPages, readPages, requireRows } from "./query-pages";
 import { dateInZone, reportingPeriod } from "./reporting-period";
 
+export interface ClassAttendanceDetail {
+  userId: string;
+  date: string;
+  status: string;
+}
+
+export interface ClassAnalyticsData {
+  report: ClassAnalytics;
+  snapshot: IeltsGradebookSnapshot;
+  weakSubskills: WeakSubskillInput[];
+  attendance: ClassAttendanceDetail[];
+  sourceErrors: Record<string, string>;
+}
+
 /** Authorized current-class response IDs are the capability for evidence reads. */
-export async function loadClassAnalytics(
+export async function loadAuthorizedClassAnalytics(
   classId: string,
   days: 7 | 30 | 90,
-): Promise<ClassAnalytics> {
-  const client = await createTypedServerClient();
-  const manager = await requireAnalyticsClass(client, classId);
+  client: Awaited<ReturnType<typeof createTypedServerClient>>,
+  manager: Awaited<ReturnType<typeof requireAnalyticsClass>>,
+  trusted: ReturnType<typeof createTypedAdminClient>,
+): Promise<ClassAnalyticsData> {
   const clubId = manager.clubId!;
   const period = reportingPeriod(days, await centreTimezone(client, clubId));
-  // Authorization and tenant linkage have completed before this client exists.
-  const trusted = createTypedAdminClient();
   const snapshot = await loadIeltsClassGradebookSnapshot(
     client,
     { classId, clubId },
     trusted,
   );
+  return buildAuthorizedClassAnalytics(
+    classId,
+    clubId,
+    period,
+    snapshot,
+    client,
+    trusted,
+  );
+}
+
+async function buildAuthorizedClassAnalytics(
+  classId: string,
+  clubId: string,
+  period: ReturnType<typeof reportingPeriod>,
+  snapshot: IeltsGradebookSnapshot,
+  client: Awaited<ReturnType<typeof createTypedServerClient>>,
+  trusted: ReturnType<typeof createTypedAdminClient>,
+): Promise<ClassAnalyticsData> {
   const gradebook = snapshot.gradebook;
   const targets = new Map(
     gradebook.rows.flatMap((learner) =>
@@ -82,7 +114,7 @@ export async function loadClassAnalytics(
     readPages((from, to) =>
       client
         .from("class_attendance_sessions")
-        .select("id")
+        .select("id,session_date")
         .eq("class_id", classId)
         .gte("session_date", dateInZone(period.start, period.timezone))
         .lte("session_date", dateInZone(period.end, period.timezone))
@@ -157,14 +189,14 @@ export async function loadClassAnalytics(
       },
     ];
   });
-  const sessionIds = requireRows(sessionsResult, "attendance sessions").map(
-    (row) => row.id,
-  );
+  const sessions = requireRows(sessionsResult, "attendance sessions");
+  const sessionIds = sessions.map((row) => row.id);
+  const sessionDates = new Map(sessions.map((row) => [row.id, row.session_date]));
   const records = requireRows(
     await readChunkedPages([sessionIds, userIds], (chunks, from, to) =>
       client
         .from("class_attendance_records")
-        .select("user_id,status")
+        .select("session_id,user_id,status")
         .in("session_id", chunks[0])
         .in("user_id", chunks[1])
         .order("id")
@@ -173,7 +205,10 @@ export async function loadClassAnalytics(
     "attendance records",
   );
   const attendanceMap = new Map<string, PeriodAttendance>();
+  const attendance: ClassAttendanceDetail[] = [];
   for (const row of records) {
+    const date = sessionDates.get(row.session_id);
+    if (date) attendance.push({ userId: row.user_id, date, status: row.status });
     const count = attendanceMap.get(row.user_id) ?? {
       learnerId: row.user_id,
       present: 0,
@@ -203,5 +238,31 @@ export async function loadClassAnalytics(
     subskills:
       statesResult.error || labelsResult.error ? "unavailable" : "available",
   };
-  return report;
+  const sourceErrors: Record<string, string> = {};
+  if (statesResult.error) sourceErrors.subskills = statesResult.error.message;
+  if (labelsResult.error) sourceErrors.subskillLabels = labelsResult.error.message;
+  return {
+    report,
+    snapshot,
+    weakSubskills,
+    attendance,
+    sourceErrors,
+  };
+}
+
+export async function loadClassAnalytics(
+  classId: string,
+  days: 7 | 30 | 90,
+): Promise<ClassAnalytics> {
+  const client = await createTypedServerClient();
+  const manager = await requireAnalyticsClass(client, classId);
+  const trusted = createTypedAdminClient();
+  const result = await loadAuthorizedClassAnalytics(
+    classId,
+    days,
+    client,
+    manager,
+    trusted,
+  );
+  return result.report;
 }

@@ -1,14 +1,45 @@
+import { parseFollowupContext } from "@/lib/analytics/learner-followup-navigation";
 import { getLocale } from "next-intl/server";
-import { getParentBandReport, getParentReportRoster, exportParentBandReport } from "@/app/actions/admin-classes";
+import {
+  getParentBandReport,
+  getParentReportRoster,
+  exportParentBandReport,
+} from "@/app/actions/admin-classes";
 import { ParentBandReportScreen } from "@/components/ielts/parent-report";
 import { defaultReportMonth } from "@/lib/ielts/parent-report/request";
 
-export default async function ParentBandReportPage({ params, searchParams }: {
+export default async function ParentBandReportPage({
+  params,
+  searchParams,
+}: {
   params: Promise<{ classId: string; studentId: string }>;
-  searchParams: Promise<{ month?: string }>;
+  searchParams: Promise<{
+    month?: string;
+    attention?: string;
+    days?: string;
+    reasons?: string;
+  }>;
 }) {
-  const [{ classId, studentId }, query, locale] = await Promise.all([params, searchParams, getLocale()]);
+  const [{ classId, studentId }, query, locale] = await Promise.all([
+    params,
+    searchParams,
+    getLocale(),
+  ]);
   const roster = await getParentReportRoster({ classId });
-  const report = await getParentBandReport({ classId, studentId, month: query.month ?? defaultReportMonth(new Date(), roster.timeZone) });
-  return <ParentBandReportScreen key={`${studentId}:${report.period.month}`} initialReport={report} roster={roster} locale={locale === "en" ? "en" : "vi"} getReport={getParentBandReport} exportReport={exportParentBandReport} />;
+  const report = await getParentBandReport({
+    classId,
+    studentId,
+    month: query.month ?? defaultReportMonth(new Date(), roster.timeZone),
+  });
+  return (
+    <ParentBandReportScreen
+      key={`${studentId}:${report.period.month}`}
+      followupContext={parseFollowupContext(query)}
+      initialReport={report}
+      roster={roster}
+      locale={locale === "en" ? "en" : "vi"}
+      getReport={getParentBandReport}
+      exportReport={exportParentBandReport}
+    />
+  );
 }

@@ -86,6 +86,8 @@ interface Props {
   data: AdminClassDetailData;
   ieltsWorkbench?: IeltsTeacherWorkbenchData;
   ieltsInitialTab?: WorkbenchTab;
+  initialAnalytics?: boolean;
+  analyticsDays?: 7 | 30 | 90;
   ieltsInitialResponseId?: string | null;
   /**
    * `ROSTER_IMPORT_V1` is a server-evaluated const and this file is a client
@@ -538,6 +540,8 @@ export function ClassDetailDashboard({
   data,
   ieltsWorkbench,
   ieltsInitialTab,
+  initialAnalytics = false,
+  analyticsDays = 30,
   ieltsInitialResponseId,
   rosterImportEnabled = false,
   clubId = null,
@@ -546,7 +550,7 @@ export function ClassDetailDashboard({
   const locale = useLocale() === "vi" ? "vi" : "en";
   const router = useRouter();
   const [tab, setTab] = useState<Tab>(
-    data.classInfo.programType === "ielts" ? "workbench" : "overview",
+    data.classInfo.programType === "ielts" ? (initialAnalytics ? "analytics" : "workbench") : "overview",
   );
   const [attendanceOpen, setAttendanceOpen] = useState(false);
   const [studentResults, setStudentResults] = useState<
@@ -825,7 +829,7 @@ export function ClassDetailDashboard({
 
       {tab === "analytics" && data.classInfo.programType === "ielts" && (
         <div role="tabpanel" id="class-panel-analytics" aria-labelledby="class-tab-analytics">
-          <ClassAnalyticsPanel classId={data.classInfo.id} locale={locale} />
+          <ClassAnalyticsPanel classId={data.classInfo.id} locale={locale} initialDays={analyticsDays} />
         </div>
       )}
 

@@ -1,5 +1,6 @@
 "use client";
 import "./analytics-print.css";
+import { learnerReportHref } from "@/lib/analytics/learner-followup-navigation";
 import {
   useEffect,
   useSyncExternalStore,
@@ -48,11 +49,13 @@ import { PostMockReportView } from "./PostMockReportView";
 export function ClassAnalyticsPanel({
   classId,
   locale = "en",
+  initialDays = 30,
 }: {
   classId: string;
   locale?: AnalyticsLocale;
+  initialDays?: 7 | 30 | 90;
 }) {
-  const [days, setDays] = useState<7 | 30 | 90>(30);
+  const [days, setDays] = useState<7 | 30 | 90>(initialDays);
   const [version, setVersion] = useState(0);
   const [state, setState] = useState<{
     key: string;
@@ -139,6 +142,11 @@ export function ClassAnalyticsView({
     () => true,
     () => false,
   );
+  useEffect(() => {
+    const id = window.location.hash.slice(1);
+    if (id.startsWith("learner-attention-"))
+      document.getElementById(id)?.scrollIntoView({ block: "center" });
+  }, []);
   const post = buildPostMockReport(report, assessmentId);
   const selectedSkill = report.skillSummaries.find(
     (item) => item.skill === skill,
@@ -252,9 +260,10 @@ export function ClassAnalyticsView({
             {report.attention.map((learner) => (
               <li
                 key={learner.learnerId}
+                id={`learner-attention-${learner.learnerId}`}
                 className="flex flex-wrap items-start justify-between gap-3 py-3"
               >
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1 break-words">
                   <p className="type-body font-medium">{learner.displayName}</p>
                   <p className="mt-1 type-caption text-on-surface-variant">
                     {learner.reasons
@@ -262,12 +271,18 @@ export function ClassAnalyticsView({
                       .join(" · ")}
                   </p>
                 </div>
-                <Link
-                  className="type-label text-primary underline-offset-4 hover:underline"
-                  href={`/${locale}/dashboard/teacher/classes/${report.classId}?workbenchTab=${learner.reasons[0].code === "overdue_assignment" ? "assignments" : "gradebook"}`}
+                <Button
+                  nativeButton={false}
+                  variant="outline"
+                  className="h-auto min-h-8 whitespace-normal text-left"
+                  render={
+                    <Link
+                      href={`/${locale}${learnerReportHref(report.classId, learner.learnerId, { days: report.period.days, reasons: learner.reasons.map((reason) => reason.code) })}`}
+                    />
+                  }
                 >
-                  {vi ? "Mở lớp học" : "Open class workbench"}
-                </Link>
+                  {vi ? "Xem báo cáo học viên" : "View learner report"}
+                </Button>
               </li>
             ))}
           </ul>

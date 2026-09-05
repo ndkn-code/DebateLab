@@ -1,3 +1,4 @@
+import { attentionDays } from "@/lib/analytics/learner-followup-navigation";
 import { notFound } from "next/navigation";
 import { ClassDetailDashboard } from "@/components/admin/classes/ClassDetailDashboard";
 import type { WorkbenchTab } from "@/components/admin/classes/IeltsTeacherWorkbench";
@@ -49,6 +50,10 @@ export default async function TeacherClassWorkspacePage({
     : query.responseId;
   return (
     <ClassDetailDashboard
+      initialAnalytics={
+        (Array.isArray(query.classTab) ? query.classTab[0] : query.classTab) === "analytics"
+      }
+      analyticsDays={attentionDays(query.attentionDays)}
       classesHref="/dashboard/teacher/classes"
       data={data}
       ieltsWorkbench={ieltsWorkbench}
