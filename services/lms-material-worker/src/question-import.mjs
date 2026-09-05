@@ -32,25 +32,95 @@ export function assertQuestionImportBinding(batch, material, document) {
   }
 }
 
-export function questionCandidates(job) {
-  const taxonomy = new Set(["mcq_single", "mcq_multi", "true_false_notgiven", "yes_no_notgiven", "matching_headings", "matching_information", "matching_features", "matching_sentence_endings", "sentence_completion", "summary_completion", "note_table_form_flowchart_completion", "short_answer", "diagram_label", "map_plan_label", "writing_task1_academic", "writing_task1_general", "writing_task2_essay", "speaking_part1", "speaking_part2_cuecard", "speaking_part3"]);
-  const items = Array.isArray(job.items) ? job.items : [];
-  const structured = items.filter((item) => item && typeof item === "object" && typeof item.question_type === "string" && taxonomy.has(item.question_type) && typeof (item.prompt ?? item.question) === "string");
-  if (items.some((item) => item && typeof item === "object" && ("question_type" in item || "prompt" in item || "question" in item)) && structured.length !== items.filter((item) => item && typeof item === "object" && ("question_type" in item || "prompt" in item || "question" in item)).length) throw new Error("LLAMAPARSE_INVALID_QUESTION_CANDIDATE");
-  if (structured.length) return structured;
-  if (typeof job.markdown !== "string") throw new Error("LLAMAPARSE_EMPTY_OR_INVALID_RESULT");
-  const candidate = job.markdown.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/, "");
-  try {
-    const parsed = JSON.parse(candidate);
-    const values = Array.isArray(parsed) ? parsed : Array.isArray(parsed?.questions) ? parsed.questions : Array.isArray(parsed?.pages) ? parsed.pages.flatMap((page) => Array.isArray(page) ? page : Array.isArray(page?.questions) ? page.questions : page?.questions ? [page.questions] : []) : [];
-    const normalized = values.filter((item) => item && typeof item === "object" && taxonomy.has(item.question_type) && typeof (item.prompt ?? item.question) === "string");
-    if (values.length && normalized.length !== values.length) throw new Error("LLAMAPARSE_INVALID_QUESTION_CANDIDATE");
-    if (!normalized.length) throw new Error("LLAMAPARSE_EMPTY_OR_INVALID_RESULT");
-    return normalized;
-  } catch (error) {
-    if (error instanceof Error && error.message.startsWith("LLAMAPARSE_INVALID")) throw error;
-    throw new Error("LLAMAPARSE_EMPTY_OR_INVALID_RESULT");
+const QUESTION_TAXONOMY = new Set(["mcq_single", "mcq_multi", "true_false_notgiven", "yes_no_notgiven", "matching_headings", "matching_information", "matching_features", "matching_sentence_endings", "sentence_completion", "summary_completion", "note_table_form_flowchart_completion", "short_answer", "diagram_label", "map_plan_label", "writing_task1_academic", "writing_task1_general", "writing_task2_essay", "speaking_part1", "speaking_part2_cuecard", "speaking_part3"]);
+
+function envelopeValues(parsed) {
+  if (Array.isArray(parsed)) return parsed;
+  if (!parsed || typeof parsed !== "object") return [];
+  if ("questions" in parsed) {
+    if (Array.isArray(parsed.questions)) return parsed.questions;
+    if (parsed.questions && typeof parsed.questions === "object") return [parsed.questions];
+    throw new Error("LLAMAPARSE_INVALID_QUESTION_CANDIDATE");
   }
+  if ("pages" in parsed) {
+    if (!Array.isArray(parsed.pages)) throw new Error("LLAMAPARSE_INVALID_QUESTION_CANDIDATE");
+    return parsed.pages.flatMap(envelopeValues);
+  }
+  return [];
+}
+
+function parseQuestionJson(value) {
+  let parsed;
+  try {
+    parsed = typeof value === "string" ? JSON.parse(value) : value;
+  } catch {
+    throw new Error("LLAMAPARSE_INVALID_QUESTION_CANDIDATE");
+  }
+  const values = envelopeValues(parsed);
+  if (values.some((item) => !item || typeof item !== "object" || !QUESTION_TAXONOMY.has(item.question_type) || typeof (item.prompt ?? item.question) !== "string")) {
+    throw new Error("LLAMAPARSE_INVALID_QUESTION_CANDIDATE");
+  }
+  return values;
+}
+
+function markdownQuestionValues(markdown) {
+  if (typeof markdown !== "string" || !markdown.trim()) return [];
+  let parsed;
+  let directJson = false;
+  try {
+    parsed = JSON.parse(markdown.trim());
+    directJson = true;
+  } catch { /* LlamaParse can retain source text around its JSON output. */ }
+  // Keep validation outside the parse catch: invalid candidates must not disappear.
+  if (directJson) return parseQuestionJson(parsed);
+  const values = [];
+  const fence = /```(?:json)?[ \t]*\r?\n([\s\S]*?)```/gi;
+  const remainder = markdown.replace(fence, (_block, body) => {
+    values.push(...parseQuestionJson(body));
+    return "";
+  });
+  if (/```json\b/i.test(remainder)) throw new Error("LLAMAPARSE_INVALID_QUESTION_CANDIDATE");
+  return values;
+}
+
+function mergeExtractionRepresentations(items, markdownItems) {
+  const fingerprint = (item) => JSON.stringify(item, (_key, value) => {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+    return Object.fromEntries(Object.keys(value).sort().map((key) => [key, value[key]]));
+  });
+  const unmatched = new Map();
+  for (const item of items) {
+    const key = fingerprint(item);
+    unmatched.set(key, (unmatched.get(key) ?? 0) + 1);
+  }
+  const merged = [...items];
+  for (const item of markdownItems) {
+    const key = fingerprint(item);
+    const matches = unmatched.get(key) ?? 0;
+    if (matches) unmatched.set(key, matches - 1);
+    else merged.push(item);
+  }
+  return merged;
+}
+
+export function questionCandidates(job) {
+  const items = Array.isArray(job.items) ? job.items : [];
+  const directItems = [];
+  const codeItems = [];
+  for (const item of items) {
+    if (!item || typeof item !== "object") continue;
+    if (item.type === "code" && String(item.language ?? "").toLowerCase() === "json") {
+      codeItems.push(...parseQuestionJson(item.value ?? item.content));
+    } else if ("question_type" in item || "prompt" in item || "question" in item) {
+      if (!QUESTION_TAXONOMY.has(item.question_type) || typeof (item.prompt ?? item.question) !== "string") throw new Error("LLAMAPARSE_INVALID_QUESTION_CANDIDATE");
+      directItems.push(item);
+    }
+  }
+  // Preserve the existing authoritative structured-item path. Code blocks and
+  // markdown can overlap: merge complete payloads by occurrence, never by prompt.
+  const values = directItems.length ? directItems : mergeExtractionRepresentations(codeItems, markdownQuestionValues(job.markdown));
+  if (!values.length) throw new Error("LLAMAPARSE_EMPTY_OR_INVALID_RESULT");
+  return values;
 }
 
 export async function processQuestionImport({ batch, material, document, download, parse, persist, inspect = inspectPdfBytes }) {
