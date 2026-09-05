@@ -82,3 +82,7 @@ Both recovery and the usable shell with unavailable-navigation notice passed EN/
 These checks created Git objects only; they did not merge either draft into the working branch or main.
 
 The clean PR49 virtual tree was exported to a disposable `/tmp/thinkfy-auth-pr49.*` directory and passed TypeScript checking against the installed dependency tree. No source files from that export were copied back. PR47's known semantic conflicts remain intentionally unresolved in this independent draft.
+
+## Root CI reconciliation — 2026-09-05
+
+CI at c95f78a9 failed dashboard, IELTS mock and leaderboards because those CLI tests now import the server-only request-budget module indirectly through the Supabase server client. The implementation's focused suites did not exercise those entrypoints. In a separate root-owned checkout, only the affected server-data test commands were given `--conditions=react-server`; browser/component test commands retain their existing runtime. The server-only guard remains intact. All three previously failing suites and the complete `npm test` runner (86 suites) pass locally. CI is re-run on the corrected draft head; no production code, merge or deployment is included in this correction.
