@@ -1,7 +1,8 @@
 # Center operations deployment runbook
 
 This service is a private Cloud Run worker/API. This document describes activation steps;
-it does not claim that infrastructure, OAuth clients, merchants, or Zalo assets are live.
+see [activation.md](activation.md) for verified infrastructure/OAuth state and remaining
+release steps. Merchant and Zalo activation remain separate.
 
 ## Runtime configuration
 
@@ -65,7 +66,10 @@ product workflow exposes them, so refund handling remains manual operator recove
 3. Build `services/center-operations/Dockerfile` with that directory as its context.
    Replace every placeholder in `cloudrun.yaml` and `gateway.yaml` before deployment.
    Grant the runtime service account KMS encrypter/decrypter on this key, Secret Accessor
-   on the two named secrets, and Pub/Sub Publisher on the existing LMS topic.
+   on each named secret reference, and Pub/Sub Publisher on the existing LMS topic.
+   The `*.production.yaml` manifests capture the configured production resource values.
+   Deploy the runtime in Singapore and the callback gateway in Tokyo; API Gateway does
+   not offer Singapore in this project's available locations.
 4. Deploy Cloud Run with authenticated IAM access. Bind `roles/run.invoker` to the
    gateway backend identity, scheduler identity, and federated application service account.
    Deploy the gateway API config with that backend identity. Its backend address and
