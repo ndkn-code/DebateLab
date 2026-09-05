@@ -1,7 +1,14 @@
 "use client";
 
-import { useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { useSearchParams } from "next/navigation";
+import {
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+  type FormEvent,
+  type KeyboardEvent,
+} from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Link, useRouter } from "@/i18n/navigation";
 import {
   BookOpenText,
@@ -82,14 +89,8 @@ const SURFACE_COPY: Record<
     ],
   },
   "review-queue": {
-    en: [
-      "Review Queue",
-      "One deterministic inbox for homework, IELTS Writing, and Speaking.",
-    ],
-    vi: [
-      "Hàng đợi chấm bài",
-      "Một hộp thư ổn định cho bài tập, IELTS Writing và Speaking.",
-    ],
+    en: ["Review Queue", "Student work ready for your feedback."],
+    vi: ["Hàng đợi chấm bài", "Bài làm của học viên đang chờ bạn nhận xét."],
   },
   assignments: {
     en: [
@@ -256,6 +257,95 @@ function SearchField({
 
 type WriteNotice = { tone: "ok" | "error"; message: string } | null;
 
+type TeacherDataSource =
+  | "calendar"
+  | "details"
+  | "reviews"
+  | "assignments"
+  | "materials"
+  | "announcements"
+  | "gradebook";
+
+function RecoveryBanner({
+  data,
+  source,
+  children,
+}: {
+  data: TeacherWorkspacePresentation;
+  source: TeacherDataSource;
+  children?: React.ReactNode;
+}) {
+  const vi = data.locale === "vi";
+  const router = useRouter();
+  const status = data.dataStatus?.[source];
+  const [pending, startTransition] = useTransition();
+  if (status !== "unavailable") return null;
+  return (
+    <div
+      className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-control border border-outline-variant bg-surface-container-low px-3 py-2.5"
+      role="alert"
+    >
+      <p className="min-w-0 flex-1 type-body-sm text-on-surface">
+        {children ??
+          (vi
+            ? "Phần dữ liệu này tạm thời chưa tải được. Bạn có thể thử lại."
+            : "This part of the workspace is temporarily unavailable. Try again to reload it.")}
+      </p>
+      <Button
+        variant="outline"
+        size="sm"
+        disabled={pending}
+        onClick={() => startTransition(() => router.refresh())}
+      >
+        {pending ? (vi ? "Đang tải…" : "Loading…") : vi ? "Thử lại" : "Retry"}
+      </Button>
+    </div>
+  );
+}
+
+function UnrequestedNotice({
+  data,
+  source,
+  href,
+}: {
+  data: TeacherWorkspacePresentation;
+  source: TeacherDataSource;
+  href: string;
+}) {
+  const vi = data.locale === "vi";
+  if (data.dataStatus?.[source] !== "not_requested") return null;
+  return (
+    <div
+      className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-control border border-outline-variant bg-surface-container-low px-3 py-2.5"
+      role="status"
+    >
+      <p className="type-body-sm text-on-surface-variant">
+        {source === "reviews"
+          ? vi
+            ? "Mở bài cần chấm để xem bài làm đang chờ nhận xét."
+            : "Open reviews to see student work waiting for feedback."
+          : vi
+            ? "Mở bài tập để xem bài đã giao cho lớp."
+            : "Open assignments to see the work set for this class."}
+      </p>
+      <Button
+        nativeButton={false}
+        render={<Link href={href} />}
+        variant="outline"
+        size="sm"
+      >
+        {source === "reviews"
+          ? vi
+            ? "Mở bài cần chấm"
+            : "Open reviews"
+          : vi
+            ? "Mở bài tập"
+            : "Open assignments"}
+      </Button>
+    </div>
+  );
+}
+
 /**
  * Client half of the teacher workspace write seam.
  *
@@ -295,7 +385,10 @@ function useTeacherWorkspaceWrite(locale: string) {
       const result = await action();
       if (result.ok) {
         resetKey(scope);
-        setNotice({ tone: "ok", message: teacherWorkspaceSavedMessage(locale) });
+        setNotice({
+          tone: "ok",
+          message: teacherWorkspaceSavedMessage(locale),
+        });
         router.refresh();
         return true;
       }
@@ -353,6 +446,16 @@ function ClassesSurface({ data }: { data: TeacherWorkspacePresentation }) {
           label={vi ? "Tìm lớp" : "Search classes"}
         />
       </div>
+      <UnrequestedNotice
+        data={data}
+        source="reviews"
+        href="/dashboard/teacher/review-queue"
+      />
+      <RecoveryBanner data={data} source="reviews">
+        {vi
+          ? "Số bài cần chấm chưa tải được. Lớp và thao tác mở lớp vẫn sẵn sàng."
+          : "Review counts are unavailable. Your classes and class actions are still ready."}
+      </RecoveryBanner>
       <div className="mt-3 grid gap-3 md:grid-cols-2 2xl:grid-cols-3">
         {classes.map((item) => (
           <article
@@ -368,8 +471,11 @@ function ClassesSurface({ data }: { data: TeacherWorkspacePresentation }) {
                   {item.title}
                 </h2>
                 <p className="mt-1 type-caption text-on-surface-variant">
-                  {item.studentCount || "—"} {vi ? "học viên" : "learners"} ·{" "}
-                  {item.room ?? (vi ? "Chưa có phòng" : "Room not set")}
+                  {item.metricsStatus && item.metricsStatus !== "ready"
+                    ? vi
+                      ? "Thông tin lớp tạm thời chưa có"
+                      : "Open a lesson to view class details"
+                    : `${item.studentCount} ${vi ? "học viên" : "learners"} · ${item.room ?? (vi ? "Chưa có phòng" : "Room not set")}`}
                 </p>
               </div>
               <span
@@ -383,8 +489,12 @@ function ClassesSurface({ data }: { data: TeacherWorkspacePresentation }) {
                   {vi ? "Tiến độ" : "Progress"}
                 </dt>
                 <dd className="type-body font-semibold tabular-nums text-on-surface">
-                  {item.completion || "—"}
-                  {item.completion ? "%" : ""}
+                  {item.metricsStatus === "ready" ||
+                  item.metricsStatus === undefined
+                    ? `${item.completion}%`
+                    : vi
+                      ? "Chưa tải"
+                      : "Unavailable"}
                 </dd>
               </div>
               <div>
@@ -392,8 +502,12 @@ function ClassesSurface({ data }: { data: TeacherWorkspacePresentation }) {
                   {vi ? "Có mặt" : "Attendance"}
                 </dt>
                 <dd className="type-body font-semibold tabular-nums text-on-surface">
-                  {item.attendanceRate || "—"}
-                  {item.attendanceRate ? "%" : ""}
+                  {item.metricsStatus === "ready" ||
+                  item.metricsStatus === undefined
+                    ? `${item.attendanceRate}%`
+                    : vi
+                      ? "Chưa tải"
+                      : "Unavailable"}
                 </dd>
               </div>
               <div>
@@ -401,17 +515,30 @@ function ClassesSurface({ data }: { data: TeacherWorkspacePresentation }) {
                   {vi ? "Cần chấm" : "To review"}
                 </dt>
                 <dd className="type-body font-semibold tabular-nums text-on-surface">
-                  {item.pendingReviews}
+                  {item.reviewsStatus === "ready" ||
+                  item.reviewsStatus === undefined
+                    ? item.pendingReviews
+                    : vi
+                      ? "Chưa tải"
+                      : "Unavailable"}
                 </dd>
               </div>
             </dl>
             <div className="mt-3 flex items-center justify-between gap-3">
               <p className="type-caption text-on-surface-variant">
-                {item.nextLessonAt
-                  ? `${vi ? "Tiếp theo" : "Next"}: ${formatDateTime(item.nextLessonAt, data.locale)}`
-                  : vi
-                    ? "Chưa có lịch"
-                    : "No upcoming lesson"}
+                {item.calendarStatus === "unavailable"
+                  ? vi
+                    ? "Lịch tạm thời chưa tải được"
+                    : "Calendar temporarily unavailable"
+                  : item.calendarStatus === "not_requested"
+                    ? vi
+                      ? "Mở lịch để xem buổi học"
+                      : "Open calendar to see lessons"
+                    : item.nextLessonAt
+                      ? `${vi ? "Tiếp theo" : "Next"}: ${formatDateTime(item.nextLessonAt, data.locale)}`
+                      : vi
+                        ? "Chưa có lịch"
+                        : "No upcoming lesson"}
               </p>
               <Button
                 nativeButton={false}
@@ -443,6 +570,10 @@ function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("needs_review");
   const [reviews, setReviews] = useState(data.reviews);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setReviews(data.reviews));
+    return () => cancelAnimationFrame(frame);
+  }, [data.reviews]);
   const [feedback, setFeedback] = useState("");
   const [score, setScore] = useState("");
   const [scoreMax, setScoreMax] = useState("");
@@ -465,6 +596,24 @@ function ReviewSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const canGrade = Boolean(
     selected?.submissionId && selected?.submissionUpdatedAt,
   );
+  useEffect(() => {
+    if (selected && !data.reviews.some((item) => item.key === selected.key)) {
+      const frame = requestAnimationFrame(() => setSelected(null));
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [data.reviews, selected]);
+  if (data.dataStatus?.reviews === "unavailable") {
+    return (
+      <>
+        <SurfaceHeader surface="review-queue" locale={data.locale} />
+        <RecoveryBanner data={data} source="reviews">
+          {vi
+            ? "Hàng đợi chấm bài chưa tải được. Thử lại để xem bài cần chấm."
+            : "The review queue is unavailable. Retry to see work that needs your attention."}
+        </RecoveryBanner>
+      </>
+    );
+  }
 
   function openReview(item: TeacherReviewPresentation) {
     setFeedback("");
@@ -838,6 +987,10 @@ function AssignmentsSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const [query, setQuery] = useState("");
   const [composerOpen, setComposerOpen] = useState(false);
   const [assignments, setAssignments] = useState(data.assignments);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setAssignments(data.assignments));
+    return () => cancelAnimationFrame(frame);
+  }, [data.assignments]);
   const write = useTeacherWorkspaceWrite(data.locale);
   const filtered = assignments.filter((item) =>
     `${item.title} ${item.classTitle}`
@@ -861,6 +1014,18 @@ function AssignmentsSurface({ data }: { data: TeacherWorkspacePresentation }) {
       current.map((item) =>
         item.id === assignment.id ? { ...item, status: "assigned" } : item,
       ),
+    );
+  }
+  if (data.dataStatus?.assignments === "unavailable") {
+    return (
+      <>
+        <SurfaceHeader surface="assignments" locale={data.locale} />
+        <RecoveryBanner data={data} source="assignments">
+          {vi
+            ? "Danh sách bài tập chưa tải được. Thử lại để xem và giao bài."
+            : "Assignments are unavailable. Retry to view and publish work."}
+        </RecoveryBanner>
+      </>
     );
   }
   return (
@@ -992,6 +1157,10 @@ function GradebookSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const vi = data.locale === "vi";
   const isDemo = data.source === "explicit_demo";
   const [scores, setScores] = useState(data.gradebook.scores);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setScores(data.gradebook.scores));
+    return () => cancelAnimationFrame(frame);
+  }, [data.gradebook.scores]);
   const [selectedCell, setSelectedCell] = useState<{
     studentId: string;
     assessmentId: string;
@@ -1003,12 +1172,34 @@ function GradebookSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const selectedAssessment = data.gradebook.assessments.find(
     (item) => item.id === selectedCell?.assessmentId,
   );
+  useEffect(() => {
+    if (
+      selectedCell &&
+      (!data.gradebook.students.some(
+        (item) => item.id === selectedCell.studentId,
+      ) ||
+        !data.gradebook.assessments.some(
+          (item) => item.id === selectedCell.assessmentId,
+        ))
+    ) {
+      const frame = requestAnimationFrame(() => setSelectedCell(null));
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [data.gradebook.assessments, data.gradebook.students, selectedCell]);
   const numericScore = Number(scoreInput);
   const scoreValid =
     scoreInput !== "" &&
     Number.isFinite(numericScore) &&
     numericScore >= 0 &&
     numericScore <= (selectedAssessment?.maxScore ?? 100);
+  if (data.dataStatus?.gradebook === "unavailable") {
+    return (
+      <>
+        <SurfaceHeader surface="gradebook" locale={data.locale} />
+        <RecoveryBanner data={data} source="gradebook" />
+      </>
+    );
+  }
   if (!data.gradebook.students.length || !data.gradebook.assessments.length) {
     return (
       <>
@@ -1185,19 +1376,39 @@ function AttendanceSurface({ data }: { data: TeacherWorkspacePresentation }) {
   );
   const write = useTeacherWorkspaceWrite(data.locale);
   const [sessionId, setSessionId] = useState(register.sessionId);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setSessionId(register.sessionId));
+    return () => cancelAnimationFrame(frame);
+  }, [register.sessionId]);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() =>
+      setStatuses(
+        Object.fromEntries(
+          register.students.map((student) => [student.id, student.status]),
+        ),
+      ),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [register.students]);
   const values = ["present", "late", "absent"] as const;
   const label = (value: (typeof values)[number]) =>
-    vi
-      ? { present: "Có mặt", late: "Đi muộn", absent: "Vắng" }[value]
-      : value;
+    vi ? { present: "Có mặt", late: "Đi muộn", absent: "Vắng" }[value] : value;
   const canWrite = Boolean(sessionId);
   const canOpenRegister = Boolean(
     !sessionId &&
-      register.classId &&
-      register.courseId &&
-      register.occurrenceId &&
-      register.sessionDate,
+    register.classId &&
+    register.courseId &&
+    register.occurrenceId &&
+    register.sessionDate,
   );
+  if (data.dataStatus?.details === "unavailable") {
+    return (
+      <>
+        <SurfaceHeader surface="attendance" locale={data.locale} />
+        <RecoveryBanner data={data} source="details" />
+      </>
+    );
+  }
 
   async function openRegister() {
     const scope = "attendance:open-register";
@@ -1364,10 +1575,22 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
   const vi = data.locale === "vi";
   const isDemo = data.source === "explicit_demo";
   const [query, setQuery] = useState("");
-  const importOrganizations = Array.from(new Set(data.classes.filter((item) => item.programType === "ielts").map((item) => item.organizationId)));
-  const [importOrganization, setImportOrganization] = useState(importOrganizations.length === 1 ? importOrganizations[0] : "");
+  const importOrganizations = Array.from(
+    new Set(
+      data.classes
+        .filter((item) => item.programType === "ielts")
+        .map((item) => item.organizationId),
+    ),
+  );
+  const [importOrganization, setImportOrganization] = useState(
+    importOrganizations.length === 1 ? importOrganizations[0] : "",
+  );
   const [composerOpen, setComposerOpen] = useState(false);
   const [materials, setMaterials] = useState(data.materials);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setMaterials(data.materials));
+    return () => cancelAnimationFrame(frame);
+  }, [data.materials]);
   const [selected, setSelected] = useState<
     TeacherWorkspacePresentation["materials"][number] | null
   >(null);
@@ -1376,6 +1599,20 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
       .toLowerCase()
       .includes(query.toLowerCase()),
   );
+  useEffect(() => {
+    if (selected && !data.materials.some((item) => item.id === selected.id)) {
+      const frame = requestAnimationFrame(() => setSelected(null));
+      return () => cancelAnimationFrame(frame);
+    }
+  }, [data.materials, selected]);
+  if (data.dataStatus?.materials === "unavailable") {
+    return (
+      <>
+        <SurfaceHeader surface="materials" locale={data.locale} />
+        <RecoveryBanner data={data} source="materials" />
+      </>
+    );
+  }
   return (
     <>
       <SurfaceHeader
@@ -1459,14 +1696,38 @@ function MaterialsSurface({ data }: { data: TeacherWorkspacePresentation }) {
           </div>
         </form>
       ) : null}
-      {LMS_QUESTION_IMPORT_ENABLED && !isDemo && importOrganizations.length > 1 ? (
+      {LMS_QUESTION_IMPORT_ENABLED &&
+      !isDemo &&
+      importOrganizations.length > 1 ? (
         <div className="my-3 min-w-0">
-          <label htmlFor="question-import-organization" className="type-label text-on-surface">
-            {vi ? "Chọn tổ chức theo lớp IELTS" : "Choose an organisation by IELTS class"}
+          <label
+            htmlFor="question-import-organization"
+            className="type-label text-on-surface"
+          >
+            {vi
+              ? "Chọn tổ chức theo lớp IELTS"
+              : "Choose an organisation by IELTS class"}
           </label>
-          <Select id="question-import-organization" value={importOrganization} onChange={(event) => setImportOrganization(event.target.value)}>
-            <option value="">{vi ? "Chọn tổ chức" : "Choose an organisation"}</option>
-            {importOrganizations.map((id) => <option key={id} value={id}>{data.classes.filter((item) => item.organizationId === id && item.programType === "ielts").map((item) => item.title).join(", ")}</option>)}
+          <Select
+            id="question-import-organization"
+            value={importOrganization}
+            onChange={(event) => setImportOrganization(event.target.value)}
+          >
+            <option value="">
+              {vi ? "Chọn tổ chức" : "Choose an organisation"}
+            </option>
+            {importOrganizations.map((id) => (
+              <option key={id} value={id}>
+                {data.classes
+                  .filter(
+                    (item) =>
+                      item.organizationId === id &&
+                      item.programType === "ielts",
+                  )
+                  .map((item) => item.title)
+                  .join(", ")}
+              </option>
+            ))}
           </Select>
         </div>
       ) : null}
@@ -1560,8 +1821,22 @@ function AnnouncementsSurface({
   const isDemo = data.source === "explicit_demo";
   const [composerOpen, setComposerOpen] = useState(false);
   const [announcements, setAnnouncements] = useState(data.announcements);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() =>
+      setAnnouncements(data.announcements),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [data.announcements]);
   const write = useTeacherWorkspaceWrite(data.locale);
   const composeScope = "announcement:new";
+  if (data.dataStatus?.announcements === "unavailable") {
+    return (
+      <>
+        <SurfaceHeader surface="announcements" locale={data.locale} />
+        <RecoveryBanner data={data} source="announcements" />
+      </>
+    );
+  }
   return (
     <>
       <SurfaceHeader
@@ -1741,6 +2016,8 @@ function ClassDetailSurface({
 }) {
   const vi = data.locale === "vi";
   const params = useSearchParams();
+  const pathname = usePathname();
+  const router = useRouter();
   const classItem =
     data.classes.find((item) => item.id === classId) ?? data.classes[0];
   const tabs = [
@@ -1760,8 +2037,17 @@ function ClassDetailSurface({
       ? (requestedTab as ClassWorkspaceTab)
       : "overview",
   );
+  const [isPending, startTransition] = useTransition();
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
   if (!classItem) return null;
+  function selectTab(nextTab: ClassWorkspaceTab) {
+    const nextParams = new URLSearchParams(params.toString());
+    nextParams.set("tab", nextTab);
+    setTab(nextTab);
+    startTransition(() => {
+      router.replace(`${pathname}?${nextParams.toString()}`, { scroll: false });
+    });
+  }
   const scopedData: TeacherWorkspacePresentation = {
     ...data,
     classes: [classItem],
@@ -1828,8 +2114,11 @@ function ClassDetailSurface({
               {classItem.title}
             </h1>
             <p className="mt-1 type-body-sm text-on-surface-variant">
-              {classItem.studentCount || "—"} {vi ? "học viên" : "learners"} ·{" "}
-              {classItem.room ?? (vi ? "Chưa có phòng" : "Room not set")}
+              {classItem.metricsStatus && classItem.metricsStatus !== "ready"
+                ? vi
+                  ? "Thông tin lớp tạm thời chưa tải được"
+                  : "Class details temporarily unavailable"
+                : `${classItem.studentCount} ${vi ? "học viên" : "learners"} · ${classItem.room ?? (vi ? "Chưa có phòng" : "Room not set")}`}
             </p>
           </div>
           <Button
@@ -1867,7 +2156,7 @@ function ClassDetailSurface({
               aria-selected={tab === item}
               aria-controls={`class-panel-${classItem.id}`}
               tabIndex={tab === item ? 0 : -1}
-              onClick={() => setTab(item)}
+              onClick={() => selectTab(item)}
               onKeyDown={(event: KeyboardEvent<HTMLButtonElement>) => {
                 let nextIndex: number | null = null;
                 if (event.key === "ArrowRight")
@@ -1879,7 +2168,7 @@ function ClassDetailSurface({
                 if (nextIndex === null) return;
                 event.preventDefault();
                 const nextTab = tabs[nextIndex];
-                setTab(nextTab);
+                selectTab(nextTab);
                 tabRefs.current[nextIndex]?.focus();
               }}
               className={cn(
@@ -1898,66 +2187,143 @@ function ClassDetailSurface({
         aria-labelledby={`class-tab-${classItem.id}-${tab}`}
         className="mt-4"
       >
-        {tab === "overview" ? (
-          <div className="grid gap-3 md:grid-cols-3">
-            <article className="rounded-control border border-outline-variant bg-surface p-4">
-              <GraduationCap className="size-5 text-primary" />
-              <p className="mt-3 type-caption text-on-surface-variant">
-                {vi ? "Tiến độ khóa học" : "Course progress"}
-              </p>
-              <p className="type-title font-semibold text-on-surface">
-                {classItem.completion || "—"}
-                {classItem.completion ? "%" : ""}
-              </p>
-            </article>
-            <article className="rounded-control border border-outline-variant bg-surface p-4">
-              <Users className="size-5 text-primary" />
-              <p className="mt-3 type-caption text-on-surface-variant">
-                {vi ? "Tỷ lệ có mặt" : "Attendance rate"}
-              </p>
-              <p className="type-title font-semibold text-on-surface">
-                {classItem.attendanceRate || "—"}
-                {classItem.attendanceRate ? "%" : ""}
-              </p>
-            </article>
-            <article className="rounded-control border border-outline-variant bg-surface p-4">
-              <ClipboardList className="size-5 text-primary" />
-              <p className="mt-3 type-caption text-on-surface-variant">
-                {vi ? "Cần chấm" : "Needs review"}
-              </p>
-              <p className="type-title font-semibold text-on-surface">
-                {classItem.pendingReviews}
-              </p>
-            </article>
+        {isPending ? (
+          <div
+            className="rounded-control border border-outline-variant bg-surface-container-low px-4 py-6 type-body-sm text-on-surface-variant"
+            role="status"
+          >
+            {vi ? "Đang mở không gian lớp…" : "Opening class workspace…"}
           </div>
         ) : null}
-        {tab === "assignments" ? (
-          <AssignmentTable
-            assignments={data.assignments.filter(
-              (item) => item.classId === classItem.id,
-            )}
-            locale={data.locale}
-          />
+        {!isPending && tab === "overview" ? (
+          <>
+            {data.dataStatus?.details === "not_requested" ? (
+              <div
+                className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-control border border-outline-variant bg-surface-container-low px-3 py-2.5"
+                role="status"
+              >
+                <p className="type-body-sm text-on-surface-variant">
+                  {vi
+                    ? "Mở lịch hoặc hàng đợi chấm bài để tải thông tin liên quan."
+                    : "Open calendar or the review queue to load related information."}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    nativeButton={false}
+                    render={
+                      <Link
+                        href={`/dashboard/teacher/calendar?classId=${classItem.id}`}
+                      />
+                    }
+                    variant="outline"
+                    size="sm"
+                  >
+                    {vi ? "Mở lịch" : "Open calendar"}
+                  </Button>
+                  <Button
+                    nativeButton={false}
+                    render={
+                      <Link
+                        href={`/dashboard/teacher/review-queue?classId=${classItem.id}`}
+                      />
+                    }
+                    variant="outline"
+                    size="sm"
+                  >
+                    {vi ? "Mở hàng đợi" : "Open reviews"}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+            <div className="grid gap-3 md:grid-cols-3">
+              <article className="rounded-control border border-outline-variant bg-surface p-4">
+                <GraduationCap className="size-5 text-primary" />
+                <p className="mt-3 type-caption text-on-surface-variant">
+                  {vi ? "Tiến độ khóa học" : "Course progress"}
+                </p>
+                <p className="type-title font-semibold text-on-surface">
+                  {classItem.metricsStatus === "ready" ||
+                  classItem.metricsStatus === undefined
+                    ? `${classItem.completion}%`
+                    : vi
+                      ? "Chưa tải"
+                      : "Unavailable"}
+                </p>
+              </article>
+              <article className="rounded-control border border-outline-variant bg-surface p-4">
+                <Users className="size-5 text-primary" />
+                <p className="mt-3 type-caption text-on-surface-variant">
+                  {vi ? "Tỷ lệ có mặt" : "Attendance rate"}
+                </p>
+                <p className="type-title font-semibold text-on-surface">
+                  {classItem.metricsStatus === "ready" ||
+                  classItem.metricsStatus === undefined
+                    ? `${classItem.attendanceRate}%`
+                    : vi
+                      ? "Chưa tải"
+                      : "Unavailable"}
+                </p>
+              </article>
+              <article className="rounded-control border border-outline-variant bg-surface p-4">
+                <ClipboardList className="size-5 text-primary" />
+                <p className="mt-3 type-caption text-on-surface-variant">
+                  {vi ? "Cần chấm" : "Needs review"}
+                </p>
+                <p className="type-title font-semibold text-on-surface">
+                  {classItem.reviewsStatus === "ready" ||
+                  classItem.reviewsStatus === undefined
+                    ? classItem.pendingReviews
+                    : vi
+                      ? "Chưa tải"
+                      : "Unavailable"}
+                </p>
+              </article>
+            </div>
+          </>
         ) : null}
-        {tab === "gradebook" ? <GradebookSurface data={scopedData} /> : null}
-        {tab === "attendance" ? <AttendanceSurface data={scopedData} /> : null}
-        {tab === "materials" ? <MaterialsSurface data={scopedData} /> : null}
-        {tab === "announcements" ? (
+        {!isPending && tab === "assignments" ? (
+          data.dataStatus?.assignments === "not_requested" ? (
+            <UnrequestedNotice
+              data={data}
+              source="assignments"
+              href={`/dashboard/teacher/assignments?classId=${classItem.id}`}
+            />
+          ) : data.dataStatus?.assignments === "unavailable" ? (
+            <RecoveryBanner data={data} source="assignments" />
+          ) : (
+            <AssignmentTable
+              assignments={data.assignments.filter(
+                (item) => item.classId === classItem.id,
+              )}
+              locale={data.locale}
+            />
+          )
+        ) : null}
+        {!isPending && tab === "gradebook" ? (
+          <GradebookSurface data={scopedData} />
+        ) : null}
+        {!isPending && tab === "attendance" ? (
+          <AttendanceSurface data={scopedData} />
+        ) : null}
+        {!isPending && tab === "materials" ? (
+          <MaterialsSurface data={scopedData} />
+        ) : null}
+        {!isPending && tab === "announcements" ? (
           <AnnouncementsSurface data={scopedData} />
         ) : null}
-        {tab === "roster" ? (
+        {!isPending && tab === "roster" ? (
           <div className="rounded-control border border-outline-variant bg-surface p-4">
             <h2 className="type-body font-semibold text-on-surface">
               {vi ? "Danh sách lớp" : "Roster"}
             </h2>
             <p className="mt-2 type-body-sm text-on-surface-variant">
               {vi
-                ? "Hợp đồng hiện tại chỉ cung cấp tổng số học viên trong chi tiết sự kiện."
-                : "The current event contract exposes roster count; named rows appear after the roster projection is added."}
+                ? "Mở một buổi học trong lịch để xem danh sách học viên của buổi học đó."
+                : "Open a lesson in the calendar to see its student roster."}
             </p>
           </div>
         ) : null}
-        {tab === "lessons" ? (
+        {!isPending && tab === "lessons" ? (
           <div className="rounded-control border border-outline-variant bg-surface p-4">
             <h2 className="type-body font-semibold text-on-surface">
               {vi ? "Bài học sắp tới" : "Upcoming lessons"}
@@ -1977,6 +2343,7 @@ function ClassDetailSurface({
 function StateScreen({ data }: { data: TeacherWorkspacePresentation }) {
   const vi = data.locale === "vi";
   const denied = data.state === "denied";
+  const router = useRouter();
   return (
     <div className="grid min-h-[60vh] place-items-center px-6 py-12 text-center">
       <div className="max-w-md">
@@ -1998,14 +2365,41 @@ function StateScreen({ data }: { data: TeacherWorkspacePresentation }) {
               ? "Không gian giáo viên chỉ hiển thị các lớp được phân công hoặc quản lý."
               : "Teacher mode only shows classes assigned to you or managed by your organization."
             : vi
-              ? "Dữ liệu giáo viên chưa sẵn sàng trong môi trường này."
-              : "Teacher data is not ready in this environment."}
+              ? "Chưa kết nối được với dữ liệu lớp học. Hãy thử tải lại trang này."
+              : "We could not connect to your classroom data. Try loading this page again."}
         </p>
+        {!denied ? (
+          <Button
+            variant="outline"
+            className="mt-4"
+            onClick={() => router.refresh()}
+          >
+            {vi ? "Thử lại" : "Retry"}
+          </Button>
+        ) : null}
+        <div className="mt-3 flex flex-wrap justify-center gap-3">
+          <Button
+            nativeButton={false}
+            render={<Link href="/dashboard/teacher/classes" />}
+            variant="ghost"
+            size="sm"
+          >
+            {vi ? "Mở lớp" : "Open classes"}
+          </Button>
+          <Button
+            nativeButton={false}
+            render={<Link href="/dashboard/teacher/calendar" />}
+            variant="ghost"
+            size="sm"
+          >
+            {vi ? "Mở lịch" : "Open calendar"}
+          </Button>
+        </div>
         {process.env.NODE_ENV !== "production" ? (
           <Button
             nativeButton={false}
             render={<Link href="/dashboard/teacher?demo=teacher" />}
-            className="mt-4"
+            className="mt-2"
           >
             {vi ? "Mở bản xem trước" : "Open explicit demo"}
           </Button>
@@ -2031,13 +2425,68 @@ export function TeacherWorkspaceScreen({
       <ProductPageShell>
         <StateScreen
           data={
-            isHeadTeacherWorkspaceSurface(data.surface) && !data.isHeadTeacher
+            data.state !== "error" &&
+            data.state !== "denied" &&
+            isHeadTeacherWorkspaceSurface(data.surface) &&
+            !data.isHeadTeacher
               ? { ...data, state: "denied" }
               : data
           }
         />
       </ProductPageShell>
     );
+  const incompleteClassSummaries =
+    isHeadTeacherWorkspaceSurface(data.surface) &&
+    data.source === "contracts" &&
+    data.classes.some((item) => item.metricsStatus !== "ready");
+  const unavailableSource = Object.entries(data.dataStatus ?? {}).find(
+    ([, status]) => status === "unavailable",
+  )?.[0] as TeacherDataSource | undefined;
+  if (
+    (data.surface === "calendar" &&
+      data.dataStatus?.calendar === "unavailable") ||
+    (isHeadTeacherWorkspaceSurface(data.surface) && unavailableSource) ||
+    incompleteClassSummaries
+  ) {
+    return (
+      <ProductPageShell>
+        <PageContainer size="data" className="py-4 lg:py-5">
+          <h1 className="type-heading-md text-on-surface">
+            {data.locale === "vi"
+              ? "Chưa tải được thông tin giảng dạy"
+              : "Teaching information could not be loaded"}
+          </h1>
+          {unavailableSource ? (
+            <RecoveryBanner
+              data={data}
+              source={
+                data.surface === "calendar" ? "calendar" : unavailableSource
+              }
+            />
+          ) : (
+            <p className="mt-3 type-body-sm text-on-surface-variant">
+              {data.locale === "vi"
+                ? "Chưa đủ thông tin buổi học để tính tổng số học viên và tiến độ. Bạn vẫn có thể mở từng lớp."
+                : "Lesson data is not available for complete student and progress totals. You can still open each class."}
+            </p>
+          )}
+
+          <div className="mt-4 flex flex-wrap gap-3">
+            {data.classes.map((item) => (
+              <Button
+                key={item.id}
+                variant="outline"
+                nativeButton={false}
+                render={<Link href={`/dashboard/teacher/classes/${item.id}`} />}
+              >
+                {item.title}
+              </Button>
+            ))}
+          </div>
+        </PageContainer>
+      </ProductPageShell>
+    );
+  }
   return (
     <ProductPageShell>
       <PageContainer size="data" className="py-4 lg:py-5">

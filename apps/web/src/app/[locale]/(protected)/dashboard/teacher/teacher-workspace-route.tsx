@@ -43,6 +43,8 @@ export async function TeacherWorkspaceRoute({
         ? (statusInput as TeacherCalendarStatus)
         : undefined,
     demo: first(query.demo),
+    eventId: first(query.eventId),
+    tab: first(query.tab),
   });
   return <TeacherWorkspaceScreen data={data} classId={classId} />;
 }

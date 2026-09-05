@@ -69,6 +69,10 @@ export type TeacherWorkspaceNavigation = {
 };
 
 export interface TeacherWorkspaceClassPresentation {
+  /** Metrics are usable only when their source is ready; omitted in legacy/demo fixtures. */
+  metricsStatus?: "ready" | "unavailable" | "not_requested";
+  reviewsStatus?: "ready" | "unavailable" | "not_requested";
+  calendarStatus?: "ready" | "unavailable" | "not_requested";
   id: string;
   organizationId: string;
   title: string;
@@ -187,7 +191,20 @@ export interface TeacherAnnouncementPresentation {
 }
 
 export interface TeacherWorkspacePresentation {
-  state: "ready" | "empty" | "denied" | "error";
+  /** Explicit source states prevent failed/skipped reads from appearing as empty work. */
+  dataStatus?: Partial<
+    Record<
+      | "calendar"
+      | "details"
+      | "reviews"
+      | "assignments"
+      | "materials"
+      | "announcements"
+      | "gradebook",
+      "ready" | "unavailable" | "not_requested"
+    >
+  >;
+  state: "ready" | "partial" | "empty" | "denied" | "error";
   source: "contracts" | "explicit_demo";
   locale: string;
   surface: TeacherWorkspaceSurface;
