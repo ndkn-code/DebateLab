@@ -22,6 +22,12 @@ import { ResultsReviewTabs } from "./review/ResultsReviewTabs";
 import { STATUS_PILL } from "./format";
 import { useLocale } from "next-intl";
 
+import { ResultsActions } from "./ResultsActions";
+import {
+  resultsNextStep,
+  type ResultsNextStep,
+} from "@/lib/ielts/results/next-step";
+
 const COPY = {
   en: {
     skill: "skill",
@@ -155,16 +161,18 @@ function SkillRow({
 export function IeltsResultsView({
   model,
   targets,
+  nextStep,
 }: {
   model: AttemptResultsViewModel;
   targets: IeltsBandTargets;
+  nextStep?: ResultsNextStep;
 }) {
   const locale = useLocale();
   const copy = COPY[locale === "vi" ? "vi" : "en"];
   return (
     <div className="flex flex-col gap-5">
-      <header className="flex flex-col gap-1">
-        <h1 className="type-heading-lg font-semibold text-on-surface">
+      <header className="flex min-w-0 flex-col gap-1">
+        <h1 className="break-words type-heading-lg font-semibold text-on-surface">
           {model.testTitle}
         </h1>
         <p className="type-body-sm text-on-surface-variant">
@@ -172,6 +180,22 @@ export function IeltsResultsView({
           {copy.results}
         </p>
       </header>
+
+      <ResultsActions
+        nextStep={nextStep ?? resultsNextStep(locale)}
+        hasReview={
+          model.objective.length > 0 ||
+          Boolean(model.writing) ||
+          Boolean(model.speaking)
+        }
+        hasFailedScores={
+          model.writing?.tasks.some((task) => task.status === "failed") ||
+          model.speaking?.parts.some((part) => part.status === "failed")
+        }
+        awaitingScores={model.skills.some(
+          (skill) => skill.status === "in_progress",
+        )}
+      />
 
       <OverallHero overall={model.overall} targets={targets} />
 

@@ -54,7 +54,7 @@ function AssignedCard({
       : t("learner.start");
 
   return (
-    <article className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface p-4 transition-colors hover:border-primary/40 hover:bg-surface-container-low">
+    <article id={`assignment-${test.assignmentId}`} className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface p-4 transition-colors hover:border-primary/40 hover:bg-surface-container-low">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h2 className="type-title font-semibold text-on-surface line-clamp-2">

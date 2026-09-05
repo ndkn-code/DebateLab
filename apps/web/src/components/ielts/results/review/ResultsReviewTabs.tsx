@@ -30,7 +30,7 @@ export function ResultsReviewTabs({ model }: { model: AttemptResultsViewModel })
   };
 
   return (
-    <section className="flex flex-col gap-3">
+    <section id="results-review" tabIndex={-1} className="flex scroll-mt-4 flex-col gap-3">
       <h2 className="type-heading-md text-on-surface">{t("title")}</h2>
       <Tabs defaultValue={tabs[0]}>
         <div className="overflow-x-auto">

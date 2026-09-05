@@ -56,11 +56,22 @@ export function CriteriaList({ criteria }: { criteria: CriterionScore[] }) {
   );
 }
 
-export function PendingNote({ skill }: { skill: string }) {
+export function PendingNote({
+  skill,
+  failed = false,
+}: {
+  skill: string;
+  failed?: boolean;
+}) {
+  const locale = useLocale();
   const copy = useResultCopy();
   return (
     <p className="rounded-xl bg-warning-container px-3 py-2 type-body-sm text-on-warning-container">
-      {copy.pending.replace("{skill}", skill)}
+      {failed
+        ? locale === "vi"
+          ? `${skill} chưa chấm được. Cập nhật điểm để kiểm tra lại.`
+          : `${skill} could not be scored. Refresh scores to check for updates.`
+        : copy.pending.replace("{skill}", skill)}
     </p>
   );
 }
@@ -263,7 +274,10 @@ function WritingTaskCard({ task }: { task: WritingTaskResult }) {
         </div>
       ) : (
         <div className="mt-3">
-          <PendingNote skill={interpolate(copy.task, task.taskNumber)} />
+          <PendingNote
+            skill={interpolate(copy.task, task.taskNumber)}
+            failed={task.status === "failed"}
+          />
         </div>
       )}
       {task.modelAnswer ? (
