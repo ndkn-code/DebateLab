@@ -131,7 +131,8 @@
     "test:class-analytics": "npm run test:class-analytics -w @thinkfy/web",
     "test:middleware": "npm run test:middleware -w @thinkfy/web",
     "test:lms-question-import": "npm run test:lms-question-import -w @thinkfy/web && npm test --prefix services/lms-material-worker",
-    "test:center-operations": "npm run test:center-operations -w @thinkfy/web && npm test --prefix services/center-operations"
+    "test:center-operations": "npm run test:center-operations -w @thinkfy/web && npm test --prefix services/center-operations",
+    "test:duel-entry": "tsx --test scripts/duel-explicit-ai-choice.test.ts && npm run test:duel-entry -w @thinkfy/web"
   },
   "overrides": {
     "uuid": "14.0.0",
@@ -154,5 +155,8 @@
     "@img/sharp-libvips-linux-x64": "1.3.2",
     "@img/sharp-linux-x64": "0.35.3",
     "sharp": "0.35.3"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8"
   }
 }

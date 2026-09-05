@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createDebateDuelAiBackfill } from "@/lib/api/debate-duels";
 import { canAccessDuels } from "@/lib/auth/admin";
 import { requireRequestAuth } from "@/lib/api/request-auth";
+import { requireExplicitAiChoice } from "@/lib/debate-duels/ai-choice";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import {
   getEnum,
@@ -15,8 +16,7 @@ import {
 export const maxDuration = 60;
 
 /**
- * Backfill a matchmaking ticket with an AI duel. The client calls this after it
- * has waited in queue without a human match.
+ * Start a ticket-bound AI duel only after an explicit, priced user choice.
  */
 export async function POST(req: NextRequest) {
   try {
@@ -50,7 +50,8 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await readJsonObject(req, { maxBytes: 8 * 1024 });
-    const room = await createDebateDuelAiBackfill(user.id, {
+    const ticketId = requireExplicitAiChoice(body);
+    const room = await createDebateDuelAiBackfill(user.id, ticketId, {
       topicCategory: getString(body, "topicCategory", {
         required: true,
         maxLength: 120,
@@ -116,6 +117,9 @@ export async function POST(req: NextRequest) {
     if (raw.includes("INSUFFICIENT_CREDITS")) {
       message = "You need at least 200 Credits to start a duel.";
       status = 400;
+    } else if (raw.includes("TICKET_")) {
+      message = "This queue ticket is no longer available. Return to matchmaking.";
+      status = 409;
     } else if (raw.includes("FORBIDDEN")) {
       message = "You are not allowed to start this duel.";
       status = 403;

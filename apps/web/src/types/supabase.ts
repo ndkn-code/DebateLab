@@ -18800,6 +18800,7 @@ export type Database = {
       }
       create_ai_backfill_duel: {
         Args: {
+          p_ticket_id: string
           p_ai_user_id: string
           p_human_user_id: string
           p_opening_time_seconds: number

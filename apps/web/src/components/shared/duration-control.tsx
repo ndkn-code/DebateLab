@@ -22,6 +22,14 @@ interface DurationControlProps {
   helper?: string;
   className?: string;
   compact?: boolean;
+  disabled?: boolean;
+  labels?: {
+    decrease: string;
+    increase: string;
+    minutes: string;
+    minuteShort: string;
+    preset: (seconds: number) => string;
+  };
 }
 
 export function DurationControl({
@@ -33,6 +41,8 @@ export function DurationControl({
   helper,
   className,
   compact = false,
+  disabled = false,
+  labels,
 }: DurationControlProps) {
   const boundedValue = clampDurationSeconds(value, config);
   const minutes = secondsToMinutes(boundedValue);
@@ -42,24 +52,28 @@ export function DurationControl({
   const inputId = useId();
 
   function commit(nextSeconds: number) {
-    onChange(clampDurationSeconds(nextSeconds, config));
+    if (!disabled) onChange(clampDurationSeconds(nextSeconds, config));
   }
 
   return (
     <div
       className={cn(
-        "rounded-lg border border-outline-variant bg-white p-3 dark:border-outline-variant/70 dark:bg-surface-container-lowest sm:p-4",
+        "rounded-lg border border-outline-variant bg-surface p-3 dark:border-outline-variant dark:bg-surface-container-lowest sm:p-4",
         compact ? "space-y-3" : "space-y-4",
-        className
+        className,
       )}
     >
       <div className="min-w-0">
         <div className="flex items-center gap-2 text-sm font-semibold text-on-surface dark:text-on-surface">
-          {icon ? <span className="text-primary dark:text-primary">{icon}</span> : null}
+          {icon ? (
+            <span className="text-primary dark:text-primary">{icon}</span>
+          ) : null}
           <span>{label}</span>
         </div>
         {helper ? (
-          <p className="mt-1 text-xs leading-5 text-on-surface-variant dark:text-on-surface-variant">{helper}</p>
+          <p className="mt-1 text-xs leading-5 text-on-surface-variant dark:text-on-surface-variant">
+            {helper}
+          </p>
         ) : null}
       </div>
 
@@ -67,38 +81,43 @@ export function DurationControl({
         <button
           type="button"
           onClick={() => commit(boundedValue - config.stepSeconds)}
-          disabled={boundedValue <= config.minSeconds}
-          className="flex h-9 w-full items-center justify-center rounded-md border border-outline-variant bg-background text-on-surface-variant transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-45 dark:border-outline-variant/70 dark:bg-surface-container dark:text-on-surface-variant dark:hover:bg-surface-container-high sm:h-10 sm:w-10"
-          aria-label={`Decrease ${label}`}
+          disabled={disabled || boundedValue <= config.minSeconds}
+          className="flex h-9 w-full items-center justify-center rounded-md border border-outline-variant bg-background text-on-surface-variant transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-45 dark:border-outline-variant dark:bg-surface-container dark:text-on-surface-variant dark:hover:bg-surface-container-high sm:h-10 sm:w-10"
+          aria-label={labels?.decrease ?? `Decrease ${label}`}
         >
           <Minus className="h-4 w-4" />
         </button>
 
         <label className="sr-only" htmlFor={inputId}>
-          {label} minutes
+          {label} {labels?.minutes ?? "minutes"}
         </label>
-        <div className="order-first col-span-2 flex h-9 min-w-0 items-center rounded-md border border-outline-variant bg-white px-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary-fixed/45 dark:border-outline-variant/70 dark:bg-surface-container-lowest sm:order-none sm:col-span-1 sm:h-10">
+        <div className="order-first col-span-2 flex h-9 min-w-0 items-center rounded-md border border-outline-variant bg-surface px-3 focus-within:border-primary focus-within:ring-2 focus-within:ring-primary-fixed dark:border-outline-variant dark:bg-surface-container-lowest sm:order-none sm:col-span-1 sm:h-10">
           <input
             id={inputId}
             type="number"
+            disabled={disabled}
             min={minMinutes}
             max={maxMinutes}
             step={config.stepSeconds / 60}
             value={minutes}
             onChange={(event) =>
-              commit(minutesToSeconds(Number(event.currentTarget.value), config))
+              commit(
+                minutesToSeconds(Number(event.currentTarget.value), config),
+              )
             }
             className="min-w-0 flex-1 bg-transparent text-center text-base font-semibold text-on-surface outline-none dark:text-on-surface"
           />
-          <span className="ml-2 text-xs font-medium text-on-surface-variant dark:text-on-surface-variant">min</span>
+          <span className="ml-2 text-xs font-medium text-on-surface-variant dark:text-on-surface-variant">
+            {labels?.minuteShort ?? "min"}
+          </span>
         </div>
 
         <button
           type="button"
           onClick={() => commit(boundedValue + config.stepSeconds)}
-          disabled={boundedValue >= config.maxSeconds}
-          className="flex h-9 w-full items-center justify-center rounded-md border border-outline-variant bg-background text-on-surface-variant transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-45 dark:border-outline-variant/70 dark:bg-surface-container dark:text-on-surface-variant dark:hover:bg-surface-container-high sm:h-10 sm:w-10"
-          aria-label={`Increase ${label}`}
+          disabled={disabled || boundedValue >= config.maxSeconds}
+          className="flex h-9 w-full items-center justify-center rounded-md border border-outline-variant bg-background text-on-surface-variant transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-45 dark:border-outline-variant dark:bg-surface-container dark:text-on-surface-variant dark:hover:bg-surface-container-high sm:h-10 sm:w-10"
+          aria-label={labels?.increase ?? `Increase ${label}`}
         >
           <Plus className="h-4 w-4" />
         </button>
@@ -119,14 +138,15 @@ export function DurationControl({
               key={preset}
               type="button"
               onClick={() => commit(preset)}
+              disabled={disabled}
               className={cn(
                 "rounded-md border px-2.5 py-1.5 text-xs font-semibold transition-colors",
                 active
                   ? "border-primary bg-primary-container text-primary-dim dark:border-primary dark:bg-primary-container dark:text-primary"
-                  : "border-outline-variant bg-background text-on-surface-variant hover:bg-primary-container dark:border-outline-variant/70 dark:bg-surface-container dark:text-on-surface-variant dark:hover:bg-surface-container-high"
+                  : "border-outline-variant bg-background text-on-surface-variant hover:bg-primary-container dark:border-outline-variant dark:bg-surface-container dark:text-on-surface-variant dark:hover:bg-surface-container-high",
               )}
             >
-              {formatDurationLabel(preset)}
+              {labels?.preset(preset) ?? formatDurationLabel(preset)}
             </button>
           );
         })}
