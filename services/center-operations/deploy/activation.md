@@ -2,8 +2,9 @@
 
 Updated 2026-09-05 UTC (2026-09-04 America/New_York).
 User authorized Google OAuth and cloud configuration. Cloud CLI authenticated access
-and browser sign-in were verified. Google OAuth and cloud configuration are provisioned;
-application/database release and center-account consent remain separate.
+and browser sign-in were verified. Google OAuth and cloud configuration are provisioned.
+The twelve center migrations are applied; application acceptance testing is in progress.
+Center-account consent remains a separate user step.
 
 ## Created and verified
 
@@ -93,8 +94,35 @@ application/database release and center-account consent remain separate.
 - OAuth branding, redirect URL, scope save, test-user readback, enabled secret version,
   Vercel environment values, Run IAM and paused Scheduler were checked.
 
-Next: review/apply the ten migration release, regenerate types through the project-scoped
-Supabase MCP, deploy the application, then connect the center-owned Google account.
-Verify actual Calendar/Sheets/Drive round trips before enabling the pilot flag and
-resuming Scheduler. No production migrations, frontend release, Google account data
-consent, Zalo activation, or merchant activation was performed by this cloud setup.
+## Application/database acceptance checkpoint
+
+- Applied all twelve `20260905` migrations through the project-scoped Supabase MCP.
+  Canonical version and name checks match every release filename. All 27 center tables
+  in `public` and `private` have RLS enabled. Private OAuth intents, refresh leases and
+  credentials retain service-only access.
+- Regenerated live database types, preserving the project-authored activity aliases.
+- The global Supabase CLI dry run remains blocked by historical remote/local migration
+  naming differences predating this release. No historical migration was marked reverted
+  or replayed. Release validation used exact version/name checks, live object inspection,
+  and the isolated database regression suites instead.
+- SQL regressions: 94 pgTAP assertions, OAuth contract block, and four additional vault
+  RLS/single-use assertions passed with rollback. Native app tests: 58 center tests,
+  173 AI platform tests, 30 LMS worker tests, seven LMS material tests, 23 payment tests,
+  design audit/tests, lint (12 existing warnings), typecheck and CI checks passed.
+- Live browser QA on an isolated center passed student creation, note saving, trial
+  booking in Vietnam time, tuition offer/invoice creation, owner access, and denied access
+  to an unrelated center. All seven tabs fit the four required viewports in both themes
+  and both locales (112 overflow checks).
+- A live teacher response exposed a plan-schema failure. Commit `0f5767b8` uses the
+  existing structured provider path with one schema repair, explicit citation shapes,
+  and unchanged context authorization/action confirmation. Its regression tests pass.
+  Date/time triggers now display the selected time as well as the date.
+- Live corrected chat tests passed cited read-only answers, automatic draft creation,
+  draft visibility in Materials, and a pending trial proposal that executed only after
+  confirmation. Proposal fields and dates use readable English/Vietnamese labels.
+- The real app-to-Cloud-Run OAuth start reached Google's account chooser with S256 PKCE,
+  the exact gateway callback and only `calendar.app.created` plus `drive.file`.
+- The user selected `jknguyen.wor@gmail.com` for the pilot. Acceptance records are in
+  the isolated **Thinkfy Center Pilot QA** center, not an existing operational center.
+- Google data consent and actual Calendar/Sheets/Drive round trips remain pending.
+  Zalo OA and merchant activation remain pending. ZBS policies remain disabled.

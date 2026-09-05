@@ -55,7 +55,7 @@ product workflow exposes them, so refund handling remains manual operator recove
 
 ## Release sequence
 
-1. Apply the ten `20260905` migrations in filename order through the normal database
+1. Apply the twelve `20260905` migrations in filename order through the normal database
    release workflow, then regenerate public database types with the project-scoped
    Supabase MCP. The existing Vercel entrypoint baseline must stay unchanged.
 2. Enable Calendar, Drive, Sheets, Picker, Cloud Run, API Gateway, KMS, IAM Credentials,

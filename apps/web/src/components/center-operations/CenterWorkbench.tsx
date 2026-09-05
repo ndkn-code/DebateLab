@@ -961,7 +961,7 @@ function Proposal({
   return (
     <section className="min-w-0 rounded-2xl border border-border bg-surface p-3">
       <h3 className="type-title text-on-surface">
-        {copy.proposal} · {statusLabel(status, copy)}
+        {copy.proposal} · {proposalOperationLabel(proposal.kind, copy)} · {statusLabel(status, copy)}
       </h3>
       <p className="type-caption text-on-surface-variant">
         {proposalTarget(proposal, snapshot)}
@@ -973,17 +973,10 @@ function Proposal({
             className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 type-body"
           >
             <dt className="text-on-surface-variant">
-              {key.replaceAll("_", " ")}
+              {proposalFieldLabel(key, copy)}
             </dt>
             <dd className="break-words text-on-surface">
-              {typeof value === "object"
-                ? JSON.stringify(value)
-                : typeof value === "string"
-                  ? (snapshot.students.find((item) => item.id === value)
-                      ?.name ??
-                    snapshot.classes.find((item) => item.id === value)?.name ??
-                    value)
-                  : String(value)}
+              {formatProposalValue(value, key, copy, snapshot)}
             </dd>
           </div>
         ))}
@@ -1005,6 +998,109 @@ function Proposal({
       )}
     </section>
   );
+}
+
+const proposalFieldKeys: Record<string, keyof typeof centerCopy.en> = {
+  studentRecordId: "name",
+  classId: "class",
+  trialId: "trial",
+  admissionId: "admission",
+  scheduleId: "schedule",
+  startAt: "start",
+  endAt: "end",
+  amount: "amount",
+  startDate: "offerStart",
+  endDate: "offerEnd",
+  title: "proposalTitle",
+  body: "body",
+  draftType: "draftType",
+  templateKey: "templateKey",
+  assessment: "assessment",
+  expectedRevision: "revision",
+  expectedUpdatedAt: "updatedAt",
+};
+
+const proposalEnumKeys: Record<string, keyof typeof centerCopy.en> = {
+  homework: "draftTypeHomework",
+  lesson: "draftTypeLesson",
+  report: "draftTypeReport",
+  announcement: "draftTypeAnnouncement",
+  trial_confirmation: "templateTrialConfirmation",
+  trial_reminder: "templateTrialReminder",
+  class_rescheduled: "templateClassRescheduled",
+  progress_summary: "templateProgressSummary",
+  renewal_reminder: "templateRenewalReminder",
+};
+
+function proposalOperationLabel(
+  kind: string,
+  copy: typeof centerCopy.en,
+): string {
+  const labels: Record<string, keyof typeof centerCopy.en> = {
+    "trial.book": "bookTrial",
+    "trial.evaluate": "evaluate",
+    "admission.stage": "stage",
+    "offer.create": "offer",
+    "schedule.reschedule": "reschedule",
+    "message.send": "send",
+    "draft.create": "draft",
+    "note.create": "addNote",
+  };
+  return labels[kind] ? copy[labels[kind]] : copy.proposal;
+}
+
+function proposalFieldLabel(key: string, copy: typeof centerCopy.en): string {
+  const copyKey = proposalFieldKeys[key];
+  return copyKey ? copy[copyKey] : (copy[key] ?? key.replaceAll("_", " "));
+}
+
+function formatProposalValue(
+  value: unknown,
+  key: string,
+  copy: typeof centerCopy.en,
+  snapshot: CenterSnapshot,
+): string {
+  const locale = copy === centerCopy.vi ? "vi-VN" : "en-GB";
+  if (Array.isArray(value))
+    return value.map((item) => formatProposalValue(item, key, copy, snapshot)).join(", ");
+  if (value && typeof value === "object")
+    return Object.entries(value)
+      .map(([childKey, childValue]) => `${proposalFieldLabel(childKey, copy)}: ${formatProposalValue(childValue, childKey, copy, snapshot)}`)
+      .join(", ");
+  if (typeof value === "number") return value.toLocaleString(locale);
+  if (typeof value !== "string") return String(value);
+  const targetName =
+    snapshot.students.find((item) => item.id === value)?.name ??
+    snapshot.classes.find((item) => item.id === value)?.name;
+  if (targetName) return targetName;
+  if (key === "trialId") {
+    const trial = snapshot.trials.find((item) => item.id === value);
+    if (trial)
+      return `${snapshot.students.find((item) => item.id === trial.student_record_id)?.name ?? copy.trial} · ${formatProposalValue(trial.starts_at, "startAt", copy, snapshot)}`;
+  }
+  if (key === "admissionId") {
+    const admission = snapshot.admissions.find((item) => item.id === value);
+    if (admission)
+      return snapshot.students.find((item) => item.id === admission.student_record_id)?.name ?? copy.admission;
+  }
+  if (key === "scheduleId") {
+    const schedule = snapshot.schedules.find((item) => item.id === value);
+    if (schedule)
+      return `${schedule.title} · ${formatProposalValue(schedule.starts_at, "startAt", copy, snapshot)}`;
+  }
+  if (key === "stage") return copy[value] ?? value;
+  const enumKey = key === "draftType" || key === "templateKey" ? proposalEnumKeys[value] : undefined;
+  if (enumKey) return copy[enumKey];
+  if (key === "startAt" || key === "endAt" || key === "expectedUpdatedAt") {
+    const date = new Date(value);
+    if (!Number.isNaN(date.getTime()))
+      return new Intl.DateTimeFormat(locale, {
+        dateStyle: "medium",
+        timeStyle: "short",
+        timeZone: "Asia/Ho_Chi_Minh",
+      }).format(date);
+  }
+  return value;
 }
 
 function sourceText(id: string, snapshot: CenterSnapshot): string {
