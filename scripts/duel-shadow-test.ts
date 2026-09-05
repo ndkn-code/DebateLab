@@ -580,10 +580,18 @@ async function main() {
       createTempUser(supabase, "ai7"),
     ]);
     createdUsers.push(humanUser7, aiUser7);
+    const { data: aiTicket, error: aiTicketError } = await supabase
+      .from("debate_duel_matchmaking_tickets")
+      .insert({ user_id: humanUser7, topic_category: TOPIC_CATEGORY, topic_category_key: TOPIC_CATEGORY,
+        topic_difficulty: "intermediate", practice_language: "en", prep_time_seconds: 120,
+        opening_time_seconds: 180, rebuttal_time_seconds: 120 })
+      .select("id").single();
+    if (aiTicketError || !aiTicket) throw new Error(aiTicketError?.message ?? "QA ticket creation failed");
     const { data: aiShareCode, error: aiCreateErr } = await supabase.rpc(
       "create_ai_backfill_duel",
       {
         p_human_user_id: humanUser7,
+        p_ticket_id: aiTicket.id,
         p_ai_user_id: aiUser7,
         p_practice_topic_key: null,
         p_topic_title: MOTION,

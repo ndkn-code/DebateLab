@@ -1,15 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
-import { useLocale } from "next-intl";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import useSWR from "swr";
 import {
   ArrowLeft,
@@ -21,12 +14,12 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
-  Users,
 } from "@/components/ui/icons";
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { DurationControl } from "@/components/shared/duration-control";
 import { PageTransition } from "@/components/shared/page-motion";
+import { PageContainer } from "@/components/shared/product-layout";
 import {
   getLocalizedCategoryOptions,
   getTopicCategoryKey,
@@ -43,14 +36,9 @@ import type {
   DebateDuelMatchmakingTicket,
   DebateDuelTopicDifficulty,
   DebateTopic,
-  PracticeLanguage,
 } from "@/types";
-import {
-  DuelPreviewSidebar,
-  formatDifficulty,
-  formatMinutes,
-} from "./duel-setup-flow";
-import { DuelIllustration } from "@/components/debates/duel-illustration";
+import { DuelPreviewSidebar } from "./duel-setup-flow";
+import { createMatchmakingRequestGuard } from "@/lib/debate-duels/matchmaking-client-state";
 
 type TicketResponse = {
   ticket: DebateDuelMatchmakingTicket | null;
@@ -58,27 +46,14 @@ type TicketResponse = {
 
 const difficultyOptions: {
   value: DebateDuelTopicDifficulty;
-  label: string;
+  label: "easy" | "medium" | "hard";
 }[] = [
-  { value: "beginner", label: "Easy" },
-  { value: "intermediate", label: "Medium" },
-  { value: "advanced", label: "Hard" },
+  { value: "beginner", label: "easy" },
+  { value: "intermediate", label: "medium" },
+  { value: "advanced", label: "hard" },
 ];
-const languageLabels: Record<PracticeLanguage, string> = {
-  en: "English",
-  vi: "Vietnamese",
-};
 
-function matchmakingError(language: PracticeLanguage, supportCode: string) {
-  return language === "vi"
-    ? `Không thể cập nhật hàng chờ lúc này. Vui lòng thử lại. Mã hỗ trợ: ${supportCode}`
-    : `We couldn't update the queue. Try again. Support code: ${supportCode}`;
-}
-
-// Offer / auto-start an AI sparring partner after the queue runs this long with
-// no human match (queue tickets last 600s, so elapsed = 600 - remaining).
 const AI_BACKFILL_OFFER_SECONDS = 12;
-const AI_BACKFILL_AUTO_SECONDS = 35;
 
 async function fetchTicket(url: string) {
   const response = await fetch(url, { credentials: "include" });
@@ -118,7 +93,10 @@ export function DuelMatchmakingPage({
 }) {
   const router = useRouter();
   const locale = useLocale();
+  const t = useTranslations("duelMatchmaking");
   const practiceLanguage = coercePracticeLanguage(locale);
+  const formatMinutes = (seconds: number) =>
+    t("minutes", { count: seconds / 60 });
   const localizedTopics = useMemo(() => initialTopics, [initialTopics]);
   const categoryOptions = useMemo(
     () =>
@@ -148,21 +126,49 @@ export function DuelMatchmakingPage({
     useState<DebateDuelMatchmakingTicket | null>(null);
   const [queueRemaining, setQueueRemaining] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [recoveryShareCode, setRecoveryShareCode] = useState<string | null>(
+    null,
+  );
+  const [operation, setOperation] = useState<
+    "idle" | "entry" | "ai" | "cancel" | "cancel-failed"
+  >("idle");
+  const operationRef = useRef(operation);
+  const requestGuardRef = useRef(createMatchmakingRequestGuard());
+  const ticketRef = useRef<DebateDuelMatchmakingTicket | null>(null);
+  const cancellationRequestedRef = useRef(false);
+  const mountedRef = useRef(true);
+  const setOperationState = (next: typeof operation) => {
+    operationRef.current = next;
+    setOperation(next);
+  };
+  const isCancellationPending = () => operationRef.current === "cancel";
+  const pending =
+    operation === "entry" || operation === "ai" || operation === "cancel";
 
-  const { data: polledTicket, mutate } = useSWR(
+  const { data: polledTicket, error: pollError } = useSWR(
     !showcaseMode &&
+      operation === "idle" &&
+      !cancellationRequestedRef.current &&
+      localTicket?.id &&
       (localTicket?.status === "queued" || localTicket?.status === "matched")
-      ? "/api/debate-duels/matchmaking/ticket"
+      ? ["/api/debate-duels/matchmaking/ticket", localTicket.id]
       : null,
-    fetchTicket,
+    async ([url, ticketId]) => {
+      const request = requestGuardRef.current.begin("poll");
+      const result = await fetchTicket(url);
+      return requestGuardRef.current.isCurrent(request) &&
+        result?.id === ticketId
+        ? result
+        : null;
+    },
     {
       refreshInterval: 2000,
       revalidateOnFocus: false,
     },
   );
 
-  const activeTicket = polledTicket ?? localTicket;
+  const activeTicket =
+    polledTicket?.id === localTicket?.id ? polledTicket : localTicket;
   const isSearching = activeTicket?.status === "queued";
   const isMatched =
     activeTicket?.status === "matched" && !!activeTicket.shareCode;
@@ -187,22 +193,22 @@ export function DuelMatchmakingPage({
       (category) => category.key === effectiveTopicCategoryKey,
     )?.label ??
     previewTopic?.category ??
-    "Category";
+    t("category");
   const timerControls = [
     {
-      label: "Prep",
+      label: t("prepLabel"),
       value: prepTimeSeconds,
       setter: setPrepTimeSeconds,
       config: DUEL_PREP_DURATION,
     },
     {
-      label: "Opening",
+      label: t("openingLabel"),
       value: openingTimeSeconds,
       setter: setOpeningTimeSeconds,
       config: DUEL_OPENING_DURATION,
     },
     {
-      label: "Rebuttal",
+      label: t("rebuttalLabel"),
       value: rebuttalTimeSeconds,
       setter: setRebuttalTimeSeconds,
       config: DUEL_REBUTTAL_DURATION,
@@ -210,233 +216,277 @@ export function DuelMatchmakingPage({
   ];
 
   useEffect(() => {
-    if (!isSearching) {
-      return;
-    }
-    const interval = window.setInterval(() => {
-      setQueueRemaining(queueSecondsLeft(activeTicket));
-    }, 1000);
-    return () => window.clearInterval(interval);
-  }, [activeTicket, isSearching]);
+    const guard = requestGuardRef.current;
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      guard.invalidate();
+      const ticket = ticketRef.current;
+      if (ticket)
+        void fetch(
+          `/api/debate-duels/matchmaking/ticket?id=${encodeURIComponent(ticket.id)}`,
+          { method: "DELETE", keepalive: true },
+        ).catch(() => {});
+    };
+  }, []);
 
   useEffect(() => {
-    if (showcaseMode) return;
-    if (!isMatched || !activeTicket?.shareCode) return;
-    const timeout = window.setTimeout(() => {
-      router.replace(`/debates/${activeTicket.shareCode}`);
-    }, 900);
-    return () => window.clearTimeout(timeout);
-  }, [activeTicket?.shareCode, isMatched, router, showcaseMode]);
-
-  // AI backfill: no human within the wait window -> match against the AI debater.
-  const aiBackfillTriggeredRef = useRef(false);
-  const triggerAiBackfill = useCallback(() => {
-    if (showcaseMode || !previewTopic || aiBackfillTriggeredRef.current) return;
-    aiBackfillTriggeredRef.current = true;
-    startTransition(async () => {
-      try {
-        const response = await fetch(
-          "/api/debate-duels/matchmaking/ai-backfill",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              topicCategory: previewTopic.category,
-              topicCategoryKey: effectiveTopicCategoryKey,
-              topicKey: previewTopic.topicKey,
-              topicTitle: previewTopic.title,
-              topicDescription: previewTopic.context ?? "",
-              topicDifficulty,
-              practiceLanguage,
-              prepTimeSeconds,
-              openingTimeSeconds,
-              rebuttalTimeSeconds,
-            }),
-          },
-        );
-        const payload = await response.json();
-        if (!response.ok || !payload?.shareCode) {
-          aiBackfillTriggeredRef.current = false;
-          console.error("[DUEL-AI-MATCH-01] AI backfill rejected", {
-            status: response.status,
-            error: payload?.error,
-          });
-          setActionError(
-            matchmakingError(practiceLanguage, "DUEL-AI-MATCH-01"),
-          );
-          return;
-        }
-        router.replace(`/debates/${payload.shareCode}`);
-      } catch (error) {
-        aiBackfillTriggeredRef.current = false;
-        console.error("[DUEL-AI-MATCH-02] AI backfill failed", error);
-        setActionError(matchmakingError(practiceLanguage, "DUEL-AI-MATCH-02"));
+    if (!isSearching) return;
+    const interval = window.setInterval(() => {
+      const remaining = queueSecondsLeft(activeTicket);
+      setQueueRemaining(remaining);
+      if (remaining === 0 && operationRef.current === "idle") {
+        requestGuardRef.current.invalidate();
+        ticketRef.current = null;
+        setLocalTicket(null);
+        setActionError(t("queueExpired"));
       }
-    });
-  }, [
-    showcaseMode,
-    previewTopic,
-    effectiveTopicCategoryKey,
-    topicDifficulty,
-    practiceLanguage,
-    prepTimeSeconds,
-    openingTimeSeconds,
-    rebuttalTimeSeconds,
-    router,
-  ]);
+    }, 1000);
+    return () => window.clearInterval(interval);
+  }, [activeTicket, isSearching, t]);
 
   useEffect(() => {
     if (
-      !showcaseMode &&
-      isSearching &&
-      queueElapsed >= AI_BACKFILL_AUTO_SECONDS
-    ) {
-      triggerAiBackfill();
-    }
-  }, [showcaseMode, isSearching, queueElapsed, triggerAiBackfill]);
+      showcaseMode ||
+      !isMatched ||
+      !activeTicket?.shareCode ||
+      operation !== "idle" ||
+      cancellationRequestedRef.current
+    )
+      return;
+    const request = requestGuardRef.current.begin("poll");
+    const timeout = window.setTimeout(() => {
+      if (
+        !requestGuardRef.current.isCurrent(request) ||
+        cancellationRequestedRef.current
+      )
+        return;
+      ticketRef.current = null;
+      requestGuardRef.current.invalidate();
+      router.replace(`/debates/${activeTicket.shareCode}`);
+    }, 900);
+    return () => window.clearTimeout(timeout);
+  }, [activeTicket?.shareCode, isMatched, router, showcaseMode, operation]);
 
-  const enterQueue = () => {
+  const leaveArena = () => {
+    cancellationRequestedRef.current = true;
+    requestGuardRef.current.invalidate();
+    router.push("/debates");
+  };
+
+  const triggerAiBackfill = async () => {
+    const ticket = activeTicket;
+    if (
+      showcaseMode ||
+      !previewTopic ||
+      ticket?.status !== "queued" ||
+      operationRef.current !== "idle" ||
+      cancellationRequestedRef.current
+    )
+      return;
+    const request = requestGuardRef.current.begin("ai");
     setActionError(null);
-    if (showcaseMode) {
-      setActionError("Showcase mode keeps matchmaking actions disabled.");
-      return;
-    }
-
-    if (!previewTopic) {
-      setActionError("No active motions are available for this language yet.");
-      return;
-    }
-
-    startTransition(async () => {
-      try {
-        const response = await fetch("/api/debate-duels/matchmaking/ticket", {
+    setOperationState("ai");
+    try {
+      const response = await fetch(
+        "/api/debate-duels/matchmaking/ai-backfill",
+        {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
+            opponent: "ai",
+            ticketId: ticket.id,
+            consent: true,
+            topicCategory: previewTopic.category,
             topicCategoryKey: effectiveTopicCategoryKey,
+            topicKey: previewTopic.topicKey,
+            topicTitle: previewTopic.title,
+            topicDescription: previewTopic.context ?? "",
             topicDifficulty,
-            practiceLanguage,
-            prepTimeSeconds,
-            openingTimeSeconds,
-            rebuttalTimeSeconds,
+            practiceLanguage: ticket.practiceLanguage,
+            prepTimeSeconds: ticket.config.prepTimeSeconds,
+            openingTimeSeconds: ticket.config.openingTimeSeconds,
+            rebuttalTimeSeconds: ticket.config.rebuttalTimeSeconds,
           }),
-        });
-        const payload = (await response.json()) as
-          | TicketResponse
-          | {
-              error?: string;
-            };
-        if (!response.ok || !("ticket" in payload) || !payload.ticket) {
-          console.error("[DUEL-QUEUE-01] Queue entry rejected", {
-            status: response.status,
-            error: "error" in payload ? payload.error : undefined,
-          });
-          setActionError(matchmakingError(practiceLanguage, "DUEL-QUEUE-01"));
-          return;
-        }
-
-        setLocalTicket(payload.ticket);
-        setQueueRemaining(queueSecondsLeft(payload.ticket));
-        await mutate(payload.ticket, { revalidate: true });
-      } catch (error) {
-        console.error("[DUEL-QUEUE-02] Queue entry failed", error);
-        setActionError(matchmakingError(practiceLanguage, "DUEL-QUEUE-02"));
+        },
+      );
+      const payload = await response.json();
+      if (!requestGuardRef.current.isCurrent(request)) return;
+      if (!response.ok || !payload?.shareCode) {
+        setActionError(t("errors.aiStart", { code: "DUEL-AI-MATCH-01" }));
+        return;
       }
-    });
+      ticketRef.current = null;
+      requestGuardRef.current.invalidate();
+      router.replace(`/debates/${payload.shareCode}`);
+    } catch {
+      if (requestGuardRef.current.isCurrent(request))
+        setActionError(t("errors.aiStart", { code: "DUEL-AI-MATCH-02" }));
+    } finally {
+      if (requestGuardRef.current.isCurrent(request)) setOperationState("idle");
+    }
   };
 
-  const cancelQueue = () => {
+  const enterQueue = async () => {
+    if (operationRef.current !== "idle" || ticketRef.current) return;
     setActionError(null);
-    if (showcaseMode) {
-      setLocalTicket(null);
-      setQueueRemaining(0);
+    if (showcaseMode || !previewTopic) {
+      setActionError(t(showcaseMode ? "showcaseDisabled" : "noMotionsError"));
       return;
     }
-
-    startTransition(async () => {
-      try {
-        const response = await fetch("/api/debate-duels/matchmaking/ticket", {
-          method: "DELETE",
-        });
-        const payload = (await response.json()) as
-          | TicketResponse
-          | {
-              error?: string;
-            };
-        if (!response.ok) {
-          console.error("[DUEL-QUEUE-03] Queue cancellation rejected", {
-            status: response.status,
-            error: "error" in payload ? payload.error : undefined,
-          });
-          setActionError(matchmakingError(practiceLanguage, "DUEL-QUEUE-03"));
-          return;
-        }
-        setLocalTicket(null);
-        setQueueRemaining(0);
-        await mutate(null, { revalidate: false });
-      } catch (error) {
-        console.error("[DUEL-QUEUE-04] Queue cancellation failed", error);
-        setActionError(matchmakingError(practiceLanguage, "DUEL-QUEUE-04"));
+    cancellationRequestedRef.current = false;
+    setRecoveryShareCode(null);
+    const request = requestGuardRef.current.begin("entry");
+    setOperationState("entry");
+    try {
+      const response = await fetch("/api/debate-duels/matchmaking/ticket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          topicCategoryKey: effectiveTopicCategoryKey,
+          topicDifficulty,
+          practiceLanguage,
+          prepTimeSeconds,
+          openingTimeSeconds,
+          rebuttalTimeSeconds,
+        }),
+      });
+      const payload = (await response.json()) as TicketResponse;
+      if (!requestGuardRef.current.isCurrent(request)) {
+        // A POST may commit after leaving. Cancel that specific returned ticket,
+        // never a newer queue attempt belonging to this account.
+        if (payload.ticket?.id) {
+          const cancelled = await fetch(
+            `/api/debate-duels/matchmaking/ticket?id=${encodeURIComponent(payload.ticket.id)}`,
+            { method: "DELETE", keepalive: true },
+          ).catch(() => null);
+          if (mountedRef.current && isCancellationPending()) {
+            if (cancelled?.ok) {
+              const result = (await cancelled.json()) as TicketResponse;
+              setRecoveryShareCode(result.ticket?.shareCode ?? null);
+              setOperationState("idle");
+            } else {
+              ticketRef.current = payload.ticket;
+              setLocalTicket(payload.ticket);
+              setOperationState("cancel-failed");
+              setActionError(
+                t("errors.queueUpdate", { code: "DUEL-QUEUE-03" }),
+              );
+            }
+          }
+        } else if (mountedRef.current && isCancellationPending())
+          setOperationState("idle");
+        return;
       }
-    });
+      if (!response.ok || !payload.ticket) {
+        setActionError(t("errors.queueUpdate", { code: "DUEL-QUEUE-01" }));
+        setOperationState("idle");
+        return;
+      }
+      setOperationState("idle");
+      requestGuardRef.current.activateTicket(payload.ticket.id);
+      ticketRef.current = payload.ticket;
+      setLocalTicket(payload.ticket);
+      setQueueRemaining(queueSecondsLeft(payload.ticket));
+    } catch {
+      if (
+        requestGuardRef.current.isCurrent(request) ||
+        (mountedRef.current && isCancellationPending())
+      ) {
+        setActionError(t("errors.queueUpdate", { code: "DUEL-QUEUE-02" }));
+        setOperationState("idle");
+      }
+    }
+  };
+
+  const cancelQueue = async () => {
+    if (operationRef.current === "cancel") return;
+    cancellationRequestedRef.current = true;
+    requestGuardRef.current.invalidate();
+    const request = requestGuardRef.current.begin("cancel");
+    const ticket = ticketRef.current;
+    setActionError(null);
+    setOperationState("cancel");
+    if (!ticket) {
+      // An in-flight entry response cleans up its own ticket when it arrives.
+      setLocalTicket(null);
+      return;
+    }
+    try {
+      const response = await fetch(
+        `/api/debate-duels/matchmaking/ticket?id=${encodeURIComponent(ticket.id)}`,
+        { method: "DELETE" },
+      );
+      const payload = (await response.json()) as TicketResponse;
+      if (!requestGuardRef.current.isCurrent(request)) return;
+      if (!response.ok) throw new Error("cancel failed");
+      setRecoveryShareCode(payload.ticket?.shareCode ?? null);
+      ticketRef.current = null;
+      setLocalTicket(null);
+      setQueueRemaining(0);
+      setOperationState("idle");
+    } catch {
+      if (requestGuardRef.current.isCurrent(request)) {
+        setActionError(t("errors.queueUpdate", { code: "DUEL-QUEUE-03" }));
+        setOperationState("cancel-failed");
+      }
+    }
   };
 
   if (!previewTopic) {
     return (
       <PageTransition className="min-h-full bg-background">
-        <div className="mx-auto max-w-xl px-4 py-16 text-center">
-          <div className="rounded-control border border-outline-variant/20 bg-surface p-6">
+        <PageContainer size="focused" className="py-16 text-center">
+          <div className="rounded-control border border-outline-variant bg-surface p-6">
             <h1 className="type-heading-lg text-on-surface">
-              No active motions available
+              {t("noMotionsTitle")}
             </h1>
             <p className="mt-3 text-sm leading-6 text-on-surface-variant">
-              No motion is ready for this language. Choose another language or
-              return to the arena.
+              {t("noMotionsBody")}
             </p>
             <Button
               type="button"
-              onClick={() => router.push("/debates")}
+              onClick={leaveArena}
               className="mt-5 h-8 rounded-control"
             >
-              Back to arena
+              {t("backToArena")}
             </Button>
           </div>
-        </div>
+        </PageContainer>
       </PageTransition>
     );
   }
 
   return (
     <PageTransition className="min-h-full bg-background">
-      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+      <PageContainer size="wide">
         <div className="mb-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-end">
           <div>
             <button
               type="button"
-              onClick={() => router.push("/debates")}
+              onClick={leaveArena}
               className="inline-flex h-8 items-center gap-2 rounded-control px-2 text-sm font-medium text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             >
               <ArrowLeft className="h-4 w-4" />
-              1v1 Debate Arena
+              {t("back")}
             </button>
             <h1 className="mt-2 type-heading-lg text-on-surface">
-              Find a match
+              {t("title")}
             </h1>
             <p className="mt-1 text-sm text-on-surface-variant">
-              Queue for a human opponent. Hidden MMR helps us monitor match
-              quality without showing public ranks.
+              {t("description")}
             </p>
           </div>
 
-          <div className="rounded-control border border-primary/15 bg-primary/6 p-3">
+          <div className="rounded-control border border-primary bg-primary-container p-3">
             <div className="flex items-center gap-3">
               <Radar className="h-6 w-6 text-primary" />
               <div>
                 <div className="font-semibold text-on-surface">
-                  Beta matchmaking
+                  {t("betaTitle")}
                 </div>
                 <div className="text-sm text-on-surface-variant">
-                  Human-only queue. Wait or cancel anytime.
+                  {t("betaDescription")}
                 </div>
               </div>
             </div>
@@ -444,116 +494,136 @@ export function DuelMatchmakingPage({
         </div>
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <main className="rounded-[12px] border border-outline-variant/15 bg-surface p-4 shadow-none">
+          <main className="rounded-control border border-outline-variant bg-surface p-4 shadow-none">
+            {recoveryShareCode && (
+              <div className="mt-5 rounded-control border border-info bg-info-container px-4 py-3 text-sm text-on-surface">
+                <p>{t("roomCreatedDuringCancel")}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3 h-8 rounded-control"
+                  onClick={() => router.push(`/debates/${recoveryShareCode}`)}
+                >
+                  {t("openRoom")}
+                </Button>
+              </div>
+            )}
             {isSearching || isMatched ? (
-              <div className="min-h-[360px] rounded-control border border-outline-variant/12 bg-surface-container-low p-4">
-                <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_200px] lg:items-center">
+              <div className="min-h-[360px] rounded-control border border-outline-variant bg-surface-container-low p-4">
+                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_120px] sm:items-start">
                   <div>
-                    <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 type-eyebrow text-primary">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-primary-container px-3 py-1 type-eyebrow text-primary">
                       <Sparkles className="h-3.5 w-3.5" />
-                      {isMatched ? "Match found" : "Searching"}
+                      {isMatched ? t("matchFound") : t("searching")}
                     </div>
                     <h2 className="mt-3 type-heading-lg text-on-surface">
-                      {isMatched
-                        ? "Opponent found. Opening room..."
-                        : "Looking for a fair opponent"}
+                      {operation === "ai"
+                        ? t("aiStarting")
+                        : cancellationRequestedRef.current
+                          ? t("cancelStatus")
+                          : isMatched
+                            ? t("openingRoom")
+                            : t("lookingForOpponent")}
                     </h2>
                     <p className="mt-2 max-w-2xl text-sm leading-6 text-on-surface-variant">
                       {isMatched
-                        ? "Both debaters are being moved into the ready check."
-                        : "We are matching category, difficulty, timers, and hidden skill profile. Keep this page open while the queue runs."}
+                        ? t("matchedDescription")
+                        : t("searchDescription")}
                     </p>
                   </div>
-                  <div className="rounded-control border border-outline-variant/12 bg-surface p-3 text-center">
-                    {isMatched ? (
-                      <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <Users className="h-11 w-11" />
-                      </div>
-                    ) : (
-                      <DuelIllustration
-                        name="thinkfy_duel_matchmaking_v1"
-                        alt="Searching for an opponent"
-                        className="mx-auto h-28 w-28"
-                      />
-                    )}
-                    <div className="mt-4 text-3xl font-bold text-on-surface">
-                      {isMatched ? "Ready" : formatQueueTimer(queueRemaining)}
+                  <div className="flex items-center justify-between gap-3 rounded-control bg-surface p-3 sm:block sm:text-center">
+                    <div className="type-title text-on-surface">
+                      {isMatched
+                        ? t("ready")
+                        : formatQueueTimer(queueRemaining)}
                     </div>
                     <div className="mt-1 text-sm text-on-surface-variant">
-                      {isMatched ? "Room created" : "Queue expires"}
+                      {isMatched ? t("roomCreated") : t("queueExpires")}
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mt-3 grid gap-x-4 sm:grid-cols-2">
                   {[
+                    [t("category"), selectedCategoryLabel],
                     [
-                      "Category",
-                      activeTicket?.topicCategory ?? selectedCategoryLabel,
+                      t("language"),
+                      (activeTicket?.practiceLanguage ?? practiceLanguage) ===
+                      "vi"
+                        ? t("vietnamese")
+                        : t("english"),
                     ],
+                    [t("difficulty"), t(topicDifficulty)],
                     [
-                      "Language",
-                      languageLabels[
-                        activeTicket?.practiceLanguage ?? practiceLanguage
-                      ],
-                    ],
-                    ["Difficulty", formatDifficulty(topicDifficulty)],
-                    [
-                      "Format",
-                      `${formatMinutes(prepTimeSeconds)} prep / ${formatMinutes(openingTimeSeconds)} open / ${formatMinutes(rebuttalTimeSeconds)} rebuttal`,
+                      t("format"),
+                      `${formatMinutes(prepTimeSeconds)} ${t("prep")} / ${formatMinutes(openingTimeSeconds)} ${t("opening")} / ${formatMinutes(rebuttalTimeSeconds)} ${t("rebuttal")}`,
                     ],
                   ].map(([label, value]) => (
                     <div
                       key={label}
-                      className="rounded-control border border-outline-variant/12 bg-surface px-3 py-2"
+                      className="flex min-w-0 items-start justify-between gap-3 border-b border-outline-variant py-2"
                     >
-                      <div className="type-eyebrow text-on-surface-variant">
+                      <div className="shrink-0 type-caption text-on-surface-variant">
                         {label}
                       </div>
-                      <div className="mt-2 text-sm font-semibold text-on-surface">
+                      <div className="text-right type-body text-on-surface">
                         {value}
                       </div>
                     </div>
                   ))}
                 </div>
 
-                {actionError && (
-                  <div className="mt-5 rounded-control border border-error/20 bg-error/8 px-4 py-3 text-sm text-error">
-                    {actionError}
+                {(actionError || pollError) && (
+                  <div className="mt-5 rounded-control border border-error bg-error-container px-4 py-3 text-sm text-error">
+                    {actionError ??
+                      t("errors.queueUpdate", { code: "DUEL-QUEUE-POLL" })}
                   </div>
                 )}
 
-                <div className="mt-7 grid gap-3 sm:grid-cols-[220px_minmax(0,1fr)]">
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={cancelQueue}
-                    disabled={pending || isMatched}
-                    className="h-8 rounded-control border-outline-variant/25 bg-surface text-primary"
+                    disabled={operation === "cancel"}
+                    className="h-8 rounded-control border-outline-variant bg-surface text-primary"
                   >
-                    Cancel queue
+                    {operation === "cancel"
+                      ? t("cancelling")
+                      : t("cancelQueue")}
                   </Button>
-                  <Button
-                    type="button"
-                    disabled
-                    className="h-8 rounded-control text-base"
+                  <div
+                    role="status"
+                    className="flex items-center gap-2 type-caption text-on-surface-variant"
                   >
-                    {isMatched ? "Opening room..." : "Searching..."}
-                    {!isMatched && <Loader2 className="h-4 w-4 animate-spin" />}
-                  </Button>
+                    {operation === "ai"
+                      ? t("aiStarting")
+                      : operation === "cancel"
+                        ? t("cancelling")
+                        : operation === "cancel-failed"
+                          ? t("cancelFailed")
+                          : isMatched
+                            ? t("openingButton")
+                            : t("searchingButton")}
+                    {!isMatched && operation !== "cancel-failed" && (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    )}
+                  </div>
                 </div>
 
-                {isSearching && queueElapsed >= AI_BACKFILL_OFFER_SECONDS && (
-                  <button
-                    type="button"
-                    onClick={triggerAiBackfill}
-                    disabled={pending}
-                    className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-control border border-primary/25 bg-primary/6 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-60"
-                  >
-                    <Bot className="h-4 w-4" />
-                    No humans yet — practice against an AI sparring partner
-                  </button>
-                )}
+                {isSearching &&
+                  !cancellationRequestedRef.current &&
+                  queueElapsed >= AI_BACKFILL_OFFER_SECONDS && (
+                    <button
+                      type="button"
+                      onClick={triggerAiBackfill}
+                      disabled={pending}
+                      className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-control border border-primary bg-primary-container px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary-container disabled:opacity-60"
+                    >
+                      <Bot className="h-4 w-4" />
+                      {operation === "ai" ? t("aiStarting") : t("aiOffer")}
+                    </button>
+                  )}
               </div>
             ) : (
               <div className="space-y-5">
@@ -563,7 +633,7 @@ export function DuelMatchmakingPage({
                       1
                     </div>
                     <h2 className="text-xl font-bold text-on-surface">
-                      Match preferences
+                      {t("matchPreferences")}
                     </h2>
                   </div>
 
@@ -573,11 +643,12 @@ export function DuelMatchmakingPage({
                         key={category.key}
                         type="button"
                         onClick={() => setTopicCategoryKey(category.key)}
+                        disabled={pending}
                         className={cn(
                           "min-h-10 rounded-control border px-3 py-2 text-left text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                           effectiveTopicCategoryKey === category.key
-                            ? "border-primary bg-primary/8 text-primary"
-                            : "border-outline-variant/15 bg-surface text-on-surface hover:bg-surface-container-low",
+                            ? "border-primary bg-primary-container text-primary"
+                            : "border-outline-variant bg-surface text-on-surface hover:bg-surface-container-low",
                         )}
                       >
                         {category.label}
@@ -591,14 +662,15 @@ export function DuelMatchmakingPage({
                         key={option.value}
                         type="button"
                         onClick={() => setTopicDifficulty(option.value)}
+                        disabled={pending}
                         className={cn(
                           "h-8 rounded-control border px-3 text-sm font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
                           topicDifficulty === option.value
                             ? "border-primary bg-primary text-on-primary"
-                            : "border-outline-variant/20 bg-surface text-on-surface-variant hover:bg-surface-container-low",
+                            : "border-outline-variant bg-surface text-on-surface-variant hover:bg-surface-container-low",
                         )}
                       >
-                        {option.label}
+                        {t(option.label)}
                       </button>
                     ))}
                   </div>
@@ -610,7 +682,7 @@ export function DuelMatchmakingPage({
                       2
                     </div>
                     <h2 className="text-xl font-bold text-on-surface">
-                      Timer preset
+                      {t("timerPreset")}
                     </h2>
                   </div>
 
@@ -618,23 +690,33 @@ export function DuelMatchmakingPage({
                     {timerControls.map(({ label, value, setter, config }) => (
                       <DurationControl
                         key={label}
-                        label={`${label} time`}
+                        label={t("timeLabel", { label })}
                         icon={<Clock3 className="h-4 w-4" />}
                         value={value}
                         config={config}
-                        onChange={setter}
+                        onChange={(value) => {
+                          if (!pending) setter(value);
+                        }}
+                        disabled={pending}
+                        labels={{
+                          decrease: t("decreaseTime", { label }),
+                          increase: t("increaseTime", { label }),
+                          minutes: t("minuteUnit"),
+                          minuteShort: t("minuteUnit"),
+                          preset: formatMinutes,
+                        }}
                         compact
                       />
                     ))}
                   </div>
                 </section>
 
-                <section className="rounded-control border border-outline-variant/12 bg-surface-container-low p-4">
+                <section className="rounded-control border border-outline-variant bg-surface-container-low p-4">
                   <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_160px] md:items-center">
                     <div>
                       <div className="flex items-center gap-2 text-sm font-semibold text-primary">
                         <SlidersHorizontal className="h-4 w-4" />
-                        Match sample
+                        {t("matchSample")}
                       </div>
                       <h3 className="mt-2 break-words type-heading-md text-on-surface">
                         {previewTopic.title}
@@ -653,19 +735,32 @@ export function DuelMatchmakingPage({
                   </div>
                 </section>
 
-                {actionError && (
-                  <div className="rounded-control border border-error/20 bg-error/8 px-4 py-3 text-sm text-error">
-                    {actionError}
+                {(actionError || pollError) && (
+                  <div className="rounded-control border border-error bg-error-container px-4 py-3 text-sm text-error">
+                    {actionError ??
+                      t("errors.queueUpdate", { code: "DUEL-QUEUE-POLL" })}
                   </div>
                 )}
 
+                {(operation === "entry" || operation === "cancel") && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={operation === "cancel"}
+                    onClick={cancelQueue}
+                  >
+                    {operation === "cancel"
+                      ? t("cancelling")
+                      : t("cancelQueue")}
+                  </Button>
+                )}
                 <Button
                   type="button"
                   onClick={enterQueue}
                   disabled={pending}
                   className="h-8 w-full rounded-control text-base"
                 >
-                  {pending ? "Entering queue..." : "Find opponent"}
+                  {pending ? t("enteringQueue") : t("findOpponent")}
                   {pending ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
@@ -684,22 +779,20 @@ export function DuelMatchmakingPage({
               openingTimeSeconds={openingTimeSeconds}
               rebuttalTimeSeconds={rebuttalTimeSeconds}
             />
-            <div className="rounded-control border border-success/20 bg-success/8 p-5">
+            <div className="rounded-control border border-success bg-success-container p-5">
               <div className="flex items-center gap-3">
                 <ShieldCheck className="h-5 w-5 text-success" />
                 <div className="font-semibold text-on-surface">
-                  Monitored light fair play
+                  {t("fairPlayTitle")}
                 </div>
               </div>
               <p className="mt-3 text-sm leading-6 text-on-surface-variant">
-                We log tab switches, paste/shortcut events, reconnects, and
-                speech quality signals. Repeated suspicious signals can exclude
-                the match from hidden MMR.
+                {t("fairPlayBody")}
               </p>
             </div>
           </div>
         </div>
-      </div>
+      </PageContainer>
     </PageTransition>
   );
 }

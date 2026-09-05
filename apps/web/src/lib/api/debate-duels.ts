@@ -1553,13 +1553,14 @@ export async function judgeDebateDuelRoomInternal(shareCode: string) {
 }
 
 /**
- * Backfill a matchmaking ticket with an AI duel when no human is available.
- * Human = proposition (charged 200), AI = opposition (free). The duel starts
- * in_progress immediately and is unrated (ai_opponent), so the shadow ELO never
- * sees it.
+ * Explicitly choose an AI opponent for an owned queue ticket. The RPC locks
+ * that ticket and returns an existing match on retries or a human-match race.
+ * A newly created AI duel starts immediately: human pays 200 as proposition,
+ * AI is free as opposition, and the duel is unrated. Cancelled tickets fail closed.
  */
 export async function createDebateDuelAiBackfill(
   userId: string,
+  ticketId: string,
   input: EnterDebateDuelMatchmakingInput,
 ) {
   const aiUserId = await ensureAiOpponentUser();
@@ -1568,6 +1569,7 @@ export async function createDebateDuelAiBackfill(
     "create_ai_backfill_duel",
     {
       p_human_user_id: userId,
+      p_ticket_id: ticketId,
       p_ai_user_id: aiUserId,
       p_practice_topic_key: input.topicKey ?? null,
       p_topic_title: input.topicTitle,
