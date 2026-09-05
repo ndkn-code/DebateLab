@@ -118,6 +118,15 @@ export function getAiTaskPolicy(task: AiTask): AiTaskPolicy {
         temperature: 0.2,
         criticality: "critical",
       };
+    case "teacher_operations":
+      return {
+        candidates: [{ provider: "groq", model: process.env.GROQ_TEACHER_OPERATIONS_MODEL || groqModel() }],
+        attemptTimeoutMs: 35_000,
+        schemaRepairAttempts: 0,
+        maxOutputTokens: 6_000,
+        temperature: 0.1,
+        criticality: "critical",
+      };
     case "coach_chat":
       return {
         candidates: [{ provider: "groq", model: getGroqCoachFallbackModel() }],
