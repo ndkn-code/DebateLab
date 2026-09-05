@@ -11,6 +11,7 @@ import { Stagger, StaggerItem } from "@/components/motion";
 import { PopularCoursesList } from "./PopularCoursesList";
 import { GlobalMap } from "./GlobalMap";
 import posthog from "posthog-js";
+import { PageContainer } from "@/components/shared/product-layout";
 
 interface Props {
   initialData: AnalyticsOverview;
@@ -93,9 +94,9 @@ export function OverviewDashboard({ initialData }: Props) {
   }));
 
   return (
-    <div className="mx-auto w-full max-w-[1680px] space-y-4 px-4 py-4 sm:px-6 lg:px-8 lg:py-5">
+    <PageContainer size="wide" className="space-y-4 py-4 lg:py-5">
       {/* Header */}
-      <div className="flex flex-col gap-3 border-b border-outline-variant/70 pb-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-3 border-b border-outline-variant pb-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="type-eyebrow text-secondary">
             {adminT("groups.operations")}
@@ -175,6 +176,6 @@ export function OverviewDashboard({ initialData }: Props) {
         <PopularCoursesList courses={data.popular_courses} />
         <ApiUsageChart data={data.api_usage} />
       </div>
-    </div>
+    </PageContainer>
   );
 }

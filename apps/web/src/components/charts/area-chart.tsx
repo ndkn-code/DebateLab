@@ -31,6 +31,8 @@ export interface AreaChartProps {
   data: Record<string, unknown>[];
   /** Key in data for the x-axis (date). Default: "date" */
   xDataKey?: string;
+  /** Optional locale-aware formatter for visible x-axis and date-pill labels. */
+  dateLabelFormatter?: (date: Date) => string;
   /** Chart margins */
   margin?: Partial<Margin>;
   /** Animation duration in milliseconds. Default: 1100 */
@@ -115,6 +117,7 @@ interface ChartInnerProps {
   height: number;
   data: Record<string, unknown>[];
   xDataKey: string;
+  dateLabelFormatter?: (date: Date) => string;
   margin: Margin;
   animationDuration: number;
   animationEasing?: string;
@@ -137,6 +140,7 @@ function ChartInner({
   height,
   data,
   xDataKey,
+  dateLabelFormatter,
   margin,
   animationDuration,
   animationEasing,
@@ -173,6 +177,7 @@ function ChartInner({
       tweenYDomainOnXDomainChange={tweenYDomainOnXDomainChange}
       width={width}
       xDataKey={xDataKey}
+      dateLabelFormatter={dateLabelFormatter}
       xDomain={xDomain}
       xDomainSlotCount={xDomainSlotCount}
       yDomainTween={yDomainTween}
@@ -186,6 +191,7 @@ function ChartInner({
 export function AreaChart({
   data,
   xDataKey = "date",
+  dateLabelFormatter,
   margin: marginProp,
   animationDuration = 1100,
   animationEasing,
@@ -248,6 +254,7 @@ export function AreaChart({
             tweenYDomainOnXDomainChange={tweenYDomainOnXDomainChange}
             width={width}
             xDataKey={xDataKey}
+            dateLabelFormatter={dateLabelFormatter}
             xDomain={xDomain}
             xDomainSlotCount={xDomainSlotCount}
             yDomainTween={yDomainTween}

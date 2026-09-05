@@ -1,6 +1,6 @@
 "use client";
 
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   Bar,
   BarChart,
@@ -18,7 +18,13 @@ interface Props {
 
 export function ApiUsageChart({ data }: Props) {
   const t = useTranslations("admin.overview");
+  const locale = useLocale();
   const totalCost = data.reduce((sum, d) => sum + d.total_cost, 0);
+  const formatCurrency = (value: number) =>
+    new Intl.NumberFormat(locale, {
+      style: "currency",
+      currency: "USD",
+    }).format(value);
 
   const formatted = data.map((d) => ({
     ...d,
@@ -30,7 +36,7 @@ export function ApiUsageChart({ data }: Props) {
       title={t("apiUsage")}
       actions={
         <span className="type-caption font-medium text-on-surface-variant">
-          Total: ${totalCost.toFixed(2)}
+          {t("totalCost")}: {formatCurrency(totalCost)}
         </span>
       }
       bodyClassName="h-[220px]"
@@ -54,13 +60,13 @@ export function ApiUsageChart({ data }: Props) {
             rows={(point) => [
               {
                 color: API_USAGE_COLOR,
-                label: "Calls",
-                value: Number(point.total_calls ?? 0),
+                label: t("calls"),
+                value: Number(point.total_calls ?? 0).toLocaleString(locale),
               },
               {
                 color: "var(--chart-line-secondary)",
-                label: "Cost",
-                value: `$${Number(point.total_cost ?? 0).toFixed(2)}`,
+                label: t("cost"),
+                value: formatCurrency(Number(point.total_cost ?? 0)),
               },
             ]}
           />

@@ -131,6 +131,8 @@ export interface TimeSeriesChartInnerProps {
   height: number;
   data: Record<string, unknown>[];
   xDataKey: string;
+  /** Optional locale-aware formatter for visible x-axis and date-pill labels. */
+  dateLabelFormatter?: (date: Date) => string;
   margin: Margin;
   animationDuration: number;
   animationEasing?: string;
@@ -181,6 +183,7 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
   height,
   data,
   xDataKey,
+  dateLabelFormatter,
   margin,
   animationDuration,
   animationEasing = DEFAULT_ANIMATION_EASING,
@@ -398,8 +401,12 @@ const TimeSeriesChartCore = memo(function TimeSeriesChartCore({
   );
 
   const dateLabels = useMemo(
-    () => visiblePlotData.map((d) => shortDateFmt.format(xAccessor(d))),
-    [visiblePlotData, xAccessor]
+    () =>
+      visiblePlotData.map((d) => {
+        const date = xAccessor(d);
+        return dateLabelFormatter?.(date) ?? shortDateFmt.format(date);
+      }),
+    [dateLabelFormatter, visiblePlotData, xAccessor]
   );
 
   const canInteract = isLoaded && isChartInteractionPhase(chartPhase);

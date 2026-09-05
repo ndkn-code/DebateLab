@@ -69,6 +69,7 @@
     "lint:web": "npm run lint -w @thinkfy/web",
     "typecheck:web": "npm run typecheck -w @thinkfy/web",
     "typecheck:shared": "npm run typecheck -w @thinkfy/shared",
+    "test:admin-rendering": "tsx scripts/admin/rendering.test.ts",
     "test:admin-analytics": "npm run test:admin-analytics -w @thinkfy/web",
     "test:admin-classes": "npm run test:admin-classes -w @thinkfy/web",
     "test:admin-class-schedules": "npm run test:admin-class-schedules -w @thinkfy/web",

@@ -6,7 +6,10 @@ import {
   Plus,
   Search,
 } from "@/components/ui/icons";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
+import { Select } from "@/components/ui/select";
+import { PageContainer } from "@/components/shared/product-layout";
 import type {
   OrganizationStatus,
   OrganizationType,
@@ -25,7 +28,7 @@ export type OrganizationAdminRow = {
 
 const copy = {
   en: {
-    eyebrow: "Workspace administration",
+    eyebrow: "Platform administration",
     title: "Organizations",
     description: "Manage clubs and schools from one operational view.",
     new: "New organization",
@@ -41,15 +44,18 @@ const copy = {
     archived: "Archived",
     apply: "Apply filters",
     empty: "No matching organizations",
+    first: "No organizations yet",
+    firstHelp: "Create an organization to manage its members and classes.",
     emptyHelp: "Change the filters or create the first organization.",
     members: "people",
     classes: "classes",
     continue: "Continue setup",
     open: "Open workspace",
     loadError: "Organization data could not be loaded right now.",
+    retry: "Reload organizations",
   },
   vi: {
-    eyebrow: "Quản trị không gian",
+    eyebrow: "Quản trị hệ thống",
     title: "Tổ chức",
     description: "Quản lý câu lạc bộ và trường học trong một giao diện.",
     new: "Tạo tổ chức",
@@ -65,12 +71,15 @@ const copy = {
     archived: "Đã lưu trữ",
     apply: "Lọc",
     empty: "Không có tổ chức phù hợp",
+    first: "Chưa có tổ chức nào",
+    firstHelp: "Tạo tổ chức để quản lý thành viên và lớp học.",
     emptyHelp: "Thay đổi bộ lọc hoặc tạo tổ chức đầu tiên.",
     members: "thành viên",
-    classes: "lớp",
+    classes: "lớp học",
     continue: "Tiếp tục thiết lập",
-    open: "Mở không gian",
+    open: "Quản lý tổ chức",
     loadError: "Hiện chưa thể tải dữ liệu tổ chức.",
+    retry: "Tải lại danh sách tổ chức",
   },
 } as const;
 
@@ -88,10 +97,13 @@ export function OrganizationAdminWorkbench({
   loadError?: boolean;
 }) {
   const t = copy[locale];
+  const hasFilters = Boolean(
+    filters.query || filters.type !== "all" || filters.status !== "all",
+  );
   const route = `/${locale}/dashboard/admin/organizations`;
 
   return (
-    <main className="w-full max-w-none space-y-5 p-4 sm:p-6 lg:p-8">
+    <PageContainer size="data" className="space-y-5">
       <header className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="type-eyebrow text-primary">{t.eyebrow}</p>
@@ -102,7 +114,10 @@ export function OrganizationAdminWorkbench({
         </div>
         <Link
           href={`${route}/new`}
-          className={buttonVariants({ className: "min-h-11 sm:min-h-8" })}
+          className={buttonVariants({
+            variant: "primary",
+            className: "min-h-11 sm:min-h-8",
+          })}
         >
           <Plus className="mr-2 h-4 w-4" aria-hidden="true" />
           {t.new}
@@ -112,7 +127,7 @@ export function OrganizationAdminWorkbench({
       {showCompatibilityNotice ? (
         <div
           role="status"
-          className="rounded-control border border-primary/25 bg-primary-container px-4 py-3 type-body-sm text-on-surface"
+          className="rounded-control border border-outline-variant bg-primary-container px-4 py-3 type-body-sm text-on-surface"
         >
           {t.compatibility}
         </div>
@@ -121,15 +136,24 @@ export function OrganizationAdminWorkbench({
       {loadError ? (
         <div
           role="alert"
-          className="rounded-control border border-error/30 bg-error/5 px-4 py-3 type-label text-on-surface"
+          className="rounded-control border border-error bg-error-container px-4 py-3 type-label text-on-surface"
         >
           {t.loadError}
+          <a
+            href={`${route}?${new URLSearchParams({ q: filters.query, type: filters.type, status: filters.status })}`}
+            className={buttonVariants({
+              variant: "outline",
+              className: "mt-3 flex w-fit",
+            })}
+          >
+            {t.retry}
+          </a>
         </div>
       ) : null}
 
       <form
         action={route}
-        className="grid gap-2 rounded-[12px] border border-outline-variant bg-surface p-3 sm:grid-cols-[minmax(220px,1fr)_180px_180px_auto]"
+        className="grid gap-2 rounded-control border border-outline-variant bg-surface p-3 md:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_180px_180px_auto]"
       >
         <label className="relative block">
           <span className="sr-only">{t.search}</span>
@@ -146,7 +170,7 @@ export function OrganizationAdminWorkbench({
         </label>
         <label>
           <span className="sr-only">{t.allTypes}</span>
-          <select
+          <Select
             name="type"
             defaultValue={filters.type}
             className="h-10 w-full rounded-control border border-outline-variant bg-surface px-3 type-body text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -154,11 +178,11 @@ export function OrganizationAdminWorkbench({
             <option value="all">{t.allTypes}</option>
             <option value="club">{t.club}</option>
             <option value="school">{t.school}</option>
-          </select>
+          </Select>
         </label>
         <label>
           <span className="sr-only">{t.allStatuses}</span>
-          <select
+          <Select
             name="status"
             defaultValue={filters.status}
             className="h-10 w-full rounded-control border border-outline-variant bg-surface px-3 type-body text-on-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -167,24 +191,26 @@ export function OrganizationAdminWorkbench({
             <option value="draft">{t.draft}</option>
             <option value="active">{t.active}</option>
             <option value="archived">{t.archived}</option>
-          </select>
+          </Select>
         </label>
         <Button type="submit" variant="outline" className="min-h-10">
           {t.apply}
         </Button>
       </form>
 
-      {organizations.length === 0 ? (
-        <section className="rounded-[12px] border border-outline-variant bg-surface p-8 text-center">
+      {loadError ? null : organizations.length === 0 ? (
+        <section className="rounded-control border border-outline-variant bg-surface p-8 text-center">
           <Building2 className="mx-auto h-8 w-8 text-on-surface-variant" />
-          <h2 className="mt-3 type-title text-on-surface">{t.empty}</h2>
+          <h2 className="mt-3 type-title text-on-surface">
+            {hasFilters ? t.empty : t.first}
+          </h2>
           <p className="mt-1 type-body-sm text-on-surface-variant">
-            {t.emptyHelp}
+            {hasFilters ? t.emptyHelp : t.firstHelp}
           </p>
         </section>
       ) : (
         <section
-          className="overflow-hidden rounded-[12px] border border-outline-variant bg-surface"
+          className="overflow-hidden rounded-control border border-outline-variant bg-surface"
           aria-label={t.title}
         >
           <ul className="divide-y divide-outline-variant">
@@ -208,7 +234,7 @@ export function OrganizationAdminWorkbench({
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-2">
-                        <span className="truncate type-label text-on-surface">
+                        <span className="break-words type-label text-on-surface">
                           {organization.name}
                         </span>
                         <StatusBadge
@@ -237,7 +263,7 @@ export function OrganizationAdminWorkbench({
           </ul>
         </section>
       )}
-    </main>
+    </PageContainer>
   );
 }
 
@@ -251,7 +277,7 @@ function StatusBadge({
   return (
     <span
       className={cn(
-        "inline-flex h-5 items-center rounded-[6px] px-2 type-caption",
+        "inline-flex h-5 items-center rounded-sm px-2 type-caption",
         status === "active"
           ? "bg-primary-container text-primary"
           : status === "draft"
