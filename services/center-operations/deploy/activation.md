@@ -3,8 +3,9 @@
 Updated 2026-09-05 UTC (2026-09-04 America/New_York).
 User authorized Google OAuth and cloud configuration. Cloud CLI authenticated access
 and browser sign-in were verified. Google OAuth and cloud configuration are provisioned.
-The twelve center migrations are applied; application acceptance testing is in progress.
-Center-account consent remains a separate user step.
+The twelve center migrations are applied and the application is live on `thinkfy.net`.
+Native application acceptance tests passed; Google data consent and provider round trips
+remain separate user-dependent steps.
 
 ## Created and verified
 
@@ -67,15 +68,19 @@ Center-account consent remains a separate user step.
 - Gateway state: **ACTIVE**, verified after provisioning completed.
 - Cloud Run IAM has exactly three resource-level invokers: gateway, scheduler, and
   `debatelab-vercel-publisher`. No `allUsers` or `allAuthenticatedUsers` grant.
-- Scheduler `thinkfy-center-reconcile`, `asia-southeast1`: **PAUSED**.
+- Scheduler `thinkfy-center-reconcile`, `asia-southeast1`: **ENABLED**.
   Schedule `* * * * *`, time zone `Asia/Ho_Chi_Minh`, POST `/reconcile`, body `{}`,
   deadline 300 seconds, three retries, 5–60 second backoff. OIDC audience is the Run
   origin; identity is `center-reconcile`.
 - Vercel project `debate-lab`, production only:
-  `CENTER_OPERATIONS_SERVICE_URL` = Run origin; `CENTER_OPERATIONS_V1=false`.
+  `CENTER_OPERATIONS_SERVICE_URL` = Run origin; `CENTER_OPERATIONS_V1=true`.
   Readback confirmed existing WIF project number `1038392416565`, pool/provider `vercel`,
   and service account `debatelab-vercel-publisher@thinkfy-debatelab-prod.iam.gserviceaccount.com`.
-  These settings apply to the next deployment; no frontend deployment was made here.
+  Promoted source `455c446a` to production after candidate acceptance checks.
+  Deployment `dpl_Ear4Du5PPqUiM7v6KUtre5JgbLQk` is READY and owns `thinkfy.net`:
+  `https://debate-obp59z81v-ndknwork-1412s-projects.vercel.app`.
+  Saved rollback deployment: `dpl_C39iqxCGiRwTLcfFJLBDBfuuhFCd`.
+  Existing PDF import/compliance flags remain disabled.
 
 ## Verification and remaining release steps
 
@@ -92,7 +97,9 @@ Center-account consent remains a separate user step.
   not a verified external health probe. Use the Ready state and authenticated route
   checks above for this checkpoint; choose a reachable path before adding HTTP monitoring.
 - OAuth branding, redirect URL, scope save, test-user readback, enabled secret version,
-  Vercel environment values, Run IAM and paused Scheduler were checked.
+  Vercel environment values and Run IAM were checked. Scheduler was resumed after
+  application promotion. Manual and scheduled runs returned HTTP 200 at
+  `2026-09-05T03:34:48Z` and `2026-09-05T03:35:05Z`.
 
 ## Application/database acceptance checkpoint
 
@@ -120,9 +127,18 @@ Center-account consent remains a separate user step.
 - Live corrected chat tests passed cited read-only answers, automatic draft creation,
   draft visibility in Materials, and a pending trial proposal that executed only after
   confirmation. Proposal fields and dates use readable English/Vietnamese labels.
+- Final source `455c446a` passed GitHub Quality bar and Vercel checks. The final build
+  passed all 112 layout checks, Vietnamese read-only chat, a natural-language booking
+  request producing a pending confirmation card, and cancellation without booking.
+  Canonical production browser readback confirmed all seven tabs and the QA records.
+- Reconciliation finished all nine QA events with no failed/pending events. Native-only
+  events were skipped as designed. Two drafts and two trial bookings persist; one trial
+  proposal was executed and one cancelled. No ZBS delivery receipt was created.
 - The real app-to-Cloud-Run OAuth start reached Google's account chooser with S256 PKCE,
   the exact gateway callback and only `calendar.app.created` plus `drive.file`.
 - The user selected `jknguyen.wor@gmail.com` for the pilot. Acceptance records are in
   the isolated **Thinkfy Center Pilot QA** center, not an existing operational center.
 - Google data consent and actual Calendar/Sheets/Drive round trips remain pending.
   Zalo OA and merchant activation remain pending. ZBS policies remain disabled.
+- Draft PR: `https://github.com/ndkn-code/DebateLab/pull/43`. Keep subsequent production
+  deployments on this release lineage until the feature is merged into `main`.
