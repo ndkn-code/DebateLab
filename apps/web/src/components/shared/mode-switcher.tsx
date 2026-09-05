@@ -120,7 +120,7 @@ export function ModeSwitcher({
         try {
           await saveDebateModePreference(nextLocale);
           const nextPath = buildLocaleSwitchPath(
-            pathname,
+            `${pathname}${window.location.hash}`,
             new URLSearchParams(searchParams.toString()),
           );
 

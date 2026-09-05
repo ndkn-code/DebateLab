@@ -24,7 +24,7 @@ export function LanguageToggle({ compact = false, className }: LanguageTogglePro
     startTransition(() => {
       router.replace(
         buildLocaleSwitchPath(
-          pathname,
+          `${pathname}${window.location.hash}`,
           new URLSearchParams(searchParams.toString()),
         ),
         { locale: newLocale },
